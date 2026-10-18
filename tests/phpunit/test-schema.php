@@ -37,7 +37,7 @@ class Test_Schema extends WP_UnitTestCase {
 
 	public function test_table_stores_provider_model_and_language_with_each_vector() {
 		$this->assertSame(
-			array( 'id', 'post_id', 'provider', 'model', 'language', 'dimensions', 'vector', 'content_hash', 'embedded_at' ),
+			array( 'id', 'post_id', 'provider', 'model', 'language', 'dimensions', 'embedding', 'content_hash', 'embedded_at' ),
 			$this->columns()
 		);
 	}
