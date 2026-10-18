@@ -25,3 +25,4 @@ phpunit.xml.dist
 playwright.config.js
 README.md
 /dist
+jest.config.js
