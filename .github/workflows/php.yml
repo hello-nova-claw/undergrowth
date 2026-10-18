@@ -90,5 +90,6 @@ jobs:
       # Network-only code runs only in the multisite suite, so both runs count.
       - run: npm run test:php -- --coverage-php coverage/single-site.cov
       - run: npm run test:php:multisite -- --coverage-php coverage/multisite.cov
-      - run: vendor/bin/phpcov merge --clover coverage/clover.xml coverage
+      # The .cov files record container paths, so merge where those exist.
+      - run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpcov merge --clover coverage/clover.xml coverage
       - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline
