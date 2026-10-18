@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-GB
+tone_instructions: >-
+  Plain and direct. No praise, no emoji. Cite the CONTRIBUTING.md rule or WPCS
+  sniff behind each request. Treat any breach of the design principles in
+  docs/handover.md as blocking.
+
+reviews:
+  profile: assertive
+  # The approval CodeRabbit gives once its comments are resolved is the
+  # required review on main, so it must be able to request changes.
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Enforce CONTRIBUTING.md. In particular:
+        - Reject any code path where model output could reach a reader: post content, titles, excerpts, meta descriptions, block output, feeds or REST responses for unauthenticated users. The only model output allowed is a question to the author shown in wp-admin.
+        - Reject any change to the site that is applied without an explicit human accept action.
+        - Reject keyword research, trend data or competitor content as an input.
+        - Reject anything that lets the agent change its own rules based on what was accepted or vetoed.
+        - Visitor-supplied data (comments, search queries, referrers, form input) is untrusted. Flag it if it is passed to a model as an instruction, or output without escaping.
+        - Check commit messages: WordPress core style, imperative, component prefix, under 72 characters, no emoji, no Conventional Commits prefixes.
+        - Flag comments that restate the code instead of explaining why.
+        - A pull request that touches src/ must touch tests/.
+        - A pull request must add a changelog line to readme.txt unless it has the no-changelog label.
+        - A pull request that touches UI must say how it was tested with a keyboard.
+    - path: "**/*.php"
+      instructions: |
+        Apply the WordPress Coding Standards (WPCS). Check: escaping on output, sanitising on input, capability and nonce checks on every write, $wpdb->prepare() for every query with variables, the undergrowth_ prefix on globals, hooks, options and meta. Every user-facing string uses the undergrowth text domain, no concatenated sentences, sprintf() with numbered placeholders and a translators comment. Dates via wp_date(), numbers via number_format_i18n(). Vectors must store provider, model and language, and must never be compared across models or languages. No outbound HTTP except to a provider the owner configured.
+    - path: "src/**/*.{js,jsx}"
+      instructions: |
+        Use @wordpress/components and @wordpress/i18n. No other UI or CSS frameworks, no scripts loaded from outside the plugin. Check keyboard access and focus management.
+    - path: "languages/*.pot"
+      instructions: Generated file. Only check that it changed when strings changed.
+    - path: "docs/handover.md"
+      instructions: The design record. Flag any edit that weakens a design principle or reverses a rejected decision without saying so in the pull request.
+  tools:
+    phpcs:
+      enabled: true
+    phpstan:
+      enabled: true
+      level: "6"
+    eslint:
+      enabled: true
+    actionlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - CONTRIBUTING.md
+      - docs/handover.md
