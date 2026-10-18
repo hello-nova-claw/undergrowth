@@ -51,6 +51,29 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
+	public function test_schema_version_is_not_recorded_when_table_is_missing_after_install() {
+		delete_option( 'undergrowth_schema_version' );
+
+		// Make the post-install check look for a table that does not exist, as if CREATE TABLE had failed.
+		$hide_table = static function ( $query ) {
+			if ( 0 === strpos( $query, 'SHOW TABLES LIKE' ) ) {
+				return "SHOW TABLES LIKE 'undergrowth_missing_table'";
+			}
+			return $query;
+		};
+		add_filter( 'query', $hide_table );
+
+		$installed = undergrowth_install_schema();
+
+		remove_filter( 'query', $hide_table );
+		$this->assertFalse( $installed );
+		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
+	}
+
+	public function test_successful_install_reports_success() {
+		$this->assertTrue( undergrowth_install_schema() );
+	}
+
 	public function test_outdated_schema_version_triggers_install() {
 		update_option( 'undergrowth_schema_version', 0 );
 

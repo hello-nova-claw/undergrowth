@@ -89,6 +89,34 @@ class Test_Vectors extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_save_vector( $post_id, array(), $this->meta() ) );
 	}
 
+	/**
+	 * Vectors that cannot be stored faithfully.
+	 *
+	 * @return array<string, array{0: array<mixed>}>
+	 */
+	public function data_invalid_vectors(): array {
+		return array(
+			'not a number'   => array( array( 1.0, NAN ) ),
+			'infinity'       => array( array( INF ) ),
+			'numeric string' => array( array( 1.0, '0.5' ) ),
+			'keyed array'    => array( array( 'a' => 1.0 ) ),
+		);
+	}
+
+	/**
+	 * Saving is refused rather than writing an empty or altered embedding.
+	 *
+	 * @dataProvider data_invalid_vectors
+	 *
+	 * @param array<mixed> $vector Vector to save.
+	 */
+	public function test_invalid_vector_is_refused( array $vector ) {
+		$post_id = self::factory()->post->create();
+
+		$this->assertFalse( undergrowth_save_vector( $post_id, $vector, $this->meta() ) );
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
+	}
+
 	public function test_deleted_vector_is_gone() {
 		$post_id = self::factory()->post->create();
 		undergrowth_save_vector( $post_id, array( 1.0 ), $this->meta() );
