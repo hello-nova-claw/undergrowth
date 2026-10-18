@@ -16,7 +16,7 @@
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit",
 		"test:e2e": "wp-scripts test-playwright --pass-with-no-tests",
 		"test:a11y": "pa11y-ci",
-		"i18n:pot": "wp-env run cli --env-cwd=wp-content/plugins/undergrowth wp i18n make-pot . languages/undergrowth.pot --exclude=bin,docs,node_modules,tests,vendor",
+		"i18n:pot": "wp-env run cli --env-cwd=wp-content/plugins/undergrowth wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor",
 		"i18n:pseudo": "node bin/pseudo-locale.mjs languages/undergrowth.pot"
 	},
 	"devDependencies": {
