@@ -46,6 +46,7 @@ One-line pitch: a digital garden where the gardener plants and the readers decid
 | Spore germination | Germination mode: grow blind from the author's own posts, no reader data yet |
 | Pruning / decay | Monthly prune list, human-approved |
 | Growth stages (seedling to evergreen) | Measured from structure and flow, not declared by the author |
+| Composting (Katherine May, *Wintering*) | Author-chosen rest for a post; it leaves the active garden but its material feeds future prompts |
 
 Digital garden tie-in (Maggie Appleton / Mike Caulfield): topography over timeline, continuous growth, learning in public. The plugin adds the missing half: continuous decay. LYT Maps of Content = hubs = mushrooms.
 
@@ -85,6 +86,15 @@ Mixed rule. A fixed visit number for the meter (milestone the owner can see). A 
 | Budding | In a cluster, links both in and out. |
 | Evergreen | In a cluster, 3+ links in, at least one hub links to it. Once reader mode is on: scent above site median for 60 days. |
 | Wilting | Was evergreen, scent below median for 60 days. Reader mode only. Goes on the refresh list. |
+| Composting | Author-chosen only. The plugin never proposes it. Post stays published but leaves the active garden: no link proposals in or out, no prune or refresh listing, no stage changes, no timer, never expires. Embedding stays in the index and may feed writing prompts and resurfacing. From Katherine May, *Wintering*: a fallow period is material for what grows next, not failure. |
+
+Composting rules:
+- Only the author moves a post to compost, from any stage. The plugin never suggests it.
+- Composted posts' vectors stay in the index. The prompt generator (section 5b) may draw on them, e.g. "Three years ago you wrote about X. Is there something there now?"
+- Resurfacing: when a composted post's vector sits close to a new cluster, one signal appears on the map: "this old post is near what you are writing now". The author returns it to the garden or leaves it. One signal per post per cycle, dismissable.
+- No "composting for N days" message, no expiry, no nudge to return it. You cannot schedule a winter.
+- Composting is not deletion, redirect, or noindex. Those remain prune actions the author can take separately.
+- Storage: composting is a value of the same post meta key as the other stages, and is written to the per-post text file like any stage change. Pinning rules do not apply; composting is always an explicit author action, so no pin marker is shown.
 
 Rules:
 - Author can pin a stage. A pinned stage shows a small marker.
