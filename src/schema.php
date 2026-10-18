@@ -65,6 +65,16 @@ function undergrowth_install_schema(): bool {
 }
 
 /**
+ * Installs the schema on activation.
+ *
+ * Activation hooks expect no return value, so this wraps the installer
+ * rather than registering it directly.
+ */
+function undergrowth_activate(): void {
+	undergrowth_install_schema();
+}
+
+/**
  * Installs the schema when the stored version is behind the code.
  *
  * Activation hooks do not run on plugin updates, so the version check
