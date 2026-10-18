@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="tests/phpunit/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true"
+>
+	<php>
+		<const name="WP_TESTS_MULTISITE" value="1"/>
+	</php>
+	<testsuites>
+		<testsuite name="undergrowth">
+			<directory prefix="test-" suffix=".php">tests/phpunit</directory>
+		</testsuite>
+	</testsuites>
+	<groups>
+		<exclude>
+			<group>ms-excluded</group>
+		</exclude>
+	</groups>
+	<coverage includeUncoveredFiles="true">
+		<include>
+			<file>undergrowth.php</file>
+			<file>uninstall.php</file>
+			<directory suffix=".php">src</directory>
+		</include>
+	</coverage>
+</phpunit>

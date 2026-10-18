@@ -28,7 +28,7 @@ jobs:
           npm ci
           npm run build
       # Check the plugin as it would ship to WordPress.org, not the repository.
-      - run: rsync -a --exclude-from=.distignore ./ dist/undergrowth/
+      - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
       - uses: wordpress/plugin-check-action@v1.1.9
         with:
           build-dir: dist/undergrowth

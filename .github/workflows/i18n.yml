@@ -26,13 +26,13 @@ jobs:
         with:
           php-version: "8.3"
           coverage: none
-          tools: wp-cli
+      - uses: ramsey/composer-install@4.0.0
       - name: Build
         if: hashFiles('src/**/*.js') != ''
         run: |
           npm ci
           npm run build
-      - run: wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor
+      - run: npm run i18n:pot
       - name: Compare with the committed POT
         run: |
           git add --intent-to-add languages/undergrowth.pot
