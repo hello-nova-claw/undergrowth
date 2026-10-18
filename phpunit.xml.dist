@@ -12,6 +12,11 @@
 			<directory prefix="test-" suffix=".php">tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
+	<groups>
+		<exclude>
+			<group>ms-required</group>
+		</exclude>
+	</groups>
 	<coverage includeUncoveredFiles="true">
 		<include>
 			<file>undergrowth.php</file>

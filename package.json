@@ -14,6 +14,7 @@
 		"lint:js": "wp-scripts lint-js",
 		"test:js": "wp-scripts test-unit-jest --passWithNoTests",
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit",
+		"test:php:multisite": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit -c phpunit-multisite.xml.dist",
 		"test:e2e": "wp-scripts test-playwright --pass-with-no-tests",
 		"test:a11y": "pa11y-ci",
 		"i18n:pot": "vendor/bin/wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor",
