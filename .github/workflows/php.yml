@@ -1,0 +1,90 @@
+name: PHP
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phpcs:
+    name: PHPCS (WPCS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: cs2pr
+      - uses: ramsey/composer-install@4.0.0
+      - run: vendor/bin/phpcs -q --report=checkstyle | cs2pr
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: ramsey/composer-install@4.0.0
+      - run: composer analyse -- --error-format=github --no-progress
+
+  phpunit:
+    name: PHPUnit (WP ${{ matrix.wp }}, PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { wp: "6.9", core: "WordPress/WordPress#6.9-branch", php: "7.4" }
+          - { wp: "7.0", core: "WordPress/WordPress#7.0-branch", php: "8.3" }
+          - { wp: latest, core: "", php: "8.4" }
+          - { wp: trunk, core: "WordPress/WordPress#master", php: "8.4" }
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: ramsey/composer-install@4.0.0
+      - run: npm ci
+      - name: Start wp-env
+        env:
+          CORE: ${{ matrix.core }}
+          WP_ENV_PHP_VERSION: ${{ matrix.php }}
+        run: |
+          if [ -n "$CORE" ]; then export WP_ENV_CORE="$CORE"; fi
+          npx wp-env start
+      - run: npm run test:php
+
+  coverage:
+    name: Coverage gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: ramsey/composer-install@4.0.0
+      - run: npm ci
+      - run: npx wp-env start --xdebug=coverage
+      - run: npm run test:php -- --coverage-clover coverage/clover.xml
+      - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline
