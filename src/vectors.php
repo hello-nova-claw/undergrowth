@@ -30,7 +30,16 @@ defined( 'ABSPATH' ) || exit;
 function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bool {
 	global $wpdb;
 
-	if ( array() === $vector || '' === $meta['provider'] || '' === $meta['model'] || '' === $meta['language'] ) {
+	if ( '' === $meta['provider'] || '' === $meta['model'] || '' === $meta['language'] ) {
+		return false;
+	}
+
+	// An invalid vector would encode to an empty string that later reads as
+	// a stored, up-to-date vector, so it is refused rather than written. A
+	// list of finite floats always encodes, so no further check is needed.
+	$clean = undergrowth_sanitize_vector( $vector );
+
+	if ( array() === $clean ) {
 		return false;
 	}
 
@@ -42,8 +51,8 @@ function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bo
 			'provider'     => $meta['provider'],
 			'model'        => $meta['model'],
 			'language'     => $meta['language'],
-			'dimensions'   => count( $vector ),
-			'embedding'    => wp_json_encode( $vector ),
+			'dimensions'   => count( $clean ),
+			'embedding'    => wp_json_encode( $clean ),
 			'content_hash' => $meta['content_hash'],
 			'embedded_at'  => current_time( 'mysql', true ),
 		),
