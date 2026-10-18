@@ -118,4 +118,31 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( 1 ) ) );
 	}
+
+	/**
+	 * Uninstall drops the table on every site, not only the first hundred.
+	 *
+	 * @group ms-required
+	 */
+	public function test_network_uninstall_cleans_every_site() {
+		global $wpdb;
+
+		$site_ids = self::factory()->blog->create_many( 2 );
+
+		$queries = array();
+		$record  = static function ( $query ) use ( &$queries ) {
+			$queries[] = $query;
+			return $query;
+		};
+		add_filter( 'query', $record, 1 );
+
+		undergrowth_uninstall();
+
+		remove_filter( 'query', $record, 1 );
+
+		foreach ( array_merge( array( get_current_blog_id() ), $site_ids ) as $site_id ) {
+			$table = $wpdb->get_blog_prefix( $site_id ) . 'undergrowth_vectors';
+			$this->assertContains( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ), $queries );
+		}
+	}
 }
