@@ -98,7 +98,15 @@ function undergrowth_uninstall(): void {
 		return;
 	}
 
-	foreach ( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) {
+	// get_sites() stops at 100 sites unless told otherwise.
+	$site_ids = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	);
+
+	foreach ( $site_ids as $site_id ) {
 		switch_to_blog( (int) $site_id );
 		undergrowth_uninstall_site();
 		restore_current_blog();
