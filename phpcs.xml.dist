@@ -44,6 +44,11 @@
 		<exclude-pattern>/bin/*</exclude-pattern>
 	</rule>
 
+	<!-- A test method's name says what it checks; a DocBlock would only repeat it. -->
+	<rule ref="Squiz.Commenting.FunctionComment.Missing">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
 	<!-- bin/ holds CLI tools for CI that run without WordPress loaded. -->
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>/bin/*</exclude-pattern>
