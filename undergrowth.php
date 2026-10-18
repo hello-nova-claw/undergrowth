@@ -21,6 +21,7 @@ define( 'UNDERGROWTH_FILE', __FILE__ );
 
 require_once __DIR__ . '/src/schema.php';
 require_once __DIR__ . '/src/vectors.php';
+require_once __DIR__ . '/src/embed.php';
 
 register_activation_hook( __FILE__, 'undergrowth_install_schema' );
 add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );
