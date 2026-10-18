@@ -1,0 +1,45 @@
+name: Pull request rules
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-with-code:
+    name: Tests change with code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed=$(git diff --name-only "origin/${BASE_REF}...HEAD")
+          if grep -q '^src/' <<<"$changed" && ! grep -q '^tests/' <<<"$changed"; then
+            echo "::error::This pull request changes src/ but no file under tests/. Write the test first."
+            exit 1
+          fi
+
+  changelog:
+    name: Changelog line in readme.txt
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if ! git diff --name-only "origin/${BASE_REF}...HEAD" | grep -qx 'readme.txt'; then
+            echo "::error file=readme.txt::Add a line under = Unreleased = in readme.txt, or ask a maintainer for the no-changelog label."
+            exit 1
+          fi
