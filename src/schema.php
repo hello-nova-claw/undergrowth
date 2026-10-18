@@ -25,8 +25,10 @@ function undergrowth_vectors_table(): string {
  *
  * Provider, model and language sit beside every vector because vectors from
  * different models or languages must never be compared.
+ *
+ * @return bool True when the table exists afterwards.
  */
-function undergrowth_install_schema(): void {
+function undergrowth_install_schema(): bool {
 	global $wpdb;
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -50,7 +52,16 @@ function undergrowth_install_schema(): void {
 		) {$charset_collate};"
 	);
 
+	// dbDelta() reports no errors, so check the result. Recording the version
+	// after a failed CREATE would stop every later load from retrying it.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table exists.
+	if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+		return false;
+	}
+
 	update_option( 'undergrowth_schema_version', UNDERGROWTH_SCHEMA_VERSION, false );
+
+	return true;
 }
 
 /**
