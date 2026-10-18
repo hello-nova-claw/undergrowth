@@ -1,0 +1,42 @@
+name: I18N
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pot:
+    name: POT is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: shivammathur/setup-php@2.40.0
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: wp-cli
+      - name: Build
+        if: hashFiles('src/**/*.js') != ''
+        run: |
+          npm ci
+          npm run build
+      - run: wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor
+      - name: Compare with the committed POT
+        run: |
+          git add --intent-to-add languages/undergrowth.pot
+          if ! git diff --exit-code -I 'POT-Creation-Date' -I 'X-Generator' -- languages/; then
+            echo "::error file=languages/undergrowth.pot::The POT is out of date. Run npm run i18n:pot and commit the result."
+            exit 1
+          fi
