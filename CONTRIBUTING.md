@@ -45,6 +45,8 @@ Common prefixes: `Embeddings`, `Storage`, `Self-trade`, `Map`, `Stages`, `Prompt
 
 Comments explain why. Delete any comment that restates the line below it. Each function gets one DocBlock in WordPress style and that is all.
 
+Test methods are the exception: a test's name says what it checks, so a DocBlock would only repeat it. Give a test method a DocBlock only when it needs one, such as for a `@dataProvider` or `@group`, or to explain a setup that isn't obvious.
+
 ## Tests
 
 - Write the test first, and commit it first.
