@@ -49,6 +49,11 @@
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 
+	<!-- Tests read the database directly to check what the plugin wrote. -->
+	<rule ref="WordPress.DB.DirectDatabaseQuery">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
 	<!-- bin/ holds CLI tools for CI that run without WordPress loaded. -->
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>/bin/*</exclude-pattern>
