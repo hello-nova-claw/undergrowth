@@ -20,6 +20,16 @@ The AI may speak to the author, never for the author. Before you build anything,
 4. **Pull request.** Use the template. Link the issue with `Fixes #12`. Add a changelog line under `= Unreleased =` in `readme.txt`. If the change really has no user-facing effect, say so in the PR and a maintainer will add the `no-changelog` label.
 5. **Review.** CodeRabbit reviews every pull request, and its approval is the required review. Nothing merges that only one agent has seen. `main` is protected: no direct pushes, all checks green, stale approvals dismissed on push.
 
+## Housekeeping
+
+Finish work as cleanly as you start it.
+
+- **Branches go when they merge.** GitHub deletes a pull request's branch automatically on merge. Prune your local copy too: run `git config fetch.prune true` once per checkout, then `git fetch` removes branches that are gone, and `git branch -d <branch>` removes your local branch.
+- **`main` is the only long-lived branch.** Branch from an up-to-date `main` and keep the branch to its one issue. If a branch falls behind, merge `main` into it rather than rebasing a branch someone else may have checked out.
+- **An issue is done when its pull request merges.** Every pull request closes its issue with `Fixes #N`, and the issue ends in Done on the board. Work found along the way gets its own issue, not a quiet extra commit.
+- **Commit only source.** Never commit build output, coverage reports, `vendor/`, `node_modules/`, or editor and agent tool folders such as `.claude/` and `.vscode/`. If something new turns up in `git status` that is not yours to commit, add it to `.gitignore` in its own commit.
+- **Leave no scaffolding.** Remove debug output, commented-out code, and TODOs without an issue number before asking for review. A TODO that stays names its issue: `// TODO(#12): ...`.
+
 ## Commits
 
 Write commit messages in WordPress core style.
