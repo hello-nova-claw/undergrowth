@@ -22,8 +22,15 @@ if ( false === $report || ! isset( $report->project->metrics ) ) {
 $metrics    = $report->project->metrics;
 $statements = (int) $metrics['statements'];
 $covered    = (int) $metrics['coveredstatements'];
-$coverage   = $statements > 0 ? round( 100 * $covered / $statements, 2 ) : 100.0;
+$coverage   = $statements > 0 ? round( 100 * $covered / $statements, 2 ) : 0.0;
 $baseline   = (float) trim( (string) file_get_contents( $argv[2] ) );
+
+// A report with no statements means the source files were not found when it
+// was built, not that everything is covered.
+if ( 0 === $statements ) {
+	fwrite( STDERR, "The coverage report lists no statements. Build it where the source files are available.\n" );
+	exit( 1 );
+}
 
 printf( "Line coverage %.2f%%, baseline %.2f%%\n", $coverage, $baseline );
 

@@ -69,6 +69,7 @@ jobs:
           if [ -n "$CORE" ]; then export WP_ENV_CORE="$CORE"; fi
           npx wp-env start
       - run: npm run test:php
+      - run: npm run test:php:multisite
 
   coverage:
     name: Coverage gate
@@ -86,5 +87,9 @@ jobs:
       - uses: ramsey/composer-install@4.0.0
       - run: npm ci
       - run: npx wp-env start --xdebug=coverage
-      - run: npm run test:php -- --coverage-clover coverage/clover.xml
+      # Network-only code runs only in the multisite suite, so both runs count.
+      - run: npm run test:php -- --coverage-php coverage/single-site.cov
+      - run: npm run test:php:multisite -- --coverage-php coverage/multisite.cov
+      # The .cov files record container paths, so merge where those exist.
+      - run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpcov merge --clover coverage/clover.xml coverage
       - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline

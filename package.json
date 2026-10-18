@@ -12,11 +12,12 @@
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",
 		"lint:js": "wp-scripts lint-js",
-		"test:js": "wp-scripts test-unit-js --passWithNoTests",
+		"test:js": "wp-scripts test-unit-jest --passWithNoTests",
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit",
+		"test:php:multisite": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit -c phpunit-multisite.xml.dist",
 		"test:e2e": "wp-scripts test-playwright --pass-with-no-tests",
 		"test:a11y": "pa11y-ci",
-		"i18n:pot": "wp-env run cli --env-cwd=wp-content/plugins/undergrowth wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor",
+		"i18n:pot": "vendor/bin/wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor",
 		"i18n:pseudo": "node bin/pseudo-locale.mjs languages/undergrowth.pot"
 	},
 	"devDependencies": {
@@ -25,6 +26,7 @@
 		"@wordpress/e2e-test-utils-playwright": "^3.0.0",
 		"@wordpress/env": "^11.17.0",
 		"@wordpress/scripts": "^36.1.0",
+		"jest": "^30.5.2",
 		"pa11y-ci": "^5.0.0"
 	}
 }

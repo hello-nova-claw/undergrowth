@@ -1,6 +1,10 @@
 parameters:
 	level: 6
 	phpVersion: 70400
+	# Filter callbacks belong to other plugins, so a hook's documented type is a
+	# promise nobody enforces. Keep the runtime checks PHPStan would call redundant.
+	treatPhpDocTypesAsCertain: false
 	paths:
 		- undergrowth.php
 		- src
+		- uninstall.php

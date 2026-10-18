@@ -1,0 +1,28 @@
+<?php
+/**
+ * Plugin Name:       Undergrowth
+ * Plugin URI:        https://github.com/hello-nova-claw/undergrowth
+ * Description:       Uses AI to read your site and ask you questions. It never writes a word your readers will see.
+ * Version:           0.1.0
+ * Requires at least: 6.9
+ * Requires PHP:      7.4
+ * Author:            Novaclaw
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       undergrowth
+ *
+ * @package Undergrowth
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+define( 'UNDERGROWTH_VERSION', '0.1.0' );
+define( 'UNDERGROWTH_FILE', __FILE__ );
+
+require_once __DIR__ . '/src/schema.php';
+require_once __DIR__ . '/src/vectors.php';
+require_once __DIR__ . '/src/embed.php';
+require_once __DIR__ . '/src/indexer.php';
+
+register_activation_hook( __FILE__, 'undergrowth_activate' );
+add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );
