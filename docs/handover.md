@@ -95,13 +95,17 @@ Composting rules:
 - No "composting for N days" message, no expiry, no nudge to return it. You cannot schedule a winter.
 - Composting is not deletion, redirect, or noindex. Those remain prune actions the author can take separately.
 - Storage: composting is a value of the same post meta key as the other stages, and is written to the per-post text file like any stage change. Pinning rules do not apply; composting is always an explicit author action, so no pin marker is shown.
+- Composting takes effect immediately. It is an author action, like a pin, not a measured change, so it does not wait for the monthly cycle.
+- Returning a post to the garden computes its stage at that moment under the normal stage rules. It does not restore the stage it had before, which may be years out of date, and does not reset it to Seedling, which would treat a rest as a failure.
+- Links the author already accepted stay in place. Composting stops new link proposals in or out; it never removes a link, because that would change the site without the author's approval.
+- Composted posts are left out of the health score and shown as a separate count, so resting a post never reads as decline.
 
 Rules:
 - Author can pin a stage. A pinned stage shows a small marker.
-- Stages change only on the monthly cycle, never on save.
+- Stages change only on the monthly cycle, never on save. Author actions (pinning, composting, returning a post from compost) are the exception and take effect immediately.
 - Stage stored in post meta (themes can show it) and in the readable per-post file.
 - Nothing is auto-demoted in germination mode.
-- Stages double as the SEO health score.
+- Stages double as the SEO health score. Composted posts are left out of it.
 
 ---
 
