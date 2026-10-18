@@ -42,7 +42,7 @@ function undergrowth_install_schema(): void {
 		model varchar(191) NOT NULL,
 		language varchar(20) NOT NULL,
 		dimensions int(10) unsigned NOT NULL,
-		vector longtext NOT NULL,
+		embedding longtext NOT NULL,
 		content_hash char(64) NOT NULL,
 		embedded_at datetime NOT NULL,
 		PRIMARY KEY  (id),

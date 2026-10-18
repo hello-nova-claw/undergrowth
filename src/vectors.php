@@ -43,7 +43,7 @@ function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bo
 			'model'        => $meta['model'],
 			'language'     => $meta['language'],
 			'dimensions'   => count( $vector ),
-			'vector'       => wp_json_encode( $vector ),
+			'embedding'    => wp_json_encode( $vector ),
 			'content_hash' => $meta['content_hash'],
 			'embedded_at'  => current_time( 'mysql', true ),
 		),
@@ -71,7 +71,7 @@ function undergrowth_get_vector( int $post_id ): ?array {
 		return null;
 	}
 
-	$vector = json_decode( (string) $row['vector'], true );
+	$vector = json_decode( (string) $row['embedding'], true );
 
 	return array(
 		'post_id'      => (int) $row['post_id'],
