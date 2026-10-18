@@ -4,3 +4,4 @@ parameters:
 	paths:
 		- undergrowth.php
 		- src
+		- uninstall.php
