@@ -1,0 +1,10 @@
+/artifacts/
+/build/
+/coverage/
+/node_modules/
+/vendor/
+/languages/*.po
+/languages/*.mo
+.wp-env.override.json
+.phpunit.result.cache
+.DS_Store
