@@ -1,0 +1,39 @@
+name: Task
+description: A piece of work. Not ready until every field is filled in.
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong or missing, and who it affects.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What this issue will change.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this issue will not change, even if it looks related.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Each criterion should be something a reviewer can check.
+    validations:
+      required: true
+  - type: textarea
+    id: how-to-test
+    attributes:
+      label: How to test
+      description: Steps to confirm the acceptance criteria are met.
+    validations:
+      required: true
