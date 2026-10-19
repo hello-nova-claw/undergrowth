@@ -26,26 +26,26 @@ function undergrowth_embed( string $text ): array {
 	 *
 	 * Return a list of numbers to supply the vector yourself, for example from
 	 * an embedding service running on the same server. A provider hooked here
-	 * must also hook undergrowth_embed_identity, or its vectors are not stored.
+	 * must also hook undergrowth_embed_identity to name its model. Without it
+	 * the vector is ignored: it is never stored, or stored as OpenAI's when a
+	 * key is saved.
 	 *
 	 * @param float[]|null $vector Null unless an earlier callback supplied a vector.
 	 * @param string       $text   Text to embed.
 	 */
-	$vector = undergrowth_sanitize_vector( apply_filters( 'undergrowth_embed_provider', null, $text ) );
+	$vector   = undergrowth_sanitize_vector( apply_filters( 'undergrowth_embed_provider', null, $text ) );
+	$identity = undergrowth_embed_identity();
+	$built_in = 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'];
 
-	if ( array() !== $vector ) {
+	// A filter vector is used only when its provider has named its own model.
+	// Otherwise it would be stored as an OpenAI vector and compared with them.
+	if ( array() !== $vector && ! $built_in ) {
 		return $vector;
 	}
 
 	// OpenAI is called only while it is the declared provider, so a site that
 	// names its own provider never sends post text to OpenAI by accident.
-	$identity = undergrowth_embed_identity();
-
-	if ( 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'] ) {
-		return undergrowth_openai_embed( $text );
-	}
-
-	return array();
+	return $built_in ? undergrowth_openai_embed( $text ) : array();
 }
 
 /**
