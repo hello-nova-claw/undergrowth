@@ -37,20 +37,27 @@ function undergrowth_split_sentences( string $html ): array {
 
 	$sentences = array();
 
+	// Link text can run past a sentence end, and a link can wrap whole
+	// paragraphs, so being inside a link carries over between parts and
+	// between blocks.
+	$inside = false;
+
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
 		$parts = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', $block );
 
-		// Link text can run past a sentence end, so being inside a link carries
-		// over from one part of a block to the next.
-		$inside = false;
-
 		foreach ( (array) $parts as $part ) {
-			$linked = $inside || false !== strpos( $part, $open );
+			$linked = false;
 
-			if ( false !== strpos( $part, $open ) || false !== strpos( $part, $close ) ) {
-				$opened = strrpos( $part, $open );
-				$closed = strrpos( $part, $close );
-				$inside = false !== $opened && ( false === $closed || $opened > $closed );
+			// A sentence counts as linked only when some of its own text sits
+			// inside a link, not merely because a tag touches its edge.
+			foreach ( (array) preg_split( "/({$open}|{$close})/u", $part, -1, PREG_SPLIT_DELIM_CAPTURE ) as $piece ) {
+				if ( $open === $piece ) {
+					$inside = true;
+				} elseif ( $close === $piece ) {
+					$inside = false;
+				} elseif ( $inside && '' !== trim( (string) $piece ) ) {
+					$linked = true;
+				}
 			}
 
 			$part = trim( (string) preg_replace( '/\s+/u', ' ', str_replace( array( $open, $close ), '', $part ) ) );
