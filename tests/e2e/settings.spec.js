@@ -8,6 +8,21 @@ test.describe( 'Settings page', () => {
 		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
 	} );
 
+	// A key left behind by a failed test would put the remove checkbox in the
+	// tab order and break the keyboard test on the next run.
+	test.afterEach( async ( { admin, page } ) => {
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		const remove = page.locator(
+			'input[name="undergrowth_remove_openai_key"]'
+		);
+
+		if ( ( await remove.count() ) > 0 ) {
+			await remove.check();
+			await page.locator( '.wrap #submit' ).click();
+		}
+	} );
+
 	test( 'has no WCAG 2.2 AA violations', async ( { page } ) => {
 		await expectNoA11yViolations( page, '.wrap' );
 	} );
