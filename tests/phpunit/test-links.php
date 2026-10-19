@@ -386,6 +386,16 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( array( $mashua ), $this->proposed( $oca ) );
 	}
 
+	public function test_source_without_a_vector_loses_its_proposals_when_the_target_goes() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_vector( $oca );
+
+		wp_delete_post( $yacon, true );
+
+		$this->assertSame( array(), $this->proposed( $oca ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
