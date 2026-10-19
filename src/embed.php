@@ -26,16 +26,26 @@ function undergrowth_embed( string $text ): array {
 	 *
 	 * Return a list of numbers to supply the vector yourself, for example from
 	 * an embedding service running on the same server. A provider hooked here
-	 * must also hook undergrowth_embed_identity, or its vectors are not stored.
+	 * must also hook undergrowth_embed_identity to name its model. Without it
+	 * the vector is ignored: it is never stored, or stored as OpenAI's when a
+	 * key is saved.
 	 *
 	 * @param float[]|null $vector Null unless an earlier callback supplied a vector.
 	 * @param string       $text   Text to embed.
 	 */
-	$vector = apply_filters( 'undergrowth_embed_provider', null, $text );
+	$vector   = undergrowth_sanitize_vector( apply_filters( 'undergrowth_embed_provider', null, $text ) );
+	$identity = undergrowth_embed_identity();
+	$built_in = 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'];
 
-	// No hosted provider ships until the default is chosen, so without a
-	// filter no post content leaves the site.
-	return undergrowth_sanitize_vector( $vector );
+	// A filter vector is used only when its provider has named its own model.
+	// Otherwise it would be stored as an OpenAI vector and compared with them.
+	if ( array() !== $vector && ! $built_in ) {
+		return $vector;
+	}
+
+	// OpenAI is called only while it is the declared provider, so a site that
+	// names its own provider never sends post text to OpenAI by accident.
+	return $built_in ? undergrowth_openai_embed( $text ) : array();
 }
 
 /**
@@ -72,7 +82,8 @@ function undergrowth_sanitize_vector( $vector ): array {
  * Names the provider and model that undergrowth_embed() currently uses.
  *
  * @return array {
- *     Empty strings when no provider has declared itself.
+ *     OpenAI when a key is saved, otherwise empty strings until a provider
+ *     declares itself.
  *
  *     @type string $provider Provider name.
  *     @type string $model    Model name.
@@ -86,6 +97,13 @@ function undergrowth_embed_identity(): array {
 		'model'    => '',
 	);
 
+	if ( '' !== undergrowth_openai_key() ) {
+		$identity = array(
+			'provider' => 'openai',
+			'model'    => UNDERGROWTH_OPENAI_MODEL,
+		);
+	}
+
 	/**
 	 * Filters the provider and model names stored with every vector.
 	 *
@@ -94,6 +112,8 @@ function undergrowth_embed_identity(): array {
 	 * changes, and posts are embedded again on their next save.
 	 *
 	 * @param array $identity {
+	 *     OpenAI when a key is saved, otherwise empty strings.
+	 *
 	 *     @type string $provider Provider name, such as "ollama".
 	 *     @type string $model    Model name, such as "nomic-embed-text".
 	 * }
@@ -109,11 +129,16 @@ function undergrowth_embed_identity(): array {
 		'model'    => 191,
 	);
 
+	// Each field comes from the filter's answer alone. Filling a missing model
+	// from the OpenAI default would label another provider's vectors as
+	// OpenAI's, so a missing field stays empty and the vector is not stored.
+	$declared = array();
+
 	foreach ( $column_lengths as $key => $max_length ) {
-		if ( isset( $filtered[ $key ] ) && is_string( $filtered[ $key ] ) ) {
-			$identity[ $key ] = mb_substr( sanitize_text_field( $filtered[ $key ] ), 0, $max_length );
-		}
+		$declared[ $key ] = isset( $filtered[ $key ] ) && is_string( $filtered[ $key ] )
+			? mb_substr( sanitize_text_field( $filtered[ $key ] ), 0, $max_length )
+			: '';
 	}
 
-	return $identity;
+	return $declared;
 }
