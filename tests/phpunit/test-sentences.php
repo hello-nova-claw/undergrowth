@@ -77,6 +77,13 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertTrue( $sentences[1]['linked'] );
 	}
 
+	public function test_link_text_running_past_a_full_stop_marks_both_sentences() {
+		$sentences = undergrowth_split_sentences( '<p>See <a href="https://example.test/">my notes. Yacon</a> grows tall. Yacon is sweet.</p>' );
+
+		$this->assertSame( array( 'See my notes.', 'Yacon grows tall.', 'Yacon is sweet.' ), array_column( $sentences, 'text' ) );
+		$this->assertSame( array( true, true, false ), array_column( $sentences, 'linked' ) );
+	}
+
 	public function test_shortcodes_never_become_sentences() {
 		$this->assertSame( array( 'Before.', 'After.' ), $this->sentence_texts( '<p>Before. [gallery ids="1"] After.</p>' ) );
 	}
@@ -185,6 +192,39 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'Yacon grows tall beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
+	public function test_repeated_common_words_never_outweigh_a_targets_own_words() {
+		$filler = str_repeat( 'The garden and the shed with that path. ', 25 );
+		foreach ( array( 'Shed', 'Path', 'Gate' ) as $i => $title ) {
+			$this->plant( $title, array( 0.0, 0.0, 1.0 - 0.1 * $i ), array( 'post_content' => '<p>' . $filler . '</p>' ) );
+		}
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>The garden and the shed with that path. Yacon grows here.</p>' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>' . $filler . str_repeat( 'Yacon is sweet. ', 5 ) . '</p>' )
+		);
+
+		$this->assertSame( 'Yacon grows here.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_corpus_keeps_word_counts_not_every_occurrence() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => 'Oca oca oca.',
+				'post_status'  => 'publish',
+			)
+		);
+
+		$corpus = undergrowth_build_corpus( array( $post_id ) );
+
+		$this->assertSame( array( 'oca' => 4 ), $corpus['counts'][ $post_id ] );
+	}
+
 	public function test_proposal_without_any_fitting_sentence_is_dropped() {
 		$oca   = $this->plant(
 			'Oca',
@@ -212,8 +252,12 @@ class Test_Sentences extends WP_UnitTestCase {
 			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
 		);
 
-		$sentence = $this->stored_sentence( $oca, $yacon )['sentence'];
-		$this->assertContains( $sentence, $this->sentence_texts( get_post( $oca )->post_content ) );
+		$stored = $this->stored_sentence( $oca, $yacon );
+		$plain  = trim( (string) preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( get_post( $oca )->post_content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+
+		$this->assertSame( 'I keep yacon plants nearby for syrup.', $stored['sentence'] );
+		$this->assertStringContainsString( $stored['sentence'], $plain );
+		$this->assertSame( '1', $stored['sentence_index'] );
 	}
 
 	public function test_same_posts_always_give_the_same_sentence() {
