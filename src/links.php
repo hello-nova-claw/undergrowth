@@ -203,7 +203,15 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 
 		$score = undergrowth_cosine( $pool[ $post_id ], $vector );
 
-		if ( $score >= $minimum ) {
+		if ( $score < $minimum ) {
+			continue;
+		}
+
+		// A vector can outlive its post's publication when the status changes
+		// without a save, so the target itself is checked as well.
+		$target = get_post( $target_id );
+
+		if ( $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
 			$scores[ $target_id ] = $score;
 		}
 	}
@@ -312,14 +320,18 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 }
 
 /**
- * Refreshes proposals for a newly embedded post and for its nearest posts.
+ * Refreshes proposals for a newly embedded post, for the posts already
+ * proposing it, and for its nearest posts.
  *
  * Without the neighbours, an older post would only learn about a new one
- * the next time it was saved.
+ * the next time it was saved. Without the posts already proposing it, a post
+ * that changed subject would keep links that no longer fit.
  *
  * @param int $post_id Post that was just embedded.
  */
 function undergrowth_refresh_around( int $post_id ): void {
+	global $wpdb;
+
 	$pool = undergrowth_comparable_vectors( $post_id );
 
 	if ( ! isset( $pool[ $post_id ] ) ) {
@@ -340,7 +352,24 @@ function undergrowth_refresh_around( int $post_id ): void {
 
 	arsort( $nearest );
 
-	foreach ( array_slice( array_keys( $nearest ), 0, UNDERGROWTH_NEIGHBOURS_TO_UPDATE ) as $neighbour_id ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change on every refresh.
+	$proposing = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT source_id FROM %i WHERE target_id = %d AND state = %s',
+			undergrowth_links_table(),
+			$post_id,
+			'proposed'
+		)
+	);
+
+	$to_refresh = array_unique(
+		array_merge(
+			array_map( 'intval', $proposing ),
+			array_slice( array_keys( $nearest ), 0, UNDERGROWTH_NEIGHBOURS_TO_UPDATE )
+		)
+	);
+
+	foreach ( $to_refresh as $neighbour_id ) {
 		undergrowth_refresh_proposals( (int) $neighbour_id, $pool, $corpus );
 	}
 }

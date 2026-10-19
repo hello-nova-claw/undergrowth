@@ -242,6 +242,39 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_rank_targets( $oca ) );
 	}
 
+	public function test_target_with_a_stale_vector_is_not_proposed() {
+		global $wpdb;
+
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $yacon ) );
+		clean_post_cache( $yacon );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+	}
+
+	public function test_moving_a_post_away_removes_proposals_that_pointed_to_it() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		for ( $i = 0; $i < UNDERGROWTH_NEIGHBOURS_TO_UPDATE; $i++ ) {
+			$this->plant( 'Ledger ' . $i, array( 0.0, 0.0, 1.0 ) );
+		}
+		$this->assertContains( $yacon, $this->proposed( $oca ) );
+
+		$this->vectors['Yacon'] = array( 0.0, 0.0, 1.0 );
+		wp_update_post(
+			array(
+				'ID'           => $yacon,
+				'post_content' => 'Notes about ledgers.',
+			)
+		);
+		undergrowth_embed_post( $yacon );
+
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}

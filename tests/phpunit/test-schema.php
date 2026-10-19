@@ -154,8 +154,9 @@ class Test_Schema extends WP_UnitTestCase {
 		remove_filter( 'query', $record, 1 );
 
 		foreach ( array_merge( array( get_current_blog_id() ), $site_ids ) as $site_id ) {
-			$table = $wpdb->get_blog_prefix( $site_id ) . 'undergrowth_vectors';
-			$this->assertContains( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ), $queries );
+			foreach ( array( 'undergrowth_vectors', 'undergrowth_links' ) as $table ) {
+				$this->assertContains( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->get_blog_prefix( $site_id ) . $table ), $queries );
+			}
 		}
 	}
 }
