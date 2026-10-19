@@ -1,13 +1,13 @@
 <?php
 /**
- * The vectors table: install, upgrade and uninstall.
+ * The plugin's tables: install, upgrade and uninstall.
  *
  * @package Undergrowth
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 1;
+const UNDERGROWTH_SCHEMA_VERSION = 2;
 
 /**
  * Returns the name of the vectors table for the current site.
@@ -21,42 +21,72 @@ function undergrowth_vectors_table(): string {
 }
 
 /**
- * Creates or updates the vectors table and records the schema version.
+ * Returns the name of the links table for the current site.
+ *
+ * @return string Table name with the site's prefix.
+ */
+function undergrowth_links_table(): string {
+	global $wpdb;
+
+	return $wpdb->prefix . 'undergrowth_links';
+}
+
+/**
+ * Creates or updates the plugin's tables and records the schema version.
  *
  * Provider, model and language sit beside every vector because vectors from
- * different models or languages must never be compared.
+ * different models or languages must never be compared. The links table keeps
+ * one row per source and target pair, so a veto is remembered for good.
  *
- * @return bool True when the table exists afterwards.
+ * @return bool True when every table exists afterwards.
  */
 function undergrowth_install_schema(): bool {
 	global $wpdb;
 
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-	$table           = undergrowth_vectors_table();
+	$vectors         = undergrowth_vectors_table();
+	$links           = undergrowth_links_table();
 	$charset_collate = $wpdb->get_charset_collate();
 
 	dbDelta(
-		"CREATE TABLE {$table} (
-		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-		post_id bigint(20) unsigned NOT NULL,
-		provider varchar(100) NOT NULL,
-		model varchar(191) NOT NULL,
-		language varchar(20) NOT NULL,
-		dimensions int(10) unsigned NOT NULL,
-		embedding longtext NOT NULL,
-		content_hash char(64) NOT NULL,
-		embedded_at datetime NOT NULL,
-		PRIMARY KEY  (id),
-		UNIQUE KEY post_id (post_id)
-		) {$charset_collate};"
+		array(
+			"CREATE TABLE {$vectors} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			post_id bigint(20) unsigned NOT NULL,
+			provider varchar(100) NOT NULL,
+			model varchar(191) NOT NULL,
+			language varchar(20) NOT NULL,
+			dimensions int(10) unsigned NOT NULL,
+			embedding longtext NOT NULL,
+			content_hash char(64) NOT NULL,
+			embedded_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY post_id (post_id)
+			) {$charset_collate};",
+			"CREATE TABLE {$links} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			source_id bigint(20) unsigned NOT NULL,
+			target_id bigint(20) unsigned NOT NULL,
+			state varchar(20) NOT NULL,
+			score double NOT NULL,
+			sentence text NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY pair (source_id,target_id),
+			KEY target_id (target_id)
+			) {$charset_collate};",
+		)
 	);
 
 	// dbDelta() reports no errors, so check the result. Recording the version
 	// after a failed CREATE would stop every later load from retrying it.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table exists.
-	if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
-		return false;
+	foreach ( array( $vectors, $links ) as $table ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table exists.
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return false;
+		}
 	}
 
 	update_option( 'undergrowth_schema_version', UNDERGROWTH_SCHEMA_VERSION, false );
@@ -92,8 +122,10 @@ function undergrowth_maybe_upgrade_schema(): void {
 function undergrowth_uninstall_site(): void {
 	global $wpdb;
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own table on uninstall.
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', undergrowth_vectors_table() ) );
+	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
+	}
 
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
