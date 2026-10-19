@@ -374,6 +374,21 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertContains( $oca, $this->proposed( $ulluco ) );
 	}
 
+	public function test_stale_vectors_never_crowd_out_neighbours_to_refresh() {
+		global $wpdb;
+
+		for ( $i = 0; $i <= UNDERGROWTH_NEIGHBOURS_TO_UPDATE; $i++ ) {
+			$hidden = $this->plant( 'Hidden ' . $i, array( 1.0, 0.01 * ( $i + 1 ), 0.0 ) );
+			$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $hidden ) );
+			clean_post_cache( $hidden );
+		}
+		$mashua = $this->plant( 'Mashua', array( 0.5, 0.5, 0.0 ) );
+
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$this->assertContains( $oca, $this->proposed( $mashua ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
