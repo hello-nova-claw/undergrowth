@@ -182,9 +182,10 @@ function undergrowth_link_state( int $source_id, int $target_id ): string {
  *
  * @param int                      $post_id Source post ID.
  * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
+ * @param int                      $limit   Most targets to return, or 0 for every target above the minimum.
  * @return array<int, float> Similarity keyed by target post ID, best first.
  */
-function undergrowth_rank_targets( int $post_id, ?array $pool = null ): array {
+function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
 	global $wpdb;
 
 	$post = get_post( $post_id );
@@ -236,64 +237,87 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null ): array {
 
 	arsort( $scores );
 
-	return array_slice( $scores, 0, UNDERGROWTH_MAX_PROPOSALS, true );
+	return $limit > 0 ? array_slice( $scores, 0, $limit, true ) : $scores;
 }
 
 /**
  * Rewrites a post's proposed links to match its current best targets.
  *
- * Accepted and vetoed rows are never touched.
+ * A target only counts when the source post has a sentence where the link
+ * fits, so the next best target takes the place of one without. Accepted
+ * and vetoed rows are never touched.
  *
  * @param int                      $post_id Source post ID.
  * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
+ * @param array|null               $corpus  Word counts across the pool, when already built.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}|null $corpus
  */
-function undergrowth_refresh_proposals( int $post_id, ?array $pool = null ): void {
+function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?array $corpus = null ): void {
 	global $wpdb;
 
 	// A pool built for another post lacks this post's vector when the two
 	// differ in language or model. Ranking against it would find nothing and
-	// wipe this post's valid proposals, so it ranks against its own instead.
+	// wipe this post's valid proposals, so it ranks against its own instead,
+	// with word counts to match.
 	if ( null !== $pool && ! isset( $pool[ $post_id ] ) ) {
-		$pool = null;
+		$pool   = null;
+		$corpus = null;
 	}
 
+	$pool    = $pool ?? undergrowth_comparable_vectors( $post_id );
+	$corpus  = $corpus ?? undergrowth_build_corpus( array_keys( $pool ) );
 	$table   = undergrowth_links_table();
-	$targets = undergrowth_rank_targets( $post_id, $pool );
 	$now     = current_time( 'mysql', true );
+	$targets = array();
 
-	foreach ( $targets as $target_id => $score ) {
-		$state = undergrowth_link_state( $post_id, $target_id );
+	foreach ( undergrowth_rank_targets( $post_id, $pool, 0 ) as $target_id => $score ) {
+		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus );
+
+		if ( null === $sentence ) {
+			continue;
+		}
+
+		$targets[ $target_id ] = $score;
+		$state                 = undergrowth_link_state( $post_id, $target_id );
+		$fields                = array(
+			'score'          => $score,
+			'sentence'       => $sentence['text'],
+			'sentence_index' => $sentence['index'],
+			'updated_at'     => $now,
+		);
 
 		if ( 'proposed' === $state ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 			$wpdb->update(
 				$table,
-				array(
-					'score'      => $score,
-					'updated_at' => $now,
-				),
+				$fields,
 				array(
 					'source_id' => $post_id,
 					'target_id' => $target_id,
 				),
-				array( '%f', '%s' ),
+				array( '%f', '%s', '%d', '%s' ),
 				array( '%d', '%d' )
 			);
 		} elseif ( '' === $state ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- The plugin's own table has no core API.
 			$wpdb->insert(
 				$table,
-				array(
-					'source_id'  => $post_id,
-					'target_id'  => $target_id,
-					'state'      => 'proposed',
-					'score'      => $score,
-					'sentence'   => '',
-					'created_at' => $now,
-					'updated_at' => $now,
+				array_merge(
+					array(
+						'source_id'  => $post_id,
+						'target_id'  => $target_id,
+						'state'      => 'proposed',
+						'created_at' => $now,
+					),
+					$fields
 				),
-				array( '%d', '%d', '%s', '%f', '%s', '%s', '%s' )
+				array( '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s' )
 			);
+		}
+
+		if ( count( $targets ) >= UNDERGROWTH_MAX_PROPOSALS ) {
+			break;
 		}
 	}
 
@@ -342,7 +366,9 @@ function undergrowth_refresh_around( int $post_id ): void {
 		return;
 	}
 
-	undergrowth_refresh_proposals( $post_id, $pool );
+	$corpus = undergrowth_build_corpus( array_keys( $pool ) );
+
+	undergrowth_refresh_proposals( $post_id, $pool, $corpus );
 
 	$nearest = array();
 
@@ -384,7 +410,7 @@ function undergrowth_refresh_around( int $post_id ): void {
 	$to_refresh = array_unique( array_merge( array_map( 'intval', $proposing ), $neighbours ) );
 
 	foreach ( $to_refresh as $neighbour_id ) {
-		undergrowth_refresh_proposals( (int) $neighbour_id, $pool );
+		undergrowth_refresh_proposals( (int) $neighbour_id, $pool, $corpus );
 	}
 }
 
