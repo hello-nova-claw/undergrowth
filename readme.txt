@@ -23,4 +23,4 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 * Published posts are turned into vectors on save when a site supplies an embedding provider through the undergrowth_embed_provider filter. No post content leaves the site otherwise.
 * New Settings > Undergrowth page for an OpenAI API key. With a key saved, published posts are embedded with OpenAI text-embedding-3-small; the page says what is sent before anything is.
 * Each published post now gets up to three proposed links to your closest other posts. Proposals are stored for review; nothing is added to a post until you accept it.
-* Each proposed link now names the sentence in your post where it fits, quoted exactly as you wrote it.
+* Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
