@@ -84,6 +84,13 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( true, true, false ), array_column( $sentences, 'linked' ) );
 	}
 
+	public function test_link_wrapping_several_paragraphs_marks_every_one() {
+		$sentences = undergrowth_split_sentences( '<a href="https://example.test/"><p>Linked one.</p><p>Linked two.</p></a><p>Free.</p>' );
+
+		$this->assertSame( array( 'Linked one.', 'Linked two.', 'Free.' ), array_column( $sentences, 'text' ) );
+		$this->assertSame( array( true, true, false ), array_column( $sentences, 'linked' ) );
+	}
+
 	public function test_shortcodes_never_become_sentences() {
 		$this->assertSame( array( 'Before.', 'After.' ), $this->sentence_texts( '<p>Before. [gallery ids="1"] After.</p>' ) );
 	}
