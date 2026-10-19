@@ -112,6 +112,8 @@ class Test_Schema extends WP_UnitTestCase {
 		global $wpdb;
 
 		wp_schedule_single_event( time() + 60, 'undergrowth_embed_post', array( 1 ) );
+		update_option( 'undergrowth_openai_api_key', 'sk-test' );
+		update_option( 'undergrowth_last_embed_error', array( 'code' => 'x' ) );
 
 		// Recorded ahead of the test suite's own filter, which would turn the drop into a no-op on temporary tables.
 		$queries = array();
@@ -130,6 +132,8 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertContains( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', undergrowth_links_table() ), $queries );
 		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( 1 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_openai_api_key' ) );
+		$this->assertFalse( get_option( 'undergrowth_last_embed_error' ) );
 	}
 
 	/**

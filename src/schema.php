@@ -123,13 +123,16 @@ function undergrowth_maybe_upgrade_schema(): void {
 function undergrowth_uninstall_site(): void {
 	global $wpdb;
 
+	// The API key goes first, so a failure further down never leaves it behind.
+	delete_option( 'undergrowth_openai_api_key' );
+	delete_option( 'undergrowth_last_embed_error' );
+	delete_option( 'undergrowth_schema_version' );
+	wp_unschedule_hook( 'undergrowth_embed_post' );
+
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 	}
-
-	delete_option( 'undergrowth_schema_version' );
-	wp_unschedule_hook( 'undergrowth_embed_post' );
 }
 
 /**
