@@ -364,12 +364,24 @@ function undergrowth_refresh_around( int $post_id ): void {
 		)
 	);
 
-	$to_refresh = array_unique(
-		array_merge(
-			array_map( 'intval', $proposing ),
-			array_slice( array_keys( $nearest ), 0, UNDERGROWTH_NEIGHBOURS_TO_UPDATE )
-		)
-	);
+	// Walk in rank order and stop at the limit, so posts only checked as far
+	// as needed. A stale vector for an unpublished post would otherwise take
+	// a place that a published neighbour needs.
+	$neighbours = array();
+
+	foreach ( array_keys( $nearest ) as $other_id ) {
+		$other = get_post( $other_id );
+
+		if ( $other instanceof WP_Post && undergrowth_is_indexable( $other ) ) {
+			$neighbours[] = (int) $other_id;
+		}
+
+		if ( count( $neighbours ) >= UNDERGROWTH_NEIGHBOURS_TO_UPDATE ) {
+			break;
+		}
+	}
+
+	$to_refresh = array_unique( array_merge( array_map( 'intval', $proposing ), $neighbours ) );
 
 	foreach ( $to_refresh as $neighbour_id ) {
 		undergrowth_refresh_proposals( (int) $neighbour_id, $pool );
