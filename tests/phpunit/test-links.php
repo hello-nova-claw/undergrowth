@@ -396,6 +396,30 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->proposed( $oca ) );
 	}
 
+	public function test_incomparable_vectors_are_never_proposed_even_with_no_threshold() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$zero  = $this->plant( 'Blank', array( 0.0, 0.0, 0.0 ) );
+		$short = $this->plant( 'Short', array( 1.0, 0.0 ) );
+
+		$proposed = $this->proposed( $oca );
+
+		$this->assertNotContains( $zero, $proposed );
+		$this->assertNotContains( $short, $proposed );
+	}
+
+	public function test_vectors_of_equal_length_with_some_magnitude_are_comparable() {
+		$this->assertTrue( undergrowth_vectors_comparable( array( 1.0, 0.0 ), array( 0.0, 2.0 ) ) );
+		$this->assertFalse( undergrowth_vectors_comparable( array( 1.0, 0.0 ), array( 0.0, 0.0 ) ) );
+		$this->assertFalse( undergrowth_vectors_comparable( array( 1.0, 0.0 ), array( 1.0, 0.0, 0.0 ) ) );
+		$this->assertFalse( undergrowth_vectors_comparable( array(), array() ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
