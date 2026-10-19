@@ -109,11 +109,14 @@ function undergrowth_tokens( string $text ): array {
  * Counts, for each token, how many posts in a set use it.
  *
  * @param int[] $post_ids Posts to count across.
- * @return array{documents: int, frequency: array<string, int>, tokens: array<int, string[]>}
+ * @return array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}
  */
 function undergrowth_build_corpus( array $post_ids ): array {
 	$frequency = array();
-	$tokens    = array();
+	$counts    = array();
+
+	// One query for every post, rather than one per post inside the loop.
+	_prime_post_caches( array_map( 'intval', $post_ids ), false, false );
 
 	foreach ( $post_ids as $post_id ) {
 		$post = get_post( $post_id );
@@ -122,17 +125,18 @@ function undergrowth_build_corpus( array $post_ids ): array {
 			continue;
 		}
 
-		$tokens[ $post_id ] = undergrowth_tokens( undergrowth_post_text( $post ) );
+		// Counts, not every occurrence, so a long archive fits in memory.
+		$counts[ $post_id ] = array_count_values( undergrowth_tokens( undergrowth_post_text( $post ) ) );
 
-		foreach ( array_unique( $tokens[ $post_id ] ) as $token ) {
+		foreach ( array_keys( $counts[ $post_id ] ) as $token ) {
 			$frequency[ $token ] = ( $frequency[ $token ] ?? 0 ) + 1;
 		}
 	}
 
 	return array(
-		'documents' => count( $tokens ),
+		'documents' => count( $counts ),
 		'frequency' => $frequency,
-		'tokens'    => $tokens,
+		'counts'    => $counts,
 	);
 }
 
@@ -147,16 +151,16 @@ function undergrowth_build_corpus( array $post_ids ): array {
  * @param array $corpus  Result of undergrowth_build_corpus().
  * @return array<string, float> Weight keyed by token, highest first.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, tokens: array<int, string[]>} $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>} $corpus
  */
 function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
-	if ( empty( $corpus['tokens'][ $post_id ] ) ) {
+	if ( empty( $corpus['counts'][ $post_id ] ) ) {
 		return array();
 	}
 
 	$weights = array();
 
-	foreach ( array_count_values( $corpus['tokens'][ $post_id ] ) as $token => $count ) {
+	foreach ( $corpus['counts'][ $post_id ] as $token => $count ) {
 		$documents                  = max( 1, $corpus['frequency'][ $token ] ?? 1 );
 		$weights[ (string) $token ] = $count * log( 1 + $corpus['documents'] / $documents );
 	}
@@ -181,7 +185,7 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
  * @param array $corpus    Result of undergrowth_build_corpus().
  * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, tokens: array<int, string[]>} $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>} $corpus
  */
 function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus ): ?array {
 	$source = get_post( $source_id );

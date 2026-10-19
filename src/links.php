@@ -251,7 +251,7 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
  * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
  * @param array|null               $corpus  Word counts across the pool, when already built.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, tokens: array<int, string[]>}|null $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}|null $corpus
  */
 function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?array $corpus = null ): void {
 	global $wpdb;
