@@ -125,8 +125,10 @@ Personalised prompts that point the author in a direction. The one feature where
 
 ### Embeddings: API default, local via filter
 - One function, e.g. `undergrowth_embed( string $text ): array`. Returns a vector of floats. Nothing else in the plugin knows which model made it.
-- Default: hosted API (OpenAI / Voyage / Jina) via `wp_remote_post`. Owner pastes a key in settings. Feature is OFF until a key is entered. Settings notice states that post content is sent to the provider.
+- Default: OpenAI `text-embedding-3-small` via `wp_remote_post` (decided 2026-10-18). Owner pastes a key in settings. Feature is OFF until a key is entered. Settings notice states that post content is sent to the provider. Voyage and Jina may be added later as settings choices; the provider code stays pluggable so that costs little.
 - Filter: `apply_filters( 'undergrowth_embed_provider', null, $text )` runs before the API call. If a callback returns a vector, the API is skipped.
+- Identity: a provider hooked through the filter also declares its provider and model names through `apply_filters( 'undergrowth_embed_identity', array( 'provider' => '', 'model' => '' ) )`. The plugin has to know the current model without calling the provider, both to skip posts that have not changed and to re-embed everything when the model changes. A vector without an identity is never stored.
+- Anthropic offers no embedding model, so Anthropic API credits cannot pay for vectors.
 - Local provider example: tiny HTTP service on localhost (sentence-transformers behind FastAPI, or Ollama embedding model), called from a mu-plugin. Nova/Atlas on the VPS can host this.
 - Store provider name and model name with every vector. Refuse to compare vectors from different models. If the provider changes, re-embed everything on the next cron run.
 - Future zero-config path: in-PHP ONNX small model, or a hosted endpoint behind the Jetpack connection. Not v1.
@@ -255,7 +257,7 @@ Everything in sections 4 "Reader mode" is v2.
 
 - Domain for Undergrowth (name itself is locked).
 - Exact fixed number for the threshold meter.
-- Which embedding API is the default (OpenAI / Voyage / Jina).
+- ~~Which embedding API is the default (OpenAI / Voyage / Jina).~~ Decided 2026-10-18: OpenAI `text-embedding-3-small`, others later (section 6).
 - Whether to test the in-PHP ONNX embedding path for a fully non-dev install.
 - WordPress.com embedding endpoint question (parked until Anna is back at work).
 
