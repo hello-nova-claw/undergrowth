@@ -16,6 +16,25 @@ add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links' );
 
 /**
+ * Tells whether two vectors can be compared at all.
+ *
+ * Vectors of different lengths, or with no magnitude, have no meaningful
+ * similarity. Checking this apart from the score keeps them out even when
+ * the minimum similarity is set at or below zero.
+ *
+ * @param float[] $a First vector.
+ * @param float[] $b Second vector.
+ * @return bool True when both have the same length and some magnitude.
+ */
+function undergrowth_vectors_comparable( array $a, array $b ): bool {
+	if ( array() === $a || count( $a ) !== count( $b ) ) {
+		return false;
+	}
+
+	return array_filter( $a ) !== array() && array_filter( $b ) !== array();
+}
+
+/**
  * Measures how alike two vectors are.
  *
  * @param float[] $a First vector.
@@ -196,7 +215,7 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null ): array {
 	$scores   = array();
 
 	foreach ( $pool as $target_id => $vector ) {
-		if ( isset( $excluded[ $target_id ] ) ) {
+		if ( isset( $excluded[ $target_id ] ) || ! undergrowth_vectors_comparable( $pool[ $post_id ], $vector ) ) {
 			continue;
 		}
 
