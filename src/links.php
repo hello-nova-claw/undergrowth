@@ -373,7 +373,7 @@ function undergrowth_refresh_around( int $post_id ): void {
 	$nearest = array();
 
 	foreach ( $pool as $other_id => $vector ) {
-		if ( $other_id !== $post_id ) {
+		if ( $other_id !== $post_id && undergrowth_vectors_comparable( $pool[ $post_id ], $vector ) ) {
 			$nearest[ $other_id ] = undergrowth_cosine( $pool[ $post_id ], $vector );
 		}
 	}
