@@ -237,6 +237,15 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?array $corpus = null ): void {
 	global $wpdb;
 
+	// A pool built for another post lacks this post's vector when the two
+	// differ in language or model. Ranking against it would find nothing and
+	// wipe this post's valid proposals, so it ranks against its own instead,
+	// with word counts to match.
+	if ( null !== $pool && ! isset( $pool[ $post_id ] ) ) {
+		$pool   = null;
+		$corpus = null;
+	}
+
 	$pool    = $pool ?? undergrowth_comparable_vectors( $post_id );
 	$corpus  = $corpus ?? undergrowth_build_corpus( array_keys( $pool ) );
 	$table   = undergrowth_links_table();
@@ -409,7 +418,24 @@ function undergrowth_forget_post_links( int $post_id ): void {
 		)
 	);
 
+	// Sources sharing a provider, model and language share one pool, so the
+	// same vectors are not loaded and decoded once per source.
+	$pools = array();
+
 	foreach ( array_map( 'intval', $sources ) as $source_id ) {
-		undergrowth_refresh_proposals( $source_id );
+		$vector = undergrowth_get_vector( $source_id );
+
+		if ( null === $vector ) {
+			undergrowth_refresh_proposals( $source_id );
+			continue;
+		}
+
+		$key = $vector['provider'] . '|' . $vector['model'] . '|' . $vector['language'];
+
+		if ( ! isset( $pools[ $key ] ) ) {
+			$pools[ $key ] = undergrowth_comparable_vectors( $source_id );
+		}
+
+		undergrowth_refresh_proposals( $source_id, $pools[ $key ] );
 	}
 }

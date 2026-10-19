@@ -275,6 +275,45 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
 	}
 
+	public function test_target_changing_language_leaves_the_sources_other_proposals() {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$mashua = $this->plant( 'Mashua', array( 0.8, 0.3, 0.0 ) );
+		$this->assertSame( array( $yacon, $mashua ), $this->proposed( $oca ) );
+
+		add_filter(
+			'undergrowth_post_language',
+			static function ( $locale, $post ) use ( $yacon ) {
+				return $post->ID === $yacon ? 'de_DE' : $locale;
+			},
+			10,
+			2
+		);
+		undergrowth_embed_post( $yacon );
+
+		$this->assertSame( array( $mashua ), $this->proposed( $oca ) );
+	}
+
+	public function test_post_leaving_the_index_keeps_other_sources_proposals() {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$mashua = $this->plant( 'Mashua', array( 0.8, 0.3, 0.0 ) );
+
+		wp_delete_post( $yacon, true );
+
+		$this->assertSame( array( $mashua ), $this->proposed( $oca ) );
+	}
+
+	public function test_source_without_a_vector_loses_its_proposals_when_the_target_goes() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_vector( $oca );
+
+		wp_delete_post( $yacon, true );
+
+		$this->assertSame( array(), $this->proposed( $oca ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
