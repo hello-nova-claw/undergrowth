@@ -160,9 +160,13 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
 
 	$weights = array();
 
+	// Repeats count for less and less, and rarity is squared, so a word in
+	// every post keeps only a sliver of weight. A sentence full of "the" and
+	// "with" never outweighs one holding a word the target is actually about.
 	foreach ( $corpus['counts'][ $post_id ] as $token => $count ) {
-		$documents                  = max( 1, $corpus['frequency'][ $token ] ?? 1 );
-		$weights[ (string) $token ] = $count * log( 1 + $corpus['documents'] / $documents );
+		$documents                  = $corpus['frequency'][ $token ] ?? 1;
+		$rarity                     = log( ( $corpus['documents'] + 1 ) / ( $documents + 0.5 ) );
+		$weights[ (string) $token ] = ( 1 + log( $count ) ) * $rarity * $rarity;
 	}
 
 	uksort(
