@@ -420,6 +420,25 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_vectors_comparable( array(), array() ) );
 	}
 
+	public function test_failed_re_embedding_removes_proposals_to_and_from_the_post() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->assertContains( $yacon, $this->proposed( $oca ) );
+
+		unset( $this->vectors['Yacon'] );
+		wp_update_post(
+			array(
+				'ID'           => $yacon,
+				'post_content' => 'Notes about yacon, rewritten.',
+			)
+		);
+		undergrowth_embed_post( $yacon );
+
+		$this->assertNull( undergrowth_get_vector( $yacon ) );
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+		$this->assertSame( array(), $this->proposed( $yacon ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
