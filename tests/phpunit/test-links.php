@@ -303,6 +303,27 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->proposed( $oca ) );
 	}
 
+	public function test_post_without_a_vector_has_no_targets_or_neighbours() {
+		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$bare = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		undergrowth_refresh_around( $bare );
+
+		$this->assertSame( array(), undergrowth_comparable_vectors( $bare ) );
+		$this->assertSame( array(), undergrowth_rank_targets( $bare ) );
+		$this->assertSame( array(), $this->proposed( $bare ) );
+	}
+
+	public function test_draft_has_no_targets_even_with_a_stale_vector() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		global $wpdb;
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $oca ) );
+		clean_post_cache( $oca );
+
+		$this->assertSame( array(), undergrowth_rank_targets( $oca ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
