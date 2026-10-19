@@ -135,7 +135,28 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertSame( array( 0.25, -0.5, 1.0 ), undergrowth_embed( 'Oca keeps well.' ) );
 	}
 
-	public function test_filter_provider_wins_over_openai() {
+	public function test_filter_provider_with_its_own_identity_wins_over_openai() {
+		add_filter(
+			'undergrowth_embed_provider',
+			static function () {
+				return array( 9.0 );
+			}
+		);
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => 'local',
+					'model'    => 'local-model',
+				);
+			}
+		);
+
+		$this->assertSame( array( 9.0 ), undergrowth_embed( 'Oca keeps well.' ) );
+		$this->assertSame( array(), $this->requests );
+	}
+
+	public function test_filter_vector_without_its_own_identity_is_never_labelled_as_openai() {
 		add_filter(
 			'undergrowth_embed_provider',
 			static function () {
@@ -143,8 +164,31 @@ class Test_OpenAI extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( array( 9.0 ), undergrowth_embed( 'Oca keeps well.' ) );
-		$this->assertSame( array(), $this->requests );
+		$this->assertSame( array( 0.25, -0.5, 1.0 ), undergrowth_embed( 'Oca keeps well.' ) );
+		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_failed_re_embedding_removes_the_old_vector() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => 'Oca keeps well.',
+				'post_status'  => 'publish',
+			)
+		);
+		undergrowth_embed_post( $post_id );
+		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
+
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => 'Oca also freezes.',
+			)
+		);
+		$this->responses = array( $this->response( 500, '{}' ) );
+		undergrowth_embed_post( $post_id );
+
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
 	}
 
 	public function test_another_declared_provider_stops_openai_calls() {
