@@ -31,11 +31,21 @@ function undergrowth_embed( string $text ): array {
 	 * @param float[]|null $vector Null unless an earlier callback supplied a vector.
 	 * @param string       $text   Text to embed.
 	 */
-	$vector = apply_filters( 'undergrowth_embed_provider', null, $text );
+	$vector = undergrowth_sanitize_vector( apply_filters( 'undergrowth_embed_provider', null, $text ) );
 
-	// No hosted provider ships until the default is chosen, so without a
-	// filter no post content leaves the site.
-	return undergrowth_sanitize_vector( $vector );
+	if ( array() !== $vector ) {
+		return $vector;
+	}
+
+	// OpenAI is called only while it is the declared provider, so a site that
+	// names its own provider never sends post text to OpenAI by accident.
+	$identity = undergrowth_embed_identity();
+
+	if ( 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'] ) {
+		return undergrowth_openai_embed( $text );
+	}
+
+	return array();
 }
 
 /**
@@ -72,7 +82,8 @@ function undergrowth_sanitize_vector( $vector ): array {
  * Names the provider and model that undergrowth_embed() currently uses.
  *
  * @return array {
- *     Empty strings when no provider has declared itself.
+ *     OpenAI when a key is saved, otherwise empty strings until a provider
+ *     declares itself.
  *
  *     @type string $provider Provider name.
  *     @type string $model    Model name.
@@ -86,6 +97,13 @@ function undergrowth_embed_identity(): array {
 		'model'    => '',
 	);
 
+	if ( '' !== undergrowth_openai_key() ) {
+		$identity = array(
+			'provider' => 'openai',
+			'model'    => UNDERGROWTH_OPENAI_MODEL,
+		);
+	}
+
 	/**
 	 * Filters the provider and model names stored with every vector.
 	 *
@@ -94,6 +112,8 @@ function undergrowth_embed_identity(): array {
 	 * changes, and posts are embedded again on their next save.
 	 *
 	 * @param array $identity {
+	 *     OpenAI when a key is saved, otherwise empty strings.
+	 *
 	 *     @type string $provider Provider name, such as "ollama".
 	 *     @type string $model    Model name, such as "nomic-embed-text".
 	 * }
