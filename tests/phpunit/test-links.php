@@ -439,6 +439,23 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->proposed( $yacon ) );
 	}
 
+	public function test_incomparable_vectors_never_crowd_out_neighbours_to_refresh() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+		for ( $i = 0; $i <= UNDERGROWTH_NEIGHBOURS_TO_UPDATE; $i++ ) {
+			$this->plant( 'Blank ' . $i, array( 0.0, 0.0, 0.0 ) );
+		}
+		$ulluco = $this->plant( 'Ulluco', array( 0.0, 1.0, 0.0 ) );
+
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$this->assertContains( $oca, $this->proposed( $ulluco ) );
+	}
+
 	public function test_link_state_of_an_unknown_pair_is_empty() {
 		$this->assertSame( '', undergrowth_link_state( 1, 2 ) );
 	}
