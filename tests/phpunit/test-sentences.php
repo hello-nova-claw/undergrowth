@@ -91,6 +91,13 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( true, true, false ), array_column( $sentences, 'linked' ) );
 	}
 
+	public function test_sentence_holding_an_image_only_link_is_marked() {
+		$sentences = undergrowth_split_sentences( '<p>Yacon <a href="https://example.test/"><img src="https://example.test/yacon.jpg" alt=""></a> grows tall. Oca is sweet.</p>' );
+
+		$this->assertSame( array( 'Yacon grows tall.', 'Oca is sweet.' ), array_column( $sentences, 'text' ) );
+		$this->assertSame( array( true, false ), array_column( $sentences, 'linked' ) );
+	}
+
 	public function test_shortcodes_never_become_sentences() {
 		$this->assertSame( array( 'Before.', 'After.' ), $this->sentence_texts( '<p>Before. [gallery ids="1"] After.</p>' ) );
 	}
