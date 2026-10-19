@@ -27,20 +27,33 @@ const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}
  * @return array<int, array{text: string, linked: bool}> Sentences in reading order.
  */
 function undergrowth_split_sentences( string $html ): array {
-	$marker = "\u{E000}";
-	$html   = strip_shortcodes( $html );
-	$html   = (string) preg_replace( '#<a\b[^>]*>#i', $marker, $html );
-	$html   = (string) preg_replace( '#</(p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>#i', "\n", $html );
-	$text   = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$open  = "\u{E000}";
+	$close = "\u{E001}";
+	$html  = strip_shortcodes( $html );
+	$html  = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
+	$html  = (string) preg_replace( '#</a\s*>#i', $close, $html );
+	$html  = (string) preg_replace( '#</(p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>#i', "\n", $html );
+	$text  = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	$sentences = array();
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
 		$parts = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', $block );
 
+		// Link text can run past a sentence end, so being inside a link carries
+		// over from one part of a block to the next.
+		$inside = false;
+
 		foreach ( (array) $parts as $part ) {
-			$linked = false !== strpos( $part, $marker );
-			$part   = trim( (string) preg_replace( '/\s+/u', ' ', str_replace( $marker, '', $part ) ) );
+			$linked = $inside || false !== strpos( $part, $open );
+
+			if ( false !== strpos( $part, $open ) || false !== strpos( $part, $close ) ) {
+				$opened = strrpos( $part, $open );
+				$closed = strrpos( $part, $close );
+				$inside = false !== $opened && ( false === $closed || $opened > $closed );
+			}
+
+			$part = trim( (string) preg_replace( '/\s+/u', ' ', str_replace( array( $open, $close ), '', $part ) ) );
 
 			if ( '' !== $part ) {
 				$sentences[] = array(
