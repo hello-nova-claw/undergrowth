@@ -55,7 +55,7 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
 function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 	if ( ! undergrowth_is_indexable( $post ) ) {
 		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
-		undergrowth_delete_vector( $post_id );
+		undergrowth_remove_from_index( $post_id );
 		return;
 	}
 
@@ -77,7 +77,7 @@ function undergrowth_embed_post( int $post_id ): void {
 	}
 
 	if ( ! undergrowth_is_indexable( $post ) ) {
-		undergrowth_delete_vector( $post_id );
+		undergrowth_remove_from_index( $post_id );
 		return;
 	}
 
@@ -108,7 +108,7 @@ function undergrowth_embed_post( int $post_id ): void {
 		return;
 	}
 
-	undergrowth_save_vector(
+	$saved = undergrowth_save_vector(
 		$post_id,
 		$vector,
 		array(
@@ -118,6 +118,31 @@ function undergrowth_embed_post( int $post_id ): void {
 			'content_hash' => $hash,
 		)
 	);
+
+	if ( $saved ) {
+		/**
+		 * Fires after a post's vector is stored or replaced.
+		 *
+		 * @param int $post_id Post ID.
+		 */
+		do_action( 'undergrowth_post_embedded', $post_id );
+	}
+}
+
+/**
+ * Removes a post that is no longer published from the index.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_remove_from_index( int $post_id ): void {
+	undergrowth_delete_vector( $post_id );
+
+	/**
+	 * Fires after a post leaves the index, for example when it is unpublished.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	do_action( 'undergrowth_post_left_index', $post_id );
 }
 
 /**
