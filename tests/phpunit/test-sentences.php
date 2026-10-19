@@ -89,6 +89,36 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( 'ヤー', 'ーコ', 'コン' ), undergrowth_tokens( 'ヤーコン' ) );
 	}
 
+	public function test_text_without_letters_gives_no_tokens() {
+		$this->assertSame( array(), undergrowth_tokens( '— ! ?' ) );
+	}
+
+	public function test_single_ideograph_is_kept_as_a_token() {
+		$this->assertSame( array( '塊' ), undergrowth_tokens( '塊' ) );
+	}
+
+	public function test_corpus_skips_posts_that_no_longer_exist() {
+		$corpus = undergrowth_build_corpus( array( PHP_INT_MAX ) );
+
+		$this->assertSame( 0, $corpus['documents'] );
+	}
+
+	public function test_post_outside_the_corpus_has_no_distinctive_terms() {
+		$this->assertSame( array(), undergrowth_distinctive_terms( 1, undergrowth_build_corpus( array() ) ) );
+	}
+
+	public function test_missing_source_post_gives_no_sentence() {
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'  => 'Yacon',
+				'post_status' => 'publish',
+			)
+		);
+		$corpus = undergrowth_build_corpus( array( $yacon ) );
+
+		$this->assertNull( undergrowth_choose_sentence( PHP_INT_MAX, $yacon, $corpus ) );
+	}
+
 	public function test_short_latin_words_are_ignored() {
 		$this->assertSame( array( 'oca' ), undergrowth_tokens( 'an oca is' ) );
 	}
