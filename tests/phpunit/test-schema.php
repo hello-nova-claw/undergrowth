@@ -127,6 +127,7 @@ class Test_Schema extends WP_UnitTestCase {
 
 		$expected = $wpdb->prepare( 'DROP TABLE IF EXISTS %i', undergrowth_vectors_table() );
 		$this->assertContains( $expected, $queries );
+		$this->assertContains( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', undergrowth_links_table() ), $queries );
 		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( 1 ) ) );
 	}
