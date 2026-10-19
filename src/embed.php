@@ -129,11 +129,16 @@ function undergrowth_embed_identity(): array {
 		'model'    => 191,
 	);
 
+	// Each field comes from the filter's answer alone. Filling a missing model
+	// from the OpenAI default would label another provider's vectors as
+	// OpenAI's, so a missing field stays empty and the vector is not stored.
+	$declared = array();
+
 	foreach ( $column_lengths as $key => $max_length ) {
-		if ( isset( $filtered[ $key ] ) && is_string( $filtered[ $key ] ) ) {
-			$identity[ $key ] = mb_substr( sanitize_text_field( $filtered[ $key ] ), 0, $max_length );
-		}
+		$declared[ $key ] = isset( $filtered[ $key ] ) && is_string( $filtered[ $key ] )
+			? mb_substr( sanitize_text_field( $filtered[ $key ] ), 0, $max_length )
+			: '';
 	}
 
-	return $identity;
+	return $declared;
 }
