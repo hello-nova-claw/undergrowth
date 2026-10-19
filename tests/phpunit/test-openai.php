@@ -168,6 +168,44 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->requests );
 	}
 
+	public function test_partial_identity_never_inherits_the_openai_model() {
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array( 'provider' => 'ollama' );
+			}
+		);
+
+		$this->assertSame(
+			array(
+				'provider' => 'ollama',
+				'model'    => '',
+			),
+			undergrowth_embed_identity()
+		);
+	}
+
+	public function test_vector_from_a_provider_naming_no_model_is_not_stored() {
+		add_filter(
+			'undergrowth_embed_provider',
+			static function () {
+				return array( 9.0 );
+			}
+		);
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array( 'provider' => 'ollama' );
+			}
+		);
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		undergrowth_embed_post( $post_id );
+
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
+		$this->assertSame( array(), $this->requests );
+	}
+
 	public function test_failed_re_embedding_removes_the_old_vector() {
 		$post_id = self::factory()->post->create(
 			array(
