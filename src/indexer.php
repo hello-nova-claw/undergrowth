@@ -108,7 +108,7 @@ function undergrowth_embed_post( int $post_id ): void {
 	// so a failed re-embed removes it until the next attempt succeeds.
 	if ( array() === $vector ) {
 		if ( null !== $existing ) {
-			undergrowth_delete_vector( $post_id );
+			undergrowth_remove_from_index( $post_id );
 		}
 		return;
 	}
