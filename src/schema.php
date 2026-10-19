@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 2;
+const UNDERGROWTH_SCHEMA_VERSION = 3;
 
 /**
  * Returns the name of the vectors table for the current site.
@@ -71,6 +71,7 @@ function undergrowth_install_schema(): bool {
 			state varchar(20) NOT NULL,
 			score double NOT NULL,
 			sentence text NOT NULL,
+			sentence_index int(11) NOT NULL DEFAULT -1,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
