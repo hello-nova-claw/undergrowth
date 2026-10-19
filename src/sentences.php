@@ -48,11 +48,13 @@ function undergrowth_split_sentences( string $html ): array {
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
 
-			// A sentence counts as linked only when some of its own text sits
-			// inside a link, not merely because a tag touches its edge.
+			// A sentence counts as linked when a link opens in it, even one
+			// around an image with no text, or when some of its own text sits
+			// inside a link. A closing tag at its start alone does not count.
 			foreach ( (array) preg_split( "/({$open}|{$close})/u", $part, -1, PREG_SPLIT_DELIM_CAPTURE ) as $piece ) {
 				if ( $open === $piece ) {
 					$inside = true;
+					$linked = true;
 				} elseif ( $close === $piece ) {
 					$inside = false;
 				} elseif ( $inside && '' !== trim( (string) $piece ) ) {
