@@ -113,6 +113,13 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->requests );
 	}
 
+	public function test_provider_called_directly_without_a_key_sends_nothing() {
+		delete_option( 'undergrowth_openai_api_key' );
+
+		$this->assertSame( array(), undergrowth_openai_embed( 'Oca keeps well.' ) );
+		$this->assertSame( array(), $this->requests );
+	}
+
 	public function test_request_goes_to_openai_with_key_and_model() {
 		undergrowth_embed( 'Oca keeps well.' );
 

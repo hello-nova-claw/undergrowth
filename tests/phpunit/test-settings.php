@@ -44,6 +44,14 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertNotSame( '', menu_page_url( 'undergrowth', false ) );
 	}
 
+	public function test_key_setting_is_registered_with_its_sanitiser_and_hidden_from_rest() {
+		undergrowth_register_settings();
+
+		$setting = get_registered_settings()['undergrowth_openai_api_key'];
+		$this->assertSame( 'undergrowth_sanitize_openai_key', $setting['sanitize_callback'] );
+		$this->assertFalse( $setting['show_in_rest'] );
+	}
+
 	public function test_new_key_is_trimmed() {
 		$this->assertSame( self::KEY, undergrowth_sanitize_openai_key( '  ' . self::KEY . "\n" ) );
 	}
