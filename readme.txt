@@ -65,3 +65,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
 * Accept a suggestion to link one word of your own sentence to the suggested post. A revision is kept, and nothing changes when the word can't be linked safely.
 * Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
+* Suggestions no longer pick a sentence inside a quote, a pullquote or a Custom HTML block, since those can never be linked. The suggestion uses the next best sentence instead.
