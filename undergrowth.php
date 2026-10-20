@@ -33,5 +33,4 @@ require_once __DIR__ . '/src/settings.php';
 require_once __DIR__ . '/src/admin.php';
 
 register_activation_hook( __FILE__, 'undergrowth_activate' );
-register_deactivation_hook( __FILE__, 'undergrowth_deactivate' );
 add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );
