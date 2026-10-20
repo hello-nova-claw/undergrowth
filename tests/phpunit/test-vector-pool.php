@@ -137,6 +137,14 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 300001, $pool );
 	}
 
+	public function test_vector_too_large_for_single_precision_stays_out_of_the_pool() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->store( 300002, array( 1e39, 0.0, 0.0 ) );
+
+		$this->assertSame( '', undergrowth_pack_vector( array( 1e39, 0.0 ) ) );
+		$this->assertArrayNotHasKey( 300002, undergrowth_comparable_vectors( $oca ) );
+	}
+
 	public function test_proposals_match_a_ranking_by_the_stored_vectors() {
 		add_filter(
 			'undergrowth_min_link_similarity',
