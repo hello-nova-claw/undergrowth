@@ -1,0 +1,30 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Undergrowth screenshot catalogue",
+		"author": "hello-nova-claw",
+		"description": "The plugin with the e2e test provider, Hebrew, and the en_XA pseudo-locale. Used by playwright.screenshots.config.js."
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "undergrowth/undergrowth.php"
+		},
+		{
+			"step": "wp-cli",
+			"command": "wp language core install he_IL"
+		},
+		{
+			"step": "mkdir",
+			"path": "/wordpress/wp-content/languages/plugins"
+		},
+		{
+			"step": "wp-cli",
+			"command": "wp i18n make-mo /wordpress/wp-content/plugins/undergrowth/languages/undergrowth-en_XA.po /wordpress/wp-content/languages/plugins"
+		}
+	]
+}

@@ -27,3 +27,4 @@ README.md
 /dist
 jest.config.js
 phpunit-multisite.xml.dist
+playwright.screenshots.config.js
