@@ -9,7 +9,8 @@ test.describe( 'Settings page', () => {
 	} );
 
 	// A key left behind by a failed test would put the remove checkbox in the
-	// tab order and break the keyboard test on the next run.
+	// tab order and break the keyboard test on the next run. A Discord ID left
+	// behind would show on every later visit.
 	test.afterEach( async ( { admin, page } ) => {
 		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
 
@@ -17,12 +18,12 @@ test.describe( 'Settings page', () => {
 			'input[name="undergrowth_remove_openai_key"], input[name="undergrowth_remove_anthropic_key"], input[name="undergrowth_remove_discord_token"]'
 		);
 
-		if ( ( await remove.count() ) > 0 ) {
-			for ( const checkbox of await remove.all() ) {
-				await checkbox.check();
-			}
-			await page.locator( '.wrap #submit' ).click();
+		for ( const checkbox of await remove.all() ) {
+			await checkbox.check();
 		}
+
+		await page.locator( '#undergrowth_discord_application_id' ).fill( '' );
+		await page.locator( '.wrap #submit' ).click();
 	} );
 
 	test( 'has no WCAG 2.2 AA violations', async ( { page } ) => {
