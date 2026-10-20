@@ -98,6 +98,37 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( true, false ), array_column( $sentences, 'linked' ) );
 	}
 
+	public function test_sentences_inside_someone_elses_words_are_marked_quoted() {
+		$sentences = undergrowth_split_sentences(
+			'<p>Mine before.</p>'
+			. '<!-- wp:quote --><blockquote class="wp-block-quote"><!-- wp:paragraph --><p>Their words.</p><!-- /wp:paragraph --></blockquote><!-- /wp:quote -->'
+			. 'Mine between. <blockquote>Classic words.</blockquote>'
+			. '<!-- wp:html --><span>Hand-written markup.</span><!-- /wp:html -->'
+			. '<!-- wp:pullquote --><figure class="wp-block-pullquote"><blockquote><p>Pulled words.</p><cite>Someone</cite></blockquote></figure><!-- /wp:pullquote -->'
+			. '<!-- wp:group --><div class="wp-block-group"><!-- wp:paragraph --><p>Mine in a group.</p><!-- /wp:paragraph --></div><!-- /wp:group -->'
+		);
+
+		$this->assertSame(
+			array(
+				'Mine before.'         => false,
+				'Their words.'         => true,
+				'Mine between.'        => false,
+				'Classic words.'       => true,
+				'Hand-written markup.' => true,
+				'Pulled words.'        => true,
+				'Someone'              => true,
+				'Mine in a group.'     => false,
+			),
+			array_column( $sentences, 'quoted', 'text' )
+		);
+	}
+
+	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
+		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
+
+		$this->assertSame( array( false ), array_column( $sentences, 'quoted' ) );
+	}
+
 	public function test_shortcodes_never_become_sentences() {
 		$this->assertSame( array( 'Before.', 'After.' ), $this->sentence_texts( '<p>Before. [gallery ids="1"] After.</p>' ) );
 	}
@@ -204,6 +235,70 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 'Yacon grows tall beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	/**
+	 * Source posts whose best sentence for a link to Yacon is in someone else's words.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function data_others_words() {
+		return array(
+			'quote block'       => array( '<!-- wp:quote --><blockquote class="wp-block-quote"><!-- wp:paragraph --><p>Yacon syrup is a gentle sweetener.</p><!-- /wp:paragraph --></blockquote><!-- /wp:quote -->' ),
+			'classic quote'     => array( '<blockquote>Yacon syrup is a gentle sweetener.</blockquote>' ),
+			'custom html block' => array( '<!-- wp:html --><div class="note">Yacon syrup is a gentle sweetener.</div><!-- /wp:html -->' ),
+			'pullquote'         => array( '<!-- wp:pullquote --><figure class="wp-block-pullquote"><blockquote><p>Yacon syrup is a gentle sweetener.</p><cite>Yacon syrup grower</cite></blockquote></figure><!-- /wp:pullquote -->' ),
+		);
+	}
+
+	/**
+	 * @dataProvider data_others_words
+	 *
+	 * @param string $others_words Markup holding the best sentence.
+	 */
+	public function test_sentence_in_someone_elses_words_is_never_chosen( string $others_words ) {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => $others_words . '<!-- wp:paragraph --><p>I grow yacon beside the oca.</p><!-- /wp:paragraph -->' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertSame( 'I grow yacon beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_proposal_with_only_quoted_sentences_is_dropped() {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<blockquote>Yacon syrup is a gentle sweetener.</blockquote><p>Tubers like cool weather.</p>' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+	}
+
+	public function test_paragraph_inside_a_group_is_still_chosen() {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<!-- wp:group --><div class="wp-block-group"><!-- wp:paragraph --><p>Yacon syrup is a gentle sweetener.</p><!-- /wp:paragraph --></div><!-- /wp:group --><!-- wp:paragraph --><p>I grow yacon beside the oca.</p><!-- /wp:paragraph -->' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertSame( 'Yacon syrup is a gentle sweetener.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
 	public function test_repeated_common_words_never_outweigh_a_targets_own_words() {
