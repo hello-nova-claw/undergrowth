@@ -25,6 +25,18 @@ jobs:
       - run: npm ci
       - run: npm run lint:js
 
+  stylelint:
+    name: Stylelint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:css
+
   native:
     name: WordPress-native check
     runs-on: ubuntu-latest
