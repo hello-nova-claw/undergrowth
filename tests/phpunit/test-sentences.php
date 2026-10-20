@@ -135,6 +135,29 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( false ), array_column( $sentences, 'quoted' ) );
 	}
 
+	public function test_every_line_of_quoted_text_is_marked() {
+		$sentences = undergrowth_split_sentences(
+			"<p>Mine,\non two lines.</p>\n"
+			. "<!-- wp:html -->\n<div class=\"note\">\nHand-written first.\nHand-written second.\n</div>\n<!-- /wp:html -->\n"
+			. "<blockquote>Classic first.\nClassic second.</blockquote>\n"
+			. "Mine at the end,\nalso two lines."
+		);
+
+		$this->assertSame(
+			array(
+				'Mine,'               => false,
+				'on two lines.'       => false,
+				'Hand-written first.' => true,
+				'Hand-written second.' => true,
+				'Classic first.'      => true,
+				'Classic second.'     => true,
+				'Mine at the end,'    => false,
+				'also two lines.'     => false,
+			),
+			array_column( $sentences, 'quoted', 'text' )
+		);
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
