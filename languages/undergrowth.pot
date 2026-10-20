@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T23:30:18+00:00\n"
+"POT-Creation-Date: 2026-10-20T23:34:06+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -295,6 +295,7 @@ msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:165
+#: src/discord-messages.php:178
 msgid "Accept"
 msgstr ""
 
@@ -305,6 +306,7 @@ msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:172
+#: src/discord-messages.php:184
 msgid "Veto"
 msgstr ""
 
@@ -346,6 +348,28 @@ msgstr ""
 msgid "Pin"
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/discord-messages.php:154
+#, php-format
+msgid "Suggested link from “%1$s” to “%2$s”"
+msgstr ""
+
+#. translators: %s: address of the post the link would sit in.
+#: src/discord-messages.php:160
+#, php-format
+msgid "In: %s"
+msgstr ""
+
+#. translators: %s: address of the post the link would point to.
+#: src/discord-messages.php:162
+#, php-format
+msgid "To: %s"
+msgstr ""
+
+#: src/discord-messages.php:190
+msgid "Open in WordPress"
+msgstr ""
+
 #: src/discord-settings.php:94
 msgid "Discord"
 msgstr ""
@@ -382,21 +406,27 @@ msgstr ""
 msgid "The Discord public key should be 64 letters and numbers, as shown in the developer portal, so the saved one was kept."
 msgstr ""
 
-#: src/discord-settings.php:218
+#: src/discord-settings.php:219
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/discord-settings.php:229
+#, php-format
+msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
+msgstr ""
+
 #. translators: %s: last four characters of the saved bot token.
-#: src/discord-settings.php:251
+#: src/discord-settings.php:269
 #, php-format
 msgid "A token ending in %s is saved. Leave the field blank to keep it."
 msgstr ""
 
-#: src/discord-settings.php:260
+#: src/discord-settings.php:278
 msgid "Remove the saved token and stop sending anything to Discord"
 msgstr ""
 
-#: src/discord-settings.php:274
+#: src/discord-settings.php:292
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
