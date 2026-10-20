@@ -55,9 +55,18 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	public function prepare_items() {
 		$this->_column_headers = array( $this->get_columns(), array(), array() );
 
+		$post_types = undergrowth_indexed_post_types();
+
+		// WP_Query reads an empty post type list as "posts", which would list
+		// posts outside the index.
+		if ( array() === $post_types ) {
+			$this->items = array();
+			return;
+		}
+
 		$query = new WP_Query(
 			array(
-				'post_type'      => undergrowth_indexed_post_types(),
+				'post_type'      => $post_types,
 				'post_status'    => 'publish',
 				'has_password'   => false,
 				'orderby'        => 'title',
