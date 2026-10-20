@@ -9,8 +9,8 @@ test.describe( 'Settings page', () => {
 	} );
 
 	// A key left behind by a failed test would put the remove checkbox in the
-	// tab order and break the keyboard test on the next run. A Discord ID left
-	// behind would show on every later visit.
+	// tab order and break the keyboard test on the next run. A Discord field
+	// left behind, or filled in by a fixture, would show on every later visit.
 	test.afterEach( async ( { admin, page } ) => {
 		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
 
@@ -22,7 +22,14 @@ test.describe( 'Settings page', () => {
 			await checkbox.check();
 		}
 
-		await page.locator( '#undergrowth_discord_application_id' ).fill( '' );
+		for ( const id of [
+			'undergrowth_discord_application_id',
+			'undergrowth_discord_public_key',
+			'undergrowth_discord_channel_id',
+		] ) {
+			await page.locator( `#${ id }` ).fill( '' );
+		}
+
 		await page.locator( '.wrap #submit' ).click();
 	} );
 
