@@ -191,7 +191,11 @@ for ( $undergrowth_i = 0; $undergrowth_i < $undergrowth_posts; $undergrowth_i++ 
 	for ( $undergrowth_s = 0; $undergrowth_s < $undergrowth_per_post; $undergrowth_s++ ) {
 		$undergrowth_sentence = array();
 
-		for ( $undergrowth_w = 0; $undergrowth_w < 8; $undergrowth_w++ ) {
+		// The last sentence holds whatever is left, so a post has exactly the
+		// number of words asked for.
+		$undergrowth_in_sentence = min( 8, $undergrowth_length - 8 * $undergrowth_s );
+
+		for ( $undergrowth_w = 0; $undergrowth_w < $undergrowth_in_sentence; $undergrowth_w++ ) {
 			$undergrowth_sentence[] = null === $undergrowth_vocabulary
 				? $undergrowth_words[ mt_rand( 0, count( $undergrowth_words ) - 1 ) ]
 				: undergrowth_benchmark_zipf_word( $undergrowth_vocabulary );
