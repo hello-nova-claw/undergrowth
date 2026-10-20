@@ -136,8 +136,7 @@ function valueEnd( markup, start ) {
  */
 function findInlineStyles( markup ) {
 	const found = [];
-	// Embedded PHP, a JSX spread such as { ...props }, or a name with an
-	// optional =.
+	// Consume PHP blocks and JSX spreads so later attributes remain visible.
 	const attribute = /\s*(?:(<\?)|(\{)|([^\s=<>/"'{}]+)\s*(=\s*)?)/y;
 
 	for ( const tag of markup.matchAll( /<[a-z][\w.:-]*/gi ) ) {
