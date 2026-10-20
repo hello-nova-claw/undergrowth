@@ -57,6 +57,18 @@ const WITHOUT_POSTS = [
 		fixture: 'last-error',
 	},
 	{
+		screen: 'settings',
+		state: 'prompt-key-saved',
+		page: SETTINGS,
+		fixture: 'prompt-key-saved',
+	},
+	{
+		screen: 'settings',
+		state: 'prompt-last-error',
+		page: SETTINGS,
+		fixture: 'prompt-last-error',
+	},
+	{
 		screen: 'suggestions',
 		state: 'no-provider',
 		page: SUGGESTIONS,
