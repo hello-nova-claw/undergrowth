@@ -101,6 +101,14 @@ describe( 'findHexColours', () => {
 		] );
 	} );
 
+	it( 'ignores colours in comments and keeps line numbers', () => {
+		expect(
+			findHexColours(
+				'/* color: #fff;\n   was #000 */\n.a {\n\tcolor: #123;\n}'
+			)
+		).toEqual( [ 4 ] );
+	} );
+
 	it( 'ignores id selectors and custom properties', () => {
 		const css =
 			'#add, #undergrowth-notice {\n\tcolor: var(--wp-admin-theme-color);\n}\nli:hover #add {\n}\na:not(#fade) {\n}';
