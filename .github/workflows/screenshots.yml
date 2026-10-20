@@ -180,12 +180,12 @@ jobs:
             fi
             git commit -q -m "Screenshots for #${PR} at ${HEAD_SHA:0:7}."
 
-            # Another pull request may have pushed in the meantime.
+            # Another pull request may have pushed in the meantime. The next
+            # try starts again from the fetched branch.
             if git push -q origin screenshots; then
               pushed=yes
               break
             fi
-            git reset -q --hard
           done
 
           if [ -z "$pushed" ]; then
