@@ -174,6 +174,8 @@ function undergrowth_finish_stage_action( $result, string $success ): void {
 		'undergrowth_composting'    => 'stage_composting',
 		'undergrowth_not_pinned'    => 'not_pinned',
 		'undergrowth_not_saved'     => 'stage_not_saved',
+		'undergrowth_pin_left'      => 'stage_pin_left',
+		'undergrowth_pin_lost'      => 'stage_pin_lost',
 	);
 
 	if ( is_wp_error( $result ) && ! isset( $notices[ $result->get_error_code() ] ) ) {
@@ -305,14 +307,14 @@ function undergrowth_render_suggestions_notice(): void {
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
 	$messages = array(
-		'vetoed'       => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'saved'        => __( 'Your choice is saved.', 'undergrowth' ),
-		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'accepted'     => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
-		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
+		'vetoed'           => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
+		'saved'            => __( 'Your choice is saved.', 'undergrowth' ),
+		'unchanged'        => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'gone'             => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
+		'accepted'         => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
+		'edited'           => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'no_word'          => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_proposed'     => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
 		'needs_admin'      => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
 		'pinned'           => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
 		'unpinned'         => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
@@ -320,6 +322,8 @@ function undergrowth_render_suggestions_notice(): void {
 		'stage_composting' => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
 		'not_pinned'       => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
 		'stage_not_saved'  => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
+		'stage_pin_left'   => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
+		'stage_pin_lost'   => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
