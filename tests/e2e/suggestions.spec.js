@@ -33,8 +33,10 @@ test.describe( 'Link suggestions screen', () => {
 	} );
 
 	test.describe( 'with suggestions', () => {
+		let oca;
+
 		test.beforeEach( async ( { requestUtils, admin } ) => {
-			await requestUtils.createPost( {
+			oca = await requestUtils.createPost( {
 				title: 'Oca',
 				content: '<p>Oca grows here. I keep yacon nearby.</p>',
 				status: 'publish',
@@ -63,7 +65,9 @@ test.describe( 'Link suggestions screen', () => {
 			page,
 		} ) => {
 			const rows = page.locator( '.wp-list-table tbody tr' );
-			const veto = rows.first().locator( 'button[type="submit"]' );
+			const veto = rows
+				.first()
+				.locator( 'form:has(input[value="undergrowth_veto"]) button' );
 
 			await veto.focus();
 			await expect( veto ).toBeFocused();
@@ -71,6 +75,36 @@ test.describe( 'Link suggestions screen', () => {
 
 			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
 			await expect( rows ).toHaveCount( 1 );
+		} );
+
+		test( 'accepts one by keyboard and links a word in the post', async ( {
+			page,
+			requestUtils,
+		} ) => {
+			const row = page.locator( '.wp-list-table tbody tr' ).filter( {
+				has: page.locator( '.column-source a', { hasText: 'Oca' } ),
+			} );
+			const accept = row.locator(
+				'form:has(input[value="undergrowth_accept"]) button'
+			);
+
+			await accept.focus();
+			await expect( accept ).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+
+			const notice = page.locator( '#undergrowth-notice' );
+			await expect( notice ).toBeFocused();
+			await expect(
+				notice.locator( 'a[href*="revision.php"]' )
+			).toHaveCount( 1 );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			const post = await requestUtils.rest( {
+				path: `/wp/v2/posts/${ oca.id }`,
+				params: { context: 'edit' },
+			} );
+			expect( post.content.raw ).toContain( '<a href=' );
+			expect( post.content.raw ).toContain( '>yacon</a>' );
 		} );
 
 		test( 'can be switched off and on', async ( { page } ) => {
