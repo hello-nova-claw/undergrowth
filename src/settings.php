@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'admin_menu', 'undergrowth_add_settings_page' );
 add_action( 'admin_init', 'undergrowth_register_settings' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_stop_autoloading_key' );
+add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_settings_style' );
 
 /**
  * Adds Settings > Undergrowth.
@@ -21,6 +22,24 @@ function undergrowth_add_settings_page(): void {
 		'manage_options',
 		'undergrowth',
 		'undergrowth_render_settings_page'
+	);
+}
+
+/**
+ * Loads the settings page stylesheet, on that page only.
+ *
+ * @param string $hook_suffix The current admin page.
+ */
+function undergrowth_enqueue_settings_style( string $hook_suffix ): void {
+	if ( 'settings_page_undergrowth' !== $hook_suffix ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'undergrowth-settings',
+		plugins_url( 'assets/settings.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
 	);
 }
 
@@ -80,7 +99,7 @@ function undergrowth_render_settings_page(): void {
 	$key   = undergrowth_openai_key();
 	$error = get_option( 'undergrowth_last_embed_error' );
 	?>
-	<div class="wrap">
+	<div class="wrap undergrowth-settings">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 		<form action="options.php" method="post">

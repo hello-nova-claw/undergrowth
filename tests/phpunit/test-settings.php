@@ -22,6 +22,8 @@ class Test_Settings extends WP_UnitTestCase {
 
 	public function tear_down() {
 		unset( $_POST['undergrowth_remove_openai_key'] );
+		wp_dequeue_style( 'undergrowth-settings' );
+		wp_deregister_style( 'undergrowth-settings' );
 
 		parent::tear_down();
 	}
@@ -50,6 +52,19 @@ class Test_Settings extends WP_UnitTestCase {
 		$setting = get_registered_settings()['undergrowth_openai_api_key'];
 		$this->assertSame( 'undergrowth_sanitize_openai_key', $setting['sanitize_callback'] );
 		$this->assertFalse( $setting['show_in_rest'] );
+	}
+
+	public function test_stylesheet_loads_on_the_settings_page() {
+		undergrowth_enqueue_settings_style( 'settings_page_undergrowth' );
+
+		$this->assertTrue( wp_style_is( 'undergrowth-settings', 'enqueued' ) );
+		$this->assertStringStartsWith( plugins_url( 'assets/', UNDERGROWTH_FILE ), wp_styles()->registered['undergrowth-settings']->src );
+	}
+
+	public function test_stylesheet_stays_off_other_admin_pages() {
+		undergrowth_enqueue_settings_style( 'index.php' );
+
+		$this->assertFalse( wp_style_is( 'undergrowth-settings', 'enqueued' ) );
 	}
 
 	public function test_new_key_is_trimmed() {

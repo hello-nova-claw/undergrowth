@@ -41,6 +41,31 @@ test.describe( 'Settings page', () => {
 		).toBeVisible();
 	} );
 
+	// en_XA pads strings with long unbroken runs, as some real languages do
+	// with compound words. The last-error notice adds the longest of them.
+	test( 'fits a phone screen without scrolling sideways', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await context.addCookies( [
+			{
+				name: 'undergrowth_e2e_fixture',
+				value: 'last-error',
+				url: baseURL,
+			},
+		] );
+		await page.setViewportSize( { width: 390, height: 800 } );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		const width = await page
+			.locator( '.wrap' )
+			.evaluate( ( wrap ) => wrap.scrollWidth );
+
+		expect( width ).toBeLessThanOrEqual( 390 );
+	} );
+
 	test( 'reaches the key field and the save button by keyboard', async ( {
 		page,
 	} ) => {
