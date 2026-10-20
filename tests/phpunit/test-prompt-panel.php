@@ -493,4 +493,38 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 
 		$this->assertSame( '', (string) ob_get_clean() );
 	}
+
+	public function test_post_without_a_vector_gets_a_file_for_its_prompts() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'   => 'Unread oca',
+				'post_status'  => 'publish',
+				'post_author'  => $this->author,
+				'post_content' => 'I lift the tubers after the first frost.',
+			)
+		);
+		wp_delete_comment(
+			(int) get_comments(
+				array(
+					'post_id' => $this->post_id,
+					'fields'  => 'ids',
+				)
+			)[0],
+			true
+		);
+		$this->comment( $post_id, 'How do you store the tubers?' );
+
+		undergrowth_write_prompt();
+
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
+		$this->assertStringContainsString( "## prompts\n- ", (string) file_get_contents( undergrowth_memory_path( $post_id ) ) );
+	}
+
+	public function test_post_without_a_vector_or_prompts_gets_no_file() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		undergrowth_write_memory( $post_id );
+
+		$this->assertFileDoesNotExist( undergrowth_memory_path( $post_id ) );
+	}
 }
