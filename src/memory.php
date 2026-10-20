@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_resurfacing_logged', 'undergrowth_update_memory' );
+add_action( 'undergrowth_prompt_logged', 'undergrowth_update_memory' );
 add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
@@ -64,8 +65,9 @@ function undergrowth_filesystem(): ?WP_Filesystem_Base {
 /**
  * Builds the text of a post's file from its stage and the links table.
  *
- * Only the post's title, address and slug, other posts' addresses, and
- * sentences already quoted from the post are written.
+ * Only the post's title, address and slug, other posts' addresses,
+ * sentences already quoted from the post, and the questions Undergrowth
+ * asked the author about it are written.
  *
  * @param WP_Post $post Post the file describes.
  * @return string File contents.
@@ -117,7 +119,9 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		array( '', '## accepted links' ),
 		$links['accepted'],
 		array( '', '## vetoes' ),
-		$links['vetoed']
+		$links['vetoed'],
+		array( '', '## prompts' ),
+		undergrowth_memory_prompts( $post->ID )
 	);
 	$lines[] = '';
 
@@ -163,6 +167,23 @@ function undergrowth_memory_resurfacing( int $post_id ): array {
 }
 
 /**
+ * Builds the prompts section of a post's file: one line for each prompt
+ * asked, dismissed or snoozed, oldest first.
+ *
+ * @param int $post_id Post ID.
+ * @return string[] Lines of the section, without its heading.
+ */
+function undergrowth_memory_prompts( int $post_id ): array {
+	$lines = array();
+
+	foreach ( undergrowth_prompt_log( $post_id ) as $event ) {
+		$lines[] = '- ' . wp_date( 'Y-m-d', $event['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $event['event'] . ' (' . $event['source'] . ') "' . $event['question'] . '"';
+	}
+
+	return $lines;
+}
+
+/**
  * Names a link target in a file.
  *
  * Accepted links and vetoes are kept after their target leaves the index,
@@ -189,13 +210,16 @@ function undergrowth_memory_target( int $target_id ): string {
 /**
  * Writes a post's file, or removes it when the post is not in the index.
  *
+ * A post without a vector has nothing else to record, unless Undergrowth
+ * has asked the author about it, which needs no embedding provider.
+ *
  * @param int $post_id Post ID.
  * @return bool True when the file was written.
  */
 function undergrowth_write_memory( int $post_id ): bool {
 	$post = get_post( $post_id );
 
-	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || null === undergrowth_get_vector( $post_id ) ) {
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || ( null === undergrowth_get_vector( $post_id ) && array() === undergrowth_prompt_log( $post_id ) ) ) {
 		undergrowth_delete_memory( $post_id );
 		return false;
 	}

@@ -122,7 +122,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -180,6 +180,25 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 					'time'   => 1767225600,
 					'status' => 529,
 				);
+			}
+		);
+		break;
+
+	// Cron does not run reliably during a test, so the Dashboard writes the
+	// prompt as it loads, from whatever reader question the test left.
+	case 'prompt':
+		add_filter(
+			'pre_option_undergrowth_anthropic_api_key',
+			static function () {
+				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		add_action(
+			'load-index.php',
+			static function () {
+				if ( function_exists( 'undergrowth_write_prompt' ) ) {
+					undergrowth_write_prompt();
+				}
 			}
 		);
 		break;

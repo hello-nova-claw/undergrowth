@@ -130,6 +130,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_last_prompt_error' );
 	delete_option( 'undergrowth_prompt' );
+	delete_option( 'undergrowth_snoozed_prompts' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
@@ -144,6 +145,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	delete_post_meta_by_key( 'undergrowth_stage_log' );
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
+	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	undergrowth_delete_memory_folder();
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
