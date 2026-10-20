@@ -38,7 +38,7 @@ function undergrowth_split_sentences( string $html ): array {
 	// or of any block, so text either side of one never runs together. Text
 	// that ends inside someone else's words has every line marked, because a
 	// line break inside it also ends a sentence.
-	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>|<blockquote\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
+	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)\s*>|<br\s*/?>|<blockquote\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
 	$html   = '';
 
 	for ( $i = 0, $count = count( $pieces ); $i < $count; $i += 2 ) {
