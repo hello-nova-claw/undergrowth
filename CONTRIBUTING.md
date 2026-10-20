@@ -99,6 +99,11 @@ npm run test:e2e
 - The images are kept on the `screenshots` branch under `pr-<number>/before/` and `pr-<number>/after/`, and each push adds a commit there, so the record stays after the pull request merges. The workflow run also has the full set as an artifact.
 - `npm run screenshots` takes the same set locally, without Docker: it starts WordPress Playground with the e2e test provider and saves every screen in every state, locale (`en_US`, `he_IL`, `en_XA`) and width (1280 and 390) to `artifacts/screenshots/`, named `<screen>--<state>--<locale>--<width>.png`. When you add a screen or a state, add it to `tests/e2e/states.spec.js`.
 
+## Trying a pull request
+
+- Every pull request from this repository gets a **Preview in WordPress Playground** comment. The link opens the pull request's commit in the browser, logged in as admin, on Posts > Link suggestions with a few sample posts. It uses the e2e test provider, which counts fixture words instead of calling an API, so no key is needed and none is ever asked for.
+- `npm run playground` starts the same site locally from `tests/e2e/playground/preview.json`, without Docker, with your working copy mounted as the plugin. Open the address it prints. Changes to PHP files show on the next page load; the sample posts are created afresh each time it starts.
+
 ## Security
 
 Report vulnerabilities privately through GitHub's security advisory form on this repository, not in a public issue.
