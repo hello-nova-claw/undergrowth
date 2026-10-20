@@ -1,0 +1,190 @@
+/**
+ * Compares two screenshot catalogues and writes the pull request comment.
+ *
+ * Prints Markdown to stdout: a before/after table of the shots that changed or
+ * are new, then the unchanged ones in a collapsed list. Always exits 0 when
+ * the folders can be read, because a visual change must never fail a build.
+ *
+ * Usage:
+ *   node bin/compare-screenshots.mjs <before> <after> <image base URL>
+ *
+ * The image base URL is the folder holding before/ and after/, for example
+ * https://github.com/OWNER/REPO/blob/SHA/pr-12, and "?raw=true" is added to
+ * each image so it renders from a private repository too.
+ */
+
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import pixelmatch from 'pixelmatch';
+import { PNG } from 'pngjs';
+
+const MARKER = '<!-- undergrowth-screenshots -->';
+
+// GitHub refuses comments over 65,536 characters.
+const MAX_ROWS = 60;
+
+/**
+ * Lists the PNG files in a folder, or none when it is missing.
+ *
+ * @param {string} dir Folder to read.
+ * @return {string[]} File names, sorted.
+ */
+function pngs( dir ) {
+	return existsSync( dir )
+		? readdirSync( dir )
+				.filter( ( name ) => name.endsWith( '.png' ) )
+				.sort()
+		: [];
+}
+
+/**
+ * Tells whether two PNG files differ by any pixel.
+ *
+ * @param {string} a First file.
+ * @param {string} b Second file.
+ * @return {boolean} True when the size or any pixel differs.
+ */
+function differs( a, b ) {
+	const one = PNG.sync.read( readFileSync( a ) );
+	const two = PNG.sync.read( readFileSync( b ) );
+
+	if ( one.width !== two.width || one.height !== two.height ) {
+		return true;
+	}
+
+	return (
+		pixelmatch( one.data, two.data, null, one.width, one.height, {
+			threshold: 0.1,
+		} ) > 0
+	);
+}
+
+/**
+ * Sorts every shot into new, changed, removed or unchanged.
+ *
+ * @param {string} before Folder of shots from the base branch.
+ * @param {string} after  Folder of shots from the pull request.
+ * @return {{added: string[], changed: string[], removed: string[], unchanged: string[]}} Shot names by outcome.
+ */
+function compare( before, after ) {
+	const old = new Set( pngs( before ) );
+	const now = pngs( after );
+	const result = { added: [], changed: [], removed: [], unchanged: [] };
+
+	for ( const name of now ) {
+		if ( ! old.has( name ) ) {
+			result.added.push( name );
+		} else if ( differs( join( before, name ), join( after, name ) ) ) {
+			result.changed.push( name );
+		} else {
+			result.unchanged.push( name );
+		}
+	}
+
+	const current = new Set( now );
+	result.removed = [ ...old ].filter( ( name ) => ! current.has( name ) );
+
+	return result;
+}
+
+/**
+ * Builds the comment body.
+ *
+ * @param {ReturnType<typeof compare>} result Shot names by outcome.
+ * @param {string}                     base   URL of the folder holding before/ and after/.
+ * @return {string} Markdown.
+ */
+function comment( result, base ) {
+	const image = ( side, name ) =>
+		`<img src="${ base }/${ side }/${ name }?raw=true" width="400" alt="${ name }, ${ side }">`;
+	const link = ( side, name ) =>
+		`[${ name }](${ base }/${ side }/${ name }?raw=true)`;
+	const total =
+		result.added.length + result.changed.length + result.unchanged.length;
+	const lines = [ MARKER, '## Screenshots', '' ];
+
+	if ( 0 === total && 0 === result.removed.length ) {
+		lines.push(
+			'No screenshots were taken. Check the workflow run for errors.'
+		);
+		return lines.join( '\n' );
+	}
+
+	lines.push(
+		`${ result.changed.length } changed, ${ result.added.length } new, ${ result.removed.length } removed, ${ result.unchanged.length } unchanged. Each shot is \`<screen>--<state>--<locale>--<width>\`.`,
+		''
+	);
+
+	const rows = [
+		...result.changed.map( ( name ) => [ name, 'changed' ] ),
+		...result.added.map( ( name ) => [ name, 'new' ] ),
+	];
+
+	if ( rows.length > 0 ) {
+		lines.push( '| Shot | Before | After |', '| --- | --- | --- |' );
+
+		for ( const [ name, kind ] of rows.slice( 0, MAX_ROWS ) ) {
+			lines.push(
+				`| \`${ name }\` (${ kind }) | ${
+					'new' === kind ? '' : image( 'before', name )
+				} | ${ image( 'after', name ) } |`
+			);
+		}
+
+		if ( rows.length > MAX_ROWS ) {
+			lines.push(
+				'',
+				`${
+					rows.length - MAX_ROWS
+				} more changed or new shots are in the workflow artifact and in [after/](${ base.replace(
+					'/blob/',
+					'/tree/'
+				) }/after).`
+			);
+		}
+
+		lines.push( '' );
+	} else {
+		lines.push( 'No visual changes.', '' );
+	}
+
+	if ( result.removed.length > 0 ) {
+		lines.push(
+			'<details><summary>Removed</summary>',
+			'',
+			...result.removed.map(
+				( name ) => `- ${ link( 'before', name ) }`
+			),
+			'',
+			'</details>',
+			''
+		);
+	}
+
+	if ( result.unchanged.length > 0 ) {
+		lines.push(
+			'<details><summary>Unchanged</summary>',
+			'',
+			...result.unchanged.map(
+				( name ) => `- ${ link( 'after', name ) }`
+			),
+			'',
+			'</details>'
+		);
+	}
+
+	return lines.join( '\n' );
+}
+
+if ( import.meta.url === `file://${ process.argv[ 1 ] }` ) {
+	const [ before, after, base ] = process.argv.slice( 2 );
+
+	if ( ! before || ! after || ! base ) {
+		process.stderr.write(
+			'Usage: node bin/compare-screenshots.mjs <before> <after> <image base URL>\n'
+		);
+		process.exit( 2 );
+	}
+
+	process.stdout.write( comment( compare( before, after ), base ) + '\n' );
+}

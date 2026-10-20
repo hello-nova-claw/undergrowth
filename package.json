@@ -28,6 +28,8 @@
 		"@wordpress/env": "^11.17.0",
 		"@wordpress/scripts": "^36.1.0",
 		"jest": "^30.5.2",
-		"pa11y-ci": "^5.0.0"
+		"pa11y-ci": "^5.0.0",
+		"pixelmatch": "^8.0.0",
+		"pngjs": "^7.0.0"
 	}
 }
