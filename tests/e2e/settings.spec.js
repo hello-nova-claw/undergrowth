@@ -238,7 +238,11 @@ test.describe( 'Settings page', () => {
 		await expect( field ).toHaveValue( '' );
 	} );
 
-	for ( const fixture of [ 'discord-saved', 'discord-invalid' ] ) {
+	for ( const fixture of [
+		'discord-saved',
+		'discord-invalid',
+		'discord-last-error',
+	] ) {
 		test( `has no WCAG 2.2 AA violations with ${ fixture }`, async ( {
 			admin,
 			page,

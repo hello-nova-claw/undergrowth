@@ -88,6 +88,30 @@ add_filter(
 	3
 );
 
+// Discord is never called from a test site either. A message gets a made-up
+// ID back, as if it had been posted.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		if ( 0 !== strpos( (string) $url, 'https://discord.com/' ) ) {
+			return $preempt;
+		}
+
+		return array(
+			'headers'  => array(),
+			'body'     => '{"id":"100000000000000001"}',
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+			'filename' => null,
+		);
+	},
+	10,
+	3
+);
+
 /**
  * Returns the value of a test cookie when it is one of the allowed values.
  *
@@ -122,7 +146,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'discord-saved', 'discord-invalid' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'discord-saved', 'discord-invalid', 'discord-last-error' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -198,6 +222,18 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				}
 			);
 		}
+		break;
+
+	case 'discord-last-error':
+		add_filter(
+			'pre_option_undergrowth_last_discord_error',
+			static function () {
+				return array(
+					'time'   => 1767225600,
+					'status' => 429,
+				);
+			}
+		);
 		break;
 
 	case 'discord-invalid':
