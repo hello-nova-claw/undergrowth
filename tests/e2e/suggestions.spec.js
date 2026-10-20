@@ -28,7 +28,9 @@ test.describe( 'Link suggestions screen', () => {
 	} ) => {
 		await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
 
-		await expect( page.locator( '.wp-list-table' ) ).toHaveCount( 0 );
+		await expect( page.locator( 'table.undergrowth-links' ) ).toHaveCount(
+			0
+		);
 		await expectNoA11yViolations( page, '.wrap' );
 	} );
 
@@ -53,10 +55,10 @@ test.describe( 'Link suggestions screen', () => {
 			page,
 		} ) => {
 			await expect(
-				page.locator( '.wp-list-table tbody tr' )
+				page.locator( 'table.undergrowth-links tbody tr' )
 			).toHaveCount( 2 );
 			await expect(
-				page.locator( '.wp-list-table q' ).first()
+				page.locator( 'table.undergrowth-links q' ).first()
 			).toBeVisible();
 			await expectNoA11yViolations( page, '.wrap' );
 		} );
@@ -64,7 +66,7 @@ test.describe( 'Link suggestions screen', () => {
 		test( 'vetoes one by keyboard and moves focus to the result', async ( {
 			page,
 		} ) => {
-			const rows = page.locator( '.wp-list-table tbody tr' );
+			const rows = page.locator( 'table.undergrowth-links tbody tr' );
 			const veto = rows
 				.first()
 				.locator( 'form:has(input[value="undergrowth_veto"]) button' );
@@ -81,9 +83,11 @@ test.describe( 'Link suggestions screen', () => {
 			page,
 			requestUtils,
 		} ) => {
-			const row = page.locator( '.wp-list-table tbody tr' ).filter( {
-				has: page.locator( '.column-source a', { hasText: 'Oca' } ),
-			} );
+			const row = page
+				.locator( 'table.undergrowth-links tbody tr' )
+				.filter( {
+					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
+				} );
 			const accept = row.locator(
 				'form:has(input[value="undergrowth_accept"]) button'
 			);
@@ -117,7 +121,9 @@ test.describe( 'Link suggestions screen', () => {
 
 			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
 			await expect( toggle ).not.toBeChecked();
-			await expect( page.locator( '.wp-list-table' ) ).toHaveCount( 0 );
+			await expect(
+				page.locator( 'table.undergrowth-links' )
+			).toHaveCount( 0 );
 			await expectNoA11yViolations( page, '.wrap' );
 		} );
 	} );
