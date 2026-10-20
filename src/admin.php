@@ -41,7 +41,9 @@ function undergrowth_load_list_table(): void {
  * @return string Admin URL.
  */
 function undergrowth_suggestions_url( string $notice = '' ): string {
-	$url = admin_url( 'edit.php?post_type=post&page=undergrowth-links' );
+	// The screen is registered under plain edit.php; adding post_type=post
+	// makes WordPress look for it under a different parent and refuse it.
+	$url = admin_url( 'edit.php?page=undergrowth-links' );
 
 	return '' === $notice ? $url : add_query_arg( 'undergrowth_notice', $notice, $url );
 }
