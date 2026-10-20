@@ -23,7 +23,8 @@ class Test_Admin extends WP_UnitTestCase {
 		parent::set_up();
 
 		// Menus registered by an earlier test would otherwise still be listed.
-		$GLOBALS['submenu'] = array();
+		$GLOBALS['submenu']       = array();
+		$GLOBALS['_parent_pages'] = array();
 
 		$this->start_planting();
 		$this->editor = self::factory()->user->create( array( 'role' => 'editor' ) );
