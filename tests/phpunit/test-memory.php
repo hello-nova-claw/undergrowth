@@ -103,6 +103,67 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( array( 'stage', 'has', 'lacks', 'scent', 'proposed links', 'accepted links', 'vetoes' ), $headings[1] );
 	}
 
+	public function test_stage_section_names_a_seedling_with_no_changes() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertSame( array( 'seedling' ), $this->section( (string) $this->read( $oca ), 'stage' ) );
+	}
+
+	public function test_stage_section_lists_each_change_after_the_current_stage() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$today = wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) );
+
+		undergrowth_set_stage( $oca, 'sprout' );
+		undergrowth_set_stage( $oca, 'composting', 'compost' );
+
+		$this->assertSame(
+			array(
+				'composting',
+				'- ' . $today . ': seedling -> sprout (monthly cycle)',
+				'- ' . $today . ': sprout -> composting (composted by the author)',
+			),
+			$this->section( (string) $this->read( $oca ), 'stage' )
+		);
+	}
+
+	public function test_pinned_stage_carries_a_marker() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+		undergrowth_set_stage( $oca, 'evergreen', 'pin' );
+
+		$section = $this->section( (string) $this->read( $oca ), 'stage' );
+
+		$this->assertSame( 'evergreen (pinned)', $section[0] );
+		$this->assertSame( '- ' . wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) ) . ': seedling -> evergreen (pinned by the author)', $section[1] );
+	}
+
+	public function test_composted_stage_never_carries_a_pin_marker() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+		undergrowth_set_stage( $oca, 'composting', 'compost' );
+
+		$this->assertSame( 'composting', $this->section( (string) $this->read( $oca ), 'stage' )[0] );
+	}
+
+	public function test_stage_section_mentions_no_expiry_or_due_date() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		undergrowth_set_stage( $oca, 'composting', 'compost' );
+		undergrowth_set_stage( $oca, 'seedling', 'return' );
+
+		$section = implode( "\n", $this->section( (string) $this->read( $oca ), 'stage' ) );
+
+		$this->assertDoesNotMatchRegularExpression( '/\b(until|expires?|due|days?|remaining|since)\b/i', $section );
+		$this->assertStringContainsString( 'composting -> seedling (returned to the garden by the author)', $section );
+	}
+
 	public function test_accepted_and_vetoed_links_are_listed() {
 		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );

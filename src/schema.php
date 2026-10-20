@@ -134,6 +134,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
+	delete_post_meta_by_key( 'undergrowth_stage_log' );
 	undergrowth_delete_memory_folder();
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
