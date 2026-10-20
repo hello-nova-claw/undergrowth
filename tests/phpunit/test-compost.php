@@ -278,6 +278,27 @@ class Test_Compost extends WP_UnitTestCase {
 		$this->assertSame( $rows, $this->rows( $oca ) );
 	}
 
+	public function test_compost_whose_pin_cannot_be_removed_changes_nothing() {
+		list( $oca ) = $this->plant_garden();
+		undergrowth_pin_stage( $oca, 'evergreen' );
+		$rows = $this->rows( $oca );
+		add_filter(
+			'delete_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_pinned' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+
+		$result = undergrowth_compost_post( $oca );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $oca ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
+		$this->assertSame( $rows, $this->rows( $oca ) );
+	}
+
 	public function test_return_that_cannot_be_saved_leaves_the_post_composting() {
 		list( $oca ) = $this->plant_garden();
 		undergrowth_compost_post( $oca );

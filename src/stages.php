@@ -544,6 +544,10 @@ function undergrowth_compost_post( int $post_id ) {
 	$pinned = undergrowth_is_stage_pinned( $post_id );
 	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 
+	if ( undergrowth_is_stage_pinned( $post_id ) ) {
+		return undergrowth_stage_not_saved();
+	}
+
 	if ( ! undergrowth_set_stage( $post_id, 'composting', 'compost' ) ) {
 		if ( $pinned ) {
 			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
