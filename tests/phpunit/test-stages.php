@@ -982,7 +982,7 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$selects = array();
 		$record  = static function ( $query ) use ( &$selects ) {
-			if ( false !== strpos( $query, 'FROM ' . $GLOBALS['wpdb']->postmeta ) ) {
+			if ( 1 === preg_match( '/FROM `?' . preg_quote( $GLOBALS['wpdb']->postmeta, '/' ) . '\\b/', $query ) ) {
 				$selects[] = $query;
 			}
 			return $query;
@@ -994,5 +994,21 @@ class Test_Stages extends WP_UnitTestCase {
 		remove_filter( 'query', $record );
 		$this->assertSame( array( $ids[0], $ids[2] ), array_keys( $open ) );
 		$this->assertCount( 1, $selects );
+	}
+
+	public function test_checking_target_posts_leaves_their_other_meta_unread() {
+		$ids = self::factory()->post->create_many( 2 );
+		update_post_meta( $ids[0], 'undergrowth_stage', 'composting' );
+		update_post_meta( $ids[1], 'builder_data', str_repeat( 'x', 1000 ) );
+
+		foreach ( $ids as $id ) {
+			wp_cache_delete( $id, 'post_meta' );
+		}
+
+		$this->assertSame( array( $ids[1] ), array_keys( undergrowth_open_target_ids( $ids ) ) );
+
+		foreach ( $ids as $id ) {
+			$this->assertFalse( wp_cache_get( $id, 'post_meta' ) );
+		}
 	}
 }
