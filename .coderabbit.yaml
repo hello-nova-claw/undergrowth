@@ -34,9 +34,21 @@ reviews:
     - path: "**/*.php"
       instructions: |
         Apply the WordPress Coding Standards (WPCS). Check: escaping on output, sanitising on input, capability and nonce checks on every write, $wpdb->prepare() for every query with variables, the undergrowth_ prefix on globals, hooks, options and meta. Every user-facing string uses the undergrowth text domain, no concatenated sentences, sprintf() with numbered placeholders and a translators comment. Dates via wp_date(), numbers via number_format_i18n(). Vectors must store provider, model and language, and must never be compared across models or languages. No outbound HTTP except to a provider the owner configured.
+    - path: "src/**/*.php"
+      instructions: |
+        Enforce "Use what WordPress already has" in CONTRIBUTING.md. Admin screens use core markup and classes (.wrap, one h1, .notice and .notice-success, .button and .button-primary, .form-table, .description) and core helpers (submit_button(), WP_List_Table, the Settings API, add_posts_page(), add_options_page()). Icons are dashicons. Reject style attributes and inline <style> blocks; CSS belongs in an enqueued file. Prefer core APIs to custom ones: register_rest_route() with a permission_callback, wp_remote_*() for HTTP, WP-Cron, options and transients, WP_Filesystem, wp_kses(), nonces and capability checks. Flag a hand-rolled version of anything core provides.
     - path: "src/**/*.{js,jsx}"
       instructions: |
-        Use @wordpress/components and @wordpress/i18n. No other UI or CSS frameworks, no scripts loaded from outside the plugin. Check keyboard access and focus management.
+        Enforce "Use what WordPress already has" in CONTRIBUTING.md. Use @wordpress/* packages only (components, i18n, api-fetch, data, element), built with wp-scripts and enqueued with the dependencies from the generated .asset.php file. No other UI or CSS frameworks, no scripts loaded from outside the plugin. Check keyboard access and focus management.
+    - path: "**/*.{css,scss}"
+      instructions: |
+        Enforce "Use what WordPress already has" in CONTRIBUTING.md. CSS must be in an enqueued file and build on core admin classes rather than restyle them. Colours come from the admin colour scheme's custom properties, such as --wp-admin-theme-color; reject hex, rgb(), hsl() and named colours. No CSS frameworks.
+    - path: "tests/phpunit/**"
+      instructions: |
+        Enforce "Use what WordPress already has" in CONTRIBUTING.md. Tests extend WP_UnitTestCase, build fixtures with self::factory(), switch roles with wp_set_current_user(), fake HTTP with the pre_http_request filter, and fake other behaviour with core hooks and filters. Reject Mockery, WP_Mock, Brain Monkey, and PHPUnit mocks or stubs of WordPress functions.
+    - path: "tests/e2e/**"
+      instructions: |
+        Enforce "Use what WordPress already has" in CONTRIBUTING.md. Use @wordpress/e2e-test-utils-playwright: admin.visitAdminPage() for navigation, requestUtils for fixtures and REST, editor for the block editor. Reject raw page.goto() to admin URLs, direct SQL, and network mocking where requestUtils or the e2e test provider would do. Prefer role and label locators to markup selectors.
     - path: "languages/*.pot"
       instructions: Generated file. Only check that it changed when strings changed.
     - path: "docs/handover.md"
