@@ -224,6 +224,16 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( 'no_protection', get_option( 'undergrowth_last_file_error' )['code'] );
 	}
 
+	public function test_damaged_protection_file_is_restored() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$htaccess = undergrowth_memory_root() . '/.htaccess';
+		file_put_contents( $htaccess, '' );
+
+		$this->assertTrue( undergrowth_write_memory( $oca ) );
+		$this->assertStringContainsString( 'Require all denied', (string) file_get_contents( $htaccess ) );
+	}
+
 	public function test_update_time_is_iso_8601_in_utc() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
