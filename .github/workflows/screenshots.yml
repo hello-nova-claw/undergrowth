@@ -1,0 +1,168 @@
+name: Screenshots
+
+# Takes the screenshot catalogue on the pull request and on its base, then
+# posts the difference as one comment. It is for review only: it is not a
+# required check, and a visual change never fails it.
+
+on:
+  pull_request:
+    # Anything that can change what the screens look like, or how they are
+    # captured.
+    paths:
+      - "src/**"
+      - "languages/**"
+      - "undergrowth.php"
+      - "tests/e2e/**"
+      - "playwright.screenshots.config.js"
+      - "bin/compare-screenshots.mjs"
+      - "bin/pseudo-locale.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/screenshots.yml"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  catalogue:
+    name: Before and after
+    # Pull requests from forks get a read-only token, and their code must not
+    # run with write access anyway.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      SHOTS: ${{ github.workspace }}/shots
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          persist-credentials: false
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: head/.nvmrc
+          cache: npm
+          cache-dependency-path: head/package-lock.json
+      - run: npm ci
+        working-directory: head
+      - name: Build
+        if: hashFiles('head/src/**/*.js', 'base/src/**/*.js') != ''
+        run: |
+          npm run build
+          (cd ../base && npm ci && npm run build)
+        working-directory: head
+      - run: npx playwright install chromium --with-deps
+        working-directory: head
+
+      # Both runs use this branch's spec, so a state added here is captured on
+      # the base too, and shows as changed rather than new.
+      - name: Take the "after" shots
+        continue-on-error: true
+        working-directory: head
+        env:
+          UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/after
+        run: npm run screenshots
+      - name: Take the "before" shots
+        continue-on-error: true
+        working-directory: head
+        env:
+          UNDERGROWTH_PLUGIN_DIR: ${{ github.workspace }}/base
+          UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
+        run: npm run screenshots
+
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: screenshots-pr-${{ github.event.pull_request.number }}
+          path: shots/
+          if-no-files-found: ignore
+          retention-days: 90
+
+      # Each pull request owns pr-<number>/ on the orphan screenshots branch.
+      # Every push replaces that folder in a new commit, so the history keeps
+      # every version, and identical images cost nothing to store again.
+      - name: Commit to the screenshots branch
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir branch && cd branch
+          git init -q
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git remote add origin "https://github.com/${REPOSITORY}.git"
+
+          pushed=''
+          for _ in 1 2 3; do
+            if git fetch -q --depth 1 origin screenshots; then
+              git checkout -q -B screenshots FETCH_HEAD
+            else
+              git checkout -q --orphan screenshots
+            fi
+
+            rm -rf "pr-${PR}"
+            mkdir -p "pr-${PR}"
+            for side in before after; do
+              if [ -d "${SHOTS}/${side}" ]; then
+                cp -R "${SHOTS}/${side}" "pr-${PR}/${side}"
+              fi
+            done
+
+            git add -A "pr-${PR}"
+            if git rev-parse -q --verify HEAD >/dev/null && git diff --cached --quiet; then
+              pushed=yes
+              break
+            fi
+            git commit -q -m "Screenshots for #${PR} at ${HEAD_SHA:0:7}."
+
+            # Another pull request may have pushed in the meantime.
+            if git push -q origin screenshots; then
+              pushed=yes
+              break
+            fi
+            git reset -q --hard
+          done
+
+          if [ -z "$pushed" ]; then
+            echo "::error::Could not push to the screenshots branch."
+            exit 1
+          fi
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Post or update the comment
+        working-directory: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
+            "https://github.com/${REPOSITORY}/blob/${SHA}/pr-${PR}" > "${RUNNER_TEMP}/comment.md"
+          printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
+            "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${RUNNER_TEMP}/comment.md"
+
+          id=$(gh api --paginate "repos/${REPOSITORY}/issues/${PR}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- undergrowth-screenshots -->"))) | .id' | head -n 1)
+
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${REPOSITORY}/issues/comments/${id}" -F body=@"${RUNNER_TEMP}/comment.md" > /dev/null
+          else
+            gh api -X POST "repos/${REPOSITORY}/issues/${PR}/comments" -F body=@"${RUNNER_TEMP}/comment.md" > /dev/null
+          fi
