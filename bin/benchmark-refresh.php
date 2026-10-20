@@ -4,12 +4,13 @@
  *
  * Seeds N published posts, each with a random unit vector, then times
  * undergrowth_refresh_around() for the last post. Destroys the site's posts
- * and the plugin's tables, so run it only against a throwaway site:
+ * and the plugin's tables, so run it only against a throwaway site, and it
+ * refuses to start without the word "wipe" as its third argument:
  *
- *     wp eval-file bin/benchmark-refresh.php 1000 1536
+ *     wp eval-file bin/benchmark-refresh.php 1000 1536 wipe
  *
- * Arguments are the number of posts (default 1000) and the number of
- * dimensions (default 1536). The fingerprint is a hash of the proposals
+ * The other arguments are the number of posts and the number of
+ * dimensions. The fingerprint is a hash of the proposals
  * table, so two runs on the same seed can be compared across code changes.
  *
  * @package Undergrowth
@@ -51,6 +52,11 @@ function undergrowth_benchmark_unit_vector( int $dimensions ): array {
 	);
 }
 
+if ( 'wipe' !== ( $args[2] ?? '' ) ) {
+	fwrite( STDERR, 'This deletes every post on the site. Pass "wipe" as the third argument to confirm.' . PHP_EOL );
+	exit( 1 );
+}
+
 // Without a reset, the peak would include seeding the posts, not just the refresh.
 if ( ! function_exists( 'memory_reset_peak_usage' ) ) {
 	fwrite( STDERR, 'The benchmark needs PHP 8.2 or later to measure the refresh on its own.' . PHP_EOL );
@@ -59,8 +65,8 @@ if ( ! function_exists( 'memory_reset_peak_usage' ) ) {
 
 global $wpdb;
 
-$undergrowth_posts      = max( 2, (int) ( $args[0] ?? 1000 ) );
-$undergrowth_dimensions = max( 1, (int) ( $args[1] ?? 1536 ) );
+$undergrowth_posts      = max( 2, (int) $args[0] );
+$undergrowth_dimensions = max( 1, (int) $args[1] );
 $undergrowth_words      = array( 'oca', 'yacon', 'mashua', 'ulluco', 'achira', 'arracacha', 'maca', 'mauka', 'jicama', 'tuber', 'frost', 'mulch', 'harvest', 'seed', 'compost', 'shade', 'terrace', 'flower' );
 
 mt_srand( 26 );
