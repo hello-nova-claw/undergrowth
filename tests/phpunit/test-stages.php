@@ -140,6 +140,150 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
 	}
 
+	/**
+	 * Puts posts in one cluster, led by the first.
+	 *
+	 * @param int[] $post_ids Post IDs.
+	 */
+	private function cluster( array $post_ids ): void {
+		foreach ( $post_ids as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_cluster', $post_ids[0] );
+		}
+	}
+
+	public function test_post_in_a_cluster_with_links_in_and_out_measures_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_links_in_and_out_may_lead_outside_the_cluster() {
+		list( $post_id, $a, $b, $outside, $elsewhere ) = $this->publish( 5 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $outside );
+		$this->link( $elsewhere, $post_id );
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_links_only_out_measures_sprout() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $post_id, $b );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_links_only_in_measures_sprout() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $a, $post_id );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_one_link_measures_seedling() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_two_similar_posts_are_not_a_cluster_for_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_link_to_a_post_that_left_the_index_does_not_make_a_post_budding() {
+		list( $post_id, $a, $b, $draft ) = $this->publish( 4 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $draft, $post_id );
+		$this->link( $post_id, $b );
+
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	/**
+	 * Evergreen also needs a hub linking to the post, and hubs come only from
+	 * reader-mode fusion, so no post measures Evergreen yet.
+	 */
+	public function test_post_with_every_link_but_no_hub_stays_budding() {
+		$posts   = $this->publish( 8 );
+		$post_id = $posts[0];
+
+		$this->cluster( $posts );
+
+		foreach ( array_slice( $posts, 1 ) as $other ) {
+			$this->link( $post_id, $other );
+			$this->link( $other, $post_id );
+		}
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_cycle_stores_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_monthly_event_clusters_then_measures_budding() {
+		$posts = $this->publish( 3 );
+
+		foreach ( $posts as $i => $post_id ) {
+			undergrowth_save_vector(
+				$post_id,
+				array( 1.0, 0.1 * $i ),
+				array(
+					'provider'     => 'test-provider',
+					'model'        => 'test-model',
+					'language'     => 'en_US',
+					'content_hash' => 'hash',
+				)
+			);
+		}
+
+		$this->link( $posts[0], $posts[1] );
+		$this->link( $posts[2], $posts[0] );
+
+		do_action( 'undergrowth_cluster_cycle' );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		do_action( 'undergrowth_stage_cycle', 0 );
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $posts[0] ) );
+	}
+
 	public function test_measure_ignores_a_stored_stage() {
 		list( $post_id ) = $this->publish( 1 );
 
