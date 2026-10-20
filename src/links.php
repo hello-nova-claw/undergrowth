@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_MAX_PROPOSALS        = 3;
 const UNDERGROWTH_MIN_LINK_SIMILARITY  = 0.4;
 const UNDERGROWTH_NEIGHBOURS_TO_UPDATE = 10;
-const UNDERGROWTH_VECTOR_CHUNK         = 200;
+const UNDERGROWTH_VECTOR_CHUNK         = 100;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
