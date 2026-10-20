@@ -114,7 +114,10 @@ const HIDE_UPDATES = `
 `;
 
 /**
- * Returns where one shot is saved.
+ * Names a shot `<screen>--<state>--<locale>--<width>.png`.
+ *
+ * The comparison pairs before and after shots by file name alone, so the name
+ * must not change unless the state itself does.
  *
  * @param {Object} entry  State being captured.
  * @param {string} locale Locale code.
