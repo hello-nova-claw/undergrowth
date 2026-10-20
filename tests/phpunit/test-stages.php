@@ -453,6 +453,15 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( end( $posts ) ) ) );
 	}
 
+	public function test_cycle_with_no_indexed_post_types_measures_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+	}
+
 	public function test_cycle_event_runs_the_cycle() {
 		list( $post_id ) = $this->publish( 1 );
 
