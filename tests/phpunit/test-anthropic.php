@@ -160,6 +160,14 @@ class Test_Anthropic extends WP_UnitTestCase {
 		$this->assertSame( 'claude-opus-5-5', $this->sent_body()['model'] );
 	}
 
+	public function test_request_asks_for_low_effort_within_the_token_limit() {
+		undergrowth_anthropic_message( 'Rules.', 'Data.' );
+
+		$body = $this->sent_body();
+		$this->assertSame( array( 'effort' => 'low' ), $body['output_config'] );
+		$this->assertSame( UNDERGROWTH_ANTHROPIC_MAX_TOKENS, $body['max_tokens'] );
+	}
+
 	public function test_model_can_be_changed_with_a_filter() {
 		add_filter(
 			'undergrowth_prompt_model',
