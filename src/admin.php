@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
+add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_toggle', 'undergrowth_handle_toggle' );
 
 /**
@@ -70,6 +71,37 @@ function undergrowth_handle_veto(): void {
 	}
 
 	wp_safe_redirect( undergrowth_suggestions_url( $notice ) );
+	exit;
+}
+
+/**
+ * Accepts the link posted from a row's form, then returns to the screen.
+ *
+ * After a change, the address carries the new revision so the notice can
+ * link straight to what changed.
+ */
+function undergrowth_handle_accept(): void {
+	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
+	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_accept_' . $source . '_' . $target );
+
+	if ( ! current_user_can( 'edit_post', $source ) ) {
+		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$result = undergrowth_accept_link( $source, $target );
+	$url    = undergrowth_suggestions_url( $result );
+
+	if ( 'accepted' === $result ) {
+		$revisions = wp_get_post_revisions( $source, array( 'posts_per_page' => 1 ) );
+
+		if ( array() !== $revisions ) {
+			$url = add_query_arg( 'revision', (int) key( $revisions ), $url );
+		}
+	}
+
+	wp_safe_redirect( $url );
 	exit;
 }
 
@@ -158,19 +190,37 @@ function undergrowth_render_suggestions_notice(): void {
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
 	$messages = array(
-		'vetoed'    => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'saved'     => __( 'Your choice is saved.', 'undergrowth' ),
-		'unchanged' => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'      => __( 'One of those posts no longer exists, so there was nothing to veto.', 'undergrowth' ),
+		'vetoed'       => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
+		'saved'        => __( 'Your choice is saved.', 'undergrowth' ),
+		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
+		'accepted'     => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
+		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
 		return;
 	}
 
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$revision = isset( $_GET['revision'] ) ? absint( wp_unslash( $_GET['revision'] ) ) : 0;
+	$see      = '';
+
+	if ( 'accepted' === $notice && $revision > 0 ) {
+		$see = sprintf(
+			' <a href="%1$s">%2$s</a>',
+			esc_url( admin_url( 'revision.php?revision=' . $revision ) ),
+			esc_html__( 'See the change', 'undergrowth' )
+		);
+	}
+
 	printf(
-		'<div id="undergrowth-notice" class="notice notice-success" role="status" tabindex="-1"><p>%s</p></div>',
-		esc_html( $messages[ $notice ] )
+		'<div id="undergrowth-notice" class="notice %1$s" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
+		in_array( $notice, array( 'vetoed', 'saved', 'accepted' ), true ) ? 'notice-success' : 'notice-warning',
+		esc_html( $messages[ $notice ] ),
+		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
 	);
 
 	wp_print_inline_script_tag( "document.getElementById( 'undergrowth-notice' ).focus();" );
