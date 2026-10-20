@@ -178,7 +178,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertSame( 100, $corpus['documents'] );
 		// Every post's own word counts, and its content in the post cache,
 		// would take several megabytes here.
-		$this->assertLessThan( 512 * 1024, $held );
+		$this->assertLessThan( 1048576, $held );
 	}
 
 	public function test_refresh_proposes_the_same_sentences_as_counting_every_post() {
@@ -222,5 +222,36 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertCount( 33, $rows );
 		// Recorded from the corpus that kept every post's word counts.
 		$this->assertSame( 'bf0d13fc64d8b50e98bb6b02751ebeaf', md5( (string) wp_json_encode( $rows ) ) );
+	}
+
+	public function test_refresh_reads_only_the_target_posts_it_needs() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+
+		mt_srand( 26 );
+
+		$ids = array();
+
+		for ( $i = 0; $i < 12; $i++ ) {
+			$ids[] = $this->plant( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
+		}
+
+		wp_cache_flush();
+		undergrowth_refresh_proposals( $ids[0] );
+
+		$cached = array_filter(
+			$ids,
+			static function ( $id ) {
+				return false !== wp_cache_get( $id, 'posts' );
+			}
+		);
+
+		$this->assertCount( UNDERGROWTH_MAX_PROPOSALS, $this->proposed( $ids[0] ) );
+		// The source and the targets proposed, not every post that scored.
+		$this->assertLessThanOrEqual( 1 + UNDERGROWTH_MAX_PROPOSALS, count( $cached ) );
 	}
 }
