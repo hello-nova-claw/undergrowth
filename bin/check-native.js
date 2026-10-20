@@ -2,14 +2,14 @@
  * Fails when the plugin reaches for something WordPress already provides.
  *
  * Checks what PHPCS, ESLint and stylelint cannot: inline style attributes in
- * src/, hard-coded colours in CSS, PHP mocking libraries, and npm packages
+ * src/, hard-coded colours in CSS under src/ and assets/, PHP mocking libraries, and npm packages
  * that are neither `@wordpress/*` nor on the allowlist below.
  * See "Use what WordPress already has" in CONTRIBUTING.md.
  *
  * Usage: node bin/check-native.js [root]
  */
 
-const { readdirSync, readFileSync } = require( 'fs' );
+const { existsSync, readdirSync, readFileSync } = require( 'fs' );
 const { join, relative, sep } = require( 'path' );
 
 // Tooling with no WordPress equivalent. Adding to this list is a review
@@ -54,22 +54,75 @@ function matchingLines( text, pattern ) {
 }
 
 /**
- * Finds style attributes in PHP, HTML or JSX, quoted, escaped or as a prop.
+ * Returns where an attribute value ends.
  *
- * Only a style inside an opening tag counts, so a variable named style does
- * not. The whole text is scanned, so a tag that spans lines is still read.
+ * Reads a quoted value (also with PHP-escaped quotes), a JSX expression with
+ * nested braces, or an unquoted value.
+ *
+ * @param {string} markup File contents.
+ * @param {number} start  Offset of the value's first character.
+ * @return {number} Offset just past the value.
+ */
+function valueEnd( markup, start ) {
+	const quote = /^\\?["']/.exec( markup.slice( start, start + 2 ) );
+
+	if ( quote ) {
+		const close = markup.indexOf( quote[ 0 ], start + quote[ 0 ].length );
+
+		return close === -1 ? markup.length : close + quote[ 0 ].length;
+	}
+
+	if ( markup[ start ] === '{' ) {
+		let depth = 0;
+
+		for ( let pos = start; pos < markup.length; pos++ ) {
+			depth += { '{': 1, '}': -1 }[ markup[ pos ] ] || 0;
+
+			if ( depth === 0 ) {
+				return pos + 1;
+			}
+		}
+
+		return markup.length;
+	}
+
+	return start + /^[^\s>]*/.exec( markup.slice( start ) )[ 0 ].length;
+}
+
+/**
+ * Finds style attributes in PHP, HTML or JSX opening tags.
+ *
+ * Each tag is read attribute by attribute, so a variable named style, or the
+ * word style inside another attribute's value, does not count, and a > inside
+ * a quoted value does not end the tag. Tags may span lines.
  *
  * @param {string} markup File contents.
  * @return {number[]} One-based line numbers of each style attribute.
  */
 function findInlineStyles( markup ) {
-	const tag = /(<[a-z][\w.:-]*[^<>]*?\s)style\s*=\s*(?:\\?["']|\{)/gi;
+	const found = [];
+	const attribute = /\s*([^\s=>/"'{}]+)\s*(=\s*)?/y;
 
-	return Array.from( markup.matchAll( tag ), ( match ) => {
-		const offset = match.index + match[ 1 ].length;
+	for ( const tag of markup.matchAll( /<[a-z][\w.:-]*/gi ) ) {
+		attribute.lastIndex = tag.index + tag[ 0 ].length;
 
-		return markup.slice( 0, offset ).split( '\n' ).length;
-	} );
+		for (
+			let match = attribute.exec( markup );
+			match;
+			match = attribute.exec( markup )
+		) {
+			if ( match[ 1 ].toLowerCase() === 'style' && match[ 2 ] ) {
+				const offset = match.index + match[ 0 ].indexOf( match[ 1 ] );
+				found.push( markup.slice( 0, offset ).split( '\n' ).length );
+			}
+
+			if ( match[ 2 ] ) {
+				attribute.lastIndex = valueEnd( markup, attribute.lastIndex );
+			}
+		}
+	}
+
+	return found;
 }
 
 /**
@@ -150,7 +203,13 @@ function check( root ) {
 	const breaches = [];
 	const name = ( path ) => relative( root, path ).split( sep ).join( '/' );
 
-	for ( const path of walk( join( root, 'src' ) ) ) {
+	const css = existsSync( join( root, 'assets' ) )
+		? walk( join( root, 'assets' ) ).filter( ( path ) =>
+				/\.s?css$/.test( path )
+			)
+		: [];
+
+	for ( const path of [ ...css, ...walk( join( root, 'src' ) ) ] ) {
 		const text = readFileSync( path, 'utf8' );
 
 		if ( /\.(?:php|html?|jsx?|tsx?)$/.test( path ) ) {
