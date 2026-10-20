@@ -132,8 +132,73 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringContainsString( "## vetoes\n- " . get_permalink( $yacon ), (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 	}
 
-	public function test_only_a_proposed_link_can_be_vetoed() {
-		$this->assertFalse( undergrowth_veto_link( 1, 2 ) );
+	public function test_veto_of_a_missing_post_is_refused() {
+		$oca = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertFalse( undergrowth_veto_link( $oca, PHP_INT_MAX ) );
+	}
+
+	public function test_veto_is_recorded_even_after_the_suggestion_was_withdrawn() {
+		global $wpdb;
+
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$wpdb->delete(
+			undergrowth_links_table(),
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
+			)
+		);
+
+		$this->assertTrue( undergrowth_veto_link( $oca, $yacon ) );
+		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+	}
+
+	public function test_accepted_link_is_not_turned_into_a_veto() {
+		global $wpdb;
+
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'state' => 'accepted' ),
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
+			)
+		);
+
+		$this->assertFalse( undergrowth_veto_link( $oca, $yacon ) );
+		$this->assertSame( 'accepted', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_veto_form_for_an_accepted_link_says_it_was_left_alone() {
+		global $wpdb;
+
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'state' => 'accepted' ),
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
+			)
+		);
+		$this->veto_form( $oca, $yacon );
+
+		$this->assertStringContainsString( 'undergrowth_notice=unchanged', $this->submit( 'undergrowth_handle_veto' ) );
+
+		$_GET['undergrowth_notice'] = 'unchanged';
+		$html                       = $this->render();
+		unset( $_GET['undergrowth_notice'] );
+
+		$this->assertStringContainsString( 'already accepted', $html );
 	}
 
 	public function test_veto_form_vetoes_and_returns_to_the_list_with_a_notice() {
