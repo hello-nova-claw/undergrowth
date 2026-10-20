@@ -22,6 +22,9 @@ class Test_Admin extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// Menus registered by an earlier test would otherwise still be listed.
+		$GLOBALS['submenu'] = array();
+
 		$this->start_planting();
 		$this->editor = self::factory()->user->create( array( 'role' => 'editor' ) );
 		wp_set_current_user( $this->editor );
@@ -202,7 +205,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'Notes about Oca.', $html );
-		$this->assertStringContainsString( get_edit_post_link( $oca ), $html );
+		$this->assertStringContainsString( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), $html );
 		$this->assertMatchesRegularExpression( '/<button[^>]*aria-label="[^"]*Oca[^"]*Yacon[^"]*"/', $html );
 	}
 
@@ -212,8 +215,8 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 		wp_set_current_user( $author );
 
-		require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 		set_current_screen( 'posts_page_undergrowth-links' );
+		undergrowth_load_list_table();
 		$table = new Undergrowth_Links_List_Table();
 		$table->prepare_items();
 
