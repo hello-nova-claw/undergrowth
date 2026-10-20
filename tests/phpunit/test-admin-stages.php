@@ -281,6 +281,41 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'undergrowth_notice=stage_not_saved', $this->submit( 'pin', $oca, 'sprout' ) );
 	}
 
+	/**
+	 * Makes a metadata operation fail for one key.
+	 *
+	 * @param string $operation 'add', 'update' or 'delete'.
+	 * @param string $key       Meta key.
+	 */
+	private function fail_meta( string $operation, string $key ): void {
+		add_filter(
+			$operation . '_post_metadata',
+			static function ( $check, $object_id, $meta_key ) use ( $key ) {
+				return $key === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_pin_left_behind_by_a_failed_pin_has_its_own_notice() {
+		$oca = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$this->fail_meta( 'add', 'undergrowth_stage_log' );
+		$this->fail_meta( 'delete', 'undergrowth_stage_pinned' );
+
+		$this->assertStringContainsString( 'undergrowth_notice=stage_pin_left', $this->submit( 'pin', $oca, 'sprout' ) );
+	}
+
+	public function test_pin_lost_by_a_failed_unpin_has_its_own_notice() {
+		$oca = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		undergrowth_pin_stage( $oca, 'sprout' );
+		$this->fail_meta( 'add', 'undergrowth_stage_log' );
+		$this->fail_meta( 'add', 'undergrowth_stage_pinned' );
+		$this->fail_meta( 'update', 'undergrowth_stage_pinned' );
+
+		$this->assertStringContainsString( 'undergrowth_notice=stage_pin_lost', $this->submit( 'unpin', $oca ) );
+	}
+
 	public function test_stage_form_without_a_valid_nonce_is_refused() {
 		$oca                  = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		$_POST['post']        = (string) $oca;
@@ -332,6 +367,8 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 			'stage_composting' => array( 'stage_composting', 'composting post' ),
 			'not_pinned'       => array( 'not_pinned', 'not pinned' ),
 			'stage_not_saved'  => array( 'stage_not_saved', 'could not be saved' ),
+			'stage_pin_left'   => array( 'stage_pin_left', 'Unpin the post to clear it' ),
+			'stage_pin_lost'   => array( 'stage_pin_lost', 'Pin the stage again to keep it' ),
 		);
 	}
 }
