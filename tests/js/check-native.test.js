@@ -52,6 +52,14 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 1, 2 ] );
 	} );
 
+	it( 'reads past embedded PHP inside a tag', () => {
+		expect(
+			findInlineStyles(
+				'<div <?php echo $attributes; ?> style="color:red">\n<p <?= $a ?> class="x">'
+			)
+		).toEqual( [ 1 ] );
+	} );
+
 	it( 'reads past a JSX spread attribute', () => {
 		expect(
 			findInlineStyles(
