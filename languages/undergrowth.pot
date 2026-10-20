@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T22:24:27+00:00\n"
+"POT-Creation-Date: 2026-10-20T22:56:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -343,6 +343,60 @@ msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php:191
 msgid "Pin"
+msgstr ""
+
+#: src/discord-settings.php:94
+msgid "Discord"
+msgstr ""
+
+#: src/discord-settings.php:100
+msgid "Application ID"
+msgstr ""
+
+#: src/discord-settings.php:101
+msgid "Public key"
+msgstr ""
+
+#: src/discord-settings.php:102
+msgid "Bot token"
+msgstr ""
+
+#: src/discord-settings.php:103
+msgid "Channel ID for link suggestions"
+msgstr ""
+
+#: src/discord-settings.php:122
+msgid "Interactions endpoint URL"
+msgstr ""
+
+#: src/discord-settings.php:139
+msgid "The Discord application ID should be a long number, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php:153
+msgid "The Discord channel ID should be a long number, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php:195
+msgid "The Discord public key should be 64 letters and numbers, as shown in the developer portal, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php:218
+msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#. translators: %s: last four characters of the saved bot token.
+#: src/discord-settings.php:251
+#, php-format
+msgid "A token ending in %s is saved. Leave the field blank to keep it."
+msgstr ""
+
+#: src/discord-settings.php:260
+msgid "Remove the saved token and stop sending anything to Discord"
+msgstr ""
+
+#: src/discord-settings.php:274
+msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
 #. translators: %s: post title.
