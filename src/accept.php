@@ -244,7 +244,11 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
  * @return bool True when the point is inside one of those.
  */
 function undergrowth_inside_others_words( string $before ): bool {
-	if ( preg_match_all( '#<blockquote\b#i', $before ) > preg_match_all( '#</blockquote\s*>#i', $before ) ) {
+	// Tags written inside an ordinary comment are not tags. Block markers are
+	// comments too, so they are kept for the block check below.
+	$tags = (string) preg_replace( '#<!--(?!\s+/?wp:).*?-->#s', '', $before );
+
+	if ( preg_match_all( '#<blockquote\b#i', $tags ) > preg_match_all( '#</blockquote\s*>#i', $tags ) ) {
 		return true;
 	}
 
