@@ -54,6 +54,36 @@ function matchingLines( text, pattern ) {
 }
 
 /**
+ * Returns the one-based line an offset falls on.
+ *
+ * @param {string} text   File contents.
+ * @param {number} offset Character offset.
+ * @return {number} Line number.
+ */
+function lineAt( text, offset ) {
+	return text.slice( 0, offset ).split( '\n' ).length;
+}
+
+/**
+ * Returns the offset of the quote that closes a string in a JSX expression.
+ *
+ * @param {string} markup File contents.
+ * @param {number} start  Offset of the opening quote.
+ * @return {number} Offset of the closing quote, or the end of the text.
+ */
+function stringEnd( markup, start ) {
+	for ( let pos = start + 1; pos < markup.length; pos++ ) {
+		if ( markup[ pos ] === '\\' ) {
+			pos++;
+		} else if ( markup[ pos ] === markup[ start ] ) {
+			return pos;
+		}
+	}
+
+	return markup.length;
+}
+
+/**
  * Returns where an attribute value ends.
  *
  * Reads a quoted value (also with PHP-escaped quotes), a JSX expression with
@@ -76,6 +106,11 @@ function valueEnd( markup, start ) {
 		let depth = 0;
 
 		for ( let pos = start; pos < markup.length; pos++ ) {
+			if ( '"\'`'.includes( markup[ pos ] ) ) {
+				pos = stringEnd( markup, pos );
+				continue;
+			}
+
 			depth += { '{': 1, '}': -1 }[ markup[ pos ] ] || 0;
 
 			if ( depth === 0 ) {
@@ -112,8 +147,12 @@ function findInlineStyles( markup ) {
 			match = attribute.exec( markup )
 		) {
 			if ( match[ 1 ].toLowerCase() === 'style' && match[ 2 ] ) {
-				const offset = match.index + match[ 0 ].indexOf( match[ 1 ] );
-				found.push( markup.slice( 0, offset ).split( '\n' ).length );
+				found.push(
+					lineAt(
+						markup,
+						match.index + match[ 0 ].indexOf( match[ 1 ] )
+					)
+				);
 			}
 
 			if ( match[ 2 ] ) {
@@ -132,9 +171,11 @@ function findInlineStyles( markup ) {
  * @return {number[]} One-based line numbers.
  */
 function findHexColours( css ) {
-	return matchingLines(
-		css,
-		/:[^;{}]*#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})\b(?![^;{}]*\{)/i
+	const colour =
+		/:[^;{}]*?(#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8}))\b(?![^;{}]*\{)/gi;
+
+	return Array.from( css.matchAll( colour ), ( match ) =>
+		lineAt( css, match.index + match[ 0 ].indexOf( match[ 1 ] ) )
 	);
 }
 
