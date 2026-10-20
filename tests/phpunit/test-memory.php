@@ -21,6 +21,7 @@ class Test_Memory extends WP_UnitTestCase {
 
 	public function tear_down() {
 		undergrowth_delete_memory_folder();
+		$this->set_permalink_structure( '' );
 
 		parent::tear_down();
 	}
@@ -249,6 +250,36 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( 'no_protection', get_option( 'undergrowth_last_file_error' )['code'] );
 	}
 
+	public function test_short_write_during_repair_leaves_the_old_rule_and_no_temporary_file() {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+
+		wp_mkdir_p( undergrowth_memory_root() );
+		$htaccess = undergrowth_memory_root() . '/.htaccess';
+		$old_rule = "# Older rule\nRequire all denied\n";
+		file_put_contents( $htaccess, $old_rule );
+
+		// Writes half the contents, then reports failure, as a full disk would.
+		$short_writer = new class( null ) extends WP_Filesystem_Direct {
+			/**
+			 * Writes a truncated file and reports failure.
+			 *
+			 * @param string    $file     Path.
+			 * @param string    $contents Contents.
+			 * @param int|false $mode     Permissions.
+			 * @return bool
+			 */
+			public function put_contents( $file, $contents, $mode = false ) {
+				file_put_contents( $file, substr( $contents, 0, 5 ) );
+				return false;
+			}
+		};
+
+		$this->assertFalse( undergrowth_write_protection_file( $short_writer, $htaccess, "Require all denied\n" ) );
+		$this->assertSame( $old_rule, file_get_contents( $htaccess ) );
+		$this->assertFileDoesNotExist( $htaccess . '.tmp' );
+	}
+
 	public function test_changing_only_the_slug_updates_the_file() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
@@ -264,9 +295,7 @@ class Test_Memory extends WP_UnitTestCase {
 	}
 
 	public function test_changing_a_targets_slug_updates_files_that_link_to_it() {
-		global $wp_rewrite;
-
-		$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		$this->set_permalink_structure( '/%postname%/' );
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 
@@ -278,7 +307,6 @@ class Test_Memory extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( '/yacon-syrup/', (string) $this->read( $oca ) );
-		$wp_rewrite->set_permalink_structure( '' );
 	}
 
 	public function test_update_time_is_iso_8601_in_utc() {
