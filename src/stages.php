@@ -328,11 +328,20 @@ function undergrowth_cron_schedules( $schedules ) {
 }
 
 /**
- * Schedules the monthly stage cycle when it is not scheduled yet.
+ * Schedules the monthly cycle when it is not scheduled yet.
+ *
+ * The monthly event clusters the posts first, and its last batch starts the
+ * stage cycle, so stages are always measured against complete clusters.
  */
 function undergrowth_schedule_stage_cycle(): void {
-	if ( false === wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
-		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+	// Before clustering, the monthly event measured stages straight away. Only
+	// that event has no arguments; the batches it chained are left to finish.
+	if ( false !== wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
+		wp_clear_scheduled_hook( 'undergrowth_stage_cycle' );
+	}
+
+	if ( false === wp_next_scheduled( 'undergrowth_cluster_cycle' ) ) {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
 	}
 }
 
@@ -404,10 +413,13 @@ function undergrowth_cycle_post( int $post_id ): void {
 }
 
 /**
- * Stops the stage cycle while the plugin is inactive.
+ * Stops the monthly cycle while the plugin is inactive, and forgets a
+ * clustering pass that was under way.
  */
 function undergrowth_deactivate(): void {
+	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+	delete_option( 'undergrowth_cluster_leaders' );
 }
 
 /**
