@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T22:56:30+00:00\n"
+"POT-Creation-Date: 2026-10-20T23:29:06+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -256,13 +256,14 @@ msgid "The stage could not be saved, so nothing was changed. Try again in a mome
 msgstr ""
 
 #: src/admin.php:365
-#: src/stages.php:500
+#: src/stages.php:505
 msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/admin.php:366
-#: src/stages.php:540
-#: src/stages.php:585
+#: src/memory.php:500
+#: src/stages.php:545
+#: src/stages.php:590
 msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
 msgstr ""
 
@@ -399,6 +400,26 @@ msgstr ""
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
+#: src/discord.php:48
+msgid "This request is not signed by Discord."
+msgstr ""
+
+#: src/discord.php:86
+msgid "This interaction could not be read."
+msgstr ""
+
+#: src/discord.php:93
+msgid "Undergrowth only answers its own Accept and Veto buttons."
+msgstr ""
+
+#: src/memory.php:472
+msgid "The file does not name a growth stage, so nothing was imported."
+msgstr ""
+
+#: src/memory.php:521
+msgid "The stage was imported, but some of its history could not be saved."
+msgstr ""
+
 #. translators: %s: post title.
 #: src/posts-screen.php:42
 #, php-format
@@ -521,38 +542,38 @@ msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
-#: src/stages.php:324
+#: src/stages.php:329
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:437
+#: src/stages.php:442
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:441
+#: src/stages.php:446
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:453
+#: src/stages.php:458
 msgid "The stage could not be saved, so nothing was changed."
 msgstr ""
 
-#: src/stages.php:476
+#: src/stages.php:481
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:480
+#: src/stages.php:485
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:527
+#: src/stages.php:532
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:569
+#: src/stages.php:574
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:619
+#: src/stages.php:624
 msgid "This post is not composting."
 msgstr ""
