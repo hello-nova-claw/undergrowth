@@ -28,6 +28,7 @@ add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
 add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
+register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_deactivate' );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
