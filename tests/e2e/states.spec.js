@@ -300,9 +300,21 @@ test.describe( 'Screenshot catalogue', () => {
 				)
 			);
 
-			await requestUtils.request.get(
+			// Without a composting post every shot below would show the
+			// wrong state, so a missing link or a refusal stops the run.
+			if ( ! link ) {
+				throw new Error( 'No Compost row action for the first post.' );
+			}
+
+			const composted = await requestUtils.request.get(
 				link[ 1 ].replaceAll( '&#038;', '&' )
 			);
+
+			if ( ! composted.ok() ) {
+				throw new Error(
+					`Composting failed with HTTP ${ composted.status() }.`
+				);
+			}
 		} );
 
 		capture( WITH_COMPOST );
