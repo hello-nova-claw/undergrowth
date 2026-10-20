@@ -65,7 +65,6 @@ function undergrowth_log_resurfacing( int $post_id, string $event ): bool {
 function undergrowth_resurfacing_log( int $post_id ): array {
 	$entries = array();
 
-	// Rows come back in the order they were added.
 	foreach ( get_post_meta( $post_id, 'undergrowth_resurfacing_log', false ) as $entry ) {
 		if (
 			! is_array( $entry )
@@ -83,6 +82,12 @@ function undergrowth_resurfacing_log( int $post_id ): array {
 			'event' => $entry['event'],
 		);
 	}
+
+	// An import can add older rows after newer ones, so rows are put in time
+	// order. The index keeps rows from the same second in the order they were
+	// added, since usort() is not stable before PHP 8.
+	$order = array_keys( $entries );
+	array_multisort( array_column( $entries, 'time' ), SORT_ASC, SORT_NUMERIC, $order, SORT_ASC, SORT_NUMERIC, $entries );
 
 	return $entries;
 }
