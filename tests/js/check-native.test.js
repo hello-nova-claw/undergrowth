@@ -36,12 +36,22 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 1 ] );
 	} );
 
+	it( 'finds an attribute split across lines', () => {
+		expect(
+			findInlineStyles(
+				'<div\n\tclass="wrap"\n\tstyle\n\t\t="margin:0">'
+			)
+		).toEqual( [ 3 ] );
+	} );
+
 	it( 'ignores variables, array keys and data attributes', () => {
 		const php = [
 			"$style = 'button-primary';",
 			"array( 'style' => true );",
 			'<div data-style="x">',
 			'esc_attr( $style )',
+			'const style = { margin: 0 };',
+			'el.style = "color: red";',
 		].join( '\n' );
 
 		expect( findInlineStyles( php ) ).toEqual( [] );
