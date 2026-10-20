@@ -188,15 +188,18 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 	}
 
 	if ( $from !== $stage || 'cycle' !== $reason ) {
-		$log   = undergrowth_stage_log( $post_id );
-		$log[] = array(
-			'time'   => time(),
-			'from'   => $from,
-			'to'     => $stage,
-			'reason' => $reason,
+		// One row per change, added rather than rewritten, so a cycle and an
+		// author acting at the same moment cannot overwrite each other.
+		add_post_meta(
+			$post_id,
+			'undergrowth_stage_log',
+			array(
+				'time'   => time(),
+				'from'   => $from,
+				'to'     => $stage,
+				'reason' => $reason,
+			)
 		);
-
-		update_post_meta( $post_id, 'undergrowth_stage_log', $log );
 
 		/**
 		 * Fires after a post's stage changes or an author acts on it.
@@ -216,19 +219,28 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
  * @return array<int, array{time: int, from: string, to: string, reason: string}> Changes.
  */
 function undergrowth_stage_log( int $post_id ): array {
-	$log     = get_post_meta( $post_id, 'undergrowth_stage_log', true );
 	$entries = array();
 
-	foreach ( is_array( $log ) ? $log : array() as $entry ) {
-		if ( ! is_array( $entry ) || ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] ) ) {
+	// Rows come back in the order they were added.
+	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log' ) as $entry ) {
+		if (
+			! is_array( $entry )
+			|| ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] )
+			|| ! is_int( $entry['time'] )
+			|| $entry['time'] <= 0
+			|| ! in_array( $entry['from'], UNDERGROWTH_STAGES, true )
+			|| ! in_array( $entry['to'], UNDERGROWTH_STAGES, true )
+			|| ! is_string( $entry['reason'] )
+			|| ! isset( UNDERGROWTH_STAGE_REASONS[ $entry['reason'] ] )
+		) {
 			continue;
 		}
 
 		$entries[] = array(
-			'time'   => (int) $entry['time'],
-			'from'   => (string) $entry['from'],
-			'to'     => (string) $entry['to'],
-			'reason' => (string) $entry['reason'],
+			'time'   => $entry['time'],
+			'from'   => $entry['from'],
+			'to'     => $entry['to'],
+			'reason' => $entry['reason'],
 		);
 	}
 
