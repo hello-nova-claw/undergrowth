@@ -152,6 +152,50 @@ function undergrowth_linked_post_ids( WP_Post $post ): array {
 }
 
 /**
+ * Tells whether the author wants links between posts suggested.
+ *
+ * @return bool True unless the author turned suggestions off.
+ */
+function undergrowth_suggestions_enabled(): bool {
+	return '0' !== get_option( 'undergrowth_suggest_links', '1' );
+}
+
+/**
+ * Records that the author never wants a proposed link suggested again.
+ *
+ * @param int $source_id Post the link would sit in.
+ * @param int $target_id Post the link would point to.
+ * @return bool True when a proposed link was vetoed.
+ */
+function undergrowth_veto_link( int $source_id, int $target_id ): bool {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+	$changed = $wpdb->update(
+		undergrowth_links_table(),
+		array(
+			'state'      => 'vetoed',
+			'updated_at' => current_time( 'mysql', true ),
+		),
+		array(
+			'source_id' => $source_id,
+			'target_id' => $target_id,
+			'state'     => 'proposed',
+		),
+		array( '%s', '%s' ),
+		array( '%d', '%d', '%s' )
+	);
+
+	if ( ! $changed ) {
+		return false;
+	}
+
+	undergrowth_write_memory( $source_id );
+
+	return true;
+}
+
+/**
  * Returns the stored state of a link between two posts.
  *
  * @param int $source_id Post the link would sit in.
@@ -255,6 +299,12 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
  */
 function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?array $corpus = null ): void {
 	global $wpdb;
+
+	// Turned off, nothing new is proposed. Rows already stored are kept, so
+	// turning suggestions back on does not lose any veto.
+	if ( ! undergrowth_suggestions_enabled() ) {
+		return;
+	}
 
 	// A pool built for another post lacks this post's vector when the two
 	// differ in language or model. Ranking against it would find nothing and
