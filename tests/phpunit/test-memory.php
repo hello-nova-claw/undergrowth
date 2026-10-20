@@ -234,6 +234,53 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Require all denied', (string) file_get_contents( $htaccess ) );
 	}
 
+	public function test_failed_repair_keeps_the_old_denial_rule_and_the_old_file() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$htaccess = undergrowth_memory_root() . '/.htaccess';
+		$old_rule = "# Older rule\nRequire all denied\n";
+		file_put_contents( $htaccess, $old_rule );
+		$before = $this->read( $oca );
+		wp_mkdir_p( $htaccess . '.tmp' );
+
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertSame( $old_rule, file_get_contents( $htaccess ) );
+		$this->assertSame( $before, $this->read( $oca ) );
+		$this->assertSame( 'no_protection', get_option( 'undergrowth_last_file_error' )['code'] );
+	}
+
+	public function test_changing_only_the_slug_updates_the_file() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		wp_update_post(
+			array(
+				'ID'        => $oca,
+				'post_name' => 'oca-in-winter',
+			)
+		);
+
+		$this->assertStringContainsString( 'slug: oca-in-winter', (string) $this->read( $oca ) );
+	}
+
+	public function test_changing_a_targets_slug_updates_files_that_link_to_it() {
+		global $wp_rewrite;
+
+		$wp_rewrite->set_permalink_structure( '/%postname%/' );
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		wp_update_post(
+			array(
+				'ID'        => $yacon,
+				'post_name' => 'yacon-syrup',
+			)
+		);
+
+		$this->assertStringContainsString( '/yacon-syrup/', (string) $this->read( $oca ) );
+		$wp_rewrite->set_permalink_structure( '' );
+	}
+
 	public function test_update_time_is_iso_8601_in_utc() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
