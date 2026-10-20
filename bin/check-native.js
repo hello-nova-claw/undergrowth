@@ -136,7 +136,8 @@ function valueEnd( markup, start ) {
  */
 function findInlineStyles( markup ) {
 	const found = [];
-	const attribute = /\s*([^\s=>/"'{}]+)\s*(=\s*)?/y;
+	// A name with an optional =, or a JSX spread such as { ...props }.
+	const attribute = /\s*(?:(\{)|([^\s=>/"'{}]+)\s*(=\s*)?)/y;
 
 	for ( const tag of markup.matchAll( /<[a-z][\w.:-]*/gi ) ) {
 		attribute.lastIndex = tag.index + tag[ 0 ].length;
@@ -146,16 +147,23 @@ function findInlineStyles( markup ) {
 			match;
 			match = attribute.exec( markup )
 		) {
-			if ( match[ 1 ].toLowerCase() === 'style' && match[ 2 ] ) {
+			const [ whole, spread, name, equals ] = match;
+
+			if ( spread ) {
+				attribute.lastIndex = valueEnd(
+					markup,
+					match.index + whole.length - 1
+				);
+				continue;
+			}
+
+			if ( name.toLowerCase() === 'style' && equals ) {
 				found.push(
-					lineAt(
-						markup,
-						match.index + match[ 0 ].indexOf( match[ 1 ] )
-					)
+					lineAt( markup, match.index + whole.indexOf( name ) )
 				);
 			}
 
-			if ( match[ 2 ] ) {
+			if ( equals ) {
 				attribute.lastIndex = valueEnd( markup, attribute.lastIndex );
 			}
 		}
