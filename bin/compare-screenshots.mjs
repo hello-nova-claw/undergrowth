@@ -39,6 +39,21 @@ function pngs( dir ) {
 }
 
 /**
+ * Lists the shots the catalogue skipped because the build lacks the state.
+ *
+ * @param {string} dir Folder to read.
+ * @return {string[]} Shot file names, sorted.
+ */
+function skipped( dir ) {
+	return existsSync( dir )
+		? readdirSync( dir )
+				.filter( ( name ) => name.endsWith( '.png.skipped' ) )
+				.map( ( name ) => name.slice( 0, -'.skipped'.length ) )
+				.sort()
+		: [];
+}
+
+/**
  * Tells whether two PNG files differ by any pixel.
  *
  * @param {string} a First file.
@@ -61,16 +76,23 @@ function differs( a, b ) {
 }
 
 /**
- * Sorts every shot into new, changed, removed or unchanged.
+ * Sorts every shot into new, changed, removed or unchanged, and lists the
+ * ones the pull request's build skipped.
  *
  * @param {string} before Folder of shots from the base branch.
  * @param {string} after  Folder of shots from the pull request.
- * @return {{added: string[], changed: string[], removed: string[], unchanged: string[]}} Shot names by outcome.
+ * @return {{added: string[], changed: string[], removed: string[], unchanged: string[], skipped: string[]}} Shot names by outcome.
  */
 function compare( before, after ) {
 	const old = new Set( pngs( before ) );
 	const now = pngs( after );
-	const result = { added: [], changed: [], removed: [], unchanged: [] };
+	const result = {
+		added: [],
+		changed: [],
+		removed: [],
+		unchanged: [],
+		skipped: skipped( after ),
+	};
 
 	for ( const name of now ) {
 		if ( ! old.has( name ) ) {
@@ -104,7 +126,11 @@ function comment( result, base ) {
 		result.added.length + result.changed.length + result.unchanged.length;
 	const lines = [ MARKER, '## Screenshots', '' ];
 
-	if ( 0 === total && 0 === result.removed.length ) {
+	if (
+		0 === total &&
+		0 === result.removed.length &&
+		0 === result.skipped.length
+	) {
 		lines.push(
 			'No screenshots were taken. Check the workflow run for errors.'
 		);
@@ -112,7 +138,7 @@ function comment( result, base ) {
 	}
 
 	lines.push(
-		`${ result.changed.length } changed, ${ result.added.length } new, ${ result.removed.length } removed, ${ result.unchanged.length } unchanged. Each shot is \`<screen>--<state>--<locale>--<width>\`.`,
+		`${ result.changed.length } changed, ${ result.added.length } new, ${ result.removed.length } removed, ${ result.unchanged.length } unchanged, ${ result.skipped.length } not in this build. Each shot is \`<screen>--<state>--<locale>--<width>\`.`,
 		''
 	);
 
@@ -146,7 +172,7 @@ function comment( result, base ) {
 
 		lines.push( '' );
 	} else {
-		lines.push( 'No visual changes.', '' );
+		lines.push( 'No changed or new shots.', '' );
 	}
 
 	if ( result.removed.length > 0 ) {
@@ -156,6 +182,19 @@ function comment( result, base ) {
 			...result.removed.map(
 				( name ) => `- ${ link( 'before', name ) }`
 			),
+			'',
+			'</details>',
+			''
+		);
+	}
+
+	if ( result.skipped.length > 0 ) {
+		lines.push(
+			'<details><summary>Not in this build</summary>',
+			'',
+			'These states are in the catalogue, but this build does not have them, so they were skipped.',
+			'',
+			...result.skipped.map( ( name ) => `- \`${ name }\`` ),
 			'',
 			'</details>',
 			''
