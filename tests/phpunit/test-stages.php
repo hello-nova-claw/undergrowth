@@ -509,6 +509,7 @@ class Test_Stages extends WP_UnitTestCase {
 	}
 
 	public function test_monthly_event_from_before_clustering_is_replaced() {
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
 
