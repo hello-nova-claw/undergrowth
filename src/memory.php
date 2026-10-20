@@ -150,20 +150,14 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	// The files hold no secrets, but they are the owner's notes, not pages
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
-	// Without its protection files, the folder is never written to at all. A
-	// file that exists with other contents, such as one left half-written, is
-	// rewritten too.
+	// Without its protection files, the folder is never written to at all.
 	$protection = array(
 		'index.php' => "<?php\n// Silence is golden.\n",
 		'.htaccess' => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
 	);
 
 	foreach ( $protection as $name => $contents ) {
-		$path = $root . '/' . $name;
-
-		$intact = $filesystem->is_file( $path ) && $contents === $filesystem->get_contents( $path );
-
-		if ( ! $intact && ! $filesystem->put_contents( $path, $contents, FS_CHMOD_FILE ) ) {
+		if ( ! undergrowth_write_protection_file( $filesystem, $root . '/' . $name, $contents ) ) {
 			undergrowth_record_file_error( 'no_protection' );
 			return false;
 		}
@@ -177,6 +171,44 @@ function undergrowth_write_memory( int $post_id ): bool {
 	delete_option( 'undergrowth_last_file_error' );
 
 	return true;
+}
+
+/**
+ * Makes sure a protection file holds exactly the given contents.
+ *
+ * A file with other contents, such as one left half-written, is replaced.
+ * The new version is written beside it and checked first, then swapped in
+ * with one rename, so a failed repair always leaves the old rule in place.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $path       Protection file path.
+ * @param string             $contents   Contents it must hold.
+ * @return bool True when the file holds the contents afterwards.
+ */
+function undergrowth_write_protection_file( WP_Filesystem_Base $filesystem, string $path, string $contents ): bool {
+	if ( $filesystem->is_file( $path ) && $contents === $filesystem->get_contents( $path ) ) {
+		return true;
+	}
+
+	// Something other than a file in the way cannot be replaced safely.
+	if ( $filesystem->is_dir( $path ) ) {
+		return false;
+	}
+
+	$temporary = $path . '.tmp';
+
+	// put_contents() fails on a short write, so a temporary file that made it
+	// through holds the whole rule. A partial one is removed.
+	if ( ! $filesystem->put_contents( $temporary, $contents, FS_CHMOD_FILE ) ) {
+		$filesystem->delete( $temporary );
+		return false;
+	}
+
+	// WP_Filesystem::move() deletes the destination before moving, which would
+	// leave a moment with no rule at all. Only direct access is used here, so
+	// PHP's rename() replaces the file in one step.
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic replacement; see above.
+	return rename( $temporary, $path );
 }
 
 /**
