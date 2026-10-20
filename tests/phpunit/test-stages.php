@@ -402,6 +402,87 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_change_of_stage_is_recorded_with_its_reason() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'sprout' );
+		undergrowth_set_stage( $post_id, 'evergreen', 'pin' );
+
+		$log = undergrowth_stage_log( $post_id );
+
+		$this->assertCount( 2, $log );
+		$this->assertSame(
+			array(
+				'from'   => 'seedling',
+				'to'     => 'sprout',
+				'reason' => 'cycle',
+			),
+			array_diff_key( $log[0], array( 'time' => true ) )
+		);
+		$this->assertSame( 'pin', $log[1]['reason'] );
+		$this->assertEqualsWithDelta( time(), $log[1]['time'], 5 );
+	}
+
+	public function test_cycle_storing_an_unchanged_stage_records_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_author_action_is_recorded_even_without_a_change_of_stage() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'seedling', 'pin' );
+
+		$this->assertCount( 1, undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_unknown_reason_is_refused() {
+		list( $post_id ) = $this->publish( 1 );
+
+		$this->assertFalse( undergrowth_set_stage( $post_id, 'sprout', 'magic' ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_damaged_log_entries_are_skipped() {
+		list( $post_id ) = $this->publish( 1 );
+
+		update_post_meta( $post_id, 'undergrowth_stage_log', array( 'junk', array( 'to' => 'sprout' ) ) );
+
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_change_of_stage_announces_itself() {
+		list( $post_id ) = $this->publish( 1 );
+		$announced       = array();
+		add_action(
+			'undergrowth_stage_changed',
+			static function ( $id ) use ( &$announced ) {
+				$announced[] = $id;
+			}
+		);
+
+		undergrowth_set_stage( $post_id, 'seedling' );
+		undergrowth_set_stage( $post_id, 'sprout' );
+
+		$this->assertSame( array( $post_id ), $announced );
+	}
+
+	public function test_stage_log_is_hidden_and_removed_on_uninstall() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'sprout' );
+
+		$this->assertTrue( is_protected_meta( 'undergrowth_stage_log', 'post' ) );
+
+		$this->uninstall();
+
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage_log' ) );
+	}
+
 	/**
 	 * Runs uninstall without dropping the tables.
 	 *
