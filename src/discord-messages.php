@@ -155,12 +155,16 @@ function undergrowth_discord_proposal_message( WP_Post $source, WP_Post $target,
 			undergrowth_discord_plain( get_the_title( $source ), UNDERGROWTH_DISCORD_MAX_TITLE ),
 			undergrowth_discord_plain( get_the_title( $target ), UNDERGROWTH_DISCORD_MAX_TITLE )
 		),
-		'> ' . undergrowth_discord_plain( $sentence, UNDERGROWTH_DISCORD_MAX_SENTENCE ),
 		/* translators: %s: address of the post the link would sit in. */
 		sprintf( __( 'In: %s', 'undergrowth' ), '<' . get_permalink( $source ) . '>' ),
 		/* translators: %s: address of the post the link would point to. */
 		sprintf( __( 'To: %s', 'undergrowth' ), '<' . get_permalink( $target ) . '>' ),
 	);
+
+	// A vetoed pair the author never saw suggested has no sentence to quote.
+	if ( '' !== trim( $sentence ) ) {
+		array_splice( $lines, 1, 0, '> ' . undergrowth_discord_plain( $sentence, UNDERGROWTH_DISCORD_MAX_SENTENCE ) );
+	}
 
 	$components = array();
 
