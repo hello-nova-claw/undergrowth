@@ -161,38 +161,65 @@ function undergrowth_suggestions_enabled(): bool {
 }
 
 /**
- * Records that the author never wants a proposed link suggested again.
+ * Records that the author never wants a link suggested again.
+ *
+ * The veto is stored even when the suggestion has meanwhile been withdrawn
+ * by a refresh, because the author's choice outlives any one suggestion. An
+ * accepted link is left alone: undoing it is a separate act.
  *
  * @param int $source_id Post the link would sit in.
  * @param int $target_id Post the link would point to.
- * @return bool True when a proposed link was vetoed.
+ * @return bool True when the pair is vetoed afterwards.
  */
 function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 	global $wpdb;
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-	$changed = $wpdb->update(
-		undergrowth_links_table(),
-		array(
-			'state'      => 'vetoed',
-			'updated_at' => current_time( 'mysql', true ),
-		),
-		array(
-			'source_id' => $source_id,
-			'target_id' => $target_id,
-			'state'     => 'proposed',
-		),
-		array( '%s', '%s' ),
-		array( '%d', '%d', '%s' )
-	);
-
-	if ( ! $changed ) {
+	if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post ) {
 		return false;
+	}
+
+	$state = undergrowth_link_state( $source_id, $target_id );
+	$now   = current_time( 'mysql', true );
+
+	if ( 'accepted' === $state ) {
+		return false;
+	}
+
+	if ( 'proposed' === $state ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$wpdb->update(
+			undergrowth_links_table(),
+			array(
+				'state'      => 'vetoed',
+				'updated_at' => $now,
+			),
+			array(
+				'source_id' => $source_id,
+				'target_id' => $target_id,
+			),
+			array( '%s', '%s' ),
+			array( '%d', '%d' )
+		);
+	} elseif ( '' === $state ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- The plugin's own table has no core API.
+		$wpdb->insert(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $source_id,
+				'target_id'  => $target_id,
+				'state'      => 'vetoed',
+				'score'      => 0,
+				'sentence'   => '',
+				'created_at' => $now,
+				'updated_at' => $now,
+			),
+			array( '%d', '%d', '%s', '%f', '%s', '%s', '%s' )
+		);
 	}
 
 	undergrowth_write_memory( $source_id );
 
-	return true;
+	return 'vetoed' === undergrowth_link_state( $source_id, $target_id );
 }
 
 /**
