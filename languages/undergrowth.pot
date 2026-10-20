@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T02:06:11+00:00\n"
+"POT-Creation-Date: 2026-10-20T02:19:42+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -83,6 +83,10 @@ msgstr ""
 msgid "Your choice is saved."
 msgstr ""
 
+#: src/admin.php:157
+msgid "That link was already accepted, so it was left as it is."
+msgstr ""
+
 #: src/class-undergrowth-links-list-table.php:41
 msgid "In this post"
 msgstr ""
@@ -100,12 +104,12 @@ msgid "Actions"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
-#: src/class-undergrowth-links-list-table.php:149
+#: src/class-undergrowth-links-list-table.php:159
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:161
+#: src/class-undergrowth-links-list-table.php:171
 msgid "Veto"
 msgstr ""
 
