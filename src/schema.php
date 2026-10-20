@@ -126,8 +126,10 @@ function undergrowth_uninstall_site(): void {
 	// The API key goes first, so a failure further down never leaves it behind.
 	delete_option( 'undergrowth_openai_api_key' );
 	delete_option( 'undergrowth_last_embed_error' );
+	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	undergrowth_delete_memory_folder();
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.
