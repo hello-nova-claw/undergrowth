@@ -23,6 +23,13 @@ add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
  */
 function undergrowth_register_stage_meta(): void {
 	foreach ( undergrowth_indexed_post_types() as $post_type ) {
+		// The REST API leaves out the meta of any post type without this
+		// support. The keys are protected, so the Custom Fields box it
+		// switches on never lists them.
+		if ( ! post_type_supports( $post_type, 'custom-fields' ) ) {
+			add_post_type_support( $post_type, 'custom-fields' );
+		}
+
 		register_post_meta(
 			$post_type,
 			'undergrowth_stage',
