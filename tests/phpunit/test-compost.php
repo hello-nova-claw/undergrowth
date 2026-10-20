@@ -317,6 +317,7 @@ class Test_Compost extends WP_UnitTestCase {
 		$result = undergrowth_compost_post( $oca );
 
 		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
 		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
 	}
 
