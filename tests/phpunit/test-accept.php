@@ -247,8 +247,11 @@ class Test_Accept extends WP_UnitTestCase {
 	}
 
 	public function test_sentence_inside_a_quote_is_never_linked() {
-		list( $oca, $yacon ) = $this->pair( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>I keep yacon plants nearby for their syrup.</p></blockquote><!-- /wp:quote -->' );
+		list( $oca, $yacon ) = $this->pair( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>I keep yacon plants nearby for their syrup.</p></blockquote><!-- /wp:quote --><p>Yacon grows here.</p>' );
 		$before              = get_post( $oca )->post_content;
+
+		// A proposal stored before quotes were skipped can still point there.
+		$this->set_sentence( $oca, $yacon, 'I keep yacon plants nearby for their syrup.' );
 
 		$this->assertSame( 'no_word', undergrowth_accept_link( $oca, $yacon ) );
 		$this->assertSame( $before, get_post( $oca )->post_content );

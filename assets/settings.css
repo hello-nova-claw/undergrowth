@@ -1,0 +1,7 @@
+/*
+ * Long words, such as compounds in some languages, would otherwise push the
+ * page wider than a phone screen.
+ */
+.undergrowth-settings p {
+	overflow-wrap: anywhere;
+}
