@@ -118,6 +118,35 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->section( $file, 'proposed links' ) );
 	}
 
+	public function test_unpublished_target_of_a_kept_link_is_named_without_its_address() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->set_state( $oca, $yacon, 'accepted' );
+		$address = get_permalink( $yacon );
+
+		wp_update_post(
+			array(
+				'ID'          => $yacon,
+				'post_status' => 'private',
+			)
+		);
+		$file = (string) $this->read( $oca );
+
+		$this->assertSame( array( '- post ' . $yacon . ' (not published) | "Notes about Oca."' ), $this->section( $file, 'accepted links' ) );
+		$this->assertStringNotContainsString( $address, $file );
+	}
+
+	public function test_deleted_target_of_a_veto_is_named_as_deleted() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->set_state( $oca, $yacon, 'vetoed' );
+		undergrowth_write_memory( $oca );
+
+		wp_delete_post( $yacon, true );
+
+		$this->assertSame( array( '- post ' . $yacon . ' (deleted)' ), $this->section( (string) $this->read( $oca ), 'vetoes' ) );
+	}
+
 	public function test_file_follows_the_table_when_proposals_change() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
