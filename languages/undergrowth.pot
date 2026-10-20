@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-19T02:21:42+00:00\n"
+"POT-Creation-Date: 2026-10-20T02:32:20+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -34,6 +34,87 @@ msgstr ""
 #. Author of the plugin
 #: undergrowth.php:9
 msgid "Novaclaw"
+msgstr ""
+
+#: src/admin.php:19
+#: src/admin.php:20
+msgid "Link suggestions"
+msgstr ""
+
+#: src/admin.php:61
+msgid "You cannot change links in this post."
+msgstr ""
+
+#: src/admin.php:83
+msgid "You cannot change this setting."
+msgstr ""
+
+#: src/admin.php:114
+msgid "Suggest links between my posts"
+msgstr ""
+
+#: src/admin.php:116
+msgid "Save"
+msgstr ""
+
+#. translators: %s: address of the Undergrowth settings page.
+#: src/admin.php:125
+#, php-format
+msgid "Link suggestions need an embedding provider. <a href=\"%s\">Add an API key in Settings</a> to start."
+msgstr ""
+
+#: src/admin.php:131
+msgid "Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on."
+msgstr ""
+
+#: src/admin.php:138
+msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
+msgstr ""
+
+#: src/admin.php:140
+msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
+msgstr ""
+
+#: src/admin.php:161
+msgid "Done. This link won’t be suggested again."
+msgstr ""
+
+#: src/admin.php:162
+msgid "Your choice is saved."
+msgstr ""
+
+#: src/admin.php:163
+msgid "That link was already accepted, so it was left as it is."
+msgstr ""
+
+#: src/admin.php:164
+msgid "One of those posts no longer exists, so there was nothing to veto."
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php:41
+msgid "In this post"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php:42
+msgid "At this sentence"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php:43
+msgid "Link to"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php:44
+msgid "Actions"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/class-undergrowth-links-list-table.php:159
+#, php-format
+msgid "Veto the link from %1$s to %2$s"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php:171
+msgid "Veto"
 msgstr ""
 
 #: src/settings.php:92
