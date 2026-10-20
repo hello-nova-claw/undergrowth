@@ -330,6 +330,185 @@ class Test_Stages extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_monthly_schedule_is_offered() {
+		$schedules = wp_get_schedules();
+
+		$this->assertArrayHasKey( 'undergrowth_monthly', $schedules );
+		$this->assertSame( MONTH_IN_SECONDS, $schedules['undergrowth_monthly']['interval'] );
+	}
+
+	public function test_cycle_is_scheduled_monthly_once() {
+		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+
+		undergrowth_schedule_stage_cycle();
+
+		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_stage_cycle' ) );
+	}
+
+	public function test_cycle_that_is_already_scheduled_is_not_scheduled_again() {
+		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+
+		// An hour ahead, so a second event would land on a different
+		// timestamp instead of replacing this one.
+		$next = time() + HOUR_IN_SECONDS;
+		wp_schedule_event( $next, 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+
+		undergrowth_schedule_stage_cycle();
+
+		$events = array_filter(
+			_get_cron_array(),
+			static function ( $hooks ) {
+				return isset( $hooks['undergrowth_stage_cycle'] );
+			}
+		);
+		$this->assertSame( array( $next ), array_keys( $events ) );
+	}
+
+	public function test_cycle_is_scheduled_on_load_for_sites_that_did_not_reactivate() {
+		$this->assertNotFalse( has_action( 'init', 'undergrowth_schedule_stage_cycle' ) );
+	}
+
+	public function test_activation_schedules_the_cycle() {
+		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+
+		undergrowth_activate();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+	}
+
+	public function test_deactivation_clears_every_cycle_event() {
+		undergrowth_schedule_stage_cycle();
+		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
+
+		undergrowth_deactivate();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
+	}
+
+	public function test_deactivation_hook_is_registered() {
+		$this->assertNotFalse( has_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_deactivate' ) );
+	}
+
+	public function test_uninstall_clears_the_cycle() {
+		undergrowth_schedule_stage_cycle();
+
+		$this->uninstall();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+	}
+
+	public function test_cycle_stores_the_measured_stage_for_every_indexed_post() {
+		list( $sprout, $a, $b ) = $this->publish( 3 );
+		$draft                  = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		$this->link( $sprout, $a );
+		$this->link( $b, $sprout );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'sprout', get_post_meta( $sprout, 'undergrowth_stage', true ) );
+
+		foreach ( array( $a, $b ) as $seedling ) {
+			$this->assertTrue( metadata_exists( 'post', $seedling, 'undergrowth_stage' ) );
+			$this->assertSame( 'seedling', get_post_meta( $seedling, 'undergrowth_stage', true ) );
+		}
+
+		$this->assertFalse( metadata_exists( 'post', $draft, 'undergrowth_stage' ) );
+	}
+
+	public function test_cycle_raises_a_stored_lower_stage() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		undergrowth_set_stage( $post_id, 'seedling' );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'sprout', get_post_meta( $post_id, 'undergrowth_stage', true ) );
+	}
+
+	public function test_cycle_skips_pinned_and_composted_posts() {
+		list( $pinned, $composted, $a, $b ) = $this->publish( 4 );
+
+		foreach ( array( $pinned, $composted ) as $post_id ) {
+			$this->link( $post_id, $a );
+			$this->link( $b, $post_id );
+		}
+
+		undergrowth_set_stage( $pinned, 'seedling' );
+		update_post_meta( $pinned, 'undergrowth_stage_pinned', '1' );
+		undergrowth_set_stage( $composted, 'composting' );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $pinned ) );
+		$this->assertSame( 'composting', undergrowth_get_stage( $composted ) );
+	}
+
+	public function test_cycle_never_lowers_a_stage() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'evergreen' );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_cycle_runs_in_batches_and_chains_the_next_one() {
+		$posts = $this->publish( UNDERGROWTH_STAGE_BATCH + 2 );
+		sort( $posts );
+
+		undergrowth_run_stage_cycle();
+
+		$last_in_batch = $posts[ UNDERGROWTH_STAGE_BATCH - 1 ];
+
+		$this->assertTrue( metadata_exists( 'post', $last_in_batch, 'undergrowth_stage' ) );
+		$this->assertFalse( metadata_exists( 'post', $posts[ UNDERGROWTH_STAGE_BATCH ], 'undergrowth_stage' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( $last_in_batch ) ) );
+
+		undergrowth_run_stage_cycle( $last_in_batch );
+
+		$this->assertTrue( metadata_exists( 'post', end( $posts ), 'undergrowth_stage' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( end( $posts ) ) ) );
+	}
+
+	public function test_cycle_with_no_indexed_post_types_measures_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+	}
+
+	public function test_cycle_event_runs_the_cycle() {
+		list( $post_id ) = $this->publish( 1 );
+
+		do_action( 'undergrowth_stage_cycle' );
+
+		$this->assertTrue( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+	}
+
+	public function test_saving_a_post_does_not_change_its_stage() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => 'New words.',
+			)
+		);
+
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
 	/**
 	 * Runs uninstall without dropping the tables.
 	 *

@@ -7,12 +7,18 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_STAGES = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
+const UNDERGROWTH_STAGES      = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
+const UNDERGROWTH_STAGE_BATCH = 100;
 
 // Late, so a filter that adds post types to the index has been added first.
 add_action( 'init', 'undergrowth_register_stage_meta', 20 );
 add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
 add_action( 'add_meta_boxes', 'undergrowth_remove_added_custom_fields_box', 99 );
+add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
+// Activation does not run on plugin updates or on every site of a network.
+add_action( 'init', 'undergrowth_schedule_stage_cycle' );
+add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
+register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_deactivate' );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
@@ -186,4 +192,102 @@ function undergrowth_measure_stage( int $post_id ): string {
 	}
 
 	return $links >= 2 ? 'sprout' : 'seedling';
+}
+
+/**
+ * Adds a monthly interval to WP-Cron, which has none of its own.
+ *
+ * @param array<string, array{interval: int, display: string}> $schedules Intervals by name.
+ * @return array<string, array{interval: int, display: string}> Intervals with the monthly one added.
+ */
+function undergrowth_cron_schedules( $schedules ) {
+	$schedules['undergrowth_monthly'] = array(
+		'interval' => MONTH_IN_SECONDS,
+		'display'  => __( 'Once a month', 'undergrowth' ),
+	);
+
+	return $schedules;
+}
+
+/**
+ * Schedules the monthly stage cycle when it is not scheduled yet.
+ */
+function undergrowth_schedule_stage_cycle(): void {
+	if ( false === wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+	}
+}
+
+/**
+ * Measures one batch of indexed posts and stores any stage that went up.
+ *
+ * The monthly event starts at the first post. Each batch that fills up
+ * schedules the next, after the last post it measured, so a large site is
+ * measured across several requests instead of timing out in one.
+ *
+ * @param int|string $after_id Measure posts with a higher ID than this. Cron
+ *                            passes an empty string when an event has no arguments.
+ */
+function undergrowth_run_stage_cycle( $after_id = 0 ): void {
+	global $wpdb;
+
+	$after_id = (int) $after_id;
+
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return;
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot page by ID, which keeps batches stable while posts are published mid-cycle.
+	$post_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT ID FROM %i WHERE ID > %d AND post_status = %s AND post_password = %s AND post_type IN ({$placeholders}) ORDER BY ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, $after_id, 'publish', '' ), $post_types, array( UNDERGROWTH_STAGE_BATCH ) )
+		)
+	);
+	// phpcs:enable
+
+	$post_ids = array_map( 'intval', $post_ids );
+
+	foreach ( $post_ids as $post_id ) {
+		undergrowth_cycle_post( $post_id );
+	}
+
+	if ( count( $post_ids ) === UNDERGROWTH_STAGE_BATCH ) {
+		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( end( $post_ids ) ) );
+	}
+}
+
+/**
+ * Stores a post's measured stage when it is higher than the stored one.
+ *
+ * Pinned and composted posts are the author's choice and are left alone.
+ * In germination mode nothing is demoted, so a lower measure is ignored.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_cycle_post( int $post_id ): void {
+	$stage = undergrowth_get_stage( $post_id );
+
+	if ( 'composting' === $stage || undergrowth_is_stage_pinned( $post_id ) ) {
+		return;
+	}
+
+	$order    = array_flip( array( 'seedling', 'sprout', 'budding', 'evergreen' ) );
+	$measured = undergrowth_measure_stage( $post_id );
+
+	if ( $order[ $measured ] > $order[ $stage ] || ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
+		undergrowth_set_stage( $post_id, $measured );
+	}
+}
+
+/**
+ * Stops the stage cycle while the plugin is inactive.
+ */
+function undergrowth_deactivate(): void {
+	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 }

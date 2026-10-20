@@ -96,13 +96,14 @@ function undergrowth_install_schema(): bool {
 }
 
 /**
- * Installs the schema on activation.
+ * Installs the schema and schedules the stage cycle on activation.
  *
  * Activation hooks expect no return value, so this wraps the installer
  * rather than registering it directly.
  */
 function undergrowth_activate(): void {
 	undergrowth_install_schema();
+	undergrowth_schedule_stage_cycle();
 }
 
 /**
@@ -130,6 +131,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	undergrowth_delete_memory_folder();
