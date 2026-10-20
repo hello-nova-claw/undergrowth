@@ -123,6 +123,12 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_quote_left_open_at_the_end_marks_its_last_sentence() {
+		$sentences = undergrowth_split_sentences( '<p>Mine.</p><blockquote>Their words, never closed.' );
+
+		$this->assertSame( array( false, true ), array_column( $sentences, 'quoted' ) );
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
@@ -252,6 +258,8 @@ class Test_Sentences extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Checks the next best sentence is chosen over one in someone else's words.
+	 *
 	 * @dataProvider data_others_words
 	 *
 	 * @param string $others_words Markup holding the best sentence.
