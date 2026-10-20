@@ -265,6 +265,17 @@ class Test_Accept extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_a_closing_quote_inside_a_comment_does_not_end_the_quote() {
+		$this->assertNull(
+			undergrowth_link_word(
+				'<blockquote><p>Intro.</p><!-- </blockquote> --><p>I keep yacon plants nearby.</p></blockquote>',
+				'I keep yacon plants nearby.',
+				'yacon',
+				'https://example.test/'
+			)
+		);
+	}
+
 	public function test_paragraph_inside_a_group_is_still_linked() {
 		$linked = undergrowth_link_word(
 			'<!-- wp:group --><div class="wp-block-group"><!-- wp:paragraph --><p>I keep yacon plants nearby.</p><!-- /wp:paragraph --></div><!-- /wp:group -->',
