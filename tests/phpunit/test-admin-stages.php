@@ -267,6 +267,20 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_stage_that_cannot_be_saved_returns_with_a_notice() {
+		$oca = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+
+		$this->assertStringContainsString( 'undergrowth_notice=stage_not_saved', $this->submit( 'pin', $oca, 'sprout' ) );
+	}
+
 	public function test_stage_form_without_a_valid_nonce_is_refused() {
 		$oca                  = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		$_POST['post']        = (string) $oca;
@@ -317,6 +331,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 			'stage_refused'    => array( 'stage_refused', 'cannot be pinned' ),
 			'stage_composting' => array( 'stage_composting', 'composting post' ),
 			'not_pinned'       => array( 'not_pinned', 'not pinned' ),
+			'stage_not_saved'  => array( 'stage_not_saved', 'could not be saved' ),
 		);
 	}
 }
