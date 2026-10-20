@@ -11,6 +11,7 @@ const UNDERGROWTH_MAX_PROPOSALS        = 3;
 const UNDERGROWTH_MIN_LINK_SIMILARITY  = 0.4;
 const UNDERGROWTH_NEIGHBOURS_TO_UPDATE = 10;
 const UNDERGROWTH_VECTOR_CHUNK         = 100;
+const UNDERGROWTH_POST_CHUNK           = 100;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
@@ -297,18 +298,19 @@ function undergrowth_link_state( int $source_id, int $target_id ): string {
 }
 
 /**
- * Picks the posts a post should link to.
+ * Scores every post a post could link to, before the target posts are read.
  *
- * Leaves out the post itself, posts it already links to, composting posts,
- * and any pair the author has accepted or vetoed. A composting post gets
- * no targets at all.
+ * Leaves out the post itself, posts it already links to, and any pair the
+ * author has accepted or vetoed. A composting post gets no targets at all.
+ * Each target post still has to pass undergrowth_open_targets(), which
+ * callers walk in rank order and only as far as they need, so a refresh
+ * never loads every post in a large archive.
  *
  * @param int                     $post_id Source post ID.
  * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
- * @param int                     $limit   Most targets to return, or 0 for every target above the minimum.
  * @return array<int, float> Similarity keyed by target post ID, best first.
  */
-function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
+function undergrowth_score_targets( int $post_id, ?array $pool = null ): array {
 	global $wpdb;
 
 	$post = get_post( $post_id );
@@ -362,19 +364,113 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 			continue;
 		}
 
-		// A vector can outlive its post's publication when the status changes
-		// without a save, so the target itself is checked as well.
-		$target = get_post( $target_id );
-
-		// No links into a composting post either.
-		if ( $target instanceof WP_Post && undergrowth_is_indexable( $target ) && 'composting' !== undergrowth_get_stage( $target_id ) ) {
-			$scores[ $target_id ] = $score;
-		}
+		$scores[ $target_id ] = $score;
 	}
 
 	arsort( $scores );
 
-	return $limit > 0 ? array_slice( $scores, 0, $limit, true ) : $scores;
+	return $scores;
+}
+
+/**
+ * Lists which of a set of posts can still receive a link.
+ *
+ * A vector can outlive its post's publication when the status changes
+ * without a save, so the target posts themselves are checked. No links go
+ * into a composting post either. Only the columns the check needs are read,
+ * past the post cache, so a refresh never holds the archive's content.
+ *
+ * @param int[] $post_ids Posts to check.
+ * @return array<int, true> The open posts, keyed by ID.
+ */
+function undergrowth_open_target_ids( array $post_ids ): array {
+	global $wpdb;
+
+	if ( array() === $post_ids ) {
+		return array();
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_ids ), '%d' ) );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Caching every post checked is what this avoids; there is one placeholder for each ID.
+	$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT ID, post_status, post_password, post_type FROM %i WHERE ID IN (' . $placeholders . ')', $wpdb->posts, ...array_map( 'intval', $post_ids ) ) );
+	$wpdb->flush();
+
+	$indexable = array();
+
+	foreach ( $rows as $row ) {
+		if ( undergrowth_is_indexable( new WP_Post( $row ) ) ) {
+			$indexable[] = (int) $row->ID;
+		}
+	}
+
+	$open = array_fill_keys( $indexable, true );
+
+	if ( array() === $indexable ) {
+		return $open;
+	}
+
+	// One query for the stage key alone. Priming every meta key would hold
+	// unrelated, possibly large, meta for the rest of the refresh.
+	$placeholders = implode( ', ', array_fill( 0, count( $indexable ), '%d' ) );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Priming every meta key is what this avoids; there is one placeholder for each ID.
+	$composting = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s AND post_id IN (' . $placeholders . ')', $wpdb->postmeta, 'undergrowth_stage', 'composting', ...$indexable ) );
+	$wpdb->flush();
+
+	foreach ( array_map( 'intval', $composting ) as $id ) {
+		unset( $open[ $id ] );
+	}
+
+	return $open;
+}
+
+/**
+ * Walks scored targets in rank order, keeping only posts that can still
+ * receive a link.
+ *
+ * Target posts are checked a chunk at a time, so a caller that stops after a
+ * few targets reads only the first chunk.
+ *
+ * @param array<int, float> $scores Result of undergrowth_score_targets().
+ * @return Generator<int, float> Similarity keyed by target post ID, best first.
+ */
+function undergrowth_open_targets( array $scores ): Generator {
+	foreach ( array_chunk( $scores, UNDERGROWTH_POST_CHUNK, true ) as $chunk ) {
+		$open = undergrowth_open_target_ids( array_keys( $chunk ) );
+
+		foreach ( $chunk as $target_id => $score ) {
+			if ( isset( $open[ $target_id ] ) ) {
+				yield $target_id => $score;
+			}
+		}
+	}
+}
+
+/**
+ * Picks the posts a post should link to.
+ *
+ * Leaves out the post itself, posts it already links to, composting posts,
+ * and any pair the author has accepted or vetoed. A composting post gets
+ * no targets at all.
+ *
+ * @param int                     $post_id Source post ID.
+ * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
+ * @param int                     $limit   Most targets to return, or 0 for every target above the minimum.
+ * @return array<int, float> Similarity keyed by target post ID, best first.
+ */
+function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
+	$targets = array();
+
+	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
+		$targets[ $target_id ] = $score;
+
+		if ( $limit > 0 && count( $targets ) >= $limit ) {
+			break;
+		}
+	}
+
+	return $targets;
 }
 
 /**
@@ -388,7 +484,7 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
  * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
  * @param array|null              $corpus  Word counts across the pool, when already built.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}|null $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>}|null $corpus
  */
 function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?array $corpus = null ): void {
 	global $wpdb;
@@ -414,7 +510,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$now     = current_time( 'mysql', true );
 	$targets = array();
 
-	foreach ( undergrowth_rank_targets( $post_id, $pool, 0 ) as $target_id => $score ) {
+	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
 		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus );
 
 		if ( null === $sentence ) {

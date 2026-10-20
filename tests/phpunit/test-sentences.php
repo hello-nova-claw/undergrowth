@@ -428,20 +428,6 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'Yacon grows here.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
-	public function test_corpus_keeps_word_counts_not_every_occurrence() {
-		$post_id = self::factory()->post->create(
-			array(
-				'post_title'   => 'Oca',
-				'post_content' => 'Oca oca oca.',
-				'post_status'  => 'publish',
-			)
-		);
-
-		$corpus = undergrowth_build_corpus( array( $post_id ) );
-
-		$this->assertSame( array( 'oca' => 4 ), $corpus['counts'][ $post_id ] );
-	}
-
 	public function test_proposal_without_any_fitting_sentence_is_dropped() {
 		$oca   = $this->plant(
 			'Oca',

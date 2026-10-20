@@ -12,16 +12,20 @@ class Test_Settings extends WP_UnitTestCase {
 
 	const KEY = 'sk-test-0123456789abcd';
 
+	const ANTHROPIC_KEY = 'sk-ant-test-0123456789wxyz';
+
 	public function set_up() {
 		parent::set_up();
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_anthropic_api_key' );
+		delete_option( 'undergrowth_last_prompt_error' );
 	}
 
 	public function tear_down() {
-		unset( $_POST['undergrowth_remove_openai_key'] );
+		unset( $_POST['undergrowth_remove_openai_key'], $_POST['undergrowth_remove_anthropic_key'] );
 		wp_dequeue_style( 'undergrowth-settings' );
 		wp_deregister_style( 'undergrowth-settings' );
 
@@ -130,5 +134,79 @@ class Test_Settings extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertSame( '', $this->render() );
+	}
+
+	public function test_anthropic_key_setting_is_registered_with_its_sanitiser_and_hidden_from_rest() {
+		undergrowth_register_settings();
+
+		$setting = get_registered_settings()['undergrowth_anthropic_api_key'];
+		$this->assertSame( 'undergrowth_sanitize_anthropic_key', $setting['sanitize_callback'] );
+		$this->assertFalse( $setting['show_in_rest'] );
+	}
+
+	public function test_new_anthropic_key_is_trimmed() {
+		$this->assertSame( self::ANTHROPIC_KEY, undergrowth_sanitize_anthropic_key( ' ' . self::ANTHROPIC_KEY . "\t" ) );
+	}
+
+	public function test_blank_field_keeps_the_saved_anthropic_key() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+
+		$this->assertSame( self::ANTHROPIC_KEY, undergrowth_sanitize_anthropic_key( '' ) );
+	}
+
+	public function test_anthropic_remove_checkbox_clears_only_the_anthropic_key() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		$_POST['undergrowth_remove_anthropic_key'] = '1';
+
+		$this->assertSame( '', undergrowth_sanitize_anthropic_key( '' ) );
+		$this->assertSame( self::KEY, undergrowth_sanitize_openai_key( '' ) );
+	}
+
+	public function test_anthropic_key_is_not_autoloaded() {
+		global $wpdb;
+
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+
+		$autoload = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", 'undergrowth_anthropic_api_key' ) );
+		$this->assertContains( $autoload, array( 'no', 'off' ) );
+	}
+
+	public function test_page_never_prints_the_saved_anthropic_key() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( self::ANTHROPIC_KEY, $html );
+		$this->assertStringContainsString( 'wxyz', $html );
+		$this->assertStringContainsString( 'name="undergrowth_remove_anthropic_key"', $html );
+	}
+
+	public function test_page_says_what_is_sent_to_anthropic() {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'Anthropic', $html );
+		$this->assertStringContainsString( 'Whole posts are never sent.', $html );
+		$this->assertStringContainsString( 'never to your readers', $html );
+	}
+
+	public function test_anthropic_key_field_is_labelled_and_described() {
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/<label for="undergrowth_anthropic_api_key">/', $html );
+		$this->assertMatchesRegularExpression( '/id="undergrowth_anthropic_api_key"[^>]*aria-describedby="undergrowth-anthropic-notice"/', $html );
+	}
+
+	public function test_page_reports_the_last_failed_prompt_request() {
+		update_option(
+			'undergrowth_last_prompt_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 529,
+				'time'   => time(),
+			)
+		);
+
+		$this->assertStringContainsString( '529', $this->render() );
 	}
 }

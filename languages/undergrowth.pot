@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T21:05:26+00:00\n"
+"POT-Creation-Date: 2026-10-20T22:10:02+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -17,8 +17,8 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php:3
 #: src/abilities.php:26
-#: src/settings.php:20
-#: src/settings.php:21
+#: src/settings.php:22
+#: src/settings.php:23
 msgid "Undergrowth"
 msgstr ""
 
@@ -248,14 +248,14 @@ msgid "The stage could not be saved, so nothing was changed. Try again in a mome
 msgstr ""
 
 #: src/admin.php:325
-#: src/stages.php:480
+#: src/stages.php:491
 msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/admin.php:326
 #: src/memory.php:500
-#: src/stages.php:520
-#: src/stages.php:565
+#: src/stages.php:531
+#: src/stages.php:576
 msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
 msgstr ""
 
@@ -346,28 +346,47 @@ msgstr ""
 msgid "The stage was imported, but some of its history could not be saved."
 msgstr ""
 
-#: src/settings.php:111
+#: src/settings.php:146
 msgid "OpenAI API key"
 msgstr ""
 
-#: src/settings.php:117
+#: src/settings.php:152
 msgid "With a key saved, the title and text of each published post are sent to OpenAI to be turned into vectors, which Undergrowth uses to suggest links between your posts. Nothing is sent until you save a key. Undergrowth never writes or changes your posts."
 msgstr ""
 
 #. translators: %s: last four characters of the saved API key.
-#: src/settings.php:126
+#: src/settings.php:161
+#: src/settings.php:210
 #, php-format
 msgid "A key ending in %s is saved. Leave the field blank to keep it."
 msgstr ""
 
-#: src/settings.php:135
+#: src/settings.php:170
 msgid "Remove the saved key and stop sending posts to OpenAI"
 msgstr ""
 
 #. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
-#: src/settings.php:147
+#: src/settings.php:182
 #, php-format
 msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts are tried again the next time they are saved."
+msgstr ""
+
+#: src/settings.php:195
+msgid "Anthropic API key"
+msgstr ""
+
+#: src/settings.php:201
+msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
+msgstr ""
+
+#: src/settings.php:219
+msgid "Remove the saved key and stop sending anything to Anthropic"
+msgstr ""
+
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/settings.php:231
+#, php-format
+msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
 #: src/stages.php:56
@@ -378,63 +397,63 @@ msgstr ""
 msgid "Whether the author pinned the growth stage."
 msgstr ""
 
-#: src/stages.php:146
+#: src/stages.php:152
 msgctxt "growth stage"
 msgid "Seedling"
 msgstr ""
 
-#: src/stages.php:147
+#: src/stages.php:153
 msgctxt "growth stage"
 msgid "Sprout"
 msgstr ""
 
-#: src/stages.php:148
+#: src/stages.php:154
 msgctxt "growth stage"
 msgid "Budding"
 msgstr ""
 
-#: src/stages.php:149
+#: src/stages.php:155
 msgctxt "growth stage"
 msgid "Evergreen"
 msgstr ""
 
-#: src/stages.php:150
+#: src/stages.php:156
 msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
-#: src/stages.php:318
+#: src/stages.php:329
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:417
+#: src/stages.php:428
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:421
+#: src/stages.php:432
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:433
+#: src/stages.php:444
 msgid "The stage could not be saved, so nothing was changed."
 msgstr ""
 
-#: src/stages.php:456
+#: src/stages.php:467
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:460
+#: src/stages.php:471
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:507
+#: src/stages.php:518
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:549
+#: src/stages.php:560
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:599
+#: src/stages.php:610
 msgid "This post is not composting."
 msgstr ""

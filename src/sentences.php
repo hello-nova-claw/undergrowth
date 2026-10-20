@@ -218,37 +218,59 @@ function undergrowth_tokens( string $text ): array {
 }
 
 /**
+ * Counts how often a post uses each of its words.
+ *
+ * @param WP_Post $post Post to count.
+ * @return array<string, int> Number of uses keyed by token.
+ */
+function undergrowth_post_token_counts( WP_Post $post ): array {
+	// Counts, not every occurrence, so a long post stays small.
+	return array_count_values( undergrowth_tokens( undergrowth_post_text( $post ) ) );
+}
+
+/**
  * Counts, for each token, how many posts in a set use it.
  *
+ * Only these totals are kept. A post's own word counts are worked out again
+ * when a sentence is chosen for a link to it, which happens for a handful of
+ * posts, so a long archive never sits in memory word by word.
+ *
  * @param int[] $post_ids Posts to count across.
- * @return array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}
+ * @return array{documents: int, frequency: array<string, int>, posts: array<int, true>}
  */
 function undergrowth_build_corpus( array $post_ids ): array {
+	global $wpdb;
+
 	$frequency = array();
-	$counts    = array();
+	$posts     = array();
+	$ids       = array_values( array_unique( array_map( 'intval', $post_ids ) ) );
 
-	// One query for every post, rather than one per post inside the loop.
-	_prime_post_caches( array_map( 'intval', $post_ids ), false, false );
+	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+		// Read straight from the table, a chunk at a time, so the content of
+		// every post never fills the post cache for the rest of the request.
+		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
-	foreach ( $post_ids as $post_id ) {
-		$post = get_post( $post_id );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Caching every post is what this avoids; there is one placeholder for each ID in the chunk.
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT ID, post_title, post_content FROM %i WHERE ID IN (' . $placeholders . ')', $wpdb->posts, ...$chunk ) );
 
-		if ( ! $post instanceof WP_Post ) {
-			continue;
+		foreach ( $rows as $row ) {
+			$posts[ (int) $row->ID ] = true;
+
+			foreach ( array_keys( undergrowth_post_token_counts( new WP_Post( $row ) ) ) as $token ) {
+				$frequency[ $token ] = ( $frequency[ $token ] ?? 0 ) + 1;
+			}
 		}
 
-		// Counts, not every occurrence, so a long archive fits in memory.
-		$counts[ $post_id ] = array_count_values( undergrowth_tokens( undergrowth_post_text( $post ) ) );
-
-		foreach ( array_keys( $counts[ $post_id ] ) as $token ) {
-			$frequency[ $token ] = ( $frequency[ $token ] ?? 0 ) + 1;
-		}
+		// wpdb keeps the last result set until the next query, which would
+		// leave a chunk of posts behind for the whole refresh.
+		unset( $rows );
+		$wpdb->flush();
 	}
 
 	return array(
-		'documents' => count( $counts ),
+		'documents' => count( $posts ),
 		'frequency' => $frequency,
-		'counts'    => $counts,
+		'posts'     => $posts,
 	);
 }
 
@@ -263,19 +285,32 @@ function undergrowth_build_corpus( array $post_ids ): array {
  * @param array $corpus  Result of undergrowth_build_corpus().
  * @return array<string, float> Weight keyed by token, highest first.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>} $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
 function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
-	if ( empty( $corpus['counts'][ $post_id ] ) ) {
+	global $wpdb;
+
+	if ( ! isset( $corpus['posts'][ $post_id ] ) ) {
 		return array();
 	}
 
+	// Read past the post cache: a refresh can try many targets before one
+	// fits, and none of them should stay in memory afterwards.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Caching every target tried is what this avoids.
+	$row = $wpdb->get_row( $wpdb->prepare( 'SELECT ID, post_title, post_content FROM %i WHERE ID = %d', $wpdb->posts, $post_id ) );
+	$wpdb->flush();
+
+	if ( ! is_object( $row ) ) {
+		return array();
+	}
+
+	$post    = new WP_Post( $row );
 	$weights = array();
 
 	// Repeats count for less and less, and rarity is squared, so a word in
 	// every post keeps only a sliver of weight. A sentence full of "the" and
 	// "with" never outweighs one holding a word the target is actually about.
-	foreach ( $corpus['counts'][ $post_id ] as $token => $count ) {
+	foreach ( undergrowth_post_token_counts( $post ) as $token => $count ) {
 		$documents                  = $corpus['frequency'][ $token ] ?? 1;
 		$rarity                     = log( ( $corpus['documents'] + 1 ) / ( $documents + 0.5 ) );
 		$weights[ (string) $token ] = ( 1 + log( $count ) ) * $rarity * $rarity;
@@ -301,7 +336,7 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
  * @param array $corpus    Result of undergrowth_build_corpus().
  * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
  *
- * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>} $corpus
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
 function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus ): ?array {
 	$source = get_post( $source_id );

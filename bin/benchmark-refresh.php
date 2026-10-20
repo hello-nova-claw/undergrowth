@@ -13,6 +13,13 @@
  * dimensions. The fingerprint is a hash of the proposals
  * table, so two runs on the same seed can be compared across code changes.
  *
+ * Each post is 48 words drawn from 18 by default. An optional fourth
+ * argument gives the number of words per post instead, drawn from a
+ * vocabulary of 20,000 words with the long tail of real writing, so the
+ * word counts weigh what they would on a site with long posts:
+ *
+ *     wp eval-file bin/benchmark-refresh.php 1000 1536 wipe 1200
+ *
  * @package Undergrowth
  */
 
@@ -52,6 +59,71 @@ function undergrowth_benchmark_unit_vector( int $dimensions ): array {
 	);
 }
 
+/**
+ * Builds a vocabulary of made-up words and their running Zipf weights.
+ *
+ * The word at rank r is used in proportion to 1 / r, as in natural
+ * language: a few words in nearly every post, most in only a handful.
+ *
+ * @param int $size Number of words.
+ * @return array{words: string[], cumulative: float[]} Words by rank, with the running total of their weights.
+ */
+function undergrowth_benchmark_vocabulary( int $size ): array {
+	$syllables  = array( 'ka', 'lo', 'mi', 'nu', 'pe', 'ra', 'si', 'to', 've', 'ya', 'bo', 'du', 'fe', 'gi', 'ha', 'jo', 'ku', 'le', 'mo', 'ni' );
+	$base       = count( $syllables );
+	$words      = array();
+	$cumulative = array();
+	$total      = 0.0;
+
+	// Numbers from the base upwards have at least two digits and never a
+	// leading zero, so every word is distinct and long enough to count.
+	for ( $rank = 1; $rank <= $size; $rank++ ) {
+		$number = $rank + $base - 1;
+		$word   = '';
+
+		while ( $number > 0 ) {
+			$word   = $syllables[ $number % $base ] . $word;
+			$number = intdiv( $number, $base );
+		}
+
+		$total       += 1 / $rank;
+		$words[]      = $word;
+		$cumulative[] = $total;
+	}
+
+	return array(
+		'words'      => $words,
+		'cumulative' => $cumulative,
+	);
+}
+
+/**
+ * Picks a word from a vocabulary by its Zipf weight.
+ *
+ * @param array $vocabulary Result of undergrowth_benchmark_vocabulary().
+ * @return string The word.
+ *
+ * @phpstan-param array{words: string[], cumulative: float[]} $vocabulary
+ */
+function undergrowth_benchmark_zipf_word( array $vocabulary ): string {
+	$cumulative = $vocabulary['cumulative'];
+	$target     = mt_rand() / mt_getrandmax() * $cumulative[ count( $cumulative ) - 1 ];
+	$low        = 0;
+	$high       = count( $cumulative ) - 1;
+
+	while ( $low < $high ) {
+		$middle = intdiv( $low + $high, 2 );
+
+		if ( $cumulative[ $middle ] < $target ) {
+			$low = $middle + 1;
+		} else {
+			$high = $middle;
+		}
+	}
+
+	return $vocabulary['words'][ $low ];
+}
+
 if ( 'wipe' !== ( $args[2] ?? '' ) ) {
 	fwrite( STDERR, 'This deletes every post on the site. Pass "wipe" as the third argument to confirm.' . PHP_EOL );
 	exit( 1 );
@@ -74,6 +146,10 @@ global $wpdb;
 $undergrowth_posts      = max( 2, (int) $args[0] );
 $undergrowth_dimensions = max( 1, (int) $args[1] );
 $undergrowth_words      = array( 'oca', 'yacon', 'mashua', 'ulluco', 'achira', 'arracacha', 'maca', 'mauka', 'jicama', 'tuber', 'frost', 'mulch', 'harvest', 'seed', 'compost', 'shade', 'terrace', 'flower' );
+$undergrowth_long       = isset( $args[3] );
+$undergrowth_length     = $undergrowth_long ? max( 1, (int) $args[3] ) : 48;
+$undergrowth_vocabulary = $undergrowth_long ? undergrowth_benchmark_vocabulary( 20000 ) : null;
+$undergrowth_per_post   = (int) ceil( $undergrowth_length / 8 );
 
 mt_srand( 26 );
 
@@ -108,22 +184,44 @@ foreach ( get_posts(
 $undergrowth_ids = array();
 
 for ( $undergrowth_i = 0; $undergrowth_i < $undergrowth_posts; $undergrowth_i++ ) {
-	$undergrowth_sentences = array();
+	$undergrowth_paragraphs = array();
+	$undergrowth_sentences  = array();
 
-	for ( $undergrowth_s = 0; $undergrowth_s < 6; $undergrowth_s++ ) {
+	for ( $undergrowth_s = 0; $undergrowth_s < $undergrowth_per_post; $undergrowth_s++ ) {
 		$undergrowth_sentence = array();
 
-		for ( $undergrowth_w = 0; $undergrowth_w < 8; $undergrowth_w++ ) {
-			$undergrowth_sentence[] = $undergrowth_words[ mt_rand( 0, count( $undergrowth_words ) - 1 ) ];
+		// The last sentence holds whatever is left, so a post has exactly the
+		// number of words asked for.
+		$undergrowth_in_sentence = min( 8, $undergrowth_length - 8 * $undergrowth_s );
+
+		for ( $undergrowth_w = 0; $undergrowth_w < $undergrowth_in_sentence; $undergrowth_w++ ) {
+			$undergrowth_sentence[] = null === $undergrowth_vocabulary
+				? $undergrowth_words[ mt_rand( 0, count( $undergrowth_words ) - 1 ) ]
+				: undergrowth_benchmark_zipf_word( $undergrowth_vocabulary );
 		}
 
 		$undergrowth_sentences[] = ucfirst( implode( ' ', $undergrowth_sentence ) ) . '.';
+
+		if ( 6 === count( $undergrowth_sentences ) ) {
+			$undergrowth_paragraphs[] = $undergrowth_sentences;
+			$undergrowth_sentences    = array();
+		}
+	}
+
+	if ( array() !== $undergrowth_sentences ) {
+		$undergrowth_paragraphs[] = $undergrowth_sentences;
+	}
+
+	$undergrowth_content = '';
+
+	foreach ( $undergrowth_paragraphs as $undergrowth_paragraph ) {
+		$undergrowth_content .= '<!-- wp:paragraph --><p>' . implode( ' ', $undergrowth_paragraph ) . '</p><!-- /wp:paragraph -->';
 	}
 
 	$undergrowth_id = wp_insert_post(
 		array(
 			'post_title'   => 'Bed ' . $undergrowth_i,
-			'post_content' => '<!-- wp:paragraph --><p>' . implode( ' ', $undergrowth_sentences ) . '</p><!-- /wp:paragraph -->',
+			'post_content' => $undergrowth_content,
 			'post_status'  => 'publish',
 		)
 	);
@@ -180,8 +278,9 @@ $undergrowth_fingerprint = md5(
 );
 
 printf(
-	'posts=%d dimensions=%d peak_above_baseline=%.1fMB seconds=%.3f proposals=%d fingerprint=%s%s',
+	'posts=%d words=%d dimensions=%d peak_above_baseline=%.1fMB seconds=%.3f proposals=%d fingerprint=%s%s',
 	$undergrowth_posts,
+	$undergrowth_length,
 	$undergrowth_dimensions,
 	$undergrowth_peak / 1048576,
 	$undergrowth_seconds,
