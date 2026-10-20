@@ -70,12 +70,14 @@ jobs:
       # Both runs use this branch's spec, so a state added here is captured on
       # the base too, and shows as changed rather than new.
       - name: Take the "after" shots
+        id: after
         continue-on-error: true
         working-directory: head
         env:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/after
         run: npm run screenshots
       - name: Take the "before" shots
+        id: before
         continue-on-error: true
         working-directory: head
         env:
@@ -90,9 +92,25 @@ jobs:
         env:
           PR: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
+          AFTER: ${{ steps.after.outcome }}
+          BEFORE: ${{ steps.before.outcome }}
         run: |
           node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
             "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA/pr-${PR}" > "${SHOTS}/comment.md"
+
+          # A failed run would make every shot look new or removed, so say so
+          # at the top rather than let the table pass for a real result.
+          warning=''
+          if [ "$AFTER" != success ]; then
+            warning="${warning}> [!WARNING]\n> Some \"after\" shots could not be taken, so they may show as removed. See the workflow run.\n\n"
+          fi
+          if [ "$BEFORE" != success ]; then
+            warning="${warning}> [!WARNING]\n> Some \"before\" shots could not be taken, so they may show as new. See the workflow run.\n\n"
+          fi
+          if [ -n "$warning" ]; then
+            { head -n 3 "${SHOTS}/comment.md"; printf '%b' "$warning"; tail -n +4 "${SHOTS}/comment.md"; } > "${RUNNER_TEMP}/comment.md"
+            mv "${RUNNER_TEMP}/comment.md" "${SHOTS}/comment.md"
+          fi
 
           printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
             "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${SHOTS}/comment.md"
