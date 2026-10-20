@@ -130,6 +130,12 @@ function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
  * @phpstan-impure It reads meta that the caller may have just changed.
  */
 function undergrowth_get_stage( int $post_id ): string {
+	// The registered default loads the whole post to learn its type, which
+	// a refresh checking hundreds of targets cannot afford.
+	if ( ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
+		return 'seedling';
+	}
+
 	$stage = get_post_meta( $post_id, 'undergrowth_stage', true );
 
 	return in_array( $stage, UNDERGROWTH_STAGES, true ) ? $stage : 'seedling';
