@@ -402,6 +402,15 @@ function undergrowth_stage_action_error( int $post_id ): ?WP_Error {
 }
 
 /**
+ * Returns the error for a stage change that could not be stored.
+ *
+ * @return WP_Error The error.
+ */
+function undergrowth_stage_not_saved(): WP_Error {
+	return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, so nothing was changed.', 'undergrowth' ) );
+}
+
+/**
  * Pins a post's stage, so the monthly cycle leaves it alone.
  *
  * Pinning is an author action, so it takes effect at once. Any measured
@@ -430,7 +439,11 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 
 	// The flag goes first, so the file written for the change shows the marker.
 	update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
-	undergrowth_set_stage( $post_id, $stage, 'pin' );
+
+	if ( ! undergrowth_set_stage( $post_id, $stage, 'pin' ) ) {
+		delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+		return undergrowth_stage_not_saved();
+	}
 
 	return true;
 }
@@ -456,7 +469,11 @@ function undergrowth_unpin_stage( int $post_id ) {
 	}
 
 	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
-	undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' );
+
+	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' ) ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+		return undergrowth_stage_not_saved();
+	}
 
 	return true;
 }
