@@ -475,6 +475,10 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 		// Only a flag added here is taken away; an earlier pin stays.
 		if ( ! $was_pinned ) {
 			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+
+			if ( undergrowth_is_stage_pinned( $post_id ) ) {
+				return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
+			}
 		}
 
 		return undergrowth_stage_not_saved();
@@ -511,6 +515,11 @@ function undergrowth_unpin_stage( int $post_id ) {
 
 	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' ) ) {
 		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+			return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+		}
+
 		return undergrowth_stage_not_saved();
 	}
 
