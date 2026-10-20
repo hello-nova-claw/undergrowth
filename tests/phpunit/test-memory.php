@@ -113,7 +113,7 @@ class Test_Memory extends WP_UnitTestCase {
 	public function test_stage_section_lists_each_change_after_the_current_stage() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
-		$today = gmdate( 'Y-m-d' );
+		$today = wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) );
 
 		undergrowth_set_stage( $oca, 'sprout' );
 		undergrowth_set_stage( $oca, 'composting', 'compost' );
@@ -138,7 +138,7 @@ class Test_Memory extends WP_UnitTestCase {
 		$section = $this->section( (string) $this->read( $oca ), 'stage' );
 
 		$this->assertSame( 'evergreen (pinned)', $section[0] );
-		$this->assertSame( '- ' . gmdate( 'Y-m-d' ) . ': seedling -> evergreen (pinned by the author)', $section[1] );
+		$this->assertSame( '- ' . wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) ) . ': seedling -> evergreen (pinned by the author)', $section[1] );
 	}
 
 	public function test_composted_stage_never_carries_a_pin_marker() {
