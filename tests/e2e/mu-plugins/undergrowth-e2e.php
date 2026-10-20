@@ -7,9 +7,10 @@
  * @package Undergrowth
  */
 
-// PHPUnit runs in this same site from the command line and expects no
-// provider, so the shortcuts below apply to browser requests only.
-if ( 'cli' === PHP_SAPI ) {
+// PHPUnit runs in this same site and expects no provider. Checking for the
+// test suite rather than the command line keeps the provider working in
+// WordPress Playground, where every request runs under the CLI SAPI.
+if ( function_exists( 'tests_add_filter' ) ) {
 	return;
 }
 
@@ -51,3 +52,82 @@ add_action(
 	},
 	20
 );
+
+/**
+ * Returns the value of a test cookie when it is one of the allowed values.
+ *
+ * The screenshot catalogue sets these cookies per browser context, so every
+ * locale and state is served by one site without changing anything stored.
+ *
+ * @param string   $name    Cookie name.
+ * @param string[] $allowed Values the cookie may take.
+ * @return string The value, or an empty string.
+ */
+function undergrowth_e2e_cookie( string $name, array $allowed ): string {
+	$value = isset( $_COOKIE[ $name ] ) ? sanitize_key( wp_unslash( $_COOKIE[ $name ] ) ) : '';
+
+	foreach ( $allowed as $candidate ) {
+		if ( strtolower( $candidate ) === $value ) {
+			return $candidate;
+		}
+	}
+
+	return '';
+}
+
+add_filter(
+	'determine_locale',
+	static function ( $locale ) {
+		$forced = undergrowth_e2e_cookie( 'undergrowth_e2e_locale', array( 'en_US', 'he_IL', 'en_XA' ) );
+
+		return '' === $forced ? $locale : $forced;
+	},
+	99
+);
+
+// Each fixture changes only what one screen reads, and only for requests that
+// carry the cookie.
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off' ) ) ) {
+	case 'no-provider':
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => '',
+					'model'    => '',
+				);
+			},
+			99
+		);
+		break;
+
+	case 'key-saved':
+		add_filter(
+			'pre_option_undergrowth_openai_api_key',
+			static function () {
+				return 'not-a-real-key-wxyz';
+			}
+		);
+		break;
+
+	case 'last-error':
+		add_filter(
+			'pre_option_undergrowth_last_embed_error',
+			static function () {
+				return array(
+					'time'   => 1767225600,
+					'status' => 429,
+				);
+			}
+		);
+		break;
+
+	case 'suggestions-off':
+		add_filter(
+			'pre_option_undergrowth_suggest_links',
+			static function () {
+				return '0';
+			}
+		);
+		break;
+}
