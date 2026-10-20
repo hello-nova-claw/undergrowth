@@ -43,6 +43,10 @@ function undergrowth_min_cluster_similarity(): float {
 /**
  * Returns the leader of a post's cluster.
  *
+ * The leader's ID labels the cluster until the next pass, even after the
+ * leader itself leaves it, for example by being composted. The other posts
+ * stay together under that label.
+ *
  * @param int $post_id Post ID.
  * @return int The leader's post ID, the post's own when it leads, or 0 when it was not clustered.
  */
