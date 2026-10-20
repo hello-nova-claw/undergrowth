@@ -47,7 +47,11 @@ A file looks like this:
     ## vetoes
     - https://example.com/tax-returns/
 
-The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals or stage change, so edits to it are not kept yet.
+    ## prompts
+    - 2026-11-01: asked (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
+    - 2026-11-03: snoozed (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
+
+The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals or stage change, so edits to it are not kept yet.
 
 = Can visitors open these files? =
 
@@ -80,3 +84,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * New abilities undergrowth/accept-link and undergrowth/veto-link let code on your site accept or veto a suggestion, exactly as the buttons do, for a user who can edit the post. They are never available over the REST API or MCP.
 * Settings > Undergrowth has a second key, for Anthropic, which will let Claude write you an occasional question about your own writing. The page says what is sent: one post's title, sentences quoted from it and, for a question from a reader, that comment's text. Nothing is sent until you save a key, and nothing written by Claude is ever shown to your readers.
 * With an Anthropic key saved, Undergrowth looks once a month for a reader's question in an approved comment and asks Claude to turn it into one question for you. The reader's words are sent as data, never as instructions. A reply is kept only if it is a single question that quotes nobody but you; anything else is thrown away. Questions aren't shown anywhere yet.
+* New Dashboard widget shows the one question waiting for you, with the post it came from. Choose Ask me next month to see it again at the next monthly cycle, or Dismiss for good so that question never comes back. Nothing new appears until the next cycle, and there is never a list to clear. Every question, dismissal and snooze is written in the post's file.
