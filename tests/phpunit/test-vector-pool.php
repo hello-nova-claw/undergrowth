@@ -145,6 +145,24 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 300002, undergrowth_comparable_vectors( $oca ) );
 	}
 
+	public function test_scores_stay_within_single_precision_of_the_stored_vectors() {
+		// None of these values is exact in single precision. The two targets'
+		// scores differ by about 6e-6, while packing moves each by about 1e-10.
+		$source  = array( 0.1, 0.2, 0.3, 0.7 );
+		$closer  = array( 0.1, 0.2, 0.31, 0.7 );
+		$further = array( 0.1, 0.21, 0.3, 0.7 );
+
+		$oca    = $this->plant( 'Oca', $source );
+		$yacon  = $this->plant( 'Yacon', $closer );
+		$mashua = $this->plant( 'Mashua', $further );
+
+		$scores = undergrowth_rank_targets( $oca );
+
+		$this->assertSame( array( $yacon, $mashua ), array_keys( $scores ) );
+		$this->assertEqualsWithDelta( undergrowth_cosine( $source, $closer ), $scores[ $yacon ], 1e-7 );
+		$this->assertEqualsWithDelta( undergrowth_cosine( $source, $further ), $scores[ $mashua ], 1e-7 );
+	}
+
 	public function test_proposals_match_a_ranking_by_the_stored_vectors() {
 		add_filter(
 			'undergrowth_min_link_similarity',
