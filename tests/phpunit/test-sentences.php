@@ -207,6 +207,28 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_block_marker_inside_an_attribute_keeps_the_point_inside_the_block() {
+		$this->assertTrue( undergrowth_inside_others_words( '<!-- wp:html --><div title="<!-- /wp:html -->"></div><p>' ) );
+	}
+
+	public function test_a_failed_scan_counts_everything_as_someone_elses_words() {
+		$jit       = ini_get( 'pcre.jit' );
+		$backtrack = ini_get( 'pcre.backtrack_limit' );
+
+		// Without JIT, a backtrack limit of one makes the scan fail.
+		ini_set( 'pcre.jit', '0' ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restored below.
+		ini_set( 'pcre.backtrack_limit', '1' ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restored below.
+
+		$inside = undergrowth_inside_others_words( '<p>Mine.</p><p>' );
+		$spans  = undergrowth_others_words_spans( '<p>Mine.</p>' );
+
+		ini_set( 'pcre.jit', (string) $jit ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restoring.
+		ini_set( 'pcre.backtrack_limit', (string) $backtrack ); // phpcs:ignore WordPress.PHP.IniSet.Risky -- Restoring.
+
+		$this->assertTrue( $inside );
+		$this->assertSame( array( array( 0, PHP_INT_MAX ) ), $spans );
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
