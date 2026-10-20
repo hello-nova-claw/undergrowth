@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T23:34:06+00:00\n"
+"POT-Creation-Date: 2026-10-20T23:37:53+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -17,6 +17,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php:3
 #: src/abilities.php:26
+#: src/discord-clicks.php:158
 #: src/settings.php:22
 #: src/settings.php:23
 msgid "Undergrowth"
@@ -123,31 +124,37 @@ msgstr ""
 
 #: src/abilities.php:523
 #: src/admin.php:353
+#: src/discord-clicks.php:83
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php:524
 #: src/admin.php:352
+#: src/discord-clicks.php:82
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
 #: src/abilities.php:525
 #: src/admin.php:357
+#: src/discord-clicks.php:84
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php:526
 #: src/admin.php:355
+#: src/discord-clicks.php:85
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php:527
 #: src/admin.php:356
+#: src/discord-clicks.php:86
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php:528
 #: src/admin.php:358
+#: src/discord-clicks.php:87
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
@@ -220,6 +227,7 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php:350
+#: src/discord-clicks.php:81
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
@@ -228,6 +236,7 @@ msgid "Your choice is saved."
 msgstr ""
 
 #: src/admin.php:354
+#: src/discord-clicks.php:80
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
@@ -295,7 +304,7 @@ msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:165
-#: src/discord-messages.php:178
+#: src/discord-messages.php:182
 msgid "Accept"
 msgstr ""
 
@@ -306,7 +315,7 @@ msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:172
-#: src/discord-messages.php:184
+#: src/discord-messages.php:188
 msgid "Veto"
 msgstr ""
 
@@ -348,6 +357,30 @@ msgstr ""
 msgid "Pin"
 msgstr ""
 
+#: src/discord-clicks.php:36
+msgid "Undergrowth does not know this button, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php:44
+msgid "Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php:162
+msgid "Discord user ID"
+msgstr ""
+
+#: src/discord-clicks.php:167
+msgid "Lets this Discord user press Accept and Veto on Undergrowth’s Discord messages, with this account’s permissions. Only administrators can see or change this. In Discord, turn on Developer Mode, then right-click the user and choose Copy User ID. Leave it blank to unlink."
+msgstr ""
+
+#: src/discord-clicks.php:205
+msgid "The Discord user ID should be a long number, so it was not saved."
+msgstr ""
+
+#: src/discord-clicks.php:220
+msgid "That Discord user is already linked to another account, so it was not saved."
+msgstr ""
+
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
 #: src/discord-messages.php:154
 #, php-format
@@ -355,18 +388,18 @@ msgid "Suggested link from “%1$s” to “%2$s”"
 msgstr ""
 
 #. translators: %s: address of the post the link would sit in.
-#: src/discord-messages.php:160
+#: src/discord-messages.php:159
 #, php-format
 msgid "In: %s"
 msgstr ""
 
 #. translators: %s: address of the post the link would point to.
-#: src/discord-messages.php:162
+#: src/discord-messages.php:161
 #, php-format
 msgid "To: %s"
 msgstr ""
 
-#: src/discord-messages.php:190
+#: src/discord-messages.php:194
 msgid "Open in WordPress"
 msgstr ""
 
@@ -430,15 +463,15 @@ msgstr ""
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
-#: src/discord.php:48
+#: src/discord.php:49
 msgid "This request is not signed by Discord."
 msgstr ""
 
-#: src/discord.php:86
+#: src/discord.php:87
 msgid "This interaction could not be read."
 msgstr ""
 
-#: src/discord.php:93
+#: src/discord.php:98
 msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
