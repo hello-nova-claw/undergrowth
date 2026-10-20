@@ -192,6 +192,27 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( 'no_direct_access', get_option( 'undergrowth_last_file_error' )['code'] );
 	}
 
+	public function test_blocked_folder_is_recorded_and_nothing_is_written() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_memory_folder();
+		wp_mkdir_p( undergrowth_memory_root() );
+		file_put_contents( undergrowth_memory_root() . '/posts', 'not a folder' );
+
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertSame( 'no_folder', get_option( 'undergrowth_last_file_error' )['code'] );
+	}
+
+	public function test_failed_write_is_recorded() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_memory( $oca );
+		wp_mkdir_p( undergrowth_memory_path( $oca ) );
+
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertSame( 'write_failed', get_option( 'undergrowth_last_file_error' )['code'] );
+	}
+
 	public function test_uninstall_removes_the_folder() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
