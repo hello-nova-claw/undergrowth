@@ -1,0 +1,24 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Undergrowth preview",
+		"author": "hello-nova-claw",
+		"description": "Undergrowth with the e2e test provider and a few sample posts, opened on Posts > Link suggestions. The test provider counts fixture words instead of calling an API, so no key is needed or asked for."
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"landingPage": "/wp-admin/edit.php?page=undergrowth-links",
+	"login": true,
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "undergrowth/undergrowth.php"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The e2e provider gives posts that share these words similar vectors.\n$posts = array(\n\t'Growing oca' => 'Oca grows here in cold soil. I keep yacon nearby, and the two share a bed.',\n\t'Yacon syrup' => 'Yacon syrup is sweet. It takes most of a day to boil down.',\n\t'The seed ledger' => 'The ledger lists every oca and yacon I planted, and when.',\n\t'Winter jobs' => 'In winter I copy the ledger out again and plan the beds.',\n);\n\nforeach ( $posts as $title => $text ) {\n\twp_insert_post(\n\t\tarray(\n\t\t\t'post_title'   => $title,\n\t\t\t'post_content' => '<!-- wp:paragraph --><p>' . $text . '</p><!-- /wp:paragraph -->',\n\t\t\t'post_status'  => 'publish',\n\t\t\t'post_author'  => 1,\n\t\t)\n\t);\n}\n"
+		}
+	]
+}
