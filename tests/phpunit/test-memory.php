@@ -213,6 +213,24 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( 'write_failed', get_option( 'undergrowth_last_file_error' )['code'] );
 	}
 
+	public function test_failed_protection_file_stops_the_write() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_memory_folder();
+		wp_mkdir_p( undergrowth_memory_root() . '/.htaccess' );
+
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertNull( $this->read( $oca ) );
+		$this->assertSame( 'no_protection', get_option( 'undergrowth_last_file_error' )['code'] );
+	}
+
+	public function test_update_time_is_iso_8601_in_utc() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertMatchesRegularExpression( '/^updated: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/m', (string) $this->read( $oca ) );
+	}
+
 	public function test_uninstall_removes_the_folder() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
