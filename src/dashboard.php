@@ -47,6 +47,9 @@ function undergrowth_render_prompt_widget(): void {
 	if ( 'comment' === $prompt['source'] ) {
 		/* translators: %s: title of the post, linked to its editor. */
 		$from = __( 'Claude wrote this question from a reader’s comment on %s and your own words there. Only you can see it.', 'undergrowth' );
+	} elseif ( 'compost' === $prompt['source'] ) {
+		/* translators: %s: title of the post, linked to its editor. */
+		$from = __( 'Claude wrote this question from %s, a post you moved to compost. Only you can see it.', 'undergrowth' );
 	} else {
 		/* translators: %s: title of the post, linked to its editor. */
 		$from = __( 'Claude wrote this question from your post %s. Only you can see it.', 'undergrowth' );
