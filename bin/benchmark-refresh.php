@@ -162,11 +162,15 @@ $undergrowth_rows = $wpdb->get_results(
 	ARRAY_N
 );
 
-// Scores are rounded so the fingerprint survives float rounding noise.
+// Post IDs depend on what the site held before, so rows name posts by the
+// order they were seeded in. Scores are rounded to survive rounding noise.
+$undergrowth_positions   = array_flip( $undergrowth_ids );
 $undergrowth_fingerprint = md5(
 	(string) wp_json_encode(
 		array_map(
-			static function ( $row ) {
+			static function ( $row ) use ( $undergrowth_positions ) {
+				$row[0] = $undergrowth_positions[ (int) $row[0] ] ?? -1;
+				$row[1] = $undergrowth_positions[ (int) $row[1] ] ?? -1;
 				$row[3] = round( (float) $row[3], 6 );
 				return $row;
 			},
