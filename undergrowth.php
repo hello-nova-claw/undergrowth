@@ -33,6 +33,7 @@ require_once __DIR__ . '/src/stages.php';
 require_once __DIR__ . '/src/abilities.php';
 require_once __DIR__ . '/src/settings.php';
 require_once __DIR__ . '/src/admin.php';
+require_once __DIR__ . '/src/posts-screen.php';
 
 register_activation_hook( __FILE__, 'undergrowth_activate' );
 add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );

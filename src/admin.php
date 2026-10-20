@@ -242,12 +242,52 @@ function undergrowth_render_stages_tab(): void {
 	$table->prepare_items();
 
 	if ( ! $table->has_items() ) {
-		echo '<p>' . esc_html__( 'No published posts yet. Each post gets a growth stage once it is published.', 'undergrowth' ) . '</p>';
+		if ( undergrowth_has_composting_posts() ) {
+			echo '<p>' . esc_html__( 'Every published post is composting, so none has a growth stage to show here. Composting posts are marked on the Posts screen.', 'undergrowth' ) . '</p>';
+		} else {
+			echo '<p>' . esc_html__( 'No published posts yet. Each post gets a growth stage once it is published.', 'undergrowth' ) . '</p>';
+		}
+
 		return;
 	}
 
 	echo '<p>' . esc_html__( 'Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is.', 'undergrowth' ) . '</p>';
+
+	if ( undergrowth_has_composting_posts() ) {
+		echo '<p>' . esc_html__( 'Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden.', 'undergrowth' ) . '</p>';
+	}
+
 	$table->display();
+}
+
+/**
+ * Tells whether any post in the garden's post types is composting.
+ *
+ * @return bool True when at least one published post is composting.
+ */
+function undergrowth_has_composting_posts(): bool {
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return false;
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => $post_types,
+			'post_status'            => 'publish',
+			'has_password'           => false,
+			'meta_key'               => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One row, once per screen.
+			'meta_value'             => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One row, once per screen.
+			'posts_per_page'         => 1,
+			'no_found_rows'          => true,
+			'fields'                 => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		)
+	);
+
+	return array() !== $query->posts;
 }
 
 /**
