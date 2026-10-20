@@ -239,6 +239,34 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
+	public function test_composting_a_leader_leaves_the_rest_of_its_cluster_in_place() {
+		$leader = $this->post_with_vector( array( 1.0, 0.0 ) );
+		$a      = $this->post_with_vector( array( 0.9, 0.1 ) );
+		$b      = $this->post_with_vector( array( 0.8, 0.2 ) );
+		$c      = $this->post_with_vector( array( 0.9, 0.2 ) );
+
+		$this->cluster();
+		undergrowth_set_stage( $leader, 'composting', 'compost' );
+
+		$this->assertSame( array(), undergrowth_cluster_members( $leader ) );
+
+		foreach ( array( $a, $b, $c ) as $post_id ) {
+			$this->assertSame( array( $a, $b, $c ), undergrowth_cluster_members( $post_id ) );
+		}
+	}
+
+	public function test_cluster_that_composting_leaves_with_two_posts_is_no_cluster() {
+		$leader = $this->post_with_vector( array( 1.0, 0.0 ) );
+		$a      = $this->post_with_vector( array( 0.9, 0.1 ) );
+		$b      = $this->post_with_vector( array( 0.8, 0.2 ) );
+
+		$this->cluster();
+		undergrowth_set_stage( $leader, 'composting', 'compost' );
+
+		$this->assertSame( array(), undergrowth_cluster_members( $a ) );
+		$this->assertSame( array(), undergrowth_cluster_members( $b ) );
+	}
+
 	public function test_other_stage_changes_keep_the_cluster() {
 		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
 
