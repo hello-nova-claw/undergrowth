@@ -520,8 +520,17 @@ function undergrowth_compost_post( int $post_id ) {
 	}
 
 	// Composting is outside the pinning rules, so a pin does not survive it.
+	$pinned = undergrowth_is_stage_pinned( $post_id );
 	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
-	undergrowth_set_stage( $post_id, 'composting', 'compost' );
+
+	if ( ! undergrowth_set_stage( $post_id, 'composting', 'compost' ) ) {
+		if ( $pinned ) {
+			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+		}
+
+		return undergrowth_stage_not_saved();
+	}
+
 	undergrowth_forget_post_links( $post_id );
 
 	return true;
@@ -548,7 +557,10 @@ function undergrowth_return_post( int $post_id ) {
 		return new WP_Error( 'undergrowth_not_composting', __( 'This post is not composting.', 'undergrowth' ) );
 	}
 
-	undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'return' );
+	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'return' ) ) {
+		return undergrowth_stage_not_saved();
+	}
+
 	undergrowth_refresh_around( $post_id );
 
 	return true;
