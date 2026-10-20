@@ -154,47 +154,76 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$source = get_the_title( $item['source_id'] );
 		$target = get_the_title( $item['target_id'] );
 
-		return $this->action_form(
+		return $this->action_button(
 			$item,
 			'accept',
 			/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
 			sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 			__( 'Accept', 'undergrowth' ),
 			'button-primary'
-		) . ' ' . $this->action_form(
+		) . ' ' . $this->action_button(
 			$item,
 			'veto',
 			/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
 			sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 			__( 'Veto', 'undergrowth' ),
 			''
-		);
+		) . $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
 	}
 
 	/**
-	 * Builds one action button as its own small form.
+	 * Returns the id of the form behind one action button.
 	 *
-	 * Each button is a separate form so it works without JavaScript and
-	 * carries a nonce for that exact pair of posts.
+	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
+	 * @param string                                                  $action Action name.
+	 * @return string Element id.
+	 */
+	private function form_id( array $item, string $action ): string {
+		return sprintf( 'undergrowth-%1$s-%2$d-%3$d', $action, $item['source_id'], $item['target_id'] );
+	}
+
+	/**
+	 * Builds one action button, tied to its form by the form attribute.
+	 *
+	 * The buttons sit outside their forms so they flow side by side like any
+	 * other pair of core buttons, with no styling of the forms.
 	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
 	 * @param string                                                  $action Action name.
 	 * @param string                                                  $label  Accessible name.
 	 * @param string                                                  $text   Visible text.
 	 * @param string                                                  $style  Extra button class.
-	 * @return string Form HTML.
+	 * @return string Button HTML.
 	 */
-	private function action_form( array $item, string $action, string $label, string $text, string $style ): string {
+	private function action_button( array $item, string $action, string $label, string $text, string $style ): string {
 		return sprintf(
-			'<form method="post" action="%1$s" style="display:inline"><input type="hidden" name="action" value="undergrowth_%2$s" /><input type="hidden" name="source" value="%3$d" /><input type="hidden" name="target" value="%4$d" />%5$s<button type="submit" class="button %6$s" aria-label="%7$s">%8$s</button></form>',
-			esc_url( admin_url( 'admin-post.php' ) ),
-			esc_attr( $action ),
-			$item['source_id'],
-			$item['target_id'],
-			wp_nonce_field( 'undergrowth_' . $action . '_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false ),
+			'<button type="submit" form="%1$s" class="button %2$s" aria-label="%3$s">%4$s</button>',
+			esc_attr( $this->form_id( $item, $action ) ),
 			esc_attr( $style ),
 			esc_attr( $label ),
 			esc_html( $text )
+		);
+	}
+
+	/**
+	 * Builds the form behind one action button, holding only hidden fields.
+	 *
+	 * Each action is a separate form so it works without JavaScript and
+	 * carries a nonce for that exact pair of posts.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
+	 * @param string                                                  $action Action name.
+	 * @return string Form HTML.
+	 */
+	private function action_form( array $item, string $action ): string {
+		return sprintf(
+			'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_%3$s" /><input type="hidden" name="source" value="%4$d" /><input type="hidden" name="target" value="%5$d" />%6$s</form>',
+			esc_url( admin_url( 'admin-post.php' ) ),
+			esc_attr( $this->form_id( $item, $action ) ),
+			esc_attr( $action ),
+			$item['source_id'],
+			$item['target_id'],
+			wp_nonce_field( 'undergrowth_' . $action . '_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false )
 		);
 	}
 }
