@@ -16,6 +16,7 @@ const WIDTHS = [ 1280, 390 ];
 
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
+const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 
 // Notices are reached by the address the screen redirects to after each
 // action, which shows exactly what the user sees without changing any data.
@@ -29,6 +30,16 @@ const NOTICES = [
 	'no_word',
 	'not_proposed',
 	'needs_admin',
+];
+
+// Notices the growth stages tab returns with after a pin or unpin.
+const STAGE_NOTICES = [
+	'pinned',
+	'unpinned',
+	'stage_refused',
+	'stage_composting',
+	'not_pinned',
+	'stage_not_saved',
 ];
 
 const WITHOUT_POSTS = [
@@ -52,6 +63,7 @@ const WITHOUT_POSTS = [
 		fixture: 'no-provider',
 	},
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
+	{ screen: 'stages', state: 'empty', page: STAGES },
 ];
 
 const WITH_POSTS = [
@@ -70,6 +82,16 @@ const WITH_POSTS = [
 			`${ SUGGESTIONS[ 1 ] }&undergrowth_notice=${ notice }${
 				'accepted' === notice ? '&revision=1' : ''
 			}`,
+		],
+		notice: true,
+	} ) ),
+	{ screen: 'stages', state: 'table', page: STAGES },
+	...STAGE_NOTICES.map( ( notice ) => ( {
+		screen: 'stages',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [
+			STAGES[ 0 ],
+			`${ STAGES[ 1 ] }&undergrowth_notice=${ notice }`,
 		],
 		notice: true,
 	} ) ),

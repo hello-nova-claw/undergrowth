@@ -136,6 +136,24 @@ function undergrowth_get_stage( int $post_id ): string {
 }
 
 /**
+ * Names a stage for the screen.
+ *
+ * @param string $stage One of UNDERGROWTH_STAGES.
+ * @return string Translated name.
+ */
+function undergrowth_stage_label( string $stage ): string {
+	$labels = array(
+		'seedling'   => _x( 'Seedling', 'growth stage', 'undergrowth' ),
+		'sprout'     => _x( 'Sprout', 'growth stage', 'undergrowth' ),
+		'budding'    => _x( 'Budding', 'growth stage', 'undergrowth' ),
+		'evergreen'  => _x( 'Evergreen', 'growth stage', 'undergrowth' ),
+		'composting' => _x( 'Composting', 'growth stage', 'undergrowth' ),
+	);
+
+	return $labels[ $stage ] ?? $labels['seedling'];
+}
+
+/**
  * Tells whether the author has pinned a post's stage.
  *
  * @param int $post_id Post ID.
@@ -459,7 +477,7 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 
 			if ( undergrowth_is_stage_pinned( $post_id ) ) {
-				return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
+				return new WP_Error( 'undergrowth_pin_left', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
 			}
 		}
 
@@ -499,7 +517,7 @@ function undergrowth_unpin_stage( int $post_id ) {
 		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
 
 		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
-			return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+			return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
 		}
 
 		return undergrowth_stage_not_saved();
@@ -544,7 +562,7 @@ function undergrowth_compost_post( int $post_id ) {
 			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
 
 			if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
-				return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+				return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
 			}
 		}
 
