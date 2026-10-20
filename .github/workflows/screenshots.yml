@@ -97,6 +97,7 @@ jobs:
           AFTER: ${{ steps.after.outcome }}
           BEFORE: ${{ steps.before.outcome }}
         run: |
+          mkdir -p "$SHOTS"
           node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
             "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA/pr-${PR}" > "${SHOTS}/comment.md"
 
