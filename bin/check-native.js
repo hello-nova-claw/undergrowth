@@ -136,8 +136,9 @@ function valueEnd( markup, start ) {
  */
 function findInlineStyles( markup ) {
 	const found = [];
-	// A name with an optional =, or a JSX spread such as { ...props }.
-	const attribute = /\s*(?:(\{)|([^\s=>/"'{}]+)\s*(=\s*)?)/y;
+	// Embedded PHP, a JSX spread such as { ...props }, or a name with an
+	// optional =.
+	const attribute = /\s*(?:(<\?)|(\{)|([^\s=<>/"'{}]+)\s*(=\s*)?)/y;
 
 	for ( const tag of markup.matchAll( /<[a-z][\w.:-]*/gi ) ) {
 		attribute.lastIndex = tag.index + tag[ 0 ].length;
@@ -147,7 +148,13 @@ function findInlineStyles( markup ) {
 			match;
 			match = attribute.exec( markup )
 		) {
-			const [ whole, spread, name, equals ] = match;
+			const [ whole, php, spread, name, equals ] = match;
+
+			if ( php ) {
+				const close = markup.indexOf( '?>', attribute.lastIndex );
+				attribute.lastIndex = close === -1 ? markup.length : close + 2;
+				continue;
+			}
 
 			if ( spread ) {
 				attribute.lastIndex = valueEnd(
