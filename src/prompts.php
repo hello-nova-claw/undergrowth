@@ -29,7 +29,7 @@ add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
 add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
-add_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_unschedule_prompts' );
+register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_unschedule_prompts' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_comment_prompt_sources' );
 add_filter( 'is_protected_meta', 'undergrowth_protect_prompt_meta', 10, 2 );
 add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 2 );
