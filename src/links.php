@@ -404,15 +404,22 @@ function undergrowth_open_target_ids( array $post_ids ): array {
 		}
 	}
 
-	// One query for every stage in the chunk, rather than one per post.
-	update_meta_cache( 'post', $indexable );
+	$open = array_fill_keys( $indexable, true );
 
-	$open = array();
+	if ( array() === $indexable ) {
+		return $open;
+	}
 
-	foreach ( $indexable as $id ) {
-		if ( 'composting' !== undergrowth_get_stage( $id ) ) {
-			$open[ $id ] = true;
-		}
+	// One query for the stage key alone. Priming every meta key would hold
+	// unrelated, possibly large, meta for the rest of the refresh.
+	$placeholders = implode( ', ', array_fill( 0, count( $indexable ), '%d' ) );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Priming every meta key is what this avoids; there is one placeholder for each ID.
+	$composting = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s AND post_id IN (' . $placeholders . ')', $wpdb->postmeta, 'undergrowth_stage', 'composting', ...$indexable ) );
+	$wpdb->flush();
+
+	foreach ( array_map( 'intval', $composting ) as $id ) {
+		unset( $open[ $id ] );
 	}
 
 	return $open;
