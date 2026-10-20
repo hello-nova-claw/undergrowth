@@ -235,33 +235,6 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 }
 
 /**
- * Tells whether a point in post content falls inside a quote or a Custom HTML block.
- *
- * A quote holds someone else's words and a Custom HTML block holds markup
- * the author wrote by hand, so neither is the author's paragraph to change.
- *
- * @param string $before Content up to the point.
- * @return bool True when the point is inside one of those.
- */
-function undergrowth_inside_others_words( string $before ): bool {
-	// Tags written inside an ordinary comment are not tags. Block markers are
-	// comments too, so they are kept for the block check below.
-	$tags = (string) preg_replace( '#<!--(?!\s+/?wp:).*?-->#s', '', $before );
-
-	if ( preg_match_all( '#<blockquote\b#i', $tags ) > preg_match_all( '#</blockquote\s*>#i', $tags ) ) {
-		return true;
-	}
-
-	foreach ( array( 'html', 'quote', 'pullquote' ) as $block ) {
-		if ( preg_match_all( '#<!--\s+wp:' . $block . '[\s/]#', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-/**
  * Reduces HTML to the text a reader sees, with whitespace collapsed.
  *
  * Unlike wp_strip_all_tags(), nothing is trimmed, so the text before a point
