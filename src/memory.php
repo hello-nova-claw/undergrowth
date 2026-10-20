@@ -190,13 +190,16 @@ function undergrowth_memory_target( int $target_id ): string {
 /**
  * Writes a post's file, or removes it when the post is not in the index.
  *
+ * A post without a vector has nothing else to record, unless Undergrowth
+ * has asked the author about it, which needs no embedding provider.
+ *
  * @param int $post_id Post ID.
  * @return bool True when the file was written.
  */
 function undergrowth_write_memory( int $post_id ): bool {
 	$post = get_post( $post_id );
 
-	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || null === undergrowth_get_vector( $post_id ) ) {
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || ( null === undergrowth_get_vector( $post_id ) && array() === undergrowth_prompt_log( $post_id ) ) ) {
 		undergrowth_delete_memory( $post_id );
 		return false;
 	}
