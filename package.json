@@ -13,6 +13,8 @@
 		"env:stop": "wp-env stop",
 		"playground": "wp-playground-cli server --mount=.:/wordpress/wp-content/plugins/undergrowth --mount=./tests/e2e/mu-plugins:/wordpress/wp-content/mu-plugins --blueprint=tests/e2e/playground/preview.json",
 		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style --allow-empty-input",
+		"check:native": "node bin/check-native.js",
 		"test:js": "wp-scripts test-unit-jest --passWithNoTests",
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit",
 		"test:php:multisite": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit -c phpunit-multisite.xml.dist",
@@ -24,6 +26,7 @@
 	},
 	"devDependencies": {
 		"@axe-core/playwright": "^4.14.0",
+		"@jest/globals": "^30.5.2",
 		"@playwright/test": "^1.64.1",
 		"@wordpress/e2e-test-utils-playwright": "^3.0.0",
 		"@wordpress/env": "^11.17.0",
