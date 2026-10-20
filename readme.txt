@@ -57,6 +57,20 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 
     location ~ ^/wp-content/uploads/(sites/[0-9]+/)?undergrowth/ { deny all; }
 
+= Setting up Discord =
+
+Discord is optional. Posts > Link suggestions does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
+
+1. In the Discord developer portal, create a new application just for Undergrowth. Do not reuse an existing bot: once an application has an Interactions Endpoint URL, Discord sends its interactions to that address instead of over the gateway, which can stop an existing bot from working.
+2. Copy the Application ID and the Public Key from its General Information page into Settings > Undergrowth.
+3. On the Bot page, reset the token and paste it into Bot token. Undergrowth never shows it again.
+4. Invite the bot to your server with the scope `bot` and the permissions View Channel and Send Messages, and give it access to a private channel. Anyone who can read the channel sees your suggestions.
+5. In Discord, turn on Developer Mode (User Settings > Advanced), right-click the channel, choose Copy Channel ID, and paste it into Channel ID for link suggestions. Save the settings.
+6. Copy the Interactions endpoint URL shown on the settings page into Interactions Endpoint URL on the application's General Information page, and save it there. Discord checks the address before it accepts it.
+7. On Users > Profile, an administrator enters the Discord user ID of each person who may press the buttons. A click works only for a linked Discord user whose WordPress account can edit the post; anyone else gets a private refusal and nothing changes.
+
+Each message sends Discord the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Only suggestions made after you set the channel are posted.
+
 == Changelog ==
 
 = Unreleased =
@@ -88,3 +102,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Settings > Undergrowth has an optional Discord section for an application ID, public key, bot token and the channel for link suggestions. It says what will be sent to Discord (post titles, the suggested sentence, which is your own words, and links) and shows the interactions endpoint URL to paste into the Discord developer portal. The token is never shown again once saved. Nothing is sent to Discord yet.
 * New REST endpoint, undergrowth/v1/discord, for Discord's interactions. It answers only requests Discord signed with your application's public key in the last five minutes, and refuses everything while no key is saved. It answers Discord's check when you save the address in the developer portal, and nothing else yet.
 * With Discord set up, each new link suggestion is posted to your channel with Accept and Veto buttons, once. The message holds both post titles, the suggested sentence and links to both posts; nobody can be mentioned from it. Suggestions made before you set the channel are not posted. A failed message is shown on the settings page and tried again later. The buttons do nothing yet.
+* Accept and Veto on a Discord message now do what the buttons on Posts > Link suggestions do, and the message then shows what happened. Only a Discord user an administrator has linked, on the user's profile, to an account that can edit the post may use them; anyone else gets a private refusal. See Setting up Discord in the FAQ.
