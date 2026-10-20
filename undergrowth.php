@@ -24,6 +24,7 @@ require_once __DIR__ . '/src/vectors.php';
 require_once __DIR__ . '/src/embed.php';
 require_once __DIR__ . '/src/openai.php';
 require_once __DIR__ . '/src/anthropic.php';
+require_once __DIR__ . '/src/prompts.php';
 require_once __DIR__ . '/src/indexer.php';
 require_once __DIR__ . '/src/sentences.php';
 require_once __DIR__ . '/src/links.php';
