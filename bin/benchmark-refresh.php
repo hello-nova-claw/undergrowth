@@ -63,6 +63,12 @@ if ( ! function_exists( 'memory_reset_peak_usage' ) ) {
 	exit( 1 );
 }
 
+// With suggestions off the refresh returns at once and would measure nothing.
+if ( ! undergrowth_suggestions_enabled() ) {
+	fwrite( STDERR, 'Link suggestions are switched off, so there is no refresh to measure.' . PHP_EOL );
+	exit( 1 );
+}
+
 global $wpdb;
 
 $undergrowth_posts      = max( 2, (int) $args[0] );
