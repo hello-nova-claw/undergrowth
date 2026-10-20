@@ -107,7 +107,7 @@ function undergrowth_benchmark_vocabulary( int $size ): array {
  */
 function undergrowth_benchmark_zipf_word( array $vocabulary ): string {
 	$cumulative = $vocabulary['cumulative'];
-	$target     = mt_rand() / mt_getrandmax() * end( $cumulative );
+	$target     = mt_rand() / mt_getrandmax() * $cumulative[ count( $cumulative ) - 1 ];
 	$low        = 0;
 	$high       = count( $cumulative ) - 1;
 
