@@ -135,8 +135,8 @@ function undergrowth_memory_stage( int $post_id ): array {
 	$lines = array( 'composting' !== $stage && undergrowth_is_stage_pinned( $post_id ) ? $stage . ' (pinned)' : $stage );
 
 	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
-		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ] ?? $change['reason'];
-		$lines[] = '- ' . gmdate( 'Y-m-d', $change['time'] ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
+		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ];
+		$lines[] = '- ' . wp_date( 'Y-m-d', $change['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
 	}
 
 	return $lines;
