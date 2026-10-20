@@ -144,7 +144,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$location = $this->submit( 'undergrowth_handle_veto' );
 
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
-		$this->assertStringContainsString( 'page=undergrowth-links', $location );
+		$this->assertStringStartsWith( admin_url( 'edit.php?page=undergrowth-links' ), $location );
 		$this->assertStringContainsString( 'undergrowth_notice=vetoed', $location );
 	}
 
