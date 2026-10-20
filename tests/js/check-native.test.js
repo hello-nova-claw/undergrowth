@@ -52,6 +52,12 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 1, 2 ] );
 	} );
 
+	it( 'reads past braces inside strings in a JSX expression', () => {
+		expect(
+			findInlineStyles( '<div title={ "}" } style="color:red">' )
+		).toEqual( [ 1 ] );
+	} );
+
 	it( 'ignores style text inside another attribute', () => {
 		expect(
 			findInlineStyles(
@@ -79,6 +85,12 @@ describe( 'findHexColours', () => {
 		const css = '.a {\n\tcolor: #fff;\n\tborder: 1px solid #2271b1aa;\n}';
 
 		expect( findHexColours( css ) ).toEqual( [ 2, 3 ] );
+	} );
+
+	it( 'finds a hex colour on the line after its property', () => {
+		expect( findHexColours( '.a {\n\tcolor:\n\t\t#fff;\n}' ) ).toEqual( [
+			3,
+		] );
 	} );
 
 	it( 'ignores id selectors and custom properties', () => {
