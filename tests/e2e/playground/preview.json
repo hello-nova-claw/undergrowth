@@ -3,7 +3,7 @@
 	"meta": {
 		"title": "Undergrowth preview",
 		"author": "hello-nova-claw",
-		"description": "Undergrowth with the e2e test provider and a few sample posts, opened on Posts > Link suggestions. The test provider counts fixture words instead of calling an API, so no key is needed or asked for."
+		"description": "Undergrowth with the e2e test provider and a few sample posts, opened on Posts > Link suggestions. The test provider counts fixture words instead of calling an API, and the test site answers for Claude, so no key is needed or asked for. The Dashboard shows one prompt, from a sample reader's question."
 	},
 	"preferredVersions": {
 		"php": "8.3",
@@ -18,7 +18,7 @@
 		},
 		{
 			"step": "runPHP",
-			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The e2e provider gives posts that share these words similar vectors.\n$posts = array(\n\t'Growing oca' => 'Oca grows here in cold soil. I keep yacon nearby, and the two share a bed.',\n\t'Yacon syrup' => 'Yacon syrup is sweet. It takes most of a day to boil down.',\n\t'The seed ledger' => 'The ledger lists every oca and yacon I planted, and when.',\n\t'Winter jobs' => 'In winter I copy the ledger out again and plan the beds.',\n);\n\nforeach ( $posts as $title => $text ) {\n\twp_insert_post(\n\t\tarray(\n\t\t\t'post_title'   => $title,\n\t\t\t'post_content' => '<!-- wp:paragraph --><p>' . $text . '</p><!-- /wp:paragraph -->',\n\t\t\t'post_status'  => 'publish',\n\t\t\t'post_author'  => 1,\n\t\t)\n\t);\n}\n"
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The e2e provider gives posts that share these words similar vectors.\n$posts = array(\n\t'Growing oca' => 'Oca grows here in cold soil. I keep yacon nearby, and the two share a bed.',\n\t'Yacon syrup' => 'Yacon syrup is sweet. It takes most of a day to boil down.',\n\t'The seed ledger' => 'The ledger lists every oca and yacon I planted, and when.',\n\t'Winter jobs' => 'In winter I copy the ledger out again and plan the beds.',\n);\n\n$ids = array();\n\nforeach ( $posts as $title => $text ) {\n\t$ids[] = wp_insert_post(\n\t\tarray(\n\t\t\t'post_title'   => $title,\n\t\t\t'post_content' => '<!-- wp:paragraph --><p>' . $text . '</p><!-- /wp:paragraph -->',\n\t\t\t'post_status'  => 'publish',\n\t\t\t'post_author'  => 1,\n\t\t)\n\t);\n}\n\n// A reader's question, and a made-up key, so the Dashboard has a prompt.\n// The test site answers every request to Claude itself.\nwp_insert_comment(\n\tarray(\n\t\t'comment_post_ID'      => $ids[0],\n\t\t'comment_content'      => 'How do you keep oca through the winter?',\n\t\t'comment_approved'     => 1,\n\t\t'comment_author'       => 'A reader',\n\t\t'comment_author_email' => 'reader@example.com',\n\t)\n);\nupdate_option( 'undergrowth_anthropic_api_key', 'not-a-real-anthropic-key' );\nundergrowth_write_prompt();\n"
 		}
 	]
 }
