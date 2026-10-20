@@ -1,6 +1,7 @@
 <?php
 /**
- * Test-only provider for end-to-end runs: deterministic vectors, embedded at once.
+ * Test-only provider for end-to-end runs: deterministic vectors, embedded at
+ * once, and a fixed reply wherever Claude would be asked.
  *
  * Loaded into the wp-env tests site only, never shipped.
  *
@@ -51,6 +52,40 @@ add_action(
 		}
 	},
 	20
+);
+
+// Claude is never called from a test site. Every request to the Messages API
+// gets the same question back, which quotes nobody, so it passes the check.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		if ( 0 !== strpos( (string) $url, 'https://api.anthropic.com/' ) ) {
+			return $preempt;
+		}
+
+		return array(
+			'headers'  => array(),
+			'body'     => (string) wp_json_encode(
+				array(
+					'content'     => array(
+						array(
+							'type' => 'text',
+							'text' => 'A reader asked how you keep oca through the winter. What do you actually do?',
+						),
+					),
+					'stop_reason' => 'end_turn',
+				)
+			),
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+			'filename' => null,
+		);
+	},
+	10,
+	3
 );
 
 /**
