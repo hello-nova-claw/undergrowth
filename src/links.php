@@ -70,7 +70,10 @@ function undergrowth_cosine( array $a, array $b ): float {
  * Packs a vector into four bytes a dimension.
  *
  * Embedding models produce single-precision floats, so packing keeps what
- * they sent in about a tenth of the memory a PHP array of floats takes.
+ * they sent in about a tenth of the memory a PHP array of floats takes. A
+ * provider sending doubles loses precision beyond about seven digits, which
+ * moves a score by around 1e-7 at most. Two targets closer than that may
+ * swap places. Packing doubles instead would take twice the memory.
  *
  * @param float[] $vector The vector.
  * @return string Packed floats, or an empty string when a value is too large
