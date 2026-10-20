@@ -124,9 +124,11 @@ function undergrowth_maybe_upgrade_schema(): void {
 function undergrowth_uninstall_site(): void {
 	global $wpdb;
 
-	// The API key goes first, so a failure further down never leaves it behind.
+	// The API keys go first, so a failure further down never leaves one behind.
 	delete_option( 'undergrowth_openai_api_key' );
+	delete_option( 'undergrowth_anthropic_api_key' );
 	delete_option( 'undergrowth_last_embed_error' );
+	delete_option( 'undergrowth_last_prompt_error' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
