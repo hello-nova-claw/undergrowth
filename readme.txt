@@ -27,7 +27,7 @@ A file looks like this:
     # Storing oca
     url: https://example.com/storing-oca/
     slug: storing-oca
-    updated: 2026-10-20T09:00:00+00:00
+    updated: 2026-11-01T09:00:00+00:00
 
     ## stage
     sprout
