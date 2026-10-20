@@ -100,6 +100,21 @@ class Test_Resurfacing extends WP_UnitTestCase {
 		$this->assertSame( 1, did_action( 'undergrowth_resurfacing_logged' ) );
 	}
 
+	public function test_event_that_cannot_be_stored_is_not_announced() {
+		$oca = $this->composted();
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_resurfacing_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+
+		$this->assertFalse( undergrowth_log_resurfacing( $oca, 'shown' ) );
+		$this->assertSame( 0, did_action( 'undergrowth_resurfacing_logged' ) );
+	}
+
 	public function test_unknown_event_is_refused() {
 		$oca = $this->composted();
 
