@@ -146,3 +146,44 @@ function undergrowth_set_stage( int $post_id, string $stage ): bool {
 
 	return undergrowth_get_stage( $post_id ) === $stage;
 }
+
+/**
+ * Measures a post's stage from its accepted links.
+ *
+ * Only links accepted through Undergrowth count, in either direction, and
+ * only while the post at the other end is still in the index. Budding and
+ * Evergreen need clusters (#41), which do not exist yet, so no post is in a
+ * cluster and the measure stops at Sprout. Composting is never measured;
+ * only the author chooses it.
+ *
+ * @param int $post_id Post ID.
+ * @return string 'seedling' or 'sprout'.
+ */
+function undergrowth_measure_stage( int $post_id ): string {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change on every accept.
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			'SELECT source_id, target_id FROM %i WHERE state = %s AND ( source_id = %d OR target_id = %d )',
+			undergrowth_links_table(),
+			'accepted',
+			$post_id,
+			$post_id
+		),
+		ARRAY_A
+	);
+
+	$links = 0;
+
+	foreach ( (array) $rows as $row ) {
+		$other_id = (int) $row['source_id'] === $post_id ? (int) $row['target_id'] : (int) $row['source_id'];
+		$other    = get_post( $other_id );
+
+		if ( $other instanceof WP_Post && undergrowth_is_indexable( $other ) ) {
+			++$links;
+		}
+	}
+
+	return $links >= 2 ? 'sprout' : 'seedling';
+}
