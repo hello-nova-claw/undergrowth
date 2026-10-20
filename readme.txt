@@ -74,3 +74,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Settings > Undergrowth now fits a phone screen when a translation has very long words.
 * Suggestions no longer pick a sentence inside a quote, a pullquote or a Custom HTML block, since those can never be linked. The suggestion uses the next best sentence instead.
 * New Growth stages tab on Posts > Link suggestions lists each post Undergrowth reads (published and not password-protected) with its stage. Pin a stage to keep it as it is, or unpin it to have it measured again. A pinned stage shows a pin marker.
+* The Growth stages tab lists nothing when the undergrowth_post_types filter leaves no post type to read, instead of falling back to ordinary posts.
