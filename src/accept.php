@@ -188,11 +188,27 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 				continue;
 			}
 
-			if ( $depth > 0 || ! preg_match_all( $pattern, $text, $matches, PREG_OFFSET_CAPTURE ) ) {
+			if ( $depth > 0 ) {
 				continue;
 			}
 
-			foreach ( $matches[0] as $match ) {
+			// A word that is also a character reference's name, as in &pound;,
+			// must never be linked inside the reference.
+			$matches = array();
+
+			foreach ( (array) preg_split( '/(&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/i', $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE ) as $piece ) {
+				list( $piece_text, $piece_at ) = $piece;
+
+				if ( '&' === substr( $piece_text, 0, 1 ) || ! preg_match_all( $pattern, $piece_text, $found, PREG_OFFSET_CAPTURE ) ) {
+					continue;
+				}
+
+				foreach ( $found[0] as $hit ) {
+					$matches[] = array( $hit[0], $piece_at + $hit[1] );
+				}
+			}
+
+			foreach ( $matches as $match ) {
 				list( $word, $at ) = $match;
 
 				$before = ltrim( undergrowth_plain_text( substr( $inner, 0, $offset + $at ) ) );
