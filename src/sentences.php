@@ -123,7 +123,8 @@ function undergrowth_inside_others_words( string $before ): bool {
 	}
 
 	foreach ( array( 'html', 'quote', 'pullquote' ) as $block ) {
-		if ( preg_match_all( '#<!--\s+wp:' . $block . '[\s/]#', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
+		// A self-closing marker such as <!-- wp:html /--> opens nothing.
+		if ( preg_match_all( '#<!--\s+wp:' . $block . '(?:\s(?:(?!-->).)*)?(?<!/)-->#s', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
 			return true;
 		}
 	}
