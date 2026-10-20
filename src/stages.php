@@ -118,7 +118,7 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
  * @return bool True for the stage keys, otherwise unchanged.
  */
 function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log' ), true ) ? true : $is_protected;
+	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log', 'undergrowth_resurfacing_log' ), true ) ? true : $is_protected;
 }
 
 /**
@@ -245,7 +245,6 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 function undergrowth_stage_log( int $post_id ): array {
 	$entries = array();
 
-	// Rows come back in the order they were added.
 	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
 		if (
 			! is_array( $entry )
@@ -268,20 +267,32 @@ function undergrowth_stage_log( int $post_id ): array {
 		);
 	}
 
+	// An import can add older rows after newer ones, so rows are put in time
+	// order. The index keeps rows from the same second in the order they were
+	// added, since usort() is not stable before PHP 8.
+	$order = array_keys( $entries );
+	array_multisort( array_column( $entries, 'time' ), SORT_ASC, SORT_NUMERIC, $order, SORT_ASC, SORT_NUMERIC, $entries );
+
 	return $entries;
 }
 
 /**
- * Measures a post's stage from its accepted links.
+ * Measures a post's stage from its accepted links and its cluster.
  *
  * Only links accepted through Undergrowth count, in either direction, and
- * only while the post at the other end is still in the index. Budding and
- * Evergreen need clusters (#41), which do not exist yet, so no post is in a
- * cluster and the measure stops at Sprout. Composting is never measured;
- * only the author chooses it.
+ * only while the post at the other end is still in the index. A post in a
+ * cluster of three or more with links both in and out is Budding. A post with
+ * two or more links that is not Budding is a Sprout, including one in a
+ * cluster whose links all run one way, which the handover's rules leave
+ * between Sprout and Budding.
+ *
+ * Evergreen is never measured yet. Its rule also needs a hub linking to the
+ * post, and hubs come only from fusion in reader mode, so until hubs exist
+ * the author can pin Evergreen but the cycle never reaches it. Composting is
+ * never measured; only the author chooses it.
  *
  * @param int $post_id Post ID.
- * @return string 'seedling' or 'sprout'.
+ * @return string 'seedling', 'sprout' or 'budding'.
  */
 function undergrowth_measure_stage( int $post_id ): string {
 	global $wpdb;
@@ -298,18 +309,29 @@ function undergrowth_measure_stage( int $post_id ): string {
 		ARRAY_A
 	);
 
-	$links = 0;
+	$out = 0;
+	$in  = 0;
 
 	foreach ( (array) $rows as $row ) {
-		$other_id = (int) $row['source_id'] === $post_id ? (int) $row['target_id'] : (int) $row['source_id'];
-		$other    = get_post( $other_id );
+		$outgoing = (int) $row['source_id'] === $post_id;
+		$other    = get_post( $outgoing ? (int) $row['target_id'] : (int) $row['source_id'] );
 
-		if ( $other instanceof WP_Post && undergrowth_is_indexable( $other ) ) {
-			++$links;
+		if ( ! $other instanceof WP_Post || ! undergrowth_is_indexable( $other ) ) {
+			continue;
+		}
+
+		if ( $outgoing ) {
+			++$out;
+		} else {
+			++$in;
 		}
 	}
 
-	return $links >= 2 ? 'sprout' : 'seedling';
+	if ( $out > 0 && $in > 0 && array() !== undergrowth_cluster_members( $post_id ) ) {
+		return 'budding';
+	}
+
+	return $out + $in >= 2 ? 'sprout' : 'seedling';
 }
 
 /**

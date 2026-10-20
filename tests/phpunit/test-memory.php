@@ -100,7 +100,7 @@ class Test_Memory extends WP_UnitTestCase {
 
 		preg_match_all( '/^## (.+)$/m', (string) $this->read( $oca ), $headings );
 
-		$this->assertSame( array( 'stage', 'has', 'lacks', 'scent', 'proposed links', 'accepted links', 'vetoes', 'prompts' ), $headings[1] );
+		$this->assertSame( array( 'stage', 'resurfacing', 'has', 'lacks', 'scent', 'proposed links', 'accepted links', 'vetoes', 'prompts' ), $headings[1] );
 	}
 
 	public function test_stage_section_names_a_seedling_with_no_changes() {
@@ -414,5 +414,322 @@ class Test_Memory extends WP_UnitTestCase {
 		undergrowth_uninstall_site();
 
 		$this->assertDirectoryDoesNotExist( $root );
+	}
+
+	public function test_reading_a_file_returns_its_stage_and_history() {
+		$file = implode(
+			"\n",
+			array(
+				'# Oca',
+				'slug: oca',
+				'',
+				'## stage',
+				'composting',
+				'- 2024-03-01: seedling -> sprout (monthly cycle)',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'',
+				'## resurfacing',
+				'- 2026-04-05: signal shown',
+				'- 2026-04-06: signal dismissed by the author',
+				'',
+				'## has',
+				'',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'stage'       => 'composting',
+				'pinned'      => false,
+				'changes'     => array(
+					array(
+						'time'   => gmmktime( 0, 0, 0, 3, 1, 2024 ),
+						'from'   => 'seedling',
+						'to'     => 'sprout',
+						'reason' => 'cycle',
+					),
+					array(
+						'time'   => gmmktime( 0, 0, 0, 11, 2, 2025 ),
+						'from'   => 'sprout',
+						'to'     => 'composting',
+						'reason' => 'compost',
+					),
+				),
+				'resurfacing' => array(
+					array(
+						'time'  => gmmktime( 0, 0, 0, 4, 5, 2026 ),
+						'event' => 'shown',
+					),
+					array(
+						'time'  => gmmktime( 0, 0, 0, 4, 6, 2026 ),
+						'event' => 'dismissed',
+					),
+				),
+			),
+			undergrowth_read_memory( $file )
+		);
+	}
+
+	public function test_reading_a_file_reads_the_pin_marker() {
+		$read = undergrowth_read_memory( "## stage\nevergreen (pinned)\n" );
+
+		$this->assertSame( 'evergreen', $read['stage'] );
+		$this->assertTrue( $read['pinned'] );
+	}
+
+	public function test_reading_a_file_skips_lines_the_owner_added_or_broke() {
+		$file = implode(
+			"\n",
+			array(
+				'## stage',
+				'  composting  ',
+				'Resting this one for a while.',
+				'- 2025-02-30: sprout -> composting (composted by the author)',
+				'- 2025-11-02: sprout -> wilted (composted by the author)',
+				'- 2025-11-02: sprout -> composting (because I said so)',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'## resurfacing',
+				'- 2026-04-05: signal snoozed',
+				'- someday: signal shown',
+			)
+		);
+
+		$read = undergrowth_read_memory( $file );
+
+		$this->assertSame( 'composting', $read['stage'] );
+		$this->assertSame( array( 'compost' ), wp_list_pluck( $read['changes'], 'reason' ) );
+		$this->assertSame( array(), $read['resurfacing'] );
+	}
+
+	public function test_reading_a_file_with_no_stage_returns_null() {
+		$this->assertNull( undergrowth_read_memory( "# Oca\n\n## has\n" )['stage'] );
+		$this->assertNull( undergrowth_read_memory( "## stage\nwilting\n" )['stage'] );
+	}
+
+	public function test_composted_file_imports_onto_another_post_still_composted() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->plant( 'Mashua', array( 0.8, 0.3, 0.0 ) );
+		undergrowth_compost_post( $oca );
+		undergrowth_log_resurfacing( $oca, 'shown' );
+		undergrowth_log_resurfacing( $oca, 'dismissed' );
+		$file = (string) $this->read( $oca );
+
+		$this->assertNotEmpty( $this->proposed( $yacon ) );
+
+		$this->assertTrue( undergrowth_import_memory( $yacon, $file ) );
+
+		$this->assertSame( 'composting', undergrowth_get_stage( $yacon ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $yacon ) );
+		$this->assertSame( array( 'compost' ), wp_list_pluck( undergrowth_stage_log( $yacon ), 'reason' ) );
+		$this->assertSame( array( 'shown', 'dismissed' ), wp_list_pluck( undergrowth_resurfacing_log( $yacon ), 'event' ) );
+		$this->assertSame( array(), $this->proposed( $yacon ) );
+		$this->assertSame( $this->section( $file, 'stage' ), $this->section( (string) $this->read( $yacon ), 'stage' ) );
+		$this->assertSame( $this->section( $file, 'resurfacing' ), $this->section( (string) $this->read( $yacon ), 'resurfacing' ) );
+	}
+
+	public function test_importing_the_same_file_twice_adds_no_duplicate_history() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_compost_post( $oca );
+		undergrowth_log_resurfacing( $oca, 'shown' );
+		$file = (string) $this->read( $oca );
+
+		undergrowth_import_memory( $oca, $file );
+		undergrowth_import_memory( $oca, $file );
+
+		$this->assertCount( 1, undergrowth_stage_log( $oca ) );
+		$this->assertCount( 1, undergrowth_resurfacing_log( $oca ) );
+	}
+
+	public function test_import_keeps_identical_lines_from_the_same_day() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$file = implode(
+			"\n",
+			array(
+				'## stage',
+				'composting',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'- 2025-11-02: composting -> sprout (returned to the garden by the author)',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'## resurfacing',
+				'- 2026-04-05: signal shown',
+				'- 2026-04-05: signal shown',
+			)
+		);
+
+		undergrowth_import_memory( $oca, $file );
+		undergrowth_import_memory( $oca, $file );
+
+		$this->assertSame( array( 'compost', 'return', 'compost' ), wp_list_pluck( undergrowth_stage_log( $oca ), 'reason' ) );
+		$this->assertSame( array( 'shown', 'shown' ), wp_list_pluck( undergrowth_resurfacing_log( $oca ), 'event' ) );
+	}
+
+	public function test_import_never_pins_a_composting_post() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+
+		$this->assertTrue( undergrowth_import_memory( $oca, "## stage\ncomposting (pinned)\n" ) );
+
+		$this->assertSame( 'composting', undergrowth_get_stage( $oca ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_import_that_cannot_store_the_pin_is_refused() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$refuse = static function ( $check, $object_id, $meta_key ) {
+			return 'undergrowth_stage_pinned' === $meta_key ? false : $check;
+		};
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		add_filter( 'update_post_metadata', $refuse, 10, 3 );
+
+		$result = undergrowth_import_memory( $oca, "## stage\nevergreen (pinned)\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $oca ) );
+	}
+
+	public function test_import_restores_a_pin() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$this->assertTrue( undergrowth_import_memory( $oca, "## stage\nevergreen (pinned)\n- 2025-01-01: seedling -> evergreen (pinned by the author)\n" ) );
+
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $oca ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_import_of_a_returned_post_brings_a_composting_post_back() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_compost_post( $yacon );
+
+		$this->assertTrue( undergrowth_import_memory( $yacon, "## stage\nsprout\n" ) );
+
+		$this->assertSame( 'sprout', undergrowth_get_stage( $yacon ) );
+		$this->assertContains( $oca, $this->proposed( $yacon ) );
+	}
+
+	public function test_import_of_a_file_with_no_stage_is_refused() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$result = undergrowth_import_memory( $oca, "# Oca\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_no_stage', $result->get_error_code() );
+		$this->assertFalse( metadata_exists( 'post', $oca, 'undergrowth_stage' ) );
+	}
+
+	public function test_import_that_cannot_store_the_stage_changes_nothing() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$refuse = static function ( $check, $object_id, $meta_key ) {
+			return 'undergrowth_stage' === $meta_key ? false : $check;
+		};
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		add_filter( 'update_post_metadata', $refuse, 10, 3 );
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n- 2025-11-02: seedling -> composting (composted by the author)\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( array(), undergrowth_stage_log( $oca ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_reading_a_file_skips_dates_before_1970() {
+		$read = undergrowth_read_memory( "## stage\ncomposting\n- 1969-12-31: seedling -> composting (composted by the author)\n## resurfacing\n- 1970-01-01: signal shown\n" );
+
+		$this->assertSame( array(), $read['changes'] );
+		$this->assertSame( array(), $read['resurfacing'] );
+	}
+
+	public function test_import_of_a_line_dated_before_1970_adds_no_row() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$file = "## stage\ncomposting\n- 1969-12-31: seedling -> composting (composted by the author)\n";
+
+		undergrowth_import_memory( $oca, $file );
+		undergrowth_import_memory( $oca, $file );
+
+		$this->assertSame( array(), get_post_meta( $oca, 'undergrowth_stage_log', false ) );
+	}
+
+	public function test_import_that_cannot_put_the_pin_back_says_so() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+		$refuse = static function ( $check, $object_id, $meta_key ) {
+			return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned' ), true ) ? false : $check;
+		};
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		add_filter( 'update_post_metadata', $refuse, 10, 3 );
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
+		$this->assertFalse( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_import_that_cannot_store_the_history_says_it_was_partial() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_resurfacing_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n- 2025-11-02: seedling -> composting (composted by the author)\n## resurfacing\n- 2026-04-05: signal shown\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_import_partial', $result->get_error_code() );
+		$this->assertSame( 'composting', undergrowth_get_stage( $oca ) );
+		$this->assertCount( 1, undergrowth_stage_log( $oca ) );
+	}
+
+	public function test_imported_history_reads_oldest_first_after_newer_rows() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_set_stage( $oca, 'sprout' );
+		undergrowth_compost_post( $oca );
+		undergrowth_log_resurfacing( $oca, 'shown' );
+		$today = wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) );
+
+		undergrowth_import_memory( $oca, "## stage\ncomposting\n- 2025-01-01: seedling -> evergreen (pinned by the author)\n## resurfacing\n- 2025-06-01: signal dismissed by the author\n" );
+
+		$this->assertSame( array( 'pin', 'cycle', 'compost' ), wp_list_pluck( undergrowth_stage_log( $oca ), 'reason' ) );
+		$this->assertSame( array( 'dismissed', 'shown' ), wp_list_pluck( undergrowth_resurfacing_log( $oca ), 'event' ) );
+		$this->assertSame(
+			array(
+				'- 2025-06-01: signal dismissed by the author',
+				'- ' . $today . ': signal shown',
+			),
+			$this->section( (string) $this->read( $oca ), 'resurfacing' )
+		);
+	}
+
+	public function test_import_needs_permission_to_edit_the_post() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $oca ) );
 	}
 }
