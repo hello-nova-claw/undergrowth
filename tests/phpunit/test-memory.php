@@ -544,6 +544,57 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertCount( 1, undergrowth_resurfacing_log( $oca ) );
 	}
 
+	public function test_import_keeps_identical_lines_from_the_same_day() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$file = implode(
+			"\n",
+			array(
+				'## stage',
+				'composting',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'- 2025-11-02: composting -> sprout (returned to the garden by the author)',
+				'- 2025-11-02: sprout -> composting (composted by the author)',
+				'## resurfacing',
+				'- 2026-04-05: signal shown',
+				'- 2026-04-05: signal shown',
+			)
+		);
+
+		undergrowth_import_memory( $oca, $file );
+		undergrowth_import_memory( $oca, $file );
+
+		$this->assertSame( array( 'compost', 'return', 'compost' ), wp_list_pluck( undergrowth_stage_log( $oca ), 'reason' ) );
+		$this->assertSame( array( 'shown', 'shown' ), wp_list_pluck( undergrowth_resurfacing_log( $oca ), 'event' ) );
+	}
+
+	public function test_import_never_pins_a_composting_post() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+
+		$this->assertTrue( undergrowth_import_memory( $oca, "## stage\ncomposting (pinned)\n" ) );
+
+		$this->assertSame( 'composting', undergrowth_get_stage( $oca ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_import_that_cannot_store_the_pin_is_refused() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$refuse = static function ( $check, $object_id, $meta_key ) {
+			return 'undergrowth_stage_pinned' === $meta_key ? false : $check;
+		};
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		add_filter( 'update_post_metadata', $refuse, 10, 3 );
+
+		$result = undergrowth_import_memory( $oca, "## stage\nevergreen (pinned)\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $oca ) );
+	}
+
 	public function test_import_restores_a_pin() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
