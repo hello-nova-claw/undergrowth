@@ -556,10 +556,33 @@ class Test_Stages extends WP_UnitTestCase {
 
 	public function test_damaged_log_entries_are_skipped() {
 		list( $post_id ) = $this->publish( 1 );
+		$valid           = array(
+			'time'   => 1793491200,
+			'from'   => 'seedling',
+			'to'     => 'sprout',
+			'reason' => 'cycle',
+		);
 
-		update_post_meta( $post_id, 'undergrowth_stage_log', array( 'junk', array( 'to' => 'sprout' ) ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', 'junk' );
+		add_post_meta( $post_id, 'undergrowth_stage_log', array( 'to' => 'sprout' ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', array_merge( $valid, array( 'from' => array( 'seedling' ) ) ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', array_merge( $valid, array( 'to' => 'wilting' ) ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', array_merge( $valid, array( 'reason' => 'magic' ) ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', array_merge( $valid, array( 'time' => 'soon' ) ) );
+		add_post_meta( $post_id, 'undergrowth_stage_log', $valid );
 
-		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+		$this->assertSame( array( $valid ), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_each_change_is_its_own_meta_row() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'sprout' );
+		undergrowth_set_stage( $post_id, 'evergreen', 'pin' );
+
+		// Separate rows are appended one insert at a time, so two writers
+		// at once cannot overwrite each other's entry.
+		$this->assertCount( 2, get_post_meta( $post_id, 'undergrowth_stage_log' ) );
 	}
 
 	public function test_change_of_stage_announces_itself() {
