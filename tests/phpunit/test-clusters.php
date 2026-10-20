@@ -153,6 +153,8 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Identical vectors stay apart when any part of where they came from differs.
+	 *
 	 * @dataProvider data_identity_fields
 	 *
 	 * @param string $field Provider, model or language.
@@ -281,6 +283,8 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A filtered similarity outside -1 to 1, or not a number, is corrected.
+	 *
 	 * @dataProvider data_filtered_similarities
 	 *
 	 * @param mixed $filtered Value the filter returns.
