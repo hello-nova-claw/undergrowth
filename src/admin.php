@@ -61,9 +61,15 @@ function undergrowth_handle_veto(): void {
 		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	$vetoed = undergrowth_veto_link( $source, $target );
+	if ( undergrowth_veto_link( $source, $target ) ) {
+		$notice = 'vetoed';
+	} elseif ( 'accepted' === undergrowth_link_state( $source, $target ) ) {
+		$notice = 'unchanged';
+	} else {
+		$notice = 'gone';
+	}
 
-	wp_safe_redirect( undergrowth_suggestions_url( $vetoed ? 'vetoed' : 'unchanged' ) );
+	wp_safe_redirect( undergrowth_suggestions_url( $notice ) );
 	exit;
 }
 
@@ -155,6 +161,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'vetoed'    => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
 		'saved'     => __( 'Your choice is saved.', 'undergrowth' ),
 		'unchanged' => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'gone'      => __( 'One of those posts no longer exists, so there was nothing to veto.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
