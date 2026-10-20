@@ -33,6 +33,7 @@ require_once __DIR__ . '/src/memory.php';
 require_once __DIR__ . '/src/accept.php';
 require_once __DIR__ . '/src/stages.php';
 require_once __DIR__ . '/src/abilities.php';
+require_once __DIR__ . '/src/resurfacing.php';
 require_once __DIR__ . '/src/settings.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/posts-screen.php';
