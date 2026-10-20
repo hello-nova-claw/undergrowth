@@ -27,6 +27,7 @@ require_once __DIR__ . '/src/indexer.php';
 require_once __DIR__ . '/src/sentences.php';
 require_once __DIR__ . '/src/links.php';
 require_once __DIR__ . '/src/memory.php';
+require_once __DIR__ . '/src/stages.php';
 require_once __DIR__ . '/src/settings.php';
 require_once __DIR__ . '/src/admin.php';
 
