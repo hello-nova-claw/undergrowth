@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T23:29:06+00:00\n"
+"POT-Creation-Date: 2026-10-20T23:34:11+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -398,18 +398,6 @@ msgstr ""
 
 #: src/discord-settings.php:274
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
-msgstr ""
-
-#: src/discord.php:48
-msgid "This request is not signed by Discord."
-msgstr ""
-
-#: src/discord.php:86
-msgid "This interaction could not be read."
-msgstr ""
-
-#: src/discord.php:93
-msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
 #: src/memory.php:472
