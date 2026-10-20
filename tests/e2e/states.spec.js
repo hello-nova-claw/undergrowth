@@ -114,6 +114,21 @@ const HIDE_UPDATES = `
 `;
 
 /**
+ * Returns where one shot is saved.
+ *
+ * @param {Object} entry  State being captured.
+ * @param {string} locale Locale code.
+ * @param {number} width  Viewport width in pixels.
+ * @return {string} Path of the PNG file.
+ */
+function shotPath( entry, locale, width ) {
+	return path.join(
+		OUTPUT,
+		`${ entry.screen }--${ entry.state }--${ locale }--${ width }.png`
+	);
+}
+
+/**
  * Defines one test per state and locale, capturing every width.
  *
  * @param {Object[]} states States to capture.
@@ -156,11 +171,11 @@ function capture( states ) {
 					fs.mkdirSync( OUTPUT, { recursive: true } );
 
 					for ( const width of WIDTHS ) {
+						const shot = shotPath( entry, locale, width );
+
+						fs.rmSync( shot, { force: true } );
 						fs.writeFileSync(
-							path.join(
-								OUTPUT,
-								`${ entry.screen }--${ entry.state }--${ locale }--${ width }.png.skipped`
-							),
+							`${ shot }.skipped`,
 							`This build has no ${ entry.state }.\n`
 						);
 					}
@@ -169,12 +184,15 @@ function capture( states ) {
 				}
 
 				for ( const width of WIDTHS ) {
+					const shot = shotPath( entry, locale, width );
+
+					// A marker left by an earlier run would list this state
+					// as skipped as well as captured.
+					fs.rmSync( `${ shot }.skipped`, { force: true } );
+
 					await page.setViewportSize( { width, height: 800 } );
 					await page.screenshot( {
-						path: path.join(
-							OUTPUT,
-							`${ entry.screen }--${ entry.state }--${ locale }--${ width }.png`
-						),
+						path: shot,
 						fullPage: true,
 						animations: 'disabled',
 						caret: 'hide',
