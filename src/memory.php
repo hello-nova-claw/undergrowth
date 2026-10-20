@@ -471,53 +471,35 @@ function undergrowth_import_memory( int $post_id, string $text ) {
 		return new WP_Error( 'undergrowth_no_stage', __( 'The file does not name a growth stage, so nothing was imported.', 'undergrowth' ) );
 	}
 
-	$from = undergrowth_get_stage( $post_id );
+	$from       = undergrowth_get_stage( $post_id );
+	$was_pinned = undergrowth_is_stage_pinned( $post_id );
 
-	update_post_meta( $post_id, 'undergrowth_stage', $read['stage'] );
-
-	if ( undergrowth_get_stage( $post_id ) !== $read['stage'] ) {
-		return undergrowth_stage_not_saved();
-	}
-
+	// The pin goes first, so a stage is never stored with the wrong marker.
+	// The reader never pins a composting post.
 	if ( $read['pinned'] ) {
 		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
 	} else {
 		delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 	}
 
-	$day = static function ( int $time ): string {
-		return wp_date( 'Y-m-d', $time, new DateTimeZone( 'UTC' ) );
-	};
-
-	$known = array();
-
-	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
-		$known[ $day( $change['time'] ) . ' ' . $change['from'] . ' ' . $change['to'] . ' ' . $change['reason'] ] = true;
+	if ( undergrowth_is_stage_pinned( $post_id ) !== $read['pinned'] ) {
+		return undergrowth_stage_not_saved();
 	}
 
-	foreach ( $read['changes'] as $change ) {
-		$key = $day( $change['time'] ) . ' ' . $change['from'] . ' ' . $change['to'] . ' ' . $change['reason'];
+	update_post_meta( $post_id, 'undergrowth_stage', $read['stage'] );
 
-		if ( ! isset( $known[ $key ] ) ) {
-			add_post_meta( $post_id, 'undergrowth_stage_log', $change );
-			$known[ $key ] = true;
+	if ( undergrowth_get_stage( $post_id ) !== $read['stage'] ) {
+		if ( $was_pinned ) {
+			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+		} else {
+			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 		}
+
+		return undergrowth_stage_not_saved();
 	}
 
-	$known = array();
-
-	foreach ( undergrowth_resurfacing_log( $post_id ) as $entry ) {
-		$known[ $day( $entry['time'] ) . ' ' . $entry['event'] ] = true;
-	}
-
-	foreach ( $read['resurfacing'] as $entry ) {
-		$key = $day( $entry['time'] ) . ' ' . $entry['event'];
-
-		if ( ! isset( $known[ $key ] ) ) {
-			add_post_meta( $post_id, 'undergrowth_resurfacing_log', $entry );
-			$known[ $key ] = true;
-		}
-	}
+	undergrowth_import_history( $post_id, 'undergrowth_stage_log', undergrowth_stage_log( $post_id ), $read['changes'] );
+	undergrowth_import_history( $post_id, 'undergrowth_resurfacing_log', undergrowth_resurfacing_log( $post_id ), $read['resurfacing'] );
 
 	// The same effects as composting a post, or returning it, by hand.
 	if ( 'composting' === $read['stage'] && 'composting' !== $from ) {
@@ -529,4 +511,38 @@ function undergrowth_import_memory( int $post_id, string $text ) {
 	undergrowth_write_memory( $post_id );
 
 	return true;
+}
+
+/**
+ * Adds the history rows from a file that a post does not have yet.
+ *
+ * Rows are matched by day and contents, since the file keeps no time of day.
+ * Matching counts rather than presence, because the same event can happen
+ * twice in one day and both lines are real history.
+ *
+ * @param int                              $post_id  Post ID.
+ * @param string                           $meta_key Meta key of the history.
+ * @param array<int, array<string, mixed>> $have     Rows the post already has.
+ * @param array<int, array<string, mixed>> $rows     Rows read from the file.
+ */
+function undergrowth_import_history( int $post_id, string $meta_key, array $have, array $rows ): void {
+	$key = static function ( array $row ): string {
+		$day = wp_date( 'Y-m-d', $row['time'], new DateTimeZone( 'UTC' ) );
+		unset( $row['time'] );
+
+		return $day . ' ' . implode( ' ', $row );
+	};
+
+	$known = array_count_values( array_map( $key, $have ) );
+
+	foreach ( $rows as $row ) {
+		$match = $key( $row );
+
+		if ( ! empty( $known[ $match ] ) ) {
+			--$known[ $match ];
+			continue;
+		}
+
+		add_post_meta( $post_id, $meta_key, $row );
+	}
 }
