@@ -44,6 +44,22 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 3 ] );
 	} );
 
+	it( 'finds unquoted values and reads past > inside quotes', () => {
+		expect(
+			findInlineStyles(
+				'<div style=color:red>\n<div title="a > b" style="color:red">'
+			)
+		).toEqual( [ 1, 2 ] );
+	} );
+
+	it( 'ignores style text inside another attribute', () => {
+		expect(
+			findInlineStyles(
+				'<div title="use style=&quot;color:red&quot;">\n<a data-x=\'style="x"\'>'
+			)
+		).toEqual( [] );
+	} );
+
 	it( 'ignores variables, array keys and data attributes', () => {
 		const php = [
 			"$style = 'button-primary';",
@@ -159,6 +175,11 @@ describe( 'check', () => {
 			join( root, 'src', 'admin.scss' ),
 			'a { color: #000; }'
 		);
+		mkdirSync( join( root, 'assets' ) );
+		writeFileSync(
+			join( root, 'assets', 'settings.css' ),
+			'p {\n\tcolor: #2271b1;\n}'
+		);
 		writeFileSync( join( root, 'src', 'notes.txt' ), 'style="x" #fff' );
 		writeFileSync(
 			join( root, 'src', 'admin', 'panel.js' ),
@@ -176,6 +197,7 @@ describe( 'check', () => {
 		expect(
 			check( root ).map( ( { file, line } ) => `${ file }:${ line }` )
 		).toEqual( [
+			'assets/settings.css:2',
 			'src/admin.scss:1',
 			'src/admin/page.php:2',
 			'src/admin/panel.js:2',
