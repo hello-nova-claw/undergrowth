@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T05:37:55+00:00\n"
+"POT-Creation-Date: 2026-10-20T05:45:54+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -36,83 +36,123 @@ msgstr ""
 msgid "Novaclaw"
 msgstr ""
 
-#: src/admin.php:20
-#: src/admin.php:21
+#: src/admin.php:22
+#: src/admin.php:23
 msgid "Link suggestions"
 msgstr ""
 
-#: src/admin.php:62
-#: src/admin.php:90
+#: src/admin.php:79
+#: src/admin.php:107
 msgid "You cannot change links in this post."
 msgstr ""
 
-#: src/admin.php:115
+#: src/admin.php:132
 msgid "You cannot change this setting."
 msgstr ""
 
-#: src/admin.php:146
+#: src/admin.php:201
+msgid "Link suggestions screen"
+msgstr ""
+
+#: src/admin.php:204
+msgid "Suggestions"
+msgstr ""
+
+#: src/admin.php:205
+msgid "Growth stages"
+msgstr ""
+
+#: src/admin.php:242
+msgid "No published posts yet. Each post gets a growth stage once it is published."
+msgstr ""
+
+#: src/admin.php:246
+msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is."
+msgstr ""
+
+#: src/admin.php:263
 msgid "Suggest links between my posts"
 msgstr ""
 
-#: src/admin.php:148
+#: src/admin.php:265
 msgid "Save"
 msgstr ""
 
 #. translators: %s: address of the Undergrowth settings page.
-#: src/admin.php:157
+#: src/admin.php:274
 #, php-format
 msgid "Link suggestions need an embedding provider. <a href=\"%s\">Add an API key in Settings</a> to start."
 msgstr ""
 
-#: src/admin.php:163
+#: src/admin.php:280
 msgid "Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on."
 msgstr ""
 
-#: src/admin.php:170
+#: src/admin.php:287
 msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
 msgstr ""
 
-#: src/admin.php:172
+#: src/admin.php:289
 msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
 msgstr ""
 
-#: src/admin.php:193
+#: src/admin.php:307
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
-#: src/admin.php:194
+#: src/admin.php:308
 msgid "Your choice is saved."
 msgstr ""
 
-#: src/admin.php:195
+#: src/admin.php:309
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
-#: src/admin.php:196
+#: src/admin.php:310
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:197
+#: src/admin.php:311
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
-#: src/admin.php:198
+#: src/admin.php:312
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/admin.php:199
+#: src/admin.php:313
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/admin.php:200
+#: src/admin.php:314
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:201
+#: src/admin.php:315
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
-#: src/admin.php:216
+#: src/admin.php:316
+msgid "Stage pinned. The monthly cycle will leave it as it is."
+msgstr ""
+
+#: src/admin.php:317
+msgid "Stage unpinned and measured again from the links you have accepted."
+msgstr ""
+
+#: src/admin.php:318
+msgid "That stage cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/admin.php:319
+msgid "A composting post cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/admin.php:320
+msgid "That stage was not pinned, so nothing was changed."
+msgstr ""
+
+#: src/admin.php:335
 msgid "See the change"
 msgstr ""
 
@@ -129,6 +169,7 @@ msgid "Link to"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:44
+#: src/class-undergrowth-stages-list-table.php:43
 msgid "Actions"
 msgstr ""
 
@@ -150,6 +191,44 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:169
 msgid "Veto"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php:41
+msgid "Post"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php:42
+msgid "Stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php:112
+msgid "Pinned"
+msgstr ""
+
+#. translators: %s: post title.
+#: src/class-undergrowth-stages-list-table.php:142
+#, php-format
+msgid "Unpin the stage of %s"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php:143
+msgid "Unpin"
+msgstr ""
+
+#. translators: %s: post title.
+#: src/class-undergrowth-stages-list-table.php:157
+#, php-format
+msgid "Stage to pin for %s"
+msgstr ""
+
+#. translators: %s: post title.
+#: src/class-undergrowth-stages-list-table.php:166
+#, php-format
+msgid "Pin the stage of %s"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php:167
+msgid "Pin"
 msgstr ""
 
 #: src/settings.php:92
@@ -184,34 +263,59 @@ msgstr ""
 msgid "Whether the author pinned the growth stage."
 msgstr ""
 
-#: src/stages.php:269
+#: src/stages.php:143
+msgctxt "growth stage"
+msgid "Seedling"
+msgstr ""
+
+#: src/stages.php:144
+msgctxt "growth stage"
+msgid "Sprout"
+msgstr ""
+
+#: src/stages.php:145
+msgctxt "growth stage"
+msgid "Budding"
+msgstr ""
+
+#: src/stages.php:146
+msgctxt "growth stage"
+msgid "Evergreen"
+msgstr ""
+
+#: src/stages.php:147
+msgctxt "growth stage"
+msgid "Composting"
+msgstr ""
+
+#: src/stages.php:287
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:368
+#: src/stages.php:386
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:372
+#: src/stages.php:390
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:398
+#: src/stages.php:416
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:402
+#: src/stages.php:420
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:429
+#: src/stages.php:447
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:458
+#: src/stages.php:476
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:487
+#: src/stages.php:505
 msgid "This post is not composting."
 msgstr ""
