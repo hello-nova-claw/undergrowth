@@ -47,8 +47,9 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	/**
 	 * Loads the posts for the current page.
 	 *
-	 * Every indexed post is listed, so paging happens in the query. A post
-	 * the user cannot edit is still listed, without controls.
+	 * Every indexed post in the garden is listed, so paging happens in the
+	 * query. A post the user cannot edit is still listed, without controls.
+	 * Composting posts rest outside the garden and are left out.
 	 *
 	 * @return void
 	 */
@@ -74,6 +75,19 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 				'posts_per_page' => self::PER_PAGE,
 				'paged'          => $this->get_pagenum(),
 				'fields'         => 'ids',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- A post with no stage stored is a seedling, so only a composting value can leave it out.
+				'meta_query'     => array(
+					'relation' => 'OR',
+					array(
+						'key'     => 'undergrowth_stage',
+						'compare' => 'NOT EXISTS',
+					),
+					array(
+						'key'     => 'undergrowth_stage',
+						'value'   => 'composting',
+						'compare' => '!=',
+					),
+				),
 			)
 		);
 
