@@ -74,10 +74,10 @@ test.describe( 'Growth stages tab', () => {
 
 			await select.focus();
 			await expect( select ).toBeFocused();
-			await page.keyboard.press( 'ArrowDown' );
-			await page.keyboard.press( 'ArrowDown' );
-			await page.keyboard.press( 'ArrowDown' );
-			await expect( select ).toHaveValue( 'evergreen' );
+			// Arrow keys change a closed select on Linux and Windows but open
+			// its menu on macOS, so the choice is made the same way on all.
+			await select.selectOption( 'evergreen' );
+			await expect( select ).toBeFocused();
 
 			await page.keyboard.press( 'Tab' );
 			const pin = page.locator(
