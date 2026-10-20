@@ -70,8 +70,9 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$post_ids = array_map( 'intval', $query->posts );
 
-		// One query for every post's stage, instead of one per row.
-		update_meta_cache( 'post', $post_ids );
+		// The query fetched IDs only, so the rows would otherwise load each
+		// post and its stage one at a time.
+		_prime_post_caches( $post_ids, false, true );
 
 		$this->set_pagination_args(
 			array(
