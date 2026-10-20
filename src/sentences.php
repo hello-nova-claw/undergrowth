@@ -21,19 +21,42 @@ const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}
  *
  * Block boundaries such as paragraphs, headings and list items always end a
  * sentence. Text inside a link is kept but the sentence is marked, because a
- * sentence that already holds a link is no place for another.
+ * sentence that already holds a link is no place for another. Text inside a
+ * quote or a Custom HTML block is marked too, because it is not the author's
+ * own paragraph to link from.
  *
  * @param string $html Post content.
- * @return array<int, array{text: string, linked: bool}> Sentences in reading order.
+ * @return array<int, array{text: string, linked: bool, quoted: bool}> Sentences in reading order.
  */
 function undergrowth_split_sentences( string $html ): array {
-	$open  = "\u{E000}";
-	$close = "\u{E001}";
-	$html  = strip_shortcodes( $html );
-	$html  = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
-	$html  = (string) preg_replace( '#</a\s*>#i', $close, $html );
-	$html  = (string) preg_replace( '#</(p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>#i', "\n", $html );
-	$text  = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$open    = "\u{E000}";
+	$close   = "\u{E001}";
+	$quoted  = "\u{E002}";
+	$content = strip_shortcodes( $html );
+
+	// Every block boundary ends a sentence, and so does the start of a quote
+	// or of any block, so text either side of one never runs together. Text
+	// that ends inside someone else's words is marked before its line break.
+	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>|<blockquote\b[^>]*>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
+	$html   = '';
+
+	foreach ( $pieces as $i => $piece ) {
+		list( $piece_text, $piece_at ) = $piece;
+
+		if ( 0 === $i % 2 ) {
+			$html .= $piece_text;
+		} else {
+			$html .= ( undergrowth_inside_others_words( substr( $content, 0, $piece_at ) ) ? $quoted : '' ) . "\n";
+		}
+	}
+
+	if ( undergrowth_inside_others_words( $content ) ) {
+		$html .= $quoted;
+	}
+
+	$html = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
+	$html = (string) preg_replace( '#</a\s*>#i', $close, $html );
+	$text = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	$sentences = array();
 
@@ -43,7 +66,8 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
-		$parts = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', $block );
+		$in_quote = false !== strpos( $block, $quoted );
+		$parts    = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
@@ -68,6 +92,7 @@ function undergrowth_split_sentences( string $html ): array {
 				$sentences[] = array(
 					'text'   => $part,
 					'linked' => $linked,
+					'quoted' => $in_quote,
 				);
 			}
 		}
