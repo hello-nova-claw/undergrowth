@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T07:04:21+00:00\n"
+"POT-Creation-Date: 2026-10-20T07:09:37+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -184,38 +184,38 @@ msgstr ""
 msgid "Whether the author pinned the growth stage."
 msgstr ""
 
-#: src/stages.php:295
+#: src/stages.php:296
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:394
+#: src/stages.php:395
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:398
+#: src/stages.php:399
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:410
+#: src/stages.php:411
 msgid "The stage could not be saved, so nothing was changed."
 msgstr ""
 
-#: src/stages.php:433
+#: src/stages.php:434
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:437
+#: src/stages.php:438
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:468
+#: src/stages.php:469
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:501
+#: src/stages.php:502
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:539
+#: src/stages.php:540
 msgid "This post is not composting."
 msgstr ""
