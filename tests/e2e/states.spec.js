@@ -101,6 +101,16 @@ function volatile( page ) {
 	];
 }
 
+// Update checks run in the background and can find an update between two
+// runs, which adds an admin bar item and shifts everything after it.
+const HIDE_UPDATES = `
+	#wp-admin-bar-updates,
+	.update-nag,
+	#adminmenu .update-plugins {
+		display: none !important;
+	}
+`;
+
 /**
  * Defines one test per state and locale, capturing every width.
  *
@@ -155,6 +165,7 @@ function capture( states ) {
 						caret: 'hide',
 						mask: volatile( page ),
 						maskColor: '#c3c4c7',
+						style: HIDE_UPDATES,
 					} );
 				}
 			} );
