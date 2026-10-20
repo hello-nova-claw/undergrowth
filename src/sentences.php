@@ -38,6 +38,8 @@ function undergrowth_split_sentences( string $html ): array {
 	// or of any block, so text either side of one never runs together. Text
 	// that ends inside someone else's words has every line marked, because a
 	// line break inside it also ends a sentence.
+	$spans  = undergrowth_others_words_spans( $content );
+	$span   = 0;
 	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)\s*>|<br\s*/?>|<blockquote\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
 	$html   = '';
 
@@ -45,9 +47,13 @@ function undergrowth_split_sentences( string $html ): array {
 		$piece_text = $pieces[ $i ][0];
 		$ends_at    = $pieces[ $i + 1 ][1] ?? strlen( $content );
 
-		// Only text needs marking, and the check reads everything before it,
-		// so pieces holding nothing but tags are skipped.
-		if ( '' !== trim( wp_strip_all_tags( $piece_text ) ) && undergrowth_inside_others_words( substr( $content, 0, $ends_at ) ) ) {
+		// Pieces come in order, so stretches that end before this one are
+		// passed for good.
+		while ( isset( $spans[ $span ] ) && $spans[ $span ][1] < $ends_at ) {
+			++$span;
+		}
+
+		if ( isset( $spans[ $span ] ) && $spans[ $span ][0] <= $ends_at && '' !== trim( wp_strip_all_tags( $piece_text ) ) ) {
 			$piece_text = str_replace( "\n", $quoted . "\n", $piece_text ) . $quoted;
 		}
 
@@ -102,40 +108,75 @@ function undergrowth_split_sentences( string $html ): array {
 }
 
 /**
- * Tells whether a point in post content falls inside a quote or a Custom HTML block.
+ * Finds the stretches of post content that are someone else's words.
  *
  * A quote holds someone else's words and a Custom HTML block holds markup
  * the author wrote by hand, so neither is the author's paragraph to change.
+ * The content is read once, in order, so a long post costs one scan.
+ *
+ * @param string $html Post content.
+ * @return array<int, array{0: int, 1: int}> Byte offsets where each stretch starts and ends, in order. A stretch still open at the end runs to PHP_INT_MAX.
+ */
+function undergrowth_others_words_spans( string $html ): array {
+	// Only real tags and markers count, never tag-like text inside a comment
+	// or a quoted attribute value. Comments and other tags are matched whole
+	// and skipped, so the scan stops only on a quote's own tags or on the
+	// markers of the blocks that matter. A self-closing marker such as
+	// <!-- wp:html /--> opens nothing.
+	$attributes = '(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>';
+	$blocks     = '(?:html|quote|pullquote)';
+
+	$scanned = preg_match_all(
+		'#(?:<!--(?!\s+/?wp:' . $blocks . '[\s/]).*?-->|<(?!/?blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)'
+		. '|<(?<tag>/?)blockquote(?=[\s/>])' . $attributes
+		. '|<!--\s+(?<marker>/?)wp:(?<block>' . $blocks . ')(?:\s(?:(?!-->).)*)?(?<!/)-->#is',
+		$html,
+		$found,
+		PREG_SET_ORDER | PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL
+	);
+
+	// A scan that fails, such as at the backtrack limit, must never make
+	// someone else's words look like the author's, so all of it counts.
+	if ( false === $scanned ) {
+		return array( array( 0, PHP_INT_MAX ) );
+	}
+
+	$depths = array();
+	$spans  = array();
+	$start  = 0;
+
+	// In document order, so a stray closing tag never cancels a later quote.
+	foreach ( $found as $match ) {
+		$kind  = $match['block'][0] ?? 'blockquote';
+		$slash = $match['tag'][0] ?? $match['marker'][0];
+		$was   = array_sum( $depths ) > 0;
+
+		$depths[ $kind ] = '/' === $slash ? max( 0, ( $depths[ $kind ] ?? 0 ) - 1 ) : ( $depths[ $kind ] ?? 0 ) + 1;
+
+		if ( ! $was && array_sum( $depths ) > 0 ) {
+			$start = $match[0][1] + strlen( $match[0][0] );
+		} elseif ( $was && 0 === array_sum( $depths ) ) {
+			$spans[] = array( $start, $match[0][1] );
+		}
+	}
+
+	if ( array_sum( $depths ) > 0 ) {
+		$spans[] = array( $start, PHP_INT_MAX );
+	}
+
+	return $spans;
+}
+
+/**
+ * Tells whether a point in post content falls inside a quote or a Custom HTML block.
  *
  * @param string $before Content up to the point.
  * @return bool True when the point is inside one of those.
  */
 function undergrowth_inside_others_words( string $before ): bool {
-	// Only real tags count, never tag-like text inside a comment or a quoted
-	// attribute value. Comments and other tags are matched whole and skipped,
-	// so the scan stops only on a quote's own tags, also matched whole.
-	$attributes = '(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>';
-	$depth      = 0;
+	$spans = undergrowth_others_words_spans( $before );
 
-	preg_match_all( '#(?:<!--.*?-->|<(?!/?blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)|<(/?)blockquote(?=[\s/>])' . $attributes . '#is', $before, $tags );
-
-	// In document order, so a stray closing tag never cancels a later quote.
-	foreach ( $tags[1] as $slash ) {
-		$depth = '/' === $slash ? max( 0, $depth - 1 ) : $depth + 1;
-	}
-
-	if ( $depth > 0 ) {
-		return true;
-	}
-
-	foreach ( array( 'html', 'quote', 'pullquote' ) as $block ) {
-		// A self-closing marker such as <!-- wp:html /--> opens nothing.
-		if ( preg_match_all( '#<!--\s+wp:' . $block . '(?:\s(?:(?!-->).)*)?(?<!/)-->#s', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
-			return true;
-		}
-	}
-
-	return false;
+	return array() !== $spans && PHP_INT_MAX === $spans[ count( $spans ) - 1 ][1];
 }
 
 /**

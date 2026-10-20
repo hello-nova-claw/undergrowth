@@ -878,7 +878,7 @@ class Test_Stages extends WP_UnitTestCase {
 		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
 
 		$this->assertWPError( $result );
-		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'undergrowth_pin_left', $result->get_error_code() );
 		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
 	}
 
@@ -893,7 +893,7 @@ class Test_Stages extends WP_UnitTestCase {
 		$result = undergrowth_unpin_stage( $post_id );
 
 		$this->assertWPError( $result );
-		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
 		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
 	}
 
