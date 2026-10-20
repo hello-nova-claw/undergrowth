@@ -27,9 +27,11 @@ A file looks like this:
     # Storing oca
     url: https://example.com/storing-oca/
     slug: storing-oca
-    updated: 2026-10-20T09:00:00+00:00
+    updated: 2026-11-01T09:00:00+00:00
 
     ## stage
+    sprout
+    - 2026-11-01: seedling -> sprout (monthly cycle)
 
     ## has
 
@@ -45,7 +47,7 @@ A file looks like this:
     ## vetoes
     - https://example.com/tax-returns/
 
-The stage, has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals change, so edits to it are not kept yet.
+The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals or stage change, so edits to it are not kept yet.
 
 = Can visitors open these files? =
 
@@ -66,3 +68,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Accept a suggestion to link one word of your own sentence to the suggested post. A revision is kept, and nothing changes when the word can't be linked safely.
 * Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
 * Growth stages are measured once a month from the links you have accepted: a post with two or more becomes a Sprout. Stages never change when you save a post, and the monthly cycle never lowers one.
+* Each post's file now names its growth stage and lists every change to it, with the date and what made it.

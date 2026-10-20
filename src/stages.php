@@ -10,6 +10,16 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_STAGES      = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
 const UNDERGROWTH_STAGE_BATCH = 100;
 
+// How each reason for a change reads in the per-post file. The file is a
+// plain record in one fixed format, so these are not translated.
+const UNDERGROWTH_STAGE_REASONS = array(
+	'cycle'   => 'monthly cycle',
+	'pin'     => 'pinned by the author',
+	'unpin'   => 'unpinned by the author',
+	'compost' => 'composted by the author',
+	'return'  => 'returned to the garden by the author',
+);
+
 // Late, so a filter that adds post types to the index has been added first.
 add_action( 'init', 'undergrowth_register_stage_meta', 20 );
 add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
@@ -108,7 +118,7 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
  * @return bool True for the stage keys, otherwise unchanged.
  */
 function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned' ), true ) ? true : $is_protected;
+	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log' ), true ) ? true : $is_protected;
 }
 
 /**
@@ -134,23 +144,103 @@ function undergrowth_is_stage_pinned( int $post_id ): bool {
 }
 
 /**
- * Stores a post's stage.
+ * Stores a post's stage and records the change.
  *
  * Every change of stage goes through here, so the rules about who may
  * change it are kept by the callers, not repeated for each meta write.
+ * A change of stage, or any author action, is recorded with its reason for
+ * the per-post file. The cycle storing a stage that did not change is not.
  *
  * @param int    $post_id Post ID.
  * @param string $stage   One of UNDERGROWTH_STAGES.
- * @return bool True when the post holds the stage afterwards.
+ * @param string $reason  What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @return bool True when the post holds the stage and the change was recorded.
  */
-function undergrowth_set_stage( int $post_id, string $stage ): bool {
-	if ( ! in_array( $stage, UNDERGROWTH_STAGES, true ) || ! get_post( $post_id ) instanceof WP_Post ) {
+function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'cycle' ): bool {
+	if ( ! in_array( $stage, UNDERGROWTH_STAGES, true ) || ! isset( UNDERGROWTH_STAGE_REASONS[ $reason ] ) || ! get_post( $post_id ) instanceof WP_Post ) {
 		return false;
 	}
 
+	$from   = undergrowth_get_stage( $post_id );
+	$stored = metadata_exists( 'post', $post_id, 'undergrowth_stage' );
+
 	update_post_meta( $post_id, 'undergrowth_stage', $stage );
 
-	return undergrowth_get_stage( $post_id ) === $stage;
+	if ( undergrowth_get_stage( $post_id ) !== $stage ) {
+		return false;
+	}
+
+	if ( $from !== $stage || 'cycle' !== $reason ) {
+		// One row per change, added rather than rewritten, so a cycle and an
+		// author acting at the same moment cannot overwrite each other.
+		$logged = add_post_meta(
+			$post_id,
+			'undergrowth_stage_log',
+			array(
+				'time'   => time(),
+				'from'   => $from,
+				'to'     => $stage,
+				'reason' => $reason,
+			)
+		);
+
+		// A change the file would never show is undone, so the stage and
+		// its record always agree. Only the value written here is undone,
+		// never one another request stored since.
+		if ( false === $logged ) {
+			if ( $stored ) {
+				update_post_meta( $post_id, 'undergrowth_stage', $from, $stage );
+			} else {
+				delete_post_meta( $post_id, 'undergrowth_stage', $stage );
+			}
+
+			return false;
+		}
+
+		/**
+		 * Fires after a post's stage changes or an author acts on it.
+		 *
+		 * @param int $post_id Post ID.
+		 */
+		do_action( 'undergrowth_stage_changed', $post_id );
+	}
+
+	return true;
+}
+
+/**
+ * Returns the recorded changes to a post's stage, oldest first.
+ *
+ * @param int $post_id Post ID.
+ * @return array<int, array{time: int, from: string, to: string, reason: string}> Changes.
+ */
+function undergrowth_stage_log( int $post_id ): array {
+	$entries = array();
+
+	// Rows come back in the order they were added.
+	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
+		if (
+			! is_array( $entry )
+			|| ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] )
+			|| ! is_int( $entry['time'] )
+			|| $entry['time'] <= 0
+			|| ! in_array( $entry['from'], UNDERGROWTH_STAGES, true )
+			|| ! in_array( $entry['to'], UNDERGROWTH_STAGES, true )
+			|| ! is_string( $entry['reason'] )
+			|| ! isset( UNDERGROWTH_STAGE_REASONS[ $entry['reason'] ] )
+		) {
+			continue;
+		}
+
+		$entries[] = array(
+			'time'   => $entry['time'],
+			'from'   => $entry['from'],
+			'to'     => $entry['to'],
+			'reason' => $entry['reason'],
+		);
+	}
+
+	return $entries;
 }
 
 /**
