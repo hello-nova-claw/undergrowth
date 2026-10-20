@@ -311,9 +311,12 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 
 		$html = $this->render();
+		$this->assertSame( 1, preg_match( '/<table.*?<\/table>/s', $html, $table ) );
 
-		$this->assertStringNotContainsString( 'style=', $html );
-		$this->assertSame( 4, preg_match_all( '/<button[^>]*\bform="([^"]+)"/', $html, $buttons ) );
+		$this->assertStringNotContainsString( 'style=', $table[0] );
+
+		// Accept and Veto on each of the two proposals.
+		$this->assertSame( 4, preg_match_all( '/<button[^>]*\bform="([^"]+)"/', $table[0], $buttons ) );
 
 		foreach ( $buttons[1] as $form ) {
 			$this->assertMatchesRegularExpression( '/<form[^>]*\bid="' . preg_quote( $form, '/' ) . '"/', $html );

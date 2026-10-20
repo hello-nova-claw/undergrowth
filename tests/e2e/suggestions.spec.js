@@ -67,7 +67,7 @@ test.describe( 'Link suggestions screen', () => {
 			const rows = page.locator( '.wp-list-table tbody tr' );
 			const veto = rows
 				.first()
-				.getByRole( 'button', { name: /^Veto the link from / } );
+				.locator( 'button[form^="undergrowth-veto-"]' );
 
 			await veto.focus();
 			await expect( veto ).toBeFocused();
@@ -84,9 +84,7 @@ test.describe( 'Link suggestions screen', () => {
 			const row = page.locator( '.wp-list-table tbody tr' ).filter( {
 				has: page.locator( '.column-source a', { hasText: 'Oca' } ),
 			} );
-			const accept = row.getByRole( 'button', {
-				name: /^Accept the link from /,
-			} );
+			const accept = row.locator( 'button[form^="undergrowth-accept-"]' );
 
 			await accept.focus();
 			await expect( accept ).toBeFocused();

@@ -30,6 +30,12 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 1, 2 ] );
 	} );
 
+	it( 'finds JSX style props', () => {
+		expect(
+			findInlineStyles( '<Button style={ { margin: 0 } }>' )
+		).toEqual( [ 1 ] );
+	} );
+
 	it( 'ignores variables, array keys and data attributes', () => {
 		const php = [
 			"$style = 'button-primary';",
@@ -51,7 +57,7 @@ describe( 'findHexColours', () => {
 
 	it( 'ignores id selectors and custom properties', () => {
 		const css =
-			'#add, #undergrowth-notice {\n\tcolor: var(--wp-admin-theme-color);\n}';
+			'#add, #undergrowth-notice {\n\tcolor: var(--wp-admin-theme-color);\n}\nli:hover #add {\n}\na:not(#fade) {\n}';
 
 		expect( findHexColours( css ) ).toEqual( [] );
 	} );
@@ -145,6 +151,10 @@ describe( 'check', () => {
 		);
 		writeFileSync( join( root, 'src', 'notes.txt' ), 'style="x" #fff' );
 		writeFileSync(
+			join( root, 'src', 'admin', 'panel.js' ),
+			'const a = 1;\n<div style={ { color: "red" } } />'
+		);
+		writeFileSync(
 			join( root, 'composer.json' ),
 			JSON.stringify( { 'require-dev': { 'mockery/mockery': '^1' } } )
 		);
@@ -158,6 +168,7 @@ describe( 'check', () => {
 		).toEqual( [
 			'src/admin.scss:1',
 			'src/admin/page.php:2',
+			'src/admin/panel.js:2',
 			'composer.json:1',
 			'package.json:1',
 		] );
