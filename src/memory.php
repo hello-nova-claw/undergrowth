@@ -101,7 +101,7 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		'# ' . $post->post_title,
 		'url: ' . get_permalink( $post ),
 		'slug: ' . $post->post_name,
-		'updated: ' . gmdate( 'c' ),
+		'updated: ' . wp_date( 'c', null, new DateTimeZone( 'UTC' ) ),
 		'',
 		'## stage',
 		'',
@@ -150,12 +150,19 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	// The files hold no secrets, but they are the owner's notes, not pages
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
-	if ( ! $filesystem->exists( $root . '/index.php' ) ) {
-		$filesystem->put_contents( $root . '/index.php', "<?php\n// Silence is golden.\n", FS_CHMOD_FILE );
-	}
+	// Without its protection files, the folder is never written to at all.
+	$protection = array(
+		'index.php' => "<?php\n// Silence is golden.\n",
+		'.htaccess' => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+	);
 
-	if ( ! $filesystem->exists( $root . '/.htaccess' ) ) {
-		$filesystem->put_contents( $root . '/.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n", FS_CHMOD_FILE );
+	foreach ( $protection as $name => $contents ) {
+		$path = $root . '/' . $name;
+
+		if ( ! $filesystem->is_file( $path ) && ! $filesystem->put_contents( $path, $contents, FS_CHMOD_FILE ) ) {
+			undergrowth_record_file_error( 'no_protection' );
+			return false;
+		}
 	}
 
 	if ( ! $filesystem->put_contents( undergrowth_memory_path( $post_id ), undergrowth_memory_text( $post ), FS_CHMOD_FILE ) ) {
