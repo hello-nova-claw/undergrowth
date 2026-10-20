@@ -68,9 +68,19 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			ARRAY_A
 		);
 
+		$rows = (array) $rows;
+
+		// One query for every post on the screen, instead of one per row for
+		// the permission checks and again for each title and address.
+		_prime_post_caches(
+			array_unique( array_map( 'intval', array_merge( array_column( $rows, 'source_id' ), array_column( $rows, 'target_id' ) ) ) ),
+			false,
+			false
+		);
+
 		$rows = array_values(
 			array_filter(
-				(array) $rows,
+				$rows,
 				static function ( $row ) {
 					return current_user_can( 'edit_post', (int) $row['source_id'] );
 				}
