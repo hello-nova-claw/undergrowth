@@ -123,6 +123,22 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertNotNull( undergrowth_get_vector( $oca ) );
 	}
 
+	public function test_turned_off_suggestions_skip_the_refresh_work_entirely() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		update_option( 'undergrowth_suggest_links', '0' );
+
+		$queries = array();
+		$record  = static function ( $query ) use ( &$queries ) {
+			$queries[] = $query;
+			return $query;
+		};
+		add_filter( 'query', $record );
+		undergrowth_refresh_around( $oca );
+		remove_filter( 'query', $record );
+
+		$this->assertSame( array(), preg_grep( '/undergrowth_(vectors|links)/', $queries ) );
+	}
+
 	public function test_vetoing_marks_the_row_and_rewrites_the_file() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
@@ -175,6 +191,21 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$this->assertFalse( undergrowth_veto_link( $oca, $yacon ) );
 		$this->assertSame( 'accepted', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_veto_form_for_a_deleted_post_says_it_is_gone() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		wp_delete_post( $yacon, true );
+		$this->veto_form( $oca, $yacon );
+
+		$this->assertStringContainsString( 'undergrowth_notice=gone', $this->submit( 'undergrowth_handle_veto' ) );
+
+		$_GET['undergrowth_notice'] = 'gone';
+		$html                       = $this->render();
+		unset( $_GET['undergrowth_notice'] );
+
+		$this->assertStringContainsString( 'no longer exists', $html );
 	}
 
 	public function test_veto_form_for_an_accepted_link_says_it_was_left_alone() {
