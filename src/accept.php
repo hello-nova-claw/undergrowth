@@ -14,25 +14,83 @@ defined( 'ABSPATH' ) || exit;
  * Accepts a proposed link by linking the target's most distinctive word
  * where it appears in the proposal's sentence.
  *
+ * The suggestion is claimed before the post is touched, so two requests
+ * arriving together can never both link it. Any failure gives the claim back.
+ *
  * @param int $source_id Post the link sits in.
  * @param int $target_id Post the link points to.
  * @return string 'accepted', or why nothing changed: 'gone', 'not_proposed',
- *                'edited' (the sentence is no longer in the post) or
- *                'no_word' (no word could be linked safely).
+ *                'edited' (the sentence is no longer in the post), 'no_word'
+ *                (no word could be linked safely) or 'needs_admin' (saving
+ *                would also strip content the user may not save).
  */
 function undergrowth_accept_link( int $source_id, int $target_id ): string {
 	global $wpdb;
 
-	$source = get_post( $source_id );
 	$target = get_post( $target_id );
 
-	if ( ! $source instanceof WP_Post || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
+	if ( ! get_post( $source_id ) instanceof WP_Post || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
 		return 'gone';
 	}
 
-	if ( 'proposed' !== undergrowth_link_state( $source_id, $target_id ) ) {
+	if ( ! undergrowth_claim_link( $source_id, $target_id, 'proposed', 'accepted' ) ) {
 		return 'not_proposed';
 	}
+
+	$result = undergrowth_link_accepted( $source_id, $target );
+
+	if ( 'accepted' !== $result ) {
+		undergrowth_claim_link( $source_id, $target_id, 'accepted', 'proposed' );
+		return $result;
+	}
+
+	undergrowth_write_memory( $source_id );
+
+	return 'accepted';
+}
+
+/**
+ * Moves a link from one state to another, only if it is in the first.
+ *
+ * @param int    $source_id Post the link sits in.
+ * @param int    $target_id Post the link points to.
+ * @param string $from      State the link must be in.
+ * @param string $to        State to move it to.
+ * @return bool True when exactly this request moved it.
+ */
+function undergrowth_claim_link( int $source_id, int $target_id, string $from, string $to ): bool {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+	$moved = $wpdb->update(
+		undergrowth_links_table(),
+		array(
+			'state'      => $to,
+			'updated_at' => current_time( 'mysql', true ),
+		),
+		array(
+			'source_id' => $source_id,
+			'target_id' => $target_id,
+			'state'     => $from,
+		),
+		array( '%s', '%s' ),
+		array( '%d', '%d', '%s' )
+	);
+
+	return 1 === $moved;
+}
+
+/**
+ * Links one word in the source post for a link already claimed as accepted.
+ *
+ * @param int     $source_id Post the link sits in.
+ * @param WP_Post $target    Post the link points to.
+ * @return string 'accepted', or why nothing changed.
+ */
+function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
+	global $wpdb;
+
+	$source = get_post( $source_id );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
 	$sentence = (string) $wpdb->get_var(
@@ -40,18 +98,18 @@ function undergrowth_accept_link( int $source_id, int $target_id ): string {
 			'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d',
 			undergrowth_links_table(),
 			$source_id,
-			$target_id
+			$target->ID
 		)
 	);
 
-	if ( '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
+	if ( ! $source instanceof WP_Post || '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
 		return 'edited';
 	}
 
-	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target_id ) ) ) );
+	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target->ID ) ) ) );
 	$linked = null;
 
-	foreach ( array_keys( undergrowth_distinctive_terms( $target_id, $corpus ) ) as $term ) {
+	foreach ( array_keys( undergrowth_distinctive_terms( $target->ID, $corpus ) ) as $term ) {
 		$linked = undergrowth_link_word( $source->post_content, $sentence, (string) $term, (string) get_permalink( $target ) );
 
 		if ( null !== $linked ) {
@@ -61,6 +119,13 @@ function undergrowth_accept_link( int $source_id, int $target_id ): string {
 
 	if ( null === $linked ) {
 		return 'no_word';
+	}
+
+	// Without unfiltered_html, WordPress runs kses over the whole post on save
+	// and can strip content such as an embed. Accepting one link must never do
+	// that, so the save is refused when kses would change anything.
+	if ( ! current_user_can( 'unfiltered_html' ) && wp_kses_post( $linked ) !== $linked ) {
+		return 'needs_admin';
 	}
 
 	$updated = wp_update_post(
@@ -73,28 +138,7 @@ function undergrowth_accept_link( int $source_id, int $target_id ): string {
 		true
 	);
 
-	if ( is_wp_error( $updated ) || 0 === $updated ) {
-		return 'no_word';
-	}
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-	$wpdb->update(
-		undergrowth_links_table(),
-		array(
-			'state'      => 'accepted',
-			'updated_at' => current_time( 'mysql', true ),
-		),
-		array(
-			'source_id' => $source_id,
-			'target_id' => $target_id,
-		),
-		array( '%s', '%s' ),
-		array( '%d', '%d' )
-	);
-
-	undergrowth_write_memory( $source_id );
-
-	return 'accepted';
+	return is_wp_error( $updated ) || 0 === $updated ? 'no_word' : 'accepted';
 }
 
 /**

@@ -198,6 +198,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
 		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
 		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
+		'needs_admin'  => __( 'Saving this post would also remove content you aren’t allowed to add, such as an embed, so nothing was changed. An administrator can accept this link.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
