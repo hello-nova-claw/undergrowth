@@ -18,6 +18,7 @@ const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const POSTS_LIST = [ 'edit.php', '' ];
+const PROFILE = [ 'profile.php', '' ];
 
 // Notices are reached by the address the screen redirects to after each
 // action, which shows exactly what the user sees without changing any data.
@@ -93,6 +94,7 @@ const WITHOUT_POSTS = [
 		page: SUGGESTIONS,
 		fixture: 'no-provider',
 	},
+	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
 ];
