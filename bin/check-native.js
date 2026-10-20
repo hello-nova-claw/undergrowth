@@ -173,7 +173,8 @@ function findInlineStyles( markup ) {
 }
 
 /**
- * Finds hex colours in declaration values, leaving id selectors alone.
+ * Finds hex colours in declaration values, leaving id selectors and comments
+ * alone.
  *
  * @param {string} css File contents.
  * @return {number[]} One-based line numbers.
@@ -182,8 +183,13 @@ function findHexColours( css ) {
 	const colour =
 		/:[^;{}]*?(#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8}))\b(?![^;{}]*\{)/gi;
 
-	return Array.from( css.matchAll( colour ), ( match ) =>
-		lineAt( css, match.index + match[ 0 ].indexOf( match[ 1 ] ) )
+	// Blank out comments but keep their newlines, so line numbers hold.
+	const code = css.replace( /\/\*[\s\S]*?\*\//g, ( comment ) =>
+		comment.replace( /[^\n]/g, ' ' )
+	);
+
+	return Array.from( code.matchAll( colour ), ( match ) =>
+		lineAt( code, match.index + match[ 0 ].indexOf( match[ 1 ] ) )
 	);
 }
 
