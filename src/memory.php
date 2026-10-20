@@ -11,6 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
+add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_delete_memory' );
 add_action( 'deleted_post', 'undergrowth_delete_memory' );
 
@@ -209,6 +210,34 @@ function undergrowth_write_protection_file( WP_Filesystem_Base $filesystem, stri
 	// PHP's rename() replaces the file in one step.
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Atomic replacement; see above.
 	return rename( $temporary, $path );
+}
+
+/**
+ * Rewrites a post's file and the files of posts that link to it, after the
+ * post itself changes.
+ *
+ * A new slug changes the post's address without changing its text, so the
+ * post is not re-embedded and nothing else would rewrite these files.
+ *
+ * @param int $post_id Post that was updated.
+ */
+function undergrowth_update_memory_around( int $post_id ): void {
+	global $wpdb;
+
+	undergrowth_write_memory( $post_id );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+	$sources = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT DISTINCT source_id FROM %i WHERE target_id = %d',
+			undergrowth_links_table(),
+			$post_id
+		)
+	);
+
+	foreach ( array_map( 'intval', $sources ) as $source_id ) {
+		undergrowth_write_memory( $source_id );
+	}
 }
 
 /**
