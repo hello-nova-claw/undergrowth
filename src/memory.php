@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
+add_action( 'undergrowth_resurfacing_logged', 'undergrowth_update_memory' );
 add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
@@ -109,6 +110,8 @@ function undergrowth_memory_text( WP_Post $post ): string {
 			'## stage',
 		),
 		undergrowth_memory_stage( $post->ID ),
+		array( '', '## resurfacing' ),
+		undergrowth_memory_resurfacing( $post->ID ),
 		array( '', '## has', '', '## lacks', '', '## scent', '', '## proposed links' ),
 		$links['proposed'],
 		array( '', '## accepted links' ),
@@ -137,6 +140,23 @@ function undergrowth_memory_stage( int $post_id ): array {
 	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
 		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ];
 		$lines[] = '- ' . wp_date( 'Y-m-d', $change['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
+	}
+
+	return $lines;
+}
+
+/**
+ * Builds the resurfacing section of a post's file: one line for each signal
+ * shown or dismissed, oldest first.
+ *
+ * @param int $post_id Post ID.
+ * @return string[] Lines of the section, without its heading.
+ */
+function undergrowth_memory_resurfacing( int $post_id ): array {
+	$lines = array();
+
+	foreach ( undergrowth_resurfacing_log( $post_id ) as $entry ) {
+		$lines[] = '- ' . wp_date( 'Y-m-d', $entry['time'], new DateTimeZone( 'UTC' ) ) . ': ' . UNDERGROWTH_RESURFACING_EVENTS[ $entry['event'] ];
 	}
 
 	return $lines;
@@ -335,4 +355,178 @@ function undergrowth_record_file_error( string $code ): void {
 		),
 		false
 	);
+}
+
+/**
+ * Reads the stage and resurfacing sections back from a post's file.
+ *
+ * The owner may edit the file, so any line that is not in the format the
+ * plugin writes is skipped rather than guessed at. Dates are written without
+ * a time, so each change reads back as midnight UTC on its day.
+ *
+ * @param string $text File contents.
+ * @return array{stage: string|null, pinned: bool, changes: array<int, array{time: int, from: string, to: string, reason: string}>, resurfacing: array<int, array{time: int, event: string}>}
+ *               The current stage, or null when the file names none, and the recorded history.
+ */
+function undergrowth_read_memory( string $text ): array {
+	$read    = array(
+		'stage'       => null,
+		'pinned'      => false,
+		'changes'     => array(),
+		'resurfacing' => array(),
+	);
+	$section = '';
+
+	foreach ( preg_split( '/\r\n|\r|\n/', $text ) as $line ) {
+		$line = trim( $line );
+
+		if ( preg_match( '/^## (.+)$/', $line, $match ) ) {
+			$section = trim( $match[1] );
+			continue;
+		}
+
+		if ( 'stage' === $section && null === $read['stage'] && preg_match( '/^([a-z]+)( \(pinned\))?$/', $line, $match ) ) {
+			if ( in_array( $match[1], UNDERGROWTH_STAGES, true ) ) {
+				$read['stage']  = $match[1];
+				$read['pinned'] = 'composting' !== $match[1] && isset( $match[2] );
+			}
+			continue;
+		}
+
+		if ( ! preg_match( '/^- (\d{4}-\d{2}-\d{2}): (.+)$/', $line, $match ) ) {
+			continue;
+		}
+
+		$time = undergrowth_memory_day( $match[1] );
+
+		if ( null === $time ) {
+			continue;
+		}
+
+		if ( 'stage' === $section && preg_match( '/^([a-z]+) -> ([a-z]+) \((.+)\)$/', $match[2], $change ) ) {
+			$reason = array_search( $change[3], UNDERGROWTH_STAGE_REASONS, true );
+
+			if ( false !== $reason && in_array( $change[1], UNDERGROWTH_STAGES, true ) && in_array( $change[2], UNDERGROWTH_STAGES, true ) ) {
+				$read['changes'][] = array(
+					'time'   => $time,
+					'from'   => $change[1],
+					'to'     => $change[2],
+					'reason' => $reason,
+				);
+			}
+		} elseif ( 'resurfacing' === $section ) {
+			$event = array_search( $match[2], UNDERGROWTH_RESURFACING_EVENTS, true );
+
+			if ( false !== $event ) {
+				$read['resurfacing'][] = array(
+					'time'  => $time,
+					'event' => $event,
+				);
+			}
+		}
+	}
+
+	return $read;
+}
+
+/**
+ * Turns a date written in a file back into a time.
+ *
+ * @param string $date Date as Y-m-d.
+ * @return int|null Midnight UTC on that day, or null when it is not a real date.
+ */
+function undergrowth_memory_day( string $date ): ?int {
+	$day = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, new DateTimeZone( 'UTC' ) );
+
+	if ( false === $day || $day->format( 'Y-m-d' ) !== $date ) {
+		return null;
+	}
+
+	return $day->getTimestamp();
+}
+
+/**
+ * Applies a post's file, perhaps written on another site, to a post.
+ *
+ * Only the stage, its pin and the recorded history are taken. Links name
+ * other posts by address, which may not exist here, so they are left for
+ * the proposals to find again. History already recorded for the post on
+ * the same day is not added twice, so importing a file again is harmless.
+ * Restoring a stage is not a new change, so no line is added for it.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $text    File contents.
+ * @return true|WP_Error True when imported, or why it was refused.
+ */
+function undergrowth_import_memory( int $post_id, string $text ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	$read = undergrowth_read_memory( $text );
+
+	if ( null === $read['stage'] ) {
+		return new WP_Error( 'undergrowth_no_stage', __( 'The file does not name a growth stage, so nothing was imported.', 'undergrowth' ) );
+	}
+
+	$from = undergrowth_get_stage( $post_id );
+
+	update_post_meta( $post_id, 'undergrowth_stage', $read['stage'] );
+
+	if ( undergrowth_get_stage( $post_id ) !== $read['stage'] ) {
+		return undergrowth_stage_not_saved();
+	}
+
+	if ( $read['pinned'] ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+	} else {
+		delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+	}
+
+	$day = static function ( int $time ): string {
+		return wp_date( 'Y-m-d', $time, new DateTimeZone( 'UTC' ) );
+	};
+
+	$known = array();
+
+	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
+		$known[ $day( $change['time'] ) . ' ' . $change['from'] . ' ' . $change['to'] . ' ' . $change['reason'] ] = true;
+	}
+
+	foreach ( $read['changes'] as $change ) {
+		$key = $day( $change['time'] ) . ' ' . $change['from'] . ' ' . $change['to'] . ' ' . $change['reason'];
+
+		if ( ! isset( $known[ $key ] ) ) {
+			add_post_meta( $post_id, 'undergrowth_stage_log', $change );
+			$known[ $key ] = true;
+		}
+	}
+
+	$known = array();
+
+	foreach ( undergrowth_resurfacing_log( $post_id ) as $entry ) {
+		$known[ $day( $entry['time'] ) . ' ' . $entry['event'] ] = true;
+	}
+
+	foreach ( $read['resurfacing'] as $entry ) {
+		$key = $day( $entry['time'] ) . ' ' . $entry['event'];
+
+		if ( ! isset( $known[ $key ] ) ) {
+			add_post_meta( $post_id, 'undergrowth_resurfacing_log', $entry );
+			$known[ $key ] = true;
+		}
+	}
+
+	// The same effects as composting a post, or returning it, by hand.
+	if ( 'composting' === $read['stage'] && 'composting' !== $from ) {
+		undergrowth_forget_post_links( $post_id );
+	} elseif ( 'composting' !== $read['stage'] && 'composting' === $from ) {
+		undergrowth_refresh_around( $post_id );
+	}
+
+	undergrowth_write_memory( $post_id );
+
+	return true;
 }
