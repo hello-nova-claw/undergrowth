@@ -154,14 +154,15 @@ function undergrowth_is_stage_pinned( int $post_id ): bool {
  * @param int    $post_id Post ID.
  * @param string $stage   One of UNDERGROWTH_STAGES.
  * @param string $reason  What made the change: a key of UNDERGROWTH_STAGE_REASONS.
- * @return bool True when the post holds the stage afterwards.
+ * @return bool True when the post holds the stage and the change was recorded.
  */
 function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'cycle' ): bool {
 	if ( ! in_array( $stage, UNDERGROWTH_STAGES, true ) || ! isset( UNDERGROWTH_STAGE_REASONS[ $reason ] ) || ! get_post( $post_id ) instanceof WP_Post ) {
 		return false;
 	}
 
-	$from = undergrowth_get_stage( $post_id );
+	$from   = undergrowth_get_stage( $post_id );
+	$stored = metadata_exists( 'post', $post_id, 'undergrowth_stage' );
 
 	update_post_meta( $post_id, 'undergrowth_stage', $stage );
 
@@ -172,7 +173,7 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 	if ( $from !== $stage || 'cycle' !== $reason ) {
 		// One row per change, added rather than rewritten, so a cycle and an
 		// author acting at the same moment cannot overwrite each other.
-		add_post_meta(
+		$logged = add_post_meta(
 			$post_id,
 			'undergrowth_stage_log',
 			array(
@@ -182,6 +183,18 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 				'reason' => $reason,
 			)
 		);
+
+		// A change the file would never show is undone, so the stage and
+		// its record always agree.
+		if ( false === $logged ) {
+			if ( $stored ) {
+				update_post_meta( $post_id, 'undergrowth_stage', $from );
+			} else {
+				delete_post_meta( $post_id, 'undergrowth_stage' );
+			}
+
+			return false;
+		}
 
 		/**
 		 * Fires after a post's stage changes or an author acts on it.
@@ -204,7 +217,7 @@ function undergrowth_stage_log( int $post_id ): array {
 	$entries = array();
 
 	// Rows come back in the order they were added.
-	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log' ) as $entry ) {
+	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
 		if (
 			! is_array( $entry )
 			|| ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] )
