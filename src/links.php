@@ -345,6 +345,13 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 			array( '%d', '%d', '%s' )
 		);
 	}
+
+	/**
+	 * Fires after a post's proposed links have been rewritten.
+	 *
+	 * @param int $post_id Source post ID.
+	 */
+	do_action( 'undergrowth_proposals_refreshed', $post_id );
 }
 
 /**

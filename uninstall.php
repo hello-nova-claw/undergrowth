@@ -8,5 +8,6 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 require_once __DIR__ . '/src/schema.php';
+require_once __DIR__ . '/src/memory.php';
 
 undergrowth_uninstall();
