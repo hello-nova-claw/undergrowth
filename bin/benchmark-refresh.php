@@ -187,7 +187,6 @@ for ( $undergrowth_i = 0; $undergrowth_i < $undergrowth_posts; $undergrowth_i++ 
 	$undergrowth_paragraphs = array();
 	$undergrowth_sentences  = array();
 
-	// Sentences of eight words, paragraphs of six sentences.
 	for ( $undergrowth_s = 0; $undergrowth_s < $undergrowth_per_post; $undergrowth_s++ ) {
 		$undergrowth_sentence = array();
 
