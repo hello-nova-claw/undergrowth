@@ -126,6 +126,8 @@ function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
  *
  * @param int $post_id Post ID.
  * @return string One of UNDERGROWTH_STAGES. Seedling when nothing valid is stored.
+ *
+ * @phpstan-impure It reads meta that the caller may have just changed.
  */
 function undergrowth_get_stage( int $post_id ): string {
 	$stage = get_post_meta( $post_id, 'undergrowth_stage', true );
@@ -156,6 +158,8 @@ function undergrowth_stage_label( string $stage ): string {
  *
  * @param int $post_id Post ID.
  * @return bool True when pinned.
+ *
+ * @phpstan-impure It reads meta that the caller may have just changed.
  */
 function undergrowth_is_stage_pinned( int $post_id ): bool {
 	return (bool) get_post_meta( $post_id, 'undergrowth_stage_pinned', true );
@@ -456,11 +460,23 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 		return new WP_Error( 'undergrowth_composting', __( 'A composting post cannot be pinned.', 'undergrowth' ) );
 	}
 
+	$was_pinned = undergrowth_is_stage_pinned( $post_id );
+
 	// The flag goes first, so the file written for the change shows the marker.
-	update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+	if ( ! $was_pinned ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+			return undergrowth_stage_not_saved();
+		}
+	}
 
 	if ( ! undergrowth_set_stage( $post_id, $stage, 'pin' ) ) {
-		delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+		// Only a flag added here is taken away; an earlier pin stays.
+		if ( ! $was_pinned ) {
+			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+		}
+
 		return undergrowth_stage_not_saved();
 	}
 
@@ -488,6 +504,10 @@ function undergrowth_unpin_stage( int $post_id ) {
 	}
 
 	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+
+	if ( undergrowth_is_stage_pinned( $post_id ) ) {
+		return undergrowth_stage_not_saved();
+	}
 
 	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' ) ) {
 		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
