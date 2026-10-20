@@ -145,14 +145,14 @@ class Test_Sentences extends WP_UnitTestCase {
 
 		$this->assertSame(
 			array(
-				'Mine,'               => false,
-				'on two lines.'       => false,
-				'Hand-written first.' => true,
+				'Mine,'                => false,
+				'on two lines.'        => false,
+				'Hand-written first.'  => true,
 				'Hand-written second.' => true,
-				'Classic first.'      => true,
-				'Classic second.'     => true,
-				'Mine at the end,'    => false,
-				'also two lines.'     => false,
+				'Classic first.'       => true,
+				'Classic second.'      => true,
+				'Mine at the end,'     => false,
+				'also two lines.'      => false,
 			),
 			array_column( $sentences, 'quoted', 'text' )
 		);
