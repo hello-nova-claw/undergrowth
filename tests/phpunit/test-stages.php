@@ -771,6 +771,47 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
 	}
 
+	/**
+	 * Makes every stage log write fail, as a full disk or a filter might.
+	 */
+	private function fail_log_writes(): void {
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_pin_that_cannot_be_saved_leaves_no_pin_behind() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_log_writes();
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_unpin_that_cannot_be_saved_keeps_the_pin() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_log_writes();
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
 	public function test_missing_post_cannot_be_pinned() {
 		$this->log_in_editor();
 
