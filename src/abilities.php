@@ -328,7 +328,7 @@ function undergrowth_ability_post( int $post_id ) {
 	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
 		return new WP_Error(
 			'undergrowth_not_indexed',
-			__( 'That post is not published, so Undergrowth knows nothing about it.', 'undergrowth' ),
+			__( 'Undergrowth does not read that post, so it knows nothing about it. Only published posts without a password are read.', 'undergrowth' ),
 			array( 'status' => 404 )
 		);
 	}
@@ -401,12 +401,15 @@ function undergrowth_ability_lacks( WP_Post $post ): array {
 		ARRAY_A
 	);
 
-	$links = array();
+	// While suggestions are off, an edit does not refresh them, so a stored
+	// sentence may no longer be in the post. Only the author's current words go out.
+	$sentences = array_flip( array_column( undergrowth_split_sentences( $post->post_content ), 'text' ) );
+	$links     = array();
 
 	foreach ( (array) $rows as $row ) {
 		$target = get_post( (int) $row['target_id'] );
 
-		if ( $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
+		if ( isset( $sentences[ (string) $row['sentence'] ] ) && $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
 			$links[] = undergrowth_ability_describe_post( $target ) + array( 'sentence' => (string) $row['sentence'] );
 		}
 	}

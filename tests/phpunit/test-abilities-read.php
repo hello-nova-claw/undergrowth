@@ -114,6 +114,23 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 	 *
 	 * @param string $name Ability name.
 	 */
+	public function test_read_ability_refuses_a_password_protected_post( $name ) {
+		$post_id = self::factory()->post->create( array( 'post_password' => 'secret' ) );
+
+		$result = $this->run_ability( $name, array( 'post_id' => $post_id ) );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_indexed', $result->get_error_code() );
+		$this->assertStringContainsString( 'password', $result->get_error_message() );
+	}
+
+	/**
+	 * Runs for each read ability.
+	 *
+	 * @dataProvider data_read_abilities
+	 *
+	 * @param string $name Ability name.
+	 */
 	public function test_read_ability_refuses_input_without_a_post( $name ) {
 		$this->assertWPError( $this->run_ability( $name, array() ) );
 	}
@@ -200,6 +217,24 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 			array(
 				'source_id' => $oca,
 				'target_id' => $mashua,
+			)
+		);
+
+		$this->assertSame( array(), $this->run_ability( 'undergrowth/lacks', array( 'post_id' => $oca ) )['links'] );
+	}
+
+	public function test_lacks_leaves_out_a_proposal_whose_sentence_is_no_longer_in_the_post() {
+		global $wpdb;
+
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows in the Andes. Like yacon, it is a tuber.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is a sweet tuber.</p>' ) );
+
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'sentence' => 'A sentence the author has since deleted.' ),
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
 			)
 		);
 

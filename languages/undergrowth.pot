@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T10:05:41+00:00\n"
+"POT-Creation-Date: 2026-10-20T10:16:16+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -118,35 +118,35 @@ msgid "ID of a published post."
 msgstr ""
 
 #: src/abilities.php:331
-msgid "That post is not published, so Undergrowth knows nothing about it."
+msgid "Undergrowth does not read that post, so it knows nothing about it. Only published posts without a password are read."
 msgstr ""
 
-#: src/abilities.php:520
+#: src/abilities.php:523
 #: src/admin.php:313
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
-#: src/abilities.php:521
+#: src/abilities.php:524
 #: src/admin.php:312
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
-#: src/abilities.php:522
+#: src/abilities.php:525
 #: src/admin.php:317
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
-#: src/abilities.php:523
+#: src/abilities.php:526
 #: src/admin.php:315
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/abilities.php:524
+#: src/abilities.php:527
 #: src/admin.php:316
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/abilities.php:525
+#: src/abilities.php:528
 #: src/admin.php:318
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
