@@ -212,6 +212,40 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( $before, get_post( $oca )->post_content );
 	}
 
+	public function test_a_failed_accept_leaves_the_suggestion_proposed() {
+		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul>' );
+
+		undergrowth_accept_link( $oca, $yacon );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_accept_is_refused_when_saving_would_strip_other_content() {
+		$before              = '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p><p><iframe src="https://example.test/video"></iframe></p>';
+		list( $oca, $yacon ) = $this->pair( $before );
+		global $wpdb;
+		$wpdb->update( $wpdb->posts, array( 'post_content' => $before ), array( 'ID' => $oca ) );
+		clean_post_cache( $oca );
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap ) {
+				return 'unfiltered_html' === $cap ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			2
+		);
+
+		$this->assertSame( 'needs_admin', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_a_word_inside_a_character_reference_is_never_linked() {
+		$linked = undergrowth_link_word( '<p>It costs &pound;3 a pound.</p>', 'It costs £3 a pound.', 'pound', 'https://example.test/' );
+
+		$this->assertSame( '<p>It costs &pound;3 a <a href="https://example.test/">pound</a>.</p>', $linked );
+	}
+
 	public function test_missing_post_fails_safely() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		wp_delete_post( $yacon, true );
