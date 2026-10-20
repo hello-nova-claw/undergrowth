@@ -812,6 +812,63 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
 	}
 
+	/**
+	 * Makes a metadata write to the pin flag fail.
+	 *
+	 * @param string $operation 'add', 'update' or 'delete'.
+	 */
+	private function fail_pin_flag( string $operation ): void {
+		add_filter(
+			$operation . '_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_pinned' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_pin_whose_flag_cannot_be_stored_changes_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_unpin_whose_flag_cannot_be_removed_changes_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_pin_flag( 'delete' );
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+		$this->assertCount( 1, undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_failed_repin_keeps_the_existing_pin() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'sprout' );
+		$this->fail_log_writes();
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+	}
+
 	public function test_missing_post_cannot_be_pinned() {
 		$this->log_in_editor();
 
