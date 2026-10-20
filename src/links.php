@@ -248,8 +248,9 @@ function undergrowth_link_state( int $source_id, int $target_id ): string {
 /**
  * Picks the posts a post should link to.
  *
- * Leaves out the post itself, posts it already links to, and any pair the
- * author has accepted or vetoed.
+ * Leaves out the post itself, posts it already links to, composting posts,
+ * and any pair the author has accepted or vetoed. A composting post gets
+ * no targets at all.
  *
  * @param int                      $post_id Source post ID.
  * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
@@ -265,11 +266,19 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 		return array();
 	}
 
+	// A composting post rests outside the active garden: no links out of it.
+	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
+		return array();
+	}
+
 	$pool = $pool ?? undergrowth_comparable_vectors( $post_id );
 
 	if ( ! isset( $pool[ $post_id ] ) ) {
 		return array();
 	}
+
+	// Loads every candidate's stage in one query rather than one per target.
+	update_meta_cache( 'post', array_keys( $pool ) );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change on every refresh.
 	$decided = $wpdb->get_col(
@@ -301,7 +310,8 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 		// without a save, so the target itself is checked as well.
 		$target = get_post( $target_id );
 
-		if ( $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
+		// No links into a composting post either.
+		if ( $target instanceof WP_Post && undergrowth_is_indexable( $target ) && 'composting' !== undergrowth_get_stage( $target_id ) ) {
 			$scores[ $target_id ] = $score;
 		}
 	}
