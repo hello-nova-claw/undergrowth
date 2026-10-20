@@ -97,7 +97,7 @@ class Test_Corpus extends WP_UnitTestCase {
 	}
 
 	public function test_corpus_reads_posts_in_bounded_chunks() {
-		$ids     = self::factory()->post->create_many( 2 * UNDERGROWTH_CORPUS_CHUNK + 1 );
+		$ids     = self::factory()->post->create_many( 2 * UNDERGROWTH_POST_CHUNK + 1 );
 		$selects = array();
 		$record  = static function ( $query ) use ( &$selects ) {
 			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_title, post_content' ) ) {
@@ -114,7 +114,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertCount( 3, $selects );
 
 		foreach ( $selects as $select ) {
-			$this->assertLessThanOrEqual( UNDERGROWTH_CORPUS_CHUNK, substr_count( $select, ',' ) - 1 );
+			$this->assertLessThanOrEqual( UNDERGROWTH_POST_CHUNK, substr_count( $select, ',' ) - 1 );
 		}
 	}
 
@@ -253,5 +253,59 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertCount( UNDERGROWTH_MAX_PROPOSALS, $this->proposed( $ids[0] ) );
 		// The source and the targets proposed, not every post that scored.
 		$this->assertLessThanOrEqual( 1 + UNDERGROWTH_MAX_PROPOSALS, count( $cached ) );
+	}
+
+	public function test_refresh_with_no_fitting_sentence_leaves_target_posts_out_of_the_cache() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+
+		$source  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$targets = array();
+
+		for ( $i = 0; $i < 6; $i++ ) {
+			$targets[] = $this->plant( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+		}
+
+		wp_cache_flush();
+		undergrowth_refresh_proposals( $source );
+
+		$this->assertSame( array(), $this->proposed( $source ) );
+
+		foreach ( $targets as $target ) {
+			$this->assertFalse( wp_cache_get( $target, 'posts' ) );
+		}
+	}
+
+	public function test_refresh_checks_target_posts_in_bounded_chunks() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+
+		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+
+		for ( $i = 0; $i < UNDERGROWTH_POST_CHUNK + 1; $i++ ) {
+			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 200, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+		}
+
+		$selects = array();
+		$record  = static function ( $query ) use ( &$selects ) {
+			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_status, post_password, post_type' ) ) {
+				$selects[] = $query;
+			}
+			return $query;
+		};
+		add_filter( 'query', $record );
+
+		undergrowth_refresh_proposals( $source );
+
+		remove_filter( 'query', $record );
+		$this->assertCount( 2, $selects );
 	}
 }
