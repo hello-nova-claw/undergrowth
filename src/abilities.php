@@ -1,7 +1,7 @@
 <?php
 /**
- * Abilities: what the plugin knows about a post, for agents and other
- * plugins, through the Abilities API in core.
+ * Abilities: what the plugin knows about a post, and the author's answer to
+ * a suggestion, for agents and other plugins, through the Abilities API in core.
  *
  * Only the author's own words and the plugin's arithmetic go out. No vector
  * or other model output is ever returned, and the only sentences are quotes
@@ -14,6 +14,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'wp_abilities_api_categories_init', 'undergrowth_register_ability_category' );
 add_action( 'wp_abilities_api_init', 'undergrowth_register_read_abilities' );
+add_action( 'wp_abilities_api_init', 'undergrowth_register_write_abilities' );
 
 /**
  * Registers the category every Undergrowth ability belongs to.
@@ -23,7 +24,7 @@ function undergrowth_register_ability_category(): void {
 		'undergrowth',
 		array(
 			'label'       => __( 'Undergrowth', 'undergrowth' ),
-			'description' => __( 'Read what Undergrowth knows about a post.', 'undergrowth' ),
+			'description' => __( 'Read what Undergrowth knows about a post, and accept or veto the links it suggests.', 'undergrowth' ),
 		)
 	);
 }
@@ -180,6 +181,82 @@ function undergrowth_register_read_abilities(): void {
 }
 
 /**
+ * Registers the abilities that accept or veto a suggested link.
+ *
+ * Each changes the site, so neither is ever public: they are kept out of
+ * REST and MCP, and can only be run from code on the site itself, by a user
+ * who can edit the post the link would sit in.
+ */
+function undergrowth_register_write_abilities(): void {
+	$abilities = array(
+		'undergrowth/accept-link' => array(
+			'label'       => __( 'Accept a link', 'undergrowth' ),
+			'description' => __( 'Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely.', 'undergrowth' ),
+			'callback'    => 'undergrowth_ability_accept_link',
+			'state'       => 'accepted',
+		),
+		'undergrowth/veto-link'   => array(
+			'label'       => __( 'Veto a link', 'undergrowth' ),
+			'description' => __( 'Vetoes a link between two posts, so it is never suggested again. An accepted link is left as it is.', 'undergrowth' ),
+			'callback'    => 'undergrowth_ability_veto_link',
+			'state'       => 'vetoed',
+		),
+	);
+
+	foreach ( $abilities as $name => $ability ) {
+		wp_register_ability(
+			$name,
+			array(
+				'label'               => $ability['label'],
+				'description'         => $ability['description'],
+				'category'            => 'undergrowth',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'source_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'ID of the post the link sits in.', 'undergrowth' ),
+							'minimum'     => 1,
+						),
+						'target_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'ID of the post the link points to.', 'undergrowth' ),
+							'minimum'     => 1,
+						),
+					),
+					'required'             => array( 'source_id', 'target_id' ),
+					'additionalProperties' => false,
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'source_id' => array( 'type' => 'integer' ),
+						'target_id' => array( 'type' => 'integer' ),
+						'state'     => array(
+							'type' => 'string',
+							'enum' => array( $ability['state'] ),
+						),
+					),
+					'required'   => array( 'source_id', 'target_id', 'state' ),
+				),
+				'execute_callback'    => $ability['callback'],
+				'permission_callback' => 'undergrowth_ability_can_edit_source_post',
+				'meta'                => array(
+					'annotations'  => array(
+						'readonly'    => false,
+						'destructive' => false,
+						'idempotent'  => true,
+					),
+					'public'       => false,
+					'show_in_rest' => false,
+					'mcp'          => array( 'public' => false ),
+				),
+			)
+		);
+	}
+}
+
+/**
  * Returns the input schema of the abilities that read one post.
  *
  * @return array<string, mixed> JSON schema.
@@ -227,6 +304,16 @@ function undergrowth_ability_post_schema(): array {
  */
 function undergrowth_ability_can_edit_post( $input ): bool {
 	return is_array( $input ) && isset( $input['post_id'] ) && current_user_can( 'edit_post', (int) $input['post_id'] );
+}
+
+/**
+ * Tells whether the current user may accept or veto a link from a post.
+ *
+ * @param mixed $input Ability input.
+ * @return bool True when the user can edit the post the link sits in.
+ */
+function undergrowth_ability_can_edit_source_post( $input ): bool {
+	return is_array( $input ) && isset( $input['source_id'] ) && current_user_can( 'edit_post', (int) $input['source_id'] );
 }
 
 /**
@@ -373,5 +460,74 @@ function undergrowth_ability_stage( WP_Post $post ): array {
 		'stage'   => $stage,
 		'pinned'  => 'composting' !== $stage && undergrowth_is_stage_pinned( $post->ID ),
 		'changes' => $changes,
+	);
+}
+
+/**
+ * Answers undergrowth/accept-link.
+ *
+ * @param array{source_id: int, target_id: int} $input Ability input.
+ * @return array{source_id: int, target_id: int, state: string}|WP_Error The link, or why nothing changed.
+ */
+function undergrowth_ability_accept_link( array $input ) {
+	$source_id = (int) $input['source_id'];
+	$target_id = (int) $input['target_id'];
+	$result    = undergrowth_accept_link( $source_id, $target_id );
+
+	if ( 'accepted' !== $result ) {
+		return undergrowth_ability_link_error( $result );
+	}
+
+	return array(
+		'source_id' => $source_id,
+		'target_id' => $target_id,
+		'state'     => 'accepted',
+	);
+}
+
+/**
+ * Answers undergrowth/veto-link.
+ *
+ * @param array{source_id: int, target_id: int} $input Ability input.
+ * @return array{source_id: int, target_id: int, state: string}|WP_Error The link, or why nothing changed.
+ */
+function undergrowth_ability_veto_link( array $input ) {
+	$source_id = (int) $input['source_id'];
+	$target_id = (int) $input['target_id'];
+
+	if ( ! undergrowth_veto_link( $source_id, $target_id ) ) {
+		return undergrowth_ability_link_error( 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone' );
+	}
+
+	return array(
+		'source_id' => $source_id,
+		'target_id' => $target_id,
+		'state'     => 'vetoed',
+	);
+}
+
+/**
+ * Says why accepting or vetoing a link changed nothing.
+ *
+ * The wording is the Link suggestions screen's, so the author reads the same
+ * reason wherever the request came from.
+ *
+ * @param string $reason 'gone', 'unchanged', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.
+ * @return WP_Error The error.
+ */
+function undergrowth_ability_link_error( string $reason ): WP_Error {
+	$messages = array(
+		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
+		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
+		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'needs_admin'  => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
+	);
+
+	return new WP_Error(
+		'undergrowth_' . $reason,
+		$messages[ $reason ] ?? $messages['gone'],
+		array( 'status' => 'gone' === $reason ? 404 : 409 )
 	);
 }
