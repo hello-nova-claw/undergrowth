@@ -433,12 +433,13 @@ function undergrowth_read_memory( string $text ): array {
  * Turns a date written in a file back into a time.
  *
  * @param string $date Date as Y-m-d.
- * @return int|null Midnight UTC on that day, or null when it is not a real date.
+ * @return int|null Midnight UTC on that day, or null when it is not a real date
+ *                  or falls before 1970, which the history keeps no record of.
  */
 function undergrowth_memory_day( string $date ): ?int {
 	$day = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, new DateTimeZone( 'UTC' ) );
 
-	if ( false === $day || $day->format( 'Y-m-d' ) !== $date ) {
+	if ( false === $day || $day->format( 'Y-m-d' ) !== $date || $day->getTimestamp() <= 0 ) {
 		return null;
 	}
 
@@ -495,11 +496,12 @@ function undergrowth_import_memory( int $post_id, string $text ) {
 			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 		}
 
+		if ( undergrowth_is_stage_pinned( $post_id ) !== $was_pinned ) {
+			return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+		}
+
 		return undergrowth_stage_not_saved();
 	}
-
-	undergrowth_import_history( $post_id, 'undergrowth_stage_log', undergrowth_stage_log( $post_id ), $read['changes'] );
-	undergrowth_import_history( $post_id, 'undergrowth_resurfacing_log', undergrowth_resurfacing_log( $post_id ), $read['resurfacing'] );
 
 	// The same effects as composting a post, or returning it, by hand.
 	if ( 'composting' === $read['stage'] && 'composting' !== $from ) {
@@ -508,7 +510,16 @@ function undergrowth_import_memory( int $post_id, string $text ) {
 		undergrowth_refresh_around( $post_id );
 	}
 
+	$complete = undergrowth_import_history( $post_id, 'undergrowth_stage_log', undergrowth_stage_log( $post_id ), $read['changes'] )
+		&& undergrowth_import_history( $post_id, 'undergrowth_resurfacing_log', undergrowth_resurfacing_log( $post_id ), $read['resurfacing'] );
+
 	undergrowth_write_memory( $post_id );
+
+	// The stage is in place by now, so a history row that could not be added
+	// leaves a partial import, which is said plainly rather than undone.
+	if ( ! $complete ) {
+		return new WP_Error( 'undergrowth_import_partial', __( 'The stage was imported, but some of its history could not be saved.', 'undergrowth' ) );
+	}
 
 	return true;
 }
@@ -524,8 +535,9 @@ function undergrowth_import_memory( int $post_id, string $text ) {
  * @param string                           $meta_key Meta key of the history.
  * @param array<int, array<string, mixed>> $have     Rows the post already has.
  * @param array<int, array<string, mixed>> $rows     Rows read from the file.
+ * @return bool True when every missing row was added.
  */
-function undergrowth_import_history( int $post_id, string $meta_key, array $have, array $rows ): void {
+function undergrowth_import_history( int $post_id, string $meta_key, array $have, array $rows ): bool {
 	$key = static function ( array $row ): string {
 		$day = wp_date( 'Y-m-d', $row['time'], new DateTimeZone( 'UTC' ) );
 		unset( $row['time'] );
@@ -543,6 +555,10 @@ function undergrowth_import_history( int $post_id, string $meta_key, array $have
 			continue;
 		}
 
-		add_post_meta( $post_id, $meta_key, $row );
+		if ( false === add_post_meta( $post_id, $meta_key, $row ) ) {
+			return false;
+		}
 	}
+
+	return true;
 }
