@@ -126,6 +126,8 @@ function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
  *
  * @param int $post_id Post ID.
  * @return string One of UNDERGROWTH_STAGES. Seedling when nothing valid is stored.
+ *
+ * @phpstan-impure It reads meta that the caller may have just changed.
  */
 function undergrowth_get_stage( int $post_id ): string {
 	$stage = get_post_meta( $post_id, 'undergrowth_stage', true );
@@ -138,6 +140,8 @@ function undergrowth_get_stage( int $post_id ): string {
  *
  * @param int $post_id Post ID.
  * @return bool True when pinned.
+ *
+ * @phpstan-impure It reads meta that the caller may have just changed.
  */
 function undergrowth_is_stage_pinned( int $post_id ): bool {
 	return (bool) get_post_meta( $post_id, 'undergrowth_stage_pinned', true );
@@ -380,4 +384,126 @@ function undergrowth_cycle_post( int $post_id ): void {
  */
 function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+}
+
+/**
+ * Checks that the current user may act on a post's stage.
+ *
+ * @param int $post_id Post ID.
+ * @return WP_Error|null Why the action is refused, or null when it may go ahead.
+ */
+function undergrowth_stage_action_error( int $post_id ): ?WP_Error {
+	$post = get_post( $post_id );
+
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
+		return new WP_Error( 'undergrowth_not_indexed', __( 'Only published posts in the garden have a growth stage.', 'undergrowth' ) );
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return new WP_Error( 'undergrowth_cannot_edit', __( 'You cannot change the growth stage of this post.', 'undergrowth' ) );
+	}
+
+	return null;
+}
+
+/**
+ * Returns the error for a stage change that could not be stored.
+ *
+ * @return WP_Error The error.
+ */
+function undergrowth_stage_not_saved(): WP_Error {
+	return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, so nothing was changed.', 'undergrowth' ) );
+}
+
+/**
+ * Pins a post's stage, so the monthly cycle leaves it alone.
+ *
+ * Pinning is an author action, so it takes effect at once. Any measured
+ * stage can be pinned, including those the measure cannot reach yet.
+ * Composting is outside the pinning rules: it is neither pinned nor
+ * pinnable.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $stage   Seedling, sprout, budding or evergreen.
+ * @return true|WP_Error True when pinned, or why it was refused.
+ */
+function undergrowth_pin_stage( int $post_id, string $stage ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( ! in_array( $stage, array( 'seedling', 'sprout', 'budding', 'evergreen' ), true ) ) {
+		return new WP_Error( 'undergrowth_unknown_stage', __( 'That stage cannot be pinned.', 'undergrowth' ) );
+	}
+
+	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
+		return new WP_Error( 'undergrowth_composting', __( 'A composting post cannot be pinned.', 'undergrowth' ) );
+	}
+
+	$was_pinned = undergrowth_is_stage_pinned( $post_id );
+
+	// The flag goes first, so the file written for the change shows the marker.
+	if ( ! $was_pinned ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+			return undergrowth_stage_not_saved();
+		}
+	}
+
+	if ( ! undergrowth_set_stage( $post_id, $stage, 'pin' ) ) {
+		// Only a flag added here is taken away; an earlier pin stays.
+		if ( ! $was_pinned ) {
+			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+
+			if ( undergrowth_is_stage_pinned( $post_id ) ) {
+				return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
+			}
+		}
+
+		return undergrowth_stage_not_saved();
+	}
+
+	return true;
+}
+
+/**
+ * Unpins a post's stage and measures it at once.
+ *
+ * The stage it had before the pin may be long out of date, so it is
+ * measured again rather than restored.
+ *
+ * @param int $post_id Post ID.
+ * @return true|WP_Error True when unpinned, or why it was refused.
+ */
+function undergrowth_unpin_stage( int $post_id ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+		return new WP_Error( 'undergrowth_not_pinned', __( 'This post\'s stage is not pinned.', 'undergrowth' ) );
+	}
+
+	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+
+	if ( undergrowth_is_stage_pinned( $post_id ) ) {
+		return undergrowth_stage_not_saved();
+	}
+
+	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' ) ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+			return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+		}
+
+		return undergrowth_stage_not_saved();
+	}
+
+	return true;
 }
