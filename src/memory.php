@@ -11,6 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
+add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
@@ -60,7 +61,7 @@ function undergrowth_filesystem(): ?WP_Filesystem_Base {
 }
 
 /**
- * Builds the text of a post's file from the links table.
+ * Builds the text of a post's file from its stage and the links table.
  *
  * Only the post's title, address and slug, other posts' addresses, and
  * sentences already quoted from the post are written.
@@ -98,27 +99,47 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		$links[ $state ][] = $line;
 	}
 
-	$lines = array(
-		'# ' . $post->post_title,
-		'url: ' . get_permalink( $post ),
-		'slug: ' . $post->post_name,
-		'updated: ' . wp_date( 'c', null, new DateTimeZone( 'UTC' ) ),
-		'',
-		'## stage',
-		'',
-		'## has',
-		'',
-		'## lacks',
-		'',
-		'## scent',
-		'',
-		'## proposed links',
+	$lines   = array_merge(
+		array(
+			'# ' . $post->post_title,
+			'url: ' . get_permalink( $post ),
+			'slug: ' . $post->post_name,
+			'updated: ' . wp_date( 'c', null, new DateTimeZone( 'UTC' ) ),
+			'',
+			'## stage',
+		),
+		undergrowth_memory_stage( $post->ID ),
+		array( '', '## has', '', '## lacks', '', '## scent', '', '## proposed links' ),
+		$links['proposed'],
+		array( '', '## accepted links' ),
+		$links['accepted'],
+		array( '', '## vetoes' ),
+		$links['vetoed']
 	);
-
-	$lines   = array_merge( $lines, $links['proposed'], array( '', '## accepted links' ), $links['accepted'], array( '', '## vetoes' ), $links['vetoed'] );
 	$lines[] = '';
 
 	return implode( "\n", $lines );
+}
+
+/**
+ * Builds the stage section of a post's file: the current stage, then one
+ * line for each recorded change, oldest first.
+ *
+ * Composting is never pinned, so it never carries the marker.
+ *
+ * @param int $post_id Post ID.
+ * @return string[] Lines of the section, without its heading.
+ */
+function undergrowth_memory_stage( int $post_id ): array {
+	$stage = undergrowth_get_stage( $post_id );
+	$lines = array( 'composting' !== $stage && undergrowth_is_stage_pinned( $post_id ) ? $stage . ' (pinned)' : $stage );
+
+	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
+		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ] ?? $change['reason'];
+		$lines[] = '- ' . gmdate( 'Y-m-d', $change['time'] ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
+	}
+
+	return $lines;
 }
 
 /**
