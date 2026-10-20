@@ -12,8 +12,9 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'post_updated', 'undergrowth_update_memory_around' );
-add_action( 'undergrowth_post_left_index', 'undergrowth_delete_memory' );
-add_action( 'deleted_post', 'undergrowth_delete_memory' );
+add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
+// After the post cache is cleared, so a deleted post no longer looks published.
+add_action( 'after_delete_post', 'undergrowth_update_memory_around' );
 
 /**
  * Returns the folder that holds the plugin's files for the current site.
@@ -88,8 +89,7 @@ function undergrowth_memory_text( WP_Post $post ): string {
 
 	foreach ( (array) $rows as $row ) {
 		$state = (string) $row['state'];
-		$url   = get_permalink( (int) $row['target_id'] );
-		$line  = '- ' . ( false !== $url ? $url : 'post ' . (int) $row['target_id'] . ' (deleted)' );
+		$line  = '- ' . undergrowth_memory_target( (int) $row['target_id'] );
 
 		if ( 'vetoed' !== $state ) {
 			$line .= ' | "' . $row['sentence'] . '"';
@@ -119,6 +119,30 @@ function undergrowth_memory_text( WP_Post $post ): string {
 	$lines[] = '';
 
 	return implode( "\n", $lines );
+}
+
+/**
+ * Names a link target in a file.
+ *
+ * Accepted links and vetoes are kept after their target leaves the index,
+ * so the file still records the decision. Only a target that is in the index
+ * is named by its address; an unpublished post's address is never written.
+ *
+ * @param int $target_id Target post ID.
+ * @return string The address, or a placeholder naming the post ID.
+ */
+function undergrowth_memory_target( int $target_id ): string {
+	$target = get_post( $target_id );
+
+	if ( ! $target instanceof WP_Post ) {
+		return 'post ' . $target_id . ' (deleted)';
+	}
+
+	if ( ! undergrowth_is_indexable( $target ) ) {
+		return 'post ' . $target_id . ' (not published)';
+	}
+
+	return (string) get_permalink( $target );
 }
 
 /**
