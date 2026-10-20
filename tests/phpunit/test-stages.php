@@ -869,6 +869,34 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_failed_pin_says_when_its_flag_could_not_be_taken_back() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_log_writes();
+		$this->fail_pin_flag( 'delete' );
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
+	}
+
+	public function test_failed_unpin_says_when_its_flag_could_not_be_put_back() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_log_writes();
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
+	}
+
 	public function test_missing_post_cannot_be_pinned() {
 		$this->log_in_editor();
 
