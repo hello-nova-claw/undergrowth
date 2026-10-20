@@ -341,9 +341,19 @@ class Test_Stages extends WP_UnitTestCase {
 		wp_unschedule_hook( 'undergrowth_stage_cycle' );
 
 		undergrowth_schedule_stage_cycle();
-		undergrowth_schedule_stage_cycle();
 
 		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_stage_cycle' ) );
+	}
+
+	public function test_cycle_that_is_already_scheduled_is_not_scheduled_again() {
+		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+
+		// An hour ahead, so a second event would land on a different
+		// timestamp instead of replacing this one.
+		$next = time() + HOUR_IN_SECONDS;
+		wp_schedule_event( $next, 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+
+		undergrowth_schedule_stage_cycle();
 
 		$events = array_filter(
 			_get_cron_array(),
@@ -351,7 +361,7 @@ class Test_Stages extends WP_UnitTestCase {
 				return isset( $hooks['undergrowth_stage_cycle'] );
 			}
 		);
-		$this->assertCount( 1, $events );
+		$this->assertSame( array( $next ), array_keys( $events ) );
 	}
 
 	public function test_cycle_is_scheduled_on_load_for_sites_that_did_not_reactivate() {
@@ -405,6 +415,18 @@ class Test_Stages extends WP_UnitTestCase {
 		}
 
 		$this->assertFalse( metadata_exists( 'post', $draft, 'undergrowth_stage' ) );
+	}
+
+	public function test_cycle_raises_a_stored_lower_stage() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		undergrowth_set_stage( $post_id, 'seedling' );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'sprout', get_post_meta( $post_id, 'undergrowth_stage', true ) );
 	}
 
 	public function test_cycle_skips_pinned_and_composted_posts() {
