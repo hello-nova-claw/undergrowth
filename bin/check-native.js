@@ -2,7 +2,7 @@
  * Fails when the plugin reaches for something WordPress already provides.
  *
  * Checks what PHPCS, ESLint and stylelint cannot: inline style attributes in
- * PHP, hard-coded colours in CSS, PHP mocking libraries, and npm packages
+ * src/, hard-coded colours in CSS, PHP mocking libraries, and npm packages
  * that are neither `@wordpress/*` nor on the allowlist below.
  * See "Use what WordPress already has" in CONTRIBUTING.md.
  *
@@ -54,13 +54,13 @@ function matchingLines( text, pattern ) {
 }
 
 /**
- * Finds style attributes in PHP or HTML, quoted or escaped.
+ * Finds style attributes in PHP, HTML or JSX, quoted, escaped or as a prop.
  *
- * @param {string} php File contents.
+ * @param {string} markup File contents.
  * @return {number[]} One-based line numbers.
  */
-function findInlineStyles( php ) {
-	return matchingLines( php, /(?<![\w$-])style\s*=\s*\\?["']/i );
+function findInlineStyles( markup ) {
+	return matchingLines( markup, /(?<![\w$-])style\s*=\s*(?:\\?["']|\{)/i );
 }
 
 /**
@@ -72,7 +72,7 @@ function findInlineStyles( php ) {
 function findHexColours( css ) {
 	return matchingLines(
 		css,
-		/:[^;{}]*#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})\b/i
+		/:[^;{}]*#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})\b(?![^;{}]*\{)/i
 	);
 }
 
@@ -144,7 +144,7 @@ function check( root ) {
 	for ( const path of walk( join( root, 'src' ) ) ) {
 		const text = readFileSync( path, 'utf8' );
 
-		if ( path.endsWith( '.php' ) ) {
+		if ( /\.(?:php|html?|jsx?|tsx?)$/.test( path ) ) {
 			for ( const line of findInlineStyles( text ) ) {
 				breaches.push( {
 					file: name( path ),
