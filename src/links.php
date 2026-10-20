@@ -277,9 +277,6 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 		return array();
 	}
 
-	// Loads every candidate's stage in one query rather than one per target.
-	update_meta_cache( 'post', array_keys( $pool ) );
-
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change on every refresh.
 	$decided = $wpdb->get_col(
 		$wpdb->prepare(
