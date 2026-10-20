@@ -47,9 +47,22 @@ Common prefixes: `Embeddings`, `Storage`, `Self-trade`, `Map`, `Stages`, `Prompt
 - PHP follows the [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/). PHPCS runs with WPCS and fails on any error or warning.
 - PHPStan runs at level 6. Do not add baseline entries to get a pull request through.
 - Prefix everything global: functions with `undergrowth_`, hooks with `undergrowth_`, options and meta keys with `undergrowth_`, abilities with `undergrowth/`, tables with `{$wpdb->prefix}undergrowth_`.
-- JavaScript follows `@wordpress/eslint-plugin` and uses `@wordpress/components` for UI. No other CSS or component frameworks.
+- JavaScript follows `@wordpress/eslint-plugin` and uses `@wordpress/components` for UI. No other CSS or component frameworks. See [Use what WordPress already has](#use-what-wordpress-already-has).
 - Nothing loads from outside the plugin. No CDN scripts, no remote fonts, no tracking, nothing that phones home. Outbound requests happen only to a provider the site owner has configured, and the settings screen says what is sent.
 - Escape late, sanitise early, check capabilities and nonces on every write.
+
+### Use what WordPress already has
+
+Undergrowth should feel like part of WordPress. Before you write anything custom, use the core equivalent. If there isn't one, say so in the pull request.
+
+- **Admin UI.** Core markup and classes: `.wrap`, one `h1`, `.notice` and `.notice-success`, `.button` and `.button-primary`, `.form-table`, `.description`. Core helpers: `submit_button()`, `WP_List_Table`, the Settings API, `add_posts_page()` and `add_options_page()`. Dashicons for icons.
+- **Styling.** No `style` attributes. If CSS is ever needed, it goes in an enqueued file and uses the admin colour scheme's custom properties, such as `--wp-admin-theme-color`, never a hard-coded colour.
+- **JavaScript.** `@wordpress/*` packages only: `components`, `i18n`, `api-fetch`, `data`, `element`. Build with `wp-scripts` and enqueue with the dependencies from the generated `.asset.php` file.
+- **Core APIs.** REST through `register_rest_route()` with a `permission_callback`. HTTP through `wp_remote_*()`. WP-Cron, options and transients for scheduling and storage. `WP_Filesystem` for files. `wp_kses()` for markup. Nonces and capabilities on every write.
+- **PHP tests.** `WP_UnitTestCase`, `self::factory()` for fixtures, `wp_set_current_user()` for roles. Fake HTTP with the `pre_http_request` filter and other behaviour with core hooks and filters. No Mockery, WP_Mock, Brain Monkey or PHPUnit mocks of WordPress functions.
+- **End-to-end tests.** `@wordpress/e2e-test-utils-playwright`: `admin`, `requestUtils` and `editor`, not raw navigation or SQL.
+
+CI enforces what a machine can: `npm run lint:css` refuses hard-coded colours, ESLint refuses imports of UI frameworks and mocking libraries, and `npm run check:native` refuses `style` attributes in `src/`, mocking libraries in `composer.json`, and npm packages that are neither `@wordpress/*` nor on the allowlist in `bin/check-native.js`.
 
 ### Comments
 
@@ -72,7 +85,7 @@ composer install && npm install
 npm run env:start
 composer lint && composer analyse
 npm run test:php
-npm run lint:js && npm run test:js
+npm run lint:js && npm run lint:css && npm run check:native && npm run test:js
 npm run test:e2e
 ```
 
