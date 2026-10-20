@@ -7,9 +7,10 @@
  * @package Undergrowth
  */
 
-// PHPUnit runs in this same site from the command line and expects no
-// provider, so the shortcuts below apply to browser requests only.
-if ( 'cli' === PHP_SAPI ) {
+// PHPUnit runs in this same site and expects no provider. Checking for the
+// test suite rather than the command line keeps the provider working in
+// WordPress Playground, where every request runs under the CLI SAPI.
+if ( function_exists( 'tests_add_filter' ) ) {
 	return;
 }
 
@@ -51,3 +52,4 @@ add_action(
 	},
 	20
 );
+
