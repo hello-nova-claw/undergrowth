@@ -451,4 +451,46 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 	public function test_prompt_log_is_protected_meta() {
 		$this->assertTrue( is_protected_meta( 'undergrowth_prompt_log', 'post' ) );
 	}
+
+	public function test_widget_names_a_source_it_has_no_wording_for_as_your_post() {
+		update_option(
+			'undergrowth_prompt',
+			array(
+				'key'      => 'other:1',
+				'source'   => 'other',
+				'post_id'  => $this->post_id,
+				'question' => self::QUESTION,
+				'time'     => time(),
+			)
+		);
+
+		$this->assertStringContainsString( 'from your post', $this->render() );
+	}
+
+	public function test_snoozing_a_prompt_that_is_not_waiting_changes_nothing() {
+		undergrowth_write_prompt();
+
+		$this->assertFalse( undergrowth_snooze_prompt( 'comment:999999' ) );
+		$this->assertSame( array(), get_option( 'undergrowth_snoozed_prompts', array() ) );
+	}
+
+	public function test_unreadable_snoozed_entry_is_skipped() {
+		undergrowth_write_prompt();
+		$this->choose( 'snooze' );
+		update_option( 'undergrowth_snoozed_prompts', array_merge( array( 'not a prompt' ), get_option( 'undergrowth_snoozed_prompts' ) ) );
+
+		do_action( 'undergrowth_prompt_cycle' );
+
+		$this->assertSame( self::QUESTION, undergrowth_current_prompt()['question'] );
+	}
+
+	public function test_unknown_notice_prints_nothing() {
+		set_current_screen( 'dashboard' );
+		$_GET['undergrowth_notice'] = 'praise';
+
+		ob_start();
+		undergrowth_render_prompt_notice();
+
+		$this->assertSame( '', (string) ob_get_clean() );
+	}
 }
