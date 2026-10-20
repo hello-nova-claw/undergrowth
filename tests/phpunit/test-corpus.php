@@ -308,4 +308,35 @@ class Test_Corpus extends WP_UnitTestCase {
 		remove_filter( 'query', $record );
 		$this->assertCount( 2, $selects );
 	}
+
+	public function test_post_deleted_after_the_corpus_was_built_has_no_distinctive_terms() {
+		$oca    = self::factory()->post->create( array( 'post_content' => 'Oca likes frost.' ) );
+		$corpus = undergrowth_build_corpus( array( $oca ) );
+
+		wp_delete_post( $oca, true );
+
+		$this->assertSame( array(), undergrowth_distinctive_terms( $oca, $corpus ) );
+	}
+
+	public function test_no_posts_to_check_gives_no_open_targets() {
+		$this->assertSame( array(), undergrowth_open_target_ids( array() ) );
+	}
+
+	public function test_ranking_stops_at_the_limit() {
+		add_filter(
+			'undergrowth_min_link_similarity',
+			static function () {
+				return -1.0;
+			}
+		);
+
+		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$best   = array();
+
+		for ( $i = 0; $i < 4; $i++ ) {
+			$best[] = $this->plant( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
+		}
+
+		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_rank_targets( $source, null, 2 ) ) );
+	}
 }
