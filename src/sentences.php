@@ -264,7 +264,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 	$best_score = 0.0;
 
 	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
-		if ( $sentence['linked'] ) {
+		if ( $sentence['linked'] || $sentence['quoted'] ) {
 			continue;
 		}
 
