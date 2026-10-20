@@ -65,6 +65,26 @@ class Test_Accept extends WP_UnitTestCase {
 		return (string) preg_replace( '#<a href="' . preg_quote( (string) get_permalink( $target ), '#' ) . '">(.*?)</a>#', '$1', $content );
 	}
 
+	/**
+	 * Pins a proposal to a sentence, so a test controls which one is used.
+	 *
+	 * @param int    $source   Source post ID.
+	 * @param int    $target   Target post ID.
+	 * @param string $sentence Sentence as stored.
+	 */
+	private function set_sentence( int $source, int $target, string $sentence ): void {
+		global $wpdb;
+
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'sentence' => $sentence ),
+			array(
+				'source_id' => $source,
+				'target_id' => $target,
+			)
+		);
+	}
+
 	public function test_most_distinctive_word_in_the_sentence_is_linked() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows in the Andes. I keep a few yacon plants nearby for their syrup.</p>' );
 
@@ -120,6 +140,29 @@ class Test_Accept extends WP_UnitTestCase {
 		$content = get_post( $oca )->post_content;
 
 		$this->assertStringStartsWith( '<p>Yacon is not grown here.', $content );
+		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
+	}
+
+	public function test_paragraphs_without_the_sentence_are_skipped() {
+		list( $oca, $yacon ) = $this->pair( '<p>Yacon is a cousin of the sunflower.</p><p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$this->set_sentence( $oca, $yacon, 'I keep yacon plants nearby for their syrup.' );
+
+		undergrowth_accept_link( $oca, $yacon );
+		$content = get_post( $oca )->post_content;
+
+		$this->assertStringStartsWith( '<p>Yacon is a cousin', $content );
+		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
+	}
+
+	public function test_text_inside_an_existing_link_is_never_linked_again() {
+		$elsewhere           = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		list( $oca, $yacon ) = $this->pair( '<p>See <a href="' . get_permalink( $elsewhere ) . '">my yacon notes</a> first. Oca grows here. I keep yacon plants for syrup.</p>' );
+		$this->set_sentence( $oca, $yacon, 'I keep yacon plants for syrup.' );
+
+		undergrowth_accept_link( $oca, $yacon );
+		$content = get_post( $oca )->post_content;
+
+		$this->assertStringContainsString( '>my yacon notes</a>', $content );
 		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
 	}
 
