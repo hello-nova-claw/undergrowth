@@ -207,6 +207,46 @@ class Test_Stages extends WP_UnitTestCase {
 		unregister_post_type( 'recipe' );
 	}
 
+	public function test_stage_can_be_read_through_rest_for_a_post_type_without_custom_fields() {
+		global $wp_rest_server;
+
+		register_post_type(
+			'recipe',
+			array(
+				'public'       => true,
+				'show_in_rest' => true,
+				'supports'     => array( 'title', 'editor' ),
+			)
+		);
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'recipe' );
+			}
+		);
+
+		undergrowth_register_stage_meta();
+
+		// Routes are built once per server, so a fresh one picks up the new type.
+		$wp_rest_server = null;
+
+		$post_id = self::factory()->post->create(
+			array(
+				'post_type'   => 'recipe',
+				'post_status' => 'publish',
+			)
+		);
+
+		$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/recipe/' . $post_id ) );
+		$data     = $response->get_data();
+
+		$this->assertSame( 'seedling', $data['meta']['undergrowth_stage'] );
+		$this->assertFalse( $data['meta']['undergrowth_stage_pinned'] );
+
+		unregister_post_type( 'recipe' );
+		$wp_rest_server = null;
+	}
+
 	public function test_stage_can_be_read_through_rest() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
