@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T07:04:22+00:00\n"
+"POT-Creation-Date: 2026-10-20T07:06:17+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -50,109 +50,113 @@ msgstr ""
 msgid "You cannot change this setting."
 msgstr ""
 
-#: src/admin.php:201
+#: src/admin.php:202
 msgid "Link suggestions screen"
 msgstr ""
 
-#: src/admin.php:204
+#: src/admin.php:205
 msgid "Suggestions"
 msgstr ""
 
-#: src/admin.php:205
+#: src/admin.php:206
 msgid "Growth stages"
 msgstr ""
 
-#: src/admin.php:242
+#: src/admin.php:243
 msgid "No published posts yet. Each post gets a growth stage once it is published."
 msgstr ""
 
-#: src/admin.php:246
+#: src/admin.php:247
 msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is."
 msgstr ""
 
-#: src/admin.php:263
+#: src/admin.php:264
 msgid "Suggest links between my posts"
 msgstr ""
 
-#: src/admin.php:265
+#: src/admin.php:266
 msgid "Save"
 msgstr ""
 
 #. translators: %s: address of the Undergrowth settings page.
-#: src/admin.php:274
+#: src/admin.php:275
 #, php-format
 msgid "Link suggestions need an embedding provider. <a href=\"%s\">Add an API key in Settings</a> to start."
 msgstr ""
 
-#: src/admin.php:280
+#: src/admin.php:281
 msgid "Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on."
 msgstr ""
 
-#: src/admin.php:287
+#: src/admin.php:288
 msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
 msgstr ""
 
-#: src/admin.php:289
+#: src/admin.php:290
 msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
 msgstr ""
 
-#: src/admin.php:307
+#: src/admin.php:308
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
-#: src/admin.php:308
+#: src/admin.php:309
 msgid "Your choice is saved."
 msgstr ""
 
-#: src/admin.php:309
+#: src/admin.php:310
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
-#: src/admin.php:310
+#: src/admin.php:311
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:311
+#: src/admin.php:312
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
-#: src/admin.php:312
+#: src/admin.php:313
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/admin.php:313
+#: src/admin.php:314
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/admin.php:314
+#: src/admin.php:315
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:315
+#: src/admin.php:316
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
-#: src/admin.php:316
+#: src/admin.php:317
 msgid "Stage pinned. The monthly cycle will leave it as it is."
 msgstr ""
 
-#: src/admin.php:317
+#: src/admin.php:318
 msgid "Stage unpinned and measured again from the links you have accepted."
 msgstr ""
 
-#: src/admin.php:318
+#: src/admin.php:319
 msgid "That stage cannot be pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:319
+#: src/admin.php:320
 msgid "A composting post cannot be pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:320
+#: src/admin.php:321
 msgid "That stage was not pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:335
+#: src/admin.php:322
+msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
+msgstr ""
+
+#: src/admin.php:337
 msgid "See the change"
 msgstr ""
 
