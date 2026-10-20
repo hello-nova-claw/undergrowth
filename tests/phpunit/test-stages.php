@@ -582,7 +582,35 @@ class Test_Stages extends WP_UnitTestCase {
 
 		// Separate rows are appended one insert at a time, so two writers
 		// at once cannot overwrite each other's entry.
-		$this->assertCount( 2, get_post_meta( $post_id, 'undergrowth_stage_log' ) );
+		$this->assertCount( 2, get_post_meta( $post_id, 'undergrowth_stage_log', false ) );
+	}
+
+	public function test_change_that_cannot_be_recorded_is_undone() {
+		list( $post_id ) = $this->publish( 1 );
+		$announced       = 0;
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+		add_action(
+			'undergrowth_stage_changed',
+			static function () use ( &$announced ) {
+				++$announced;
+			}
+		);
+
+		$this->assertFalse( undergrowth_set_stage( $post_id, 'sprout' ) );
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+
+		update_post_meta( $post_id, 'undergrowth_stage', 'budding' );
+
+		$this->assertFalse( undergrowth_set_stage( $post_id, 'evergreen', 'pin' ) );
+		$this->assertSame( 'budding', undergrowth_get_stage( $post_id ) );
+		$this->assertSame( 0, $announced );
 	}
 
 	public function test_change_of_stage_announces_itself() {
