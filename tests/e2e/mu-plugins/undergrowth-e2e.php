@@ -87,7 +87,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -117,6 +117,33 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				return array(
 					'time'   => 1767225600,
 					'status' => 429,
+				);
+			}
+		);
+		break;
+
+	case 'prompt-key-saved':
+		add_filter(
+			'pre_option_undergrowth_anthropic_api_key',
+			static function () {
+				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		break;
+
+	case 'prompt-last-error':
+		add_filter(
+			'pre_option_undergrowth_anthropic_api_key',
+			static function () {
+				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		add_filter(
+			'pre_option_undergrowth_last_prompt_error',
+			static function () {
+				return array(
+					'time'   => 1767225600,
+					'status' => 529,
 				);
 			}
 		);
