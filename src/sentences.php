@@ -21,19 +21,42 @@ const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}
  *
  * Block boundaries such as paragraphs, headings and list items always end a
  * sentence. Text inside a link is kept but the sentence is marked, because a
- * sentence that already holds a link is no place for another.
+ * sentence that already holds a link is no place for another. Text inside a
+ * quote or a Custom HTML block is marked too, because it is not the author's
+ * own paragraph to link from.
  *
  * @param string $html Post content.
- * @return array<int, array{text: string, linked: bool}> Sentences in reading order.
+ * @return array<int, array{text: string, linked: bool, quoted: bool}> Sentences in reading order.
  */
 function undergrowth_split_sentences( string $html ): array {
-	$open  = "\u{E000}";
-	$close = "\u{E001}";
-	$html  = strip_shortcodes( $html );
-	$html  = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
-	$html  = (string) preg_replace( '#</a\s*>#i', $close, $html );
-	$html  = (string) preg_replace( '#</(p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>#i', "\n", $html );
-	$text  = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$open    = "\u{E000}";
+	$close   = "\u{E001}";
+	$quoted  = "\u{E002}";
+	$content = strip_shortcodes( $html );
+
+	// Every block boundary ends a sentence, and so does the start of a quote
+	// or of any block, so text either side of one never runs together. Text
+	// that ends inside someone else's words has every line marked, because a
+	// line break inside it also ends a sentence.
+	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)\s*>|<br\s*/?>|<blockquote\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
+	$html   = '';
+
+	for ( $i = 0, $count = count( $pieces ); $i < $count; $i += 2 ) {
+		$piece_text = $pieces[ $i ][0];
+		$ends_at    = $pieces[ $i + 1 ][1] ?? strlen( $content );
+
+		// Only text needs marking, and the check reads everything before it,
+		// so pieces holding nothing but tags are skipped.
+		if ( '' !== trim( wp_strip_all_tags( $piece_text ) ) && undergrowth_inside_others_words( substr( $content, 0, $ends_at ) ) ) {
+			$piece_text = str_replace( "\n", $quoted . "\n", $piece_text ) . $quoted;
+		}
+
+		$html .= $piece_text . ( isset( $pieces[ $i + 1 ] ) ? "\n" : '' );
+	}
+
+	$html = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
+	$html = (string) preg_replace( '#</a\s*>#i', $close, $html );
+	$text = html_entity_decode( wp_strip_all_tags( $html, false ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	$sentences = array();
 
@@ -43,7 +66,8 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
-		$parts = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', $block );
+		$in_quote = false !== strpos( $block, $quoted );
+		$parts    = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
@@ -68,12 +92,50 @@ function undergrowth_split_sentences( string $html ): array {
 				$sentences[] = array(
 					'text'   => $part,
 					'linked' => $linked,
+					'quoted' => $in_quote,
 				);
 			}
 		}
 	}
 
 	return $sentences;
+}
+
+/**
+ * Tells whether a point in post content falls inside a quote or a Custom HTML block.
+ *
+ * A quote holds someone else's words and a Custom HTML block holds markup
+ * the author wrote by hand, so neither is the author's paragraph to change.
+ *
+ * @param string $before Content up to the point.
+ * @return bool True when the point is inside one of those.
+ */
+function undergrowth_inside_others_words( string $before ): bool {
+	// Only real tags count, never tag-like text inside a comment or a quoted
+	// attribute value. Comments and other tags are matched whole and skipped,
+	// so the scan stops only on a quote's own tags, also matched whole.
+	$attributes = '(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>';
+	$depth      = 0;
+
+	preg_match_all( '#(?:<!--.*?-->|<(?!/?blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)|<(/?)blockquote(?=[\s/>])' . $attributes . '#is', $before, $tags );
+
+	// In document order, so a stray closing tag never cancels a later quote.
+	foreach ( $tags[1] as $slash ) {
+		$depth = '/' === $slash ? max( 0, $depth - 1 ) : $depth + 1;
+	}
+
+	if ( $depth > 0 ) {
+		return true;
+	}
+
+	foreach ( array( 'html', 'quote', 'pullquote' ) as $block ) {
+		// A self-closing marker such as <!-- wp:html /--> opens nothing.
+		if ( preg_match_all( '#<!--\s+wp:' . $block . '(?:\s(?:(?!-->).)*)?(?<!/)-->#s', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
@@ -212,7 +274,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 	$best_score = 0.0;
 
 	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
-		if ( $sentence['linked'] ) {
+		if ( $sentence['linked'] || $sentence['quoted'] ) {
 			continue;
 		}
 
