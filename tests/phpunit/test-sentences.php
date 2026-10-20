@@ -171,6 +171,30 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_closing_tag_with_a_space_still_ends_the_quote() {
+		$sentences = undergrowth_split_sentences( '<blockquote>Quoted sentence</blockquote ><p>Mine.</p>' );
+
+		$this->assertSame(
+			array(
+				'Quoted sentence' => true,
+				'Mine.'           => false,
+			),
+			array_column( $sentences, 'quoted', 'text' )
+		);
+	}
+
+	public function test_stray_closing_tag_does_not_cancel_a_later_quote() {
+		$sentences = undergrowth_split_sentences( '<p>Mine.</p></blockquote><blockquote><p>Quoted sentence.</p></blockquote>' );
+
+		$this->assertSame(
+			array(
+				'Mine.'            => false,
+				'Quoted sentence.' => true,
+			),
+			array_column( $sentences, 'quoted', 'text' )
+		);
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
