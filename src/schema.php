@@ -135,9 +135,12 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	delete_option( 'undergrowth_cluster_leaders' );
+	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
+	delete_post_meta_by_key( 'undergrowth_cluster' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	delete_post_meta_by_key( 'undergrowth_stage_log' );
