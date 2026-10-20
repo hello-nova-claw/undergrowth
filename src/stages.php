@@ -118,7 +118,7 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
  * @return bool True for the stage keys, otherwise unchanged.
  */
 function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log' ), true ) ? true : $is_protected;
+	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log', 'undergrowth_resurfacing_log' ), true ) ? true : $is_protected;
 }
 
 /**
