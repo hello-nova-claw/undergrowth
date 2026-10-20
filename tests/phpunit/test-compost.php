@@ -249,6 +249,48 @@ class Test_Compost extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $draft, 'undergrowth_stage' ) );
 	}
 
+	/**
+	 * Makes every stage log write fail, as a full disk or a filter might.
+	 */
+	private function fail_log_writes(): void {
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_compost_that_cannot_be_saved_changes_nothing() {
+		list( $oca, $yacon ) = $this->plant_garden();
+		undergrowth_pin_stage( $oca, 'evergreen' );
+		$rows = $this->rows( $oca );
+		$this->fail_log_writes();
+
+		$result = undergrowth_compost_post( $oca );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $oca ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
+		$this->assertSame( $rows, $this->rows( $oca ) );
+	}
+
+	public function test_return_that_cannot_be_saved_leaves_the_post_composting() {
+		list( $oca ) = $this->plant_garden();
+		undergrowth_compost_post( $oca );
+		$this->fail_log_writes();
+
+		$result = undergrowth_return_post( $oca );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'composting', undergrowth_get_stage( $oca ) );
+		$this->assertSame( array(), $this->proposed( $oca ) );
+	}
+
 	public function test_compost_and_return_are_written_to_the_file() {
 		list( $oca ) = $this->plant_garden();
 
