@@ -165,8 +165,11 @@ function comment( result, base ) {
 		lines.push(
 			'<details><summary>Unchanged</summary>',
 			'',
+			'| Shot | Before and after (identical) |',
+			'| --- | --- |',
 			...result.unchanged.map(
-				( name ) => `- ${ link( 'after', name ) }`
+				( name ) =>
+					`| ${ link( 'after', name ) } | <img src="${ base }/after/${ name }?raw=true" width="200" alt="${ name }"> |`
 			),
 			'',
 			'</details>'
