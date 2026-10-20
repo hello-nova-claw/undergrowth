@@ -69,7 +69,7 @@ test.describe( 'Link suggestions screen', () => {
 			const rows = page.locator( 'table.undergrowth-links tbody tr' );
 			const veto = rows
 				.first()
-				.locator( 'form:has(input[value="undergrowth_veto"]) button' );
+				.locator( 'button[form^="undergrowth-veto-"]' );
 
 			await veto.focus();
 			await expect( veto ).toBeFocused();
@@ -88,9 +88,7 @@ test.describe( 'Link suggestions screen', () => {
 				.filter( {
 					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
 				} );
-			const accept = row.locator(
-				'form:has(input[value="undergrowth_accept"]) button'
-			);
+			const accept = row.locator( 'button[form^="undergrowth-accept-"]' );
 
 			await accept.focus();
 			await expect( accept ).toBeFocused();
