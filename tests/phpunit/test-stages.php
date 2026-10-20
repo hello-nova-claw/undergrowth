@@ -17,6 +17,122 @@ class Test_Stages extends WP_UnitTestCase {
 		undergrowth_register_stage_meta();
 	}
 
+	/**
+	 * Stores a link row between two posts.
+	 *
+	 * @param int    $source_id Source post ID.
+	 * @param int    $target_id Target post ID.
+	 * @param string $state     Row state.
+	 */
+	private function link( int $source_id, int $target_id, string $state = 'accepted' ): void {
+		global $wpdb;
+
+		$wpdb->insert(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $source_id,
+				'target_id'  => $target_id,
+				'state'      => $state,
+				'score'      => 0.5,
+				'sentence'   => '',
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+	}
+
+	/**
+	 * Publishes posts.
+	 *
+	 * @param int $count How many.
+	 * @return int[] Post IDs.
+	 */
+	private function publish( int $count ): array {
+		return self::factory()->post->create_many( $count, array( 'post_status' => 'publish' ) );
+	}
+
+	public function test_post_with_no_accepted_links_measures_seedling() {
+		list( $post_id ) = $this->publish( 1 );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_with_one_accepted_link_measures_seedling() {
+		list( $post_id, $other ) = $this->publish( 2 );
+
+		$this->link( $post_id, $other );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $other ) );
+	}
+
+	public function test_post_with_two_accepted_links_measures_sprout() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_links_both_ways_between_two_posts_count_as_two() {
+		list( $post_id, $other ) = $this->publish( 2 );
+
+		$this->link( $post_id, $other );
+		$this->link( $other, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $other ) );
+	}
+
+	public function test_proposed_and_vetoed_links_do_not_count() {
+		list( $post_id, $a, $b, $c ) = $this->publish( 4 );
+
+		$this->link( $post_id, $a, 'proposed' );
+		$this->link( $post_id, $b, 'vetoed' );
+		$this->link( $c, $post_id, 'proposed' );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_accepted_link_to_a_post_that_left_the_index_does_not_count() {
+		list( $post_id, $deleted, $draft, $live ) = $this->publish( 4 );
+
+		$this->link( $post_id, $deleted );
+		$this->link( $draft, $post_id );
+		$this->link( $post_id, $live );
+
+		wp_delete_post( $deleted, true );
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_many_accepted_links_still_measure_sprout_without_clusters() {
+		$posts   = $this->publish( 8 );
+		$post_id = array_shift( $posts );
+
+		foreach ( $posts as $other ) {
+			$this->link( $post_id, $other );
+			$this->link( $other, $post_id );
+		}
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_measure_ignores_a_stored_stage() {
+		list( $post_id ) = $this->publish( 1 );
+
+		undergrowth_set_stage( $post_id, 'composting' );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
 	public function test_post_with_no_stored_stage_reads_as_seedling() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
