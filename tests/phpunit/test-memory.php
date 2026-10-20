@@ -701,6 +701,28 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertCount( 1, undergrowth_stage_log( $oca ) );
 	}
 
+	public function test_imported_history_reads_oldest_first_after_newer_rows() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_set_stage( $oca, 'sprout' );
+		undergrowth_compost_post( $oca );
+		undergrowth_log_resurfacing( $oca, 'shown' );
+		$today = wp_date( 'Y-m-d', null, new DateTimeZone( 'UTC' ) );
+
+		undergrowth_import_memory( $oca, "## stage\ncomposting\n- 2025-01-01: seedling -> evergreen (pinned by the author)\n## resurfacing\n- 2025-06-01: signal dismissed by the author\n" );
+
+		$this->assertSame( array( 'pin', 'cycle', 'compost' ), wp_list_pluck( undergrowth_stage_log( $oca ), 'reason' ) );
+		$this->assertSame( array( 'dismissed', 'shown' ), wp_list_pluck( undergrowth_resurfacing_log( $oca ), 'event' ) );
+		$this->assertSame(
+			array(
+				'- 2025-06-01: signal dismissed by the author',
+				'- ' . $today . ': signal shown',
+			),
+			$this->section( (string) $this->read( $oca ), 'resurfacing' )
+		);
+	}
+
 	public function test_import_needs_permission_to_edit_the_post() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
