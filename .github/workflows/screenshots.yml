@@ -27,16 +27,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  catalogue:
+  capture:
     name: Before and after
     # Pull requests from forks get a read-only token, and their code must not
     # run with write access anyway.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # This job runs the pull request's code, so it gets no write access. The
+    # publish job below writes, and runs none of it.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     env:
       SHOTS: ${{ github.workspace }}/shots
     steps:
@@ -82,12 +83,39 @@ jobs:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
         run: npm run screenshots
 
+      # The screenshots branch commit doesn't exist yet, so the publish job
+      # fills in its SHA.
+      - name: Write the comment
+        working-directory: head
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
+            "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA/pr-${PR}" > "${SHOTS}/comment.md"
+
+          printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
+            "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${SHOTS}/comment.md"
+
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: screenshots-pr-${{ github.event.pull_request.number }}
           path: shots/
-          if-no-files-found: ignore
           retention-days: 90
+
+  publish:
+    name: Publish
+    needs: capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: screenshots-pr-${{ github.event.pull_request.number }}
+          path: shots
 
       # Each pull request owns pr-<number>/ on the orphan screenshots branch.
       # Every push replaces that folder in a new commit, so the history keeps
@@ -100,6 +128,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
+          shots="$PWD/shots"
           mkdir branch && cd branch
           git init -q
           git config user.name 'github-actions[bot]'
@@ -118,8 +147,8 @@ jobs:
             rm -rf "pr-${PR}"
             mkdir -p "pr-${PR}"
             for side in before after; do
-              if [ -d "${SHOTS}/${side}" ]; then
-                cp -R "${SHOTS}/${side}" "pr-${PR}/${side}"
+              if [ -d "${shots}/${side}" ]; then
+                cp -R "${shots}/${side}" "pr-${PR}/${side}"
               fi
             done
 
@@ -146,17 +175,13 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Post or update the comment
-        working-directory: head
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
-            "https://github.com/${REPOSITORY}/blob/${SHA}/pr-${PR}" > "${RUNNER_TEMP}/comment.md"
-          printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
-            "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${RUNNER_TEMP}/comment.md"
+          sed "s/SCREENSHOTS_SHA/${SHA}/g" shots/comment.md > "${RUNNER_TEMP}/comment.md"
 
           id=$(gh api --paginate "repos/${REPOSITORY}/issues/${PR}/comments" \
             --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- undergrowth-screenshots -->"))) | .id' | head -n 1)
