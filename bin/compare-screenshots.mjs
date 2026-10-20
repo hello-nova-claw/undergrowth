@@ -79,6 +79,9 @@ function differs( a, b ) {
  * Sorts every shot into new, changed, removed or unchanged, and lists the
  * ones the pull request's build skipped.
  *
+ * The skipped list is not a fifth outcome: a state the base had and the pull
+ * request lacks is both removed and skipped, and appears in both lists.
+ *
  * @param {string} before Folder of shots from the base branch.
  * @param {string} after  Folder of shots from the pull request.
  * @return {{added: string[], changed: string[], removed: string[], unchanged: string[], skipped: string[]}} Shot names by outcome.
