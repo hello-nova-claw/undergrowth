@@ -23,6 +23,7 @@ const UNDERGROWTH_STAGE_REASONS = array(
 // Late, so a filter that adds post types to the index has been added first.
 add_action( 'init', 'undergrowth_register_stage_meta', 20 );
 add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
+add_action( 'add_meta_boxes', 'undergrowth_remove_added_custom_fields_box', 99 );
 add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
@@ -39,10 +40,11 @@ add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
 function undergrowth_register_stage_meta(): void {
 	foreach ( undergrowth_indexed_post_types() as $post_type ) {
 		// The REST API leaves out the meta of any post type without this
-		// support. The keys are protected, so the Custom Fields box it
-		// switches on never lists them.
+		// support. The Custom Fields box it would also switch on is removed
+		// again, so the editor looks the same as before.
 		if ( ! post_type_supports( $post_type, 'custom-fields' ) ) {
 			add_post_type_support( $post_type, 'custom-fields' );
+			undergrowth_custom_fields_added( $post_type );
 		}
 
 		register_post_meta(
@@ -74,6 +76,35 @@ function undergrowth_register_stage_meta(): void {
 				'auth_callback' => '__return_false',
 			)
 		);
+	}
+}
+
+/**
+ * Remembers the post types given custom-fields support only so the REST API
+ * includes the stage keys.
+ *
+ * @param string $post_type Post type to add to the list, or an empty string to only read it.
+ * @return string[] Post types on the list.
+ */
+function undergrowth_custom_fields_added( string $post_type = '' ): array {
+	static $added = array();
+
+	if ( '' !== $post_type ) {
+		$added[ $post_type ] = true;
+	}
+
+	return array_keys( $added );
+}
+
+/**
+ * Removes the Custom Fields box from post types that had no such box before
+ * the plugin added the support.
+ *
+ * @param string $post_type Post type of the edit screen.
+ */
+function undergrowth_remove_added_custom_fields_box( $post_type ): void {
+	if ( in_array( $post_type, undergrowth_custom_fields_added(), true ) ) {
+		remove_meta_box( 'postcustom', $post_type, 'normal' );
 	}
 }
 

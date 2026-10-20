@@ -247,6 +247,35 @@ class Test_Stages extends WP_UnitTestCase {
 		$wp_rest_server = null;
 	}
 
+	public function test_custom_fields_box_stays_off_for_a_type_that_only_gained_support_for_rest() {
+		global $wp_meta_boxes;
+
+		require_once ABSPATH . 'wp-admin/includes/template.php';
+
+		register_post_type( 'recipe', array( 'supports' => array( 'title' ) ) );
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'recipe' );
+			}
+		);
+
+		undergrowth_register_stage_meta();
+
+		$post = self::factory()->post->create_and_get( array( 'post_type' => 'recipe' ) );
+
+		foreach ( array( 'recipe', 'post' ) as $post_type ) {
+			add_meta_box( 'postcustom', 'Custom Fields', '__return_null', $post_type, 'normal', 'core' );
+			do_action( 'add_meta_boxes', $post_type, $post );
+		}
+
+		$this->assertFalse( $wp_meta_boxes['recipe']['normal']['core']['postcustom'] );
+		$this->assertIsArray( $wp_meta_boxes['post']['normal']['core']['postcustom'] );
+
+		unregister_post_type( 'recipe' );
+		$wp_meta_boxes = null;
+	}
+
 	public function test_stage_can_be_read_through_rest() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
