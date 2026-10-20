@@ -153,6 +153,22 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'value="undergrowth_pin"', $html );
 	}
 
+	public function test_stages_tab_lists_nothing_when_no_post_type_is_indexed() {
+		self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'wp-list-table', $html );
+		$this->assertStringNotContainsString( 'value="undergrowth_pin"', $html );
+		$this->assertStringContainsString( 'No published posts yet', $html );
+	}
+
 	public function test_unpinned_post_offers_a_labelled_stage_choice_and_pin_button() {
 		$oca = self::factory()->post->create(
 			array(
