@@ -150,7 +150,9 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	// The files hold no secrets, but they are the owner's notes, not pages
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
-	// Without its protection files, the folder is never written to at all.
+	// Without its protection files, the folder is never written to at all. A
+	// file that exists with other contents, such as one left half-written, is
+	// rewritten too.
 	$protection = array(
 		'index.php' => "<?php\n// Silence is golden.\n",
 		'.htaccess' => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
@@ -159,7 +161,9 @@ function undergrowth_write_memory( int $post_id ): bool {
 	foreach ( $protection as $name => $contents ) {
 		$path = $root . '/' . $name;
 
-		if ( ! $filesystem->is_file( $path ) && ! $filesystem->put_contents( $path, $contents, FS_CHMOD_FILE ) ) {
+		$intact = $filesystem->is_file( $path ) && $contents === $filesystem->get_contents( $path );
+
+		if ( ! $intact && ! $filesystem->put_contents( $path, $contents, FS_CHMOD_FILE ) ) {
 			undergrowth_record_file_error( 'no_protection' );
 			return false;
 		}
