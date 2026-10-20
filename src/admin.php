@@ -173,6 +173,7 @@ function undergrowth_finish_stage_action( $result, string $success ): void {
 		'undergrowth_unknown_stage' => 'stage_refused',
 		'undergrowth_composting'    => 'stage_composting',
 		'undergrowth_not_pinned'    => 'not_pinned',
+		'undergrowth_not_saved'     => 'stage_not_saved',
 	);
 
 	if ( is_wp_error( $result ) && ! isset( $notices[ $result->get_error_code() ] ) ) {
@@ -318,6 +319,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'stage_refused'    => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
 		'stage_composting' => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
 		'not_pinned'       => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_not_saved'  => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
