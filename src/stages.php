@@ -185,12 +185,13 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 		);
 
 		// A change the file would never show is undone, so the stage and
-		// its record always agree.
+		// its record always agree. Only the value written here is undone,
+		// never one another request stored since.
 		if ( false === $logged ) {
 			if ( $stored ) {
-				update_post_meta( $post_id, 'undergrowth_stage', $from );
+				update_post_meta( $post_id, 'undergrowth_stage', $from, $stage );
 			} else {
-				delete_post_meta( $post_id, 'undergrowth_stage' );
+				delete_post_meta( $post_id, 'undergrowth_stage', $stage );
 			}
 
 			return false;
