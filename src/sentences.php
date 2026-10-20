@@ -46,7 +46,10 @@ function undergrowth_split_sentences( string $html ): array {
 		if ( 0 === $i % 2 ) {
 			$html .= $piece_text;
 		} else {
-			$html .= ( undergrowth_inside_others_words( substr( $content, 0, $piece_at ) ) ? $quoted : '' ) . "\n";
+			// Only text needs marking, and the check reads everything before
+			// it, so boundaries with nothing but tags before them are skipped.
+			$marked = '' !== trim( wp_strip_all_tags( $pieces[ $i - 1 ][0] ) ) && undergrowth_inside_others_words( substr( $content, 0, $piece_at ) );
+			$html  .= ( $marked ? $quoted : '' ) . "\n";
 		}
 	}
 
