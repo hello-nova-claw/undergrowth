@@ -2,6 +2,18 @@
 	"extends": "@wordpress/stylelint-config/scss",
 	"rules": {
 		"color-named": "never",
-		"color-no-hex": true
+		"color-no-hex": true,
+		"function-disallowed-list": [
+			"rgb",
+			"rgba",
+			"hsl",
+			"hsla",
+			"hwb",
+			"lab",
+			"lch",
+			"oklab",
+			"oklch",
+			"color"
+		]
 	}
 }
