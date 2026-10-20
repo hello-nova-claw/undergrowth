@@ -130,6 +130,8 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	delete_post_meta_by_key( 'undergrowth_stage' );
+	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	undergrowth_delete_memory_folder();
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
