@@ -133,6 +133,24 @@ function undergrowth_get_stage( int $post_id ): string {
 }
 
 /**
+ * Names a stage for the screen.
+ *
+ * @param string $stage One of UNDERGROWTH_STAGES.
+ * @return string Translated name.
+ */
+function undergrowth_stage_label( string $stage ): string {
+	$labels = array(
+		'seedling'   => _x( 'Seedling', 'growth stage', 'undergrowth' ),
+		'sprout'     => _x( 'Sprout', 'growth stage', 'undergrowth' ),
+		'budding'    => _x( 'Budding', 'growth stage', 'undergrowth' ),
+		'evergreen'  => _x( 'Evergreen', 'growth stage', 'undergrowth' ),
+		'composting' => _x( 'Composting', 'growth stage', 'undergrowth' ),
+	);
+
+	return $labels[ $stage ] ?? $labels['seedling'];
+}
+
+/**
  * Tells whether the author has pinned a post's stage.
  *
  * @param int $post_id Post ID.
