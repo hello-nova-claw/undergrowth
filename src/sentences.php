@@ -126,7 +126,7 @@ function undergrowth_others_words_spans( string $html ): array {
 	$attributes = '(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>';
 	$blocks     = '(?:html|quote|pullquote)';
 
-	preg_match_all(
+	$scanned = preg_match_all(
 		'#(?:<!--(?!\s+/?wp:' . $blocks . '[\s/]).*?-->|<(?!/?blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)'
 		. '|<(?<tag>/?)blockquote(?=[\s/>])' . $attributes
 		. '|<!--\s+(?<marker>/?)wp:(?<block>' . $blocks . ')(?:\s(?:(?!-->).)*)?(?<!/)-->#is',
@@ -134,6 +134,12 @@ function undergrowth_others_words_spans( string $html ): array {
 		$found,
 		PREG_SET_ORDER | PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL
 	);
+
+	// A scan that fails, such as at the backtrack limit, must never make
+	// someone else's words look like the author's, so all of it counts.
+	if ( false === $scanned ) {
+		return array( array( 0, PHP_INT_MAX ) );
+	}
 
 	$depths = array();
 	$spans  = array();
