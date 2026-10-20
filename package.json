@@ -13,6 +13,7 @@
 		"env:stop": "wp-env stop",
 		"playground": "wp-playground-cli server --mount=.:/wordpress/wp-content/plugins/undergrowth --mount=./tests/e2e/mu-plugins:/wordpress/wp-content/mu-plugins --blueprint=tests/e2e/playground/preview.json",
 		"lint:js": "wp-scripts lint-js",
+		"check:native": "node bin/check-native.js",
 		"test:js": "wp-scripts test-unit-jest --passWithNoTests",
 		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit",
 		"test:php:multisite": "wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpunit -c phpunit-multisite.xml.dist",
