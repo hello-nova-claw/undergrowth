@@ -119,6 +119,8 @@ class Test_Schema extends WP_UnitTestCase {
 		update_option( 'undergrowth_prompt', array( 'key' => 'comment:1' ) );
 		$post_id = self::factory()->post->create();
 		add_post_meta( $post_id, 'undergrowth_prompt_keys', 'comment:1' );
+		add_post_meta( $post_id, 'undergrowth_prompt_log', array( 'event' => 'asked' ) );
+		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
 		wp_schedule_single_event( time(), 'undergrowth_write_prompt' );
 		undergrowth_schedule_prompt_cycle();
 
@@ -145,6 +147,8 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_last_prompt_error' ) );
 		$this->assertFalse( get_option( 'undergrowth_prompt' ) );
 		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_log', false ) );
+		$this->assertFalse( get_option( 'undergrowth_snoozed_prompts' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
 	}
