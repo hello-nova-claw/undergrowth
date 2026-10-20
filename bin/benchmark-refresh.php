@@ -51,6 +51,12 @@ function undergrowth_benchmark_unit_vector( int $dimensions ): array {
 	);
 }
 
+// Without a reset, the peak would include seeding the posts, not just the refresh.
+if ( ! function_exists( 'memory_reset_peak_usage' ) ) {
+	fwrite( STDERR, 'The benchmark needs PHP 8.2 or later to measure the refresh on its own.' . PHP_EOL );
+	exit( 1 );
+}
+
 global $wpdb;
 
 $undergrowth_posts      = max( 2, (int) ( $args[0] ?? 1000 ) );
@@ -129,9 +135,7 @@ wp_cache_flush();
 $wpdb->flush();
 gc_collect_cycles();
 
-if ( function_exists( 'memory_reset_peak_usage' ) ) {
-	memory_reset_peak_usage();
-}
+memory_reset_peak_usage();
 
 $undergrowth_baseline = memory_get_usage();
 $undergrowth_started  = microtime( true );
