@@ -396,12 +396,21 @@ function undergrowth_open_target_ids( array $post_ids ): array {
 	$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT ID, post_status, post_password, post_type FROM %i WHERE ID IN (' . $placeholders . ')', $wpdb->posts, ...array_map( 'intval', $post_ids ) ) );
 	$wpdb->flush();
 
-	$open = array();
+	$indexable = array();
 
 	foreach ( $rows as $row ) {
-		$id = (int) $row->ID;
+		if ( undergrowth_is_indexable( new WP_Post( $row ) ) ) {
+			$indexable[] = (int) $row->ID;
+		}
+	}
 
-		if ( undergrowth_is_indexable( new WP_Post( $row ) ) && 'composting' !== undergrowth_get_stage( $id ) ) {
+	// One query for every stage in the chunk, rather than one per post.
+	update_meta_cache( 'post', $indexable );
+
+	$open = array();
+
+	foreach ( $indexable as $id ) {
+		if ( 'composting' !== undergrowth_get_stage( $id ) ) {
 			$open[ $id ] = true;
 		}
 	}
