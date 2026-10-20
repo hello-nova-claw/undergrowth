@@ -542,6 +542,10 @@ function undergrowth_compost_post( int $post_id ) {
 	if ( ! undergrowth_set_stage( $post_id, 'composting', 'compost' ) ) {
 		if ( $pinned ) {
 			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+			if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+				return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+			}
 		}
 
 		return undergrowth_stage_not_saved();
