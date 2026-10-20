@@ -62,3 +62,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Each published post now gets up to three proposed links to your closest other posts. Proposals are stored for review; nothing is added to a post until you accept it.
 * Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
 * Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
+* New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
