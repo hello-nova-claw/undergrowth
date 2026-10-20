@@ -195,6 +195,18 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_block_marker_inside_an_attribute_does_not_end_the_block() {
+		$sentences = undergrowth_split_sentences( '<!-- wp:html --><div title="<!-- /wp:html -->"></div><p>Yacon syrup is sweet.</p><!-- /wp:html --><p>Mine.</p>' );
+
+		$this->assertSame(
+			array(
+				'Yacon syrup is sweet.' => true,
+				'Mine.'                 => false,
+			),
+			array_column( $sentences, 'quoted', 'text' )
+		);
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
