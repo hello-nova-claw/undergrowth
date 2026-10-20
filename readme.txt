@@ -63,3 +63,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
 * Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
 * New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
+* Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
