@@ -306,6 +306,20 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<button[^>]*aria-label="[^"]*Oca[^"]*Yacon[^"]*"/', $html );
 	}
 
+	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {
+		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'style=', $html );
+		$this->assertSame( 4, preg_match_all( '/<button[^>]*\bform="([^"]+)"/', $html, $buttons ) );
+
+		foreach ( $buttons[1] as $form ) {
+			$this->assertMatchesRegularExpression( '/<form[^>]*\bid="' . preg_quote( $form, '/' ) . '"/', $html );
+		}
+	}
+
 	public function test_screen_only_lists_proposals_the_user_can_edit() {
 		$author = self::factory()->user->create( array( 'role' => 'author' ) );
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_author' => $author ) );
