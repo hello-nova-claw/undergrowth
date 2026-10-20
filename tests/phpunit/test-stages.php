@@ -392,6 +392,8 @@ class Test_Stages extends WP_UnitTestCase {
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
 		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 42 ) );
 		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
 
 		undergrowth_deactivate();
 
@@ -399,6 +401,8 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 42 ) ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+		// Clusters from before a pause would be stale when the plugin returns.
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
 	public function test_deactivation_hook_is_registered() {
