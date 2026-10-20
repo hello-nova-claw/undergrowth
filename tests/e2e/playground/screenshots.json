@@ -15,16 +15,12 @@
 			"pluginPath": "undergrowth/undergrowth.php"
 		},
 		{
-			"step": "wp-cli",
-			"command": "wp language core install he_IL"
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nrequire_once ABSPATH . 'wp-admin/includes/file.php';\nrequire_once ABSPATH . 'wp-admin/includes/translation-install.php';\n\nif ( ! wp_download_language_pack( 'he_IL' ) ) {\n\tthrow new Exception( 'Could not install the Hebrew language pack.' );\n}\n"
 		},
 		{
-			"step": "mkdir",
-			"path": "/wordpress/wp-content/languages/plugins"
-		},
-		{
-			"step": "wp-cli",
-			"command": "wp i18n make-mo /wordpress/wp-content/plugins/undergrowth/languages/undergrowth-en_XA.po /wordpress/wp-content/languages/plugins"
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\nrequire_once ABSPATH . WPINC . '/pomo/po.php';\n\n// Compiles the pseudo-locale written by bin/pseudo-locale.mjs, so the\n// catalogue needs no WP-CLI download.\n$po = new PO();\n\nif ( ! $po->import_from_file( WP_PLUGIN_DIR . '/undergrowth/languages/undergrowth-en_XA.po' ) ) {\n\tthrow new Exception( 'Could not read the en_XA catalogue.' );\n}\n\n$mo = new MO();\n$mo->set_headers( $po->headers );\n\nforeach ( $po->entries as $entry ) {\n\t$mo->add_entry( $entry );\n}\n\nwp_mkdir_p( WP_LANG_DIR . '/plugins' );\n$mo->export_to_file( WP_LANG_DIR . '/plugins/undergrowth-en_XA.mo' );\n"
 		}
 	]
 }
