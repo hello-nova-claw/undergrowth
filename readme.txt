@@ -68,3 +68,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
 * Growth stages are measured once a month from the links you have accepted: a post with two or more becomes a Sprout. Stages never change when you save a post, and the monthly cycle never lowers one.
 * Each post's file now names its growth stage and lists every change to it, with the date and what made it.
+* A post's growth stage can be pinned, so the monthly cycle leaves it alone. A pinned stage is marked in post meta, undergrowth_stage_pinned, and in the post's file.
