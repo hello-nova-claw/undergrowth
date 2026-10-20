@@ -246,6 +246,36 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( '<p>It costs &pound;3 a <a href="https://example.test/">pound</a>.</p>', $linked );
 	}
 
+	public function test_sentence_inside_a_quote_is_never_linked() {
+		list( $oca, $yacon ) = $this->pair( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>I keep yacon plants nearby for their syrup.</p></blockquote><!-- /wp:quote -->' );
+		$before              = get_post( $oca )->post_content;
+
+		$this->assertSame( 'no_word', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+	}
+
+	public function test_sentence_inside_a_custom_html_block_is_never_linked() {
+		$this->assertNull(
+			undergrowth_link_word(
+				'<!-- wp:html --><p>I keep yacon plants nearby for their syrup.</p><!-- /wp:html -->',
+				'I keep yacon plants nearby for their syrup.',
+				'yacon',
+				'https://example.test/'
+			)
+		);
+	}
+
+	public function test_paragraph_inside_a_group_is_still_linked() {
+		$linked = undergrowth_link_word(
+			'<!-- wp:group --><div class="wp-block-group"><!-- wp:paragraph --><p>I keep yacon plants nearby.</p><!-- /wp:paragraph --></div><!-- /wp:group -->',
+			'I keep yacon plants nearby.',
+			'yacon',
+			'https://example.test/'
+		);
+
+		$this->assertStringContainsString( 'I keep <a href="https://example.test/">yacon</a> plants', (string) $linked );
+	}
+
 	public function test_missing_post_fails_safely() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		wp_delete_post( $yacon, true );
