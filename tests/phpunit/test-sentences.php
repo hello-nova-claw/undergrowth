@@ -159,12 +159,13 @@ class Test_Sentences extends WP_UnitTestCase {
 	}
 
 	public function test_closing_tag_inside_an_attribute_does_not_end_the_quote() {
-		$sentences = undergrowth_split_sentences( '<blockquote><div title="</blockquote>"></div><p>Yacon syrup is a gentle sweetener.</p></blockquote><p>Mine.</p>' );
+		$sentences = undergrowth_split_sentences( '<blockquote><div title="</blockquote>"></div><p>Yacon syrup is a gentle sweetener.</p></blockquote><p>Mine.</p><blockquote title="</blockquote>"><p>Their own.</p></blockquote>' );
 
 		$this->assertSame(
 			array(
 				'Yacon syrup is a gentle sweetener.' => true,
 				'Mine.'                              => false,
+				'Their own.'                         => true,
 			),
 			array_column( $sentences, 'quoted', 'text' )
 		);
