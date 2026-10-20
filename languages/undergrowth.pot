@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T10:32:57+00:00\n"
+"POT-Creation-Date: 2026-10-20T10:54:30+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -248,13 +248,13 @@ msgid "The stage could not be saved, so nothing was changed. Try again in a mome
 msgstr ""
 
 #: src/admin.php:325
-#: src/stages.php:480
+#: src/stages.php:486
 msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/admin.php:326
-#: src/stages.php:520
-#: src/stages.php:565
+#: src/stages.php:526
+#: src/stages.php:571
 msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
 msgstr ""
 
@@ -369,63 +369,63 @@ msgstr ""
 msgid "Whether the author pinned the growth stage."
 msgstr ""
 
-#: src/stages.php:146
+#: src/stages.php:152
 msgctxt "growth stage"
 msgid "Seedling"
 msgstr ""
 
-#: src/stages.php:147
+#: src/stages.php:153
 msgctxt "growth stage"
 msgid "Sprout"
 msgstr ""
 
-#: src/stages.php:148
+#: src/stages.php:154
 msgctxt "growth stage"
 msgid "Budding"
 msgstr ""
 
-#: src/stages.php:149
+#: src/stages.php:155
 msgctxt "growth stage"
 msgid "Evergreen"
 msgstr ""
 
-#: src/stages.php:150
+#: src/stages.php:156
 msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
-#: src/stages.php:318
+#: src/stages.php:324
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:417
+#: src/stages.php:423
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:421
+#: src/stages.php:427
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:433
+#: src/stages.php:439
 msgid "The stage could not be saved, so nothing was changed."
 msgstr ""
 
-#: src/stages.php:456
+#: src/stages.php:462
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:460
+#: src/stages.php:466
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:507
+#: src/stages.php:513
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:549
+#: src/stages.php:555
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:599
+#: src/stages.php:605
 msgid "This post is not composting."
 msgstr ""
