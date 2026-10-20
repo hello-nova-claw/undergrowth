@@ -17,6 +17,7 @@ const WIDTHS = [ 1280, 390 ];
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
+const POSTS_LIST = [ 'edit.php', '' ];
 
 // Notices are reached by the address the screen redirects to after each
 // action, which shows exactly what the user sees without changing any data.
@@ -95,6 +96,29 @@ const WITH_POSTS = [
 		],
 		notice: true,
 	} ) ),
+];
+
+// Shown after one post is composted, so every list it would be in is covered.
+const WITH_COMPOST = [
+	{ screen: 'posts', state: 'composting', page: POSTS_LIST },
+	{
+		screen: 'posts',
+		state: 'composting-view',
+		page: [ 'edit.php', 'undergrowth_stage=composting' ],
+	},
+	// The notices the Posts screen returns with after a row or bulk action.
+	...[
+		[ 'composted', 'undergrowth_composted=1' ],
+		[ 'returned', 'undergrowth_returned=2' ],
+		[ 'skipped', 'undergrowth_composted=1&undergrowth_skipped=1' ],
+	].map( ( [ state, query ] ) => ( {
+		screen: 'posts',
+		state: `notice-${ state }`,
+		page: [ 'edit.php', query ],
+		notice: true,
+	} ) ),
+	{ screen: 'suggestions', state: 'with-composting', page: SUGGESTIONS },
+	{ screen: 'stages', state: 'with-composting', page: STAGES },
 ];
 
 // Posts share fixture words, so the e2e provider suggests links between them.
@@ -250,5 +274,37 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_POSTS );
+	} );
+
+	test.describe( 'with a composting post', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			const created = [];
+
+			for ( const post of POSTS ) {
+				created.push(
+					await requestUtils.createPost( {
+						...post,
+						status: 'publish',
+					} )
+				);
+			}
+
+			// Composted through its own row action, as the author would.
+			// esc_url() writes each & in the link as &#038;.
+			const list = await requestUtils.request.get( 'wp-admin/edit.php' );
+			const link = ( await list.text() ).match(
+				new RegExp(
+					`href="([^"]*action=undergrowth_compost&#038;post=${ created[ 0 ].id }&#038;[^"]*)"`
+				)
+			);
+
+			await requestUtils.request.get(
+				link[ 1 ].replaceAll( '&#038;', '&' )
+			);
+		} );
+
+		capture( WITH_COMPOST );
 	} );
 } );
