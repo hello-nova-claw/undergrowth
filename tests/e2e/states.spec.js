@@ -4,6 +4,7 @@
  * Run with `npm run screenshots`. Not part of the normal e2e run: it asserts
  * nothing about the screens, it only records them for review.
  */
+const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
 
@@ -146,11 +147,24 @@ function capture( states ) {
 				await admin.visitAdminPage( ...entry.page );
 
 				// A build without this notice would only show the plain table.
+				// The marker lets the comment list it, rather than drop it.
 				if (
 					entry.notice &&
 					( await page.locator( '#undergrowth-notice' ).count() ) ===
 						0
 				) {
+					fs.mkdirSync( OUTPUT, { recursive: true } );
+
+					for ( const width of WIDTHS ) {
+						fs.writeFileSync(
+							path.join(
+								OUTPUT,
+								`${ entry.screen }--${ entry.state }--${ locale }--${ width }.png.skipped`
+							),
+							`This build has no ${ entry.state }.\n`
+						);
+					}
+
 					test.skip( true, `This build has no ${ entry.state }.` );
 				}
 
