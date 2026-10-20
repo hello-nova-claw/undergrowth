@@ -444,6 +444,11 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 function undergrowth_refresh_around( int $post_id ): void {
 	global $wpdb;
 
+	// Every refresh below would return at once, so skip loading the vectors.
+	if ( ! undergrowth_suggestions_enabled() ) {
+		return;
+	}
+
 	$pool = undergrowth_comparable_vectors( $post_id );
 
 	if ( ! isset( $pool[ $post_id ] ) ) {
