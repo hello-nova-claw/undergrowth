@@ -642,6 +642,269 @@ class Test_Stages extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Logs in a user who can edit every post.
+	 */
+	private function log_in_editor(): void {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+	}
+
+	public function test_pinning_sets_the_stage_and_the_marker_at_once() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'evergreen' ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+
+		$log = undergrowth_stage_log( $post_id );
+		$this->assertSame( 'pin', end( $log )['reason'] );
+	}
+
+	public function test_cycle_leaves_a_pinned_post_alone() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->log_in_editor();
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_pin_stage( $post_id, 'seedling' );
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_unpinning_measures_the_stage_at_once() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->log_in_editor();
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertTrue( undergrowth_unpin_stage( $post_id ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+
+		$log = undergrowth_stage_log( $post_id );
+		$this->assertSame( 'unpin', end( $log )['reason'] );
+	}
+
+	public function test_unpinning_a_post_that_is_not_pinned_is_refused() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_pinned', $result->get_error_code() );
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_user_who_cannot_edit_the_post_cannot_pin_or_unpin() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'sprout' );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
+
+		$pin   = undergrowth_pin_stage( $post_id, 'evergreen' );
+		$unpin = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $pin );
+		$this->assertSame( 'undergrowth_cannot_edit', $pin->get_error_code() );
+		$this->assertWPError( $unpin );
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	/**
+	 * Only the four measured stages can be pinned.
+	 *
+	 * @dataProvider data_unpinnable_stages
+	 *
+	 * @param string $stage Stage to try to pin.
+	 */
+	public function test_composting_and_unknown_stages_cannot_be_pinned( string $stage ) {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+
+		$result = undergrowth_pin_stage( $post_id, $stage );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_unknown_stage', $result->get_error_code() );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	/**
+	 * Stages that can never be pinned.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_unpinnable_stages(): array {
+		return array(
+			'composting' => array( 'composting' ),
+			'wilting'    => array( 'wilting' ),
+		);
+	}
+
+	public function test_composted_post_cannot_be_pinned() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_set_stage( $post_id, 'composting', 'compost' );
+
+		$result = undergrowth_pin_stage( $post_id, 'sprout' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_composting', $result->get_error_code() );
+		$this->assertSame( 'composting', undergrowth_get_stage( $post_id ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_post_outside_the_index_cannot_be_pinned() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$this->log_in_editor();
+
+		$result = undergrowth_pin_stage( $post_id, 'sprout' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_indexed', $result->get_error_code() );
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+	}
+
+	/**
+	 * Makes every stage log write fail, as a full disk or a filter might.
+	 */
+	private function fail_log_writes(): void {
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_pin_that_cannot_be_saved_leaves_no_pin_behind() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_log_writes();
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_unpin_that_cannot_be_saved_keeps_the_pin() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_log_writes();
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
+	/**
+	 * Makes a metadata write to the pin flag fail.
+	 *
+	 * @param string $operation 'add', 'update' or 'delete'.
+	 */
+	private function fail_pin_flag( string $operation ): void {
+		add_filter(
+			$operation . '_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_stage_pinned' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+	}
+
+	public function test_pin_whose_flag_cannot_be_stored_changes_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertSame( array(), undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_unpin_whose_flag_cannot_be_removed_changes_nothing() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_pin_flag( 'delete' );
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+		$this->assertCount( 1, undergrowth_stage_log( $post_id ) );
+	}
+
+	public function test_failed_repin_keeps_the_existing_pin() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'sprout' );
+		$this->fail_log_writes();
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_failed_pin_says_when_its_flag_could_not_be_taken_back() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		$this->fail_log_writes();
+		$this->fail_pin_flag( 'delete' );
+
+		$result = undergrowth_pin_stage( $post_id, 'evergreen' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
+	}
+
+	public function test_failed_unpin_says_when_its_flag_could_not_be_put_back() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		undergrowth_pin_stage( $post_id, 'evergreen' );
+		$this->fail_log_writes();
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_unpin_stage( $post_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
+	}
+
+	public function test_missing_post_cannot_be_pinned() {
+		$this->log_in_editor();
+
+		$this->assertWPError( undergrowth_pin_stage( PHP_INT_MAX, 'sprout' ) );
+		$this->assertWPError( undergrowth_unpin_stage( PHP_INT_MAX ) );
+	}
+
+	/**
 	 * Runs uninstall without dropping the tables.
 	 *
 	 * The test suite's tables are temporary, and dropping them aborts the
