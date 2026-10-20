@@ -628,12 +628,13 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $oca, 'undergrowth_stage' ) );
 	}
 
-	public function test_import_that_cannot_store_the_stage_adds_no_history() {
+	public function test_import_that_cannot_store_the_stage_changes_nothing() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$refuse = static function ( $check, $object_id, $meta_key ) {
 			return 'undergrowth_stage' === $meta_key ? false : $check;
 		};
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
 		add_filter( 'add_post_metadata', $refuse, 10, 3 );
 		add_filter( 'update_post_metadata', $refuse, 10, 3 );
 
@@ -642,6 +643,7 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
 		$this->assertSame( array(), undergrowth_stage_log( $oca ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
 	}
 
 	public function test_import_needs_permission_to_edit_the_post() {
