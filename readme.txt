@@ -72,3 +72,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * A post's growth stage can be pinned, so the monthly cycle leaves it alone. A pinned stage is marked in post meta, undergrowth_stage_pinned, and in the post's file.
 * A post can be moved to compost, a rest you choose, and returned to the garden whenever you like. A composting post stays published and keeps its accepted links, but gets no new link suggestions in or out. It has no timer and never expires. On return its stage is measured again.
 * Settings > Undergrowth now fits a phone screen when a translation has very long words.
+* Suggestions no longer pick a sentence inside a quote, a pullquote or a Custom HTML block, since those can never be linked. The suggestion uses the next best sentence instead.
