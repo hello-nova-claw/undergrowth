@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T10:16:16+00:00\n"
+"POT-Creation-Date: 2026-10-20T10:32:57+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -307,33 +307,33 @@ msgstr ""
 msgid "Stage"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:113
+#: src/class-undergrowth-stages-list-table.php:122
 msgid "Pinned"
 msgstr ""
 
 #. translators: %s: post title.
-#: src/class-undergrowth-stages-list-table.php:143
+#: src/class-undergrowth-stages-list-table.php:152
 #, php-format
 msgid "Unpin the stage of %s"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:144
+#: src/class-undergrowth-stages-list-table.php:153
 msgid "Unpin"
-msgstr ""
-
-#. translators: %s: post title.
-#: src/class-undergrowth-stages-list-table.php:158
-#, php-format
-msgid "Stage to pin for %s"
 msgstr ""
 
 #. translators: %s: post title.
 #: src/class-undergrowth-stages-list-table.php:167
 #, php-format
+msgid "Stage to pin for %s"
+msgstr ""
+
+#. translators: %s: post title.
+#: src/class-undergrowth-stages-list-table.php:176
+#, php-format
 msgid "Pin the stage of %s"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:168
+#: src/class-undergrowth-stages-list-table.php:177
 msgid "Pin"
 msgstr ""
 
