@@ -962,4 +962,37 @@ class Test_Stages extends WP_UnitTestCase {
 			}
 		}
 	}
+
+	public function test_post_with_no_stored_stage_is_a_seedling_without_loading_the_post() {
+		$post_id = self::factory()->post->create();
+		delete_post_meta( $post_id, 'undergrowth_stage' );
+		clean_post_cache( $post_id );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
+	}
+
+	public function test_checking_target_posts_reads_their_stages_in_one_query() {
+		$ids = self::factory()->post->create_many( 3 );
+		update_post_meta( $ids[1], 'undergrowth_stage', 'composting' );
+
+		foreach ( $ids as $id ) {
+			wp_cache_delete( $id, 'post_meta' );
+		}
+
+		$selects = array();
+		$record  = static function ( $query ) use ( &$selects ) {
+			if ( false !== strpos( $query, 'FROM ' . $GLOBALS['wpdb']->postmeta ) ) {
+				$selects[] = $query;
+			}
+			return $query;
+		};
+		add_filter( 'query', $record );
+
+		$open = undergrowth_open_target_ids( $ids );
+
+		remove_filter( 'query', $record );
+		$this->assertSame( array( $ids[0], $ids[2] ), array_keys( $open ) );
+		$this->assertCount( 1, $selects );
+	}
 }
