@@ -118,7 +118,7 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
  * @return bool True for the stage keys, otherwise unchanged.
  */
 function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log' ), true ) ? true : $is_protected;
+	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log', 'undergrowth_resurfacing_log' ), true ) ? true : $is_protected;
 }
 
 /**
@@ -245,7 +245,6 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 function undergrowth_stage_log( int $post_id ): array {
 	$entries = array();
 
-	// Rows come back in the order they were added.
 	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
 		if (
 			! is_array( $entry )
@@ -267,6 +266,12 @@ function undergrowth_stage_log( int $post_id ): array {
 			'reason' => $entry['reason'],
 		);
 	}
+
+	// An import can add older rows after newer ones, so rows are put in time
+	// order. The index keeps rows from the same second in the order they were
+	// added, since usort() is not stable before PHP 8.
+	$order = array_keys( $entries );
+	array_multisort( array_column( $entries, 'time' ), SORT_ASC, SORT_NUMERIC, $order, SORT_ASC, SORT_NUMERIC, $entries );
 
 	return $entries;
 }
