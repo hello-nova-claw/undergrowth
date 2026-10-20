@@ -462,8 +462,8 @@ function undergrowth_comment_prompt_sources( $records ): array {
  * @return array<int, array<string, mixed>> Records with composted posts added.
  */
 function undergrowth_compost_prompt_sources( $records ): array {
-	$records  = (array) $records;
-	$post_ids = get_posts(
+	$records = (array) $records;
+	$posts   = get_posts(
 		array(
 			'post_type'        => undergrowth_indexed_post_types(),
 			'post_status'      => 'publish',
@@ -474,18 +474,11 @@ function undergrowth_compost_prompt_sources( $records ): array {
 			'orderby'          => 'date',
 			'order'            => 'ASC',
 			'numberposts'      => UNDERGROWTH_PROMPT_COMPOSTED,
-			'fields'           => 'ids',
 			'suppress_filters' => false,
 		)
 	);
 
-	foreach ( $post_ids as $post_id ) {
-		$post = get_post( (int) $post_id );
-
-		if ( ! $post instanceof WP_Post ) {
-			continue;
-		}
-
+	foreach ( $posts as $post ) {
 		$quote     = undergrowth_longest_sentence( $post );
 		$records[] = array(
 			'source'  => 'compost',
