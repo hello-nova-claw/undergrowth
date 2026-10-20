@@ -323,3 +323,83 @@ function undergrowth_cycle_post( int $post_id ): void {
 function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 }
+
+/**
+ * Checks that the current user may act on a post's stage.
+ *
+ * @param int $post_id Post ID.
+ * @return WP_Error|null Why the action is refused, or null when it may go ahead.
+ */
+function undergrowth_stage_action_error( int $post_id ): ?WP_Error {
+	$post = get_post( $post_id );
+
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
+		return new WP_Error( 'undergrowth_not_indexed', __( 'Only published posts in the garden have a growth stage.', 'undergrowth' ) );
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return new WP_Error( 'undergrowth_cannot_edit', __( 'You cannot change the growth stage of this post.', 'undergrowth' ) );
+	}
+
+	return null;
+}
+
+/**
+ * Pins a post's stage, so the monthly cycle leaves it alone.
+ *
+ * Pinning is an author action, so it takes effect at once. Any measured
+ * stage can be pinned, including those the measure cannot reach yet.
+ * Composting is outside the pinning rules: it is neither pinned nor
+ * pinnable.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $stage   Seedling, sprout, budding or evergreen.
+ * @return true|WP_Error True when pinned, or why it was refused.
+ */
+function undergrowth_pin_stage( int $post_id, string $stage ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( ! in_array( $stage, array( 'seedling', 'sprout', 'budding', 'evergreen' ), true ) ) {
+		return new WP_Error( 'undergrowth_unknown_stage', __( 'That stage cannot be pinned.', 'undergrowth' ) );
+	}
+
+	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
+		return new WP_Error( 'undergrowth_composting', __( 'A composting post cannot be pinned.', 'undergrowth' ) );
+	}
+
+	// The flag goes first, so the file written for the change shows the marker.
+	update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+	undergrowth_set_stage( $post_id, $stage, 'pin' );
+
+	return true;
+}
+
+/**
+ * Unpins a post's stage and measures it at once.
+ *
+ * The stage it had before the pin may be long out of date, so it is
+ * measured again rather than restored.
+ *
+ * @param int $post_id Post ID.
+ * @return true|WP_Error True when unpinned, or why it was refused.
+ */
+function undergrowth_unpin_stage( int $post_id ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
+		return new WP_Error( 'undergrowth_not_pinned', __( 'This post\'s stage is not pinned.', 'undergrowth' ) );
+	}
+
+	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+	undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' );
+
+	return true;
+}
