@@ -11,7 +11,6 @@
 defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DISTINCTIVE_TERMS = 20;
-const UNDERGROWTH_CORPUS_CHUNK      = 100;
 
 // Hiragana, katakana and CJK ideographs. These scripts do not separate words
 // with spaces, so they are matched as overlapping pairs of characters.
@@ -205,7 +204,7 @@ function undergrowth_build_corpus( array $post_ids ): array {
 	$posts     = array();
 	$ids       = array_values( array_unique( array_map( 'intval', $post_ids ) ) );
 
-	foreach ( array_chunk( $ids, UNDERGROWTH_CORPUS_CHUNK ) as $chunk ) {
+	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
 		// Read straight from the table, a chunk at a time, so the content of
 		// every post never fills the post cache for the rest of the request.
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
@@ -248,12 +247,23 @@ function undergrowth_build_corpus( array $post_ids ): array {
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
 function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
-	$post = isset( $corpus['posts'][ $post_id ] ) ? get_post( $post_id ) : null;
+	global $wpdb;
 
-	if ( ! $post instanceof WP_Post ) {
+	if ( ! isset( $corpus['posts'][ $post_id ] ) ) {
 		return array();
 	}
 
+	// Read past the post cache: a refresh can try many targets before one
+	// fits, and none of them should stay in memory afterwards.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Caching every target tried is what this avoids.
+	$row = $wpdb->get_row( $wpdb->prepare( 'SELECT ID, post_title, post_content FROM %i WHERE ID = %d', $wpdb->posts, $post_id ) );
+	$wpdb->flush();
+
+	if ( ! is_object( $row ) ) {
+		return array();
+	}
+
+	$post    = new WP_Post( $row );
 	$weights = array();
 
 	// Repeats count for less and less, and rarity is squared, so a word in

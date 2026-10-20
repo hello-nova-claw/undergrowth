@@ -11,6 +11,7 @@ const UNDERGROWTH_MAX_PROPOSALS        = 3;
 const UNDERGROWTH_MIN_LINK_SIMILARITY  = 0.4;
 const UNDERGROWTH_NEIGHBOURS_TO_UPDATE = 10;
 const UNDERGROWTH_VECTOR_CHUNK         = 100;
+const UNDERGROWTH_POST_CHUNK           = 100;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
@@ -301,8 +302,8 @@ function undergrowth_link_state( int $source_id, int $target_id ): string {
  *
  * Leaves out the post itself, posts it already links to, and any pair the
  * author has accepted or vetoed. A composting post gets no targets at all.
- * Each target post still has to pass undergrowth_is_open_target(), which
- * callers check in rank order and only as far as they need, so a refresh
+ * Each target post still has to pass undergrowth_open_targets(), which
+ * callers walk in rank order and only as far as they need, so a refresh
  * never loads every post in a large archive.
  *
  * @param int                     $post_id Source post ID.
@@ -372,19 +373,62 @@ function undergrowth_score_targets( int $post_id, ?array $pool = null ): array {
 }
 
 /**
- * Checks whether a post can still receive a link.
+ * Lists which of a set of posts can still receive a link.
  *
  * A vector can outlive its post's publication when the status changes
- * without a save, so the target post itself is checked. No links go into a
- * composting post either.
+ * without a save, so the target posts themselves are checked. No links go
+ * into a composting post either. Only the columns the check needs are read,
+ * past the post cache, so a refresh never holds the archive's content.
  *
- * @param int $target_id Target post ID.
- * @return bool Whether the post is published, indexed and not composting.
+ * @param int[] $post_ids Posts to check.
+ * @return array<int, true> The open posts, keyed by ID.
  */
-function undergrowth_is_open_target( int $target_id ): bool {
-	$target = get_post( $target_id );
+function undergrowth_open_target_ids( array $post_ids ): array {
+	global $wpdb;
 
-	return $target instanceof WP_Post && undergrowth_is_indexable( $target ) && 'composting' !== undergrowth_get_stage( $target_id );
+	if ( array() === $post_ids ) {
+		return array();
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_ids ), '%d' ) );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Caching every post checked is what this avoids; there is one placeholder for each ID.
+	$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT ID, post_status, post_password, post_type FROM %i WHERE ID IN (' . $placeholders . ')', $wpdb->posts, ...array_map( 'intval', $post_ids ) ) );
+	$wpdb->flush();
+
+	$open = array();
+
+	foreach ( $rows as $row ) {
+		$id = (int) $row->ID;
+
+		if ( undergrowth_is_indexable( new WP_Post( $row ) ) && 'composting' !== undergrowth_get_stage( $id ) ) {
+			$open[ $id ] = true;
+		}
+	}
+
+	return $open;
+}
+
+/**
+ * Walks scored targets in rank order, keeping only posts that can still
+ * receive a link.
+ *
+ * Target posts are checked a chunk at a time, so a caller that stops after a
+ * few targets reads only the first chunk.
+ *
+ * @param array<int, float> $scores Result of undergrowth_score_targets().
+ * @return Generator<int, float> Similarity keyed by target post ID, best first.
+ */
+function undergrowth_open_targets( array $scores ): Generator {
+	foreach ( array_chunk( $scores, UNDERGROWTH_POST_CHUNK, true ) as $chunk ) {
+		$open = undergrowth_open_target_ids( array_keys( $chunk ) );
+
+		foreach ( $chunk as $target_id => $score ) {
+			if ( isset( $open[ $target_id ] ) ) {
+				yield $target_id => $score;
+			}
+		}
+	}
 }
 
 /**
@@ -402,11 +446,7 @@ function undergrowth_is_open_target( int $target_id ): bool {
 function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
 	$targets = array();
 
-	foreach ( undergrowth_score_targets( $post_id, $pool ) as $target_id => $score ) {
-		if ( ! undergrowth_is_open_target( $target_id ) ) {
-			continue;
-		}
-
+	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
 		$targets[ $target_id ] = $score;
 
 		if ( $limit > 0 && count( $targets ) >= $limit ) {
@@ -454,11 +494,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$now     = current_time( 'mysql', true );
 	$targets = array();
 
-	foreach ( undergrowth_score_targets( $post_id, $pool ) as $target_id => $score ) {
-		if ( ! undergrowth_is_open_target( $target_id ) ) {
-			continue;
-		}
-
+	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
 		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus );
 
 		if ( null === $sentence ) {
