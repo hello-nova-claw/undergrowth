@@ -140,6 +140,150 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
 	}
 
+	/**
+	 * Puts posts in one cluster, led by the first.
+	 *
+	 * @param int[] $post_ids Post IDs.
+	 */
+	private function cluster( array $post_ids ): void {
+		foreach ( $post_ids as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_cluster', $post_ids[0] );
+		}
+	}
+
+	public function test_post_in_a_cluster_with_links_in_and_out_measures_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_links_in_and_out_may_lead_outside_the_cluster() {
+		list( $post_id, $a, $b, $outside, $elsewhere ) = $this->publish( 5 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $outside );
+		$this->link( $elsewhere, $post_id );
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_links_only_out_measures_sprout() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $post_id, $b );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_links_only_in_measures_sprout() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $a, $post_id );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_post_in_a_cluster_with_one_link_measures_seedling() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_two_similar_posts_are_not_a_cluster_for_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_link_to_a_post_that_left_the_index_does_not_make_a_post_budding() {
+		list( $post_id, $a, $b, $draft ) = $this->publish( 4 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $draft, $post_id );
+		$this->link( $post_id, $b );
+
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+	}
+
+	/**
+	 * Evergreen also needs a hub linking to the post, and hubs come only from
+	 * reader-mode fusion, so no post measures Evergreen yet.
+	 */
+	public function test_post_with_every_link_but_no_hub_stays_budding() {
+		$posts   = $this->publish( 8 );
+		$post_id = $posts[0];
+
+		$this->cluster( $posts );
+
+		foreach ( array_slice( $posts, 1 ) as $other ) {
+			$this->link( $post_id, $other );
+			$this->link( $other, $post_id );
+		}
+
+		$this->assertSame( 'budding', undergrowth_measure_stage( $post_id ) );
+	}
+
+	public function test_cycle_stores_budding() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_monthly_event_clusters_then_measures_budding() {
+		$posts = $this->publish( 3 );
+
+		foreach ( $posts as $i => $post_id ) {
+			undergrowth_save_vector(
+				$post_id,
+				array( 1.0, 0.1 * $i ),
+				array(
+					'provider'     => 'test-provider',
+					'model'        => 'test-model',
+					'language'     => 'en_US',
+					'content_hash' => 'hash',
+				)
+			);
+		}
+
+		$this->link( $posts[0], $posts[1] );
+		$this->link( $posts[2], $posts[0] );
+
+		do_action( 'undergrowth_cluster_cycle' );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		do_action( 'undergrowth_stage_cycle', 0 );
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $posts[0] ) );
+	}
+
 	public function test_measure_ignores_a_stored_stage() {
 		list( $post_id ) = $this->publish( 1 );
 
@@ -338,30 +482,42 @@ class Test_Stages extends WP_UnitTestCase {
 	}
 
 	public function test_cycle_is_scheduled_monthly_once() {
-		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 
 		undergrowth_schedule_stage_cycle();
 
-		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_stage_cycle' ) );
+		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_cluster_cycle' ) );
 	}
 
 	public function test_cycle_that_is_already_scheduled_is_not_scheduled_again() {
-		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 
 		// An hour ahead, so a second event would land on a different
 		// timestamp instead of replacing this one.
 		$next = time() + HOUR_IN_SECONDS;
-		wp_schedule_event( $next, 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+		wp_schedule_event( $next, 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
 
 		undergrowth_schedule_stage_cycle();
 
 		$events = array_filter(
 			_get_cron_array(),
 			static function ( $hooks ) {
-				return isset( $hooks['undergrowth_stage_cycle'] );
+				return isset( $hooks['undergrowth_cluster_cycle'] );
 			}
 		);
 		$this->assertSame( array( $next ), array_keys( $events ) );
+	}
+
+	public function test_monthly_event_from_before_clustering_is_replaced() {
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
+
+		undergrowth_schedule_stage_cycle();
+
+		$this->assertFalse( wp_get_schedule( 'undergrowth_stage_cycle' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
+		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_cluster_cycle' ) );
 	}
 
 	public function test_cycle_is_scheduled_on_load_for_sites_that_did_not_reactivate() {
@@ -369,21 +525,29 @@ class Test_Stages extends WP_UnitTestCase {
 	}
 
 	public function test_activation_schedules_the_cycle() {
-		wp_unschedule_hook( 'undergrowth_stage_cycle' );
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 
 		undergrowth_activate();
 
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 	}
 
 	public function test_deactivation_clears_every_cycle_event() {
 		undergrowth_schedule_stage_cycle();
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
+		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 42 ) );
+		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
 
 		undergrowth_deactivate();
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 42 ) ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+		// Clusters from before a pause would be stale when the plugin returns.
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
 	public function test_deactivation_hook_is_registered() {
@@ -392,10 +556,14 @@ class Test_Stages extends WP_UnitTestCase {
 
 	public function test_uninstall_clears_the_cycle() {
 		undergrowth_schedule_stage_cycle();
+		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
+		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
 
 		$this->uninstall();
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
 	}
 
 	public function test_cycle_stores_the_measured_stage_for_every_indexed_post() {
@@ -926,11 +1094,13 @@ class Test_Stages extends WP_UnitTestCase {
 
 		undergrowth_set_stage( $post_id, 'sprout' );
 		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
 
 		$this->uninstall();
 
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage_pinned' ) );
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
 	/**
@@ -957,7 +1127,7 @@ class Test_Stages extends WP_UnitTestCase {
 		remove_filter( 'query', $record, 2 );
 
 		foreach ( array_merge( array( get_current_blog_id() ), $site_ids ) as $site_id ) {
-			foreach ( array( 'undergrowth_stage', 'undergrowth_stage_pinned' ) as $key ) {
+			foreach ( array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_cluster' ) as $key ) {
 				$this->assertContains( "SELECT meta_id FROM {$wpdb->get_blog_prefix( $site_id )}postmeta WHERE meta_key = '{$key}'", $queries );
 			}
 		}
