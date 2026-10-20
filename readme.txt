@@ -49,7 +49,7 @@ A file looks like this:
     ## vetoes
     - https://example.com/tax-returns/
 
-The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section lists, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals or stage change, so edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
+The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section is ready to list, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`; the signal itself comes in a later version. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals, stage or resurfacing record change, so edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
 
 = Can visitors open these files? =
 
