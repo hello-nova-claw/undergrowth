@@ -113,17 +113,15 @@ function undergrowth_split_sentences( string $html ): array {
 function undergrowth_inside_others_words( string $before ): bool {
 	// Only real tags count, never tag-like text inside a comment or a quoted
 	// attribute value. Comments and other tags are matched whole and skipped,
-	// so each scan stops only on the tag it counts, also matched whole.
+	// so the scan stops only on a quote's own tags, also matched whole.
 	$attributes = '(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>';
 	$depth      = 0;
-	$steps      = array(
-		1  => '',
-		-1 => '/',
-	);
 
-	foreach ( $steps as $step => $slash ) {
-		$tag    = '<' . $slash . 'blockquote(?=[\s/>])';
-		$depth += $step * preg_match_all( '#(?:<!--.*?-->|<(?!' . $slash . 'blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)|' . $tag . $attributes . '#is', $before );
+	preg_match_all( '#(?:<!--.*?-->|<(?!/?blockquote[\s/>])/?[a-z]' . $attributes . ')(*SKIP)(*FAIL)|<(/?)blockquote(?=[\s/>])' . $attributes . '#is', $before, $tags );
+
+	// In document order, so a stray closing tag never cancels a later quote.
+	foreach ( $tags[1] as $slash ) {
+		$depth = '/' === $slash ? max( 0, $depth - 1 ) : $depth + 1;
 	}
 
 	if ( $depth > 0 ) {
