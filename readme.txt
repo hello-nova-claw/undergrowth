@@ -20,7 +20,7 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 
 = Where does Undergrowth keep its notes about each post? =
 
-Each published post that has been indexed gets a plain-text file in `wp-content/uploads/undergrowth/posts/`, named after the post's ID. You can read it with any text editor. It holds only the post's title, address and slug, the addresses of other posts, and sentences quoted from your own post. Nothing in it is written for your readers.
+Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, the addresses of other posts, and sentences quoted from your own post. Nothing in it is written for your readers.
 
 A file looks like this:
 
@@ -51,7 +51,7 @@ The stage, has, lacks and scent sections stay empty until later versions fill th
 
 On Apache, no: the folder holds an `.htaccess` file that refuses web access. nginx ignores `.htaccess`, so on nginx add a rule like this to your server block:
 
-    location ^~ /wp-content/uploads/undergrowth/ { deny all; }
+    location ~ ^/wp-content/uploads/(sites/[0-9]+/)?undergrowth/ { deny all; }
 
 == Changelog ==
 
@@ -61,4 +61,4 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 * New Settings > Undergrowth page for an OpenAI API key. With a key saved, published posts are embedded with OpenAI text-embedding-3-small; the page says what is sent before anything is.
 * Each published post now gets up to three proposed links to your closest other posts. Proposals are stored for review; nothing is added to a post until you accept it.
 * Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
-* Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in wp-content/uploads/undergrowth/posts/.
+* Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
