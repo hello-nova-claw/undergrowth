@@ -54,9 +54,10 @@
 		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 
-	<!-- bin/ holds CLI tools for CI that run without WordPress loaded. -->
+	<!-- bin/ holds CLI tools for CI that run without WordPress loaded, and tests read back the local files the plugin writes. -->
 	<rule ref="WordPress.WP.AlternativeFunctions">
 		<exclude-pattern>/bin/*</exclude-pattern>
+		<exclude-pattern>/tests/*</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.Security.EscapeOutput">
 		<exclude-pattern>/bin/*</exclude-pattern>
