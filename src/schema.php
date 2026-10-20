@@ -129,14 +129,18 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_anthropic_api_key' );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_last_prompt_error' );
+	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	wp_unschedule_hook( 'undergrowth_write_prompt' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	delete_post_meta_by_key( 'undergrowth_stage_log' );
+	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	undergrowth_delete_memory_folder();
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
