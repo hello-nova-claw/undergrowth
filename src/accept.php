@@ -166,6 +166,10 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 	foreach ( $paragraphs[1] as $paragraph ) {
 		list( $inner, $inner_start ) = $paragraph;
 
+		if ( undergrowth_inside_others_words( substr( $content, 0, $inner_start ) ) ) {
+			continue;
+		}
+
 		$plain = ltrim( undergrowth_plain_text( $inner ) );
 		$start = mb_strpos( $plain, $sentence );
 
@@ -228,6 +232,29 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 	}
 
 	return null;
+}
+
+/**
+ * Tells whether a point in post content falls inside a quote or a Custom HTML block.
+ *
+ * A quote holds someone else's words and a Custom HTML block holds markup
+ * the author wrote by hand, so neither is the author's paragraph to change.
+ *
+ * @param string $before Content up to the point.
+ * @return bool True when the point is inside one of those.
+ */
+function undergrowth_inside_others_words( string $before ): bool {
+	if ( preg_match_all( '#<blockquote\b#i', $before ) > preg_match_all( '#</blockquote\s*>#i', $before ) ) {
+		return true;
+	}
+
+	foreach ( array( 'html', 'quote', 'pullquote' ) as $block ) {
+		if ( preg_match_all( '#<!--\s+wp:' . $block . '[\s/]#', $before ) > preg_match_all( '#<!--\s+/wp:' . $block . '\s#', $before ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
