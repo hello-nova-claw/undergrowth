@@ -36,25 +36,22 @@ function undergrowth_split_sentences( string $html ): array {
 
 	// Every block boundary ends a sentence, and so does the start of a quote
 	// or of any block, so text either side of one never runs together. Text
-	// that ends inside someone else's words is marked before its line break.
+	// that ends inside someone else's words has every line marked, because a
+	// line break inside it also ends a sentence.
 	$pieces = (array) preg_split( '#(</(?:p|h[1-6]|li|blockquote|pre|figcaption|td|th|dt|dd|div)>|<br\s*/?>|<blockquote\b[^>]*>|<!--\s+/?wp:.*?-->)#is', $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE );
 	$html   = '';
 
-	foreach ( $pieces as $i => $piece ) {
-		list( $piece_text, $piece_at ) = $piece;
+	for ( $i = 0, $count = count( $pieces ); $i < $count; $i += 2 ) {
+		$piece_text = $pieces[ $i ][0];
+		$ends_at    = $pieces[ $i + 1 ][1] ?? strlen( $content );
 
-		if ( 0 === $i % 2 ) {
-			$html .= $piece_text;
-		} else {
-			// Only text needs marking, and the check reads everything before
-			// it, so boundaries with nothing but tags before them are skipped.
-			$marked = '' !== trim( wp_strip_all_tags( $pieces[ $i - 1 ][0] ) ) && undergrowth_inside_others_words( substr( $content, 0, $piece_at ) );
-			$html  .= ( $marked ? $quoted : '' ) . "\n";
+		// Only text needs marking, and the check reads everything before it,
+		// so pieces holding nothing but tags are skipped.
+		if ( '' !== trim( wp_strip_all_tags( $piece_text ) ) && undergrowth_inside_others_words( substr( $content, 0, $ends_at ) ) ) {
+			$piece_text = str_replace( "\n", $quoted . "\n", $piece_text ) . $quoted;
 		}
-	}
 
-	if ( undergrowth_inside_others_words( $content ) ) {
-		$html .= $quoted;
+		$html .= $piece_text . ( isset( $pieces[ $i + 1 ] ) ? "\n" : '' );
 	}
 
 	$html = (string) preg_replace( '#<a\b[^>]*>#i', $open, $html );
