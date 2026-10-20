@@ -27,6 +27,7 @@ const NOTICES = [
 	'edited',
 	'no_word',
 	'not_proposed',
+	'needs_admin',
 ];
 
 const WITHOUT_POSTS = [
@@ -62,7 +63,7 @@ const WITH_POSTS = [
 	},
 	...NOTICES.map( ( notice ) => ( {
 		screen: 'suggestions',
-		state: `notice-${ notice.replace( '_', '-' ) }`,
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
 		page: [
 			SUGGESTIONS[ 0 ],
 			`${ SUGGESTIONS[ 1 ] }&undergrowth_notice=${ notice }${
