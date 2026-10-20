@@ -1,0 +1,61 @@
+name: Playground preview
+
+# Adds a "Preview in WordPress Playground" comment to each pull request. The
+# preview runs tests/e2e/playground/preview.json, the same blueprint as
+# `npm run playground`, with the plugin and the e2e test provider installed
+# from the pull request's commit instead of mounted from disk.
+
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Preview link
+    # A fork's token can't comment, and Playground installs from this
+    # repository's commits only.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Build the blueprint
+        id: blueprint
+        env:
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          {
+            echo 'json<<BLUEPRINT'
+            jq -c --arg url "https://github.com/${REPOSITORY}.git" --arg sha "$SHA" '
+              .steps = [
+                {
+                  step: "installPlugin",
+                  pluginData: { resource: "git:directory", url: $url, ref: $sha, refType: "commit", path: "/" },
+                  options: { activate: false, targetFolderName: "undergrowth" }
+                },
+                { step: "mkdir", path: "/wordpress/wp-content/mu-plugins" },
+                {
+                  step: "writeFiles",
+                  writeToPath: "/wordpress/wp-content/mu-plugins",
+                  filesTree: { resource: "git:directory", url: $url, ref: $sha, refType: "commit", path: "tests/e2e/mu-plugins" }
+                }
+              ] + .steps
+            ' tests/e2e/playground/preview.json
+            echo 'BLUEPRINT'
+          } >> "$GITHUB_OUTPUT"
+      - uses: WordPress/action-wp-playground-pr-preview@v4.0.0
+        with:
+          mode: comment
+          blueprint: ${{ steps.blueprint.outputs.json }}
+          github-token: ${{ github.token }}
