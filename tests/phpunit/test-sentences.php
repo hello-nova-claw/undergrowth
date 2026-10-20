@@ -129,6 +129,12 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array( false, true ), array_column( $sentences, 'quoted' ) );
 	}
 
+	public function test_empty_custom_html_block_marks_nothing_after_it() {
+		$sentences = undergrowth_split_sentences( '<!-- wp:html /--><!-- wp:paragraph --><p>Mine after.</p><!-- /wp:paragraph -->' );
+
+		$this->assertSame( array( false ), array_column( $sentences, 'quoted' ) );
+	}
+
 	public function test_blockquote_mentioned_in_an_ordinary_comment_marks_nothing() {
 		$sentences = undergrowth_split_sentences( '<!-- <blockquote> --><p>Mine after a comment.</p>' );
 
