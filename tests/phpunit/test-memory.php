@@ -646,6 +646,61 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
 	}
 
+	public function test_reading_a_file_skips_dates_before_1970() {
+		$read = undergrowth_read_memory( "## stage\ncomposting\n- 1969-12-31: seedling -> composting (composted by the author)\n## resurfacing\n- 1970-01-01: signal shown\n" );
+
+		$this->assertSame( array(), $read['changes'] );
+		$this->assertSame( array(), $read['resurfacing'] );
+	}
+
+	public function test_import_of_a_line_dated_before_1970_adds_no_row() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$file = "## stage\ncomposting\n- 1969-12-31: seedling -> composting (composted by the author)\n";
+
+		undergrowth_import_memory( $oca, $file );
+		undergrowth_import_memory( $oca, $file );
+
+		$this->assertSame( array(), get_post_meta( $oca, 'undergrowth_stage_log', false ) );
+	}
+
+	public function test_import_that_cannot_put_the_pin_back_says_so() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		update_post_meta( $oca, 'undergrowth_stage_pinned', '1' );
+		$refuse = static function ( $check, $object_id, $meta_key ) {
+			return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned' ), true ) ? false : $check;
+		};
+		add_filter( 'add_post_metadata', $refuse, 10, 3 );
+		add_filter( 'update_post_metadata', $refuse, 10, 3 );
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
+		$this->assertFalse( undergrowth_is_stage_pinned( $oca ) );
+	}
+
+	public function test_import_that_cannot_store_the_history_says_it_was_partial() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		add_filter(
+			'add_post_metadata',
+			static function ( $check, $object_id, $meta_key ) {
+				return 'undergrowth_resurfacing_log' === $meta_key ? false : $check;
+			},
+			10,
+			3
+		);
+
+		$result = undergrowth_import_memory( $oca, "## stage\ncomposting\n- 2025-11-02: seedling -> composting (composted by the author)\n## resurfacing\n- 2026-04-05: signal shown\n" );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_import_partial', $result->get_error_code() );
+		$this->assertSame( 'composting', undergrowth_get_stage( $oca ) );
+		$this->assertCount( 1, undergrowth_stage_log( $oca ) );
+	}
+
 	public function test_import_needs_permission_to_edit_the_post() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
