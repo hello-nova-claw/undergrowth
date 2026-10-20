@@ -10,6 +10,7 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_MAX_PROPOSALS        = 3;
 const UNDERGROWTH_MIN_LINK_SIMILARITY  = 0.4;
 const UNDERGROWTH_NEIGHBOURS_TO_UPDATE = 10;
+const UNDERGROWTH_VECTOR_CHUNK         = 200;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
@@ -66,6 +67,38 @@ function undergrowth_cosine( array $a, array $b ): float {
 }
 
 /**
+ * Packs a vector into four bytes a dimension.
+ *
+ * Embedding models produce single-precision floats, so packing keeps what
+ * they sent in about a tenth of the memory a PHP array of floats takes.
+ *
+ * @param float[] $vector The vector.
+ * @return string Packed floats, or an empty string when a value is too large
+ *                for single precision and would turn into infinity.
+ */
+function undergrowth_pack_vector( array $vector ): string {
+	foreach ( $vector as $value ) {
+		if ( abs( $value ) > 3.4028234663852886E+38 ) {
+			return '';
+		}
+	}
+
+	return pack( 'g*', ...$vector );
+}
+
+/**
+ * Unpacks a vector packed by undergrowth_pack_vector().
+ *
+ * @param string $packed Packed floats.
+ * @return float[] The vector.
+ */
+function undergrowth_unpack_vector( string $packed ): array {
+	$vector = '' === $packed ? false : unpack( 'g*', $packed );
+
+	return is_array( $vector ) ? array_values( $vector ) : array();
+}
+
+/**
  * Returns the lowest similarity worth proposing a link for.
  *
  * @return float Cosine similarity between -1 and 1.
@@ -88,10 +121,12 @@ function undergrowth_min_link_similarity(): float {
  * Loads every stored vector that can be compared with a post's vector.
  *
  * Only vectors from the same provider, model and language qualify, because
- * scores across models or languages mean nothing.
+ * scores across models or languages mean nothing. Rows are read a chunk at a
+ * time and kept packed, so a large archive never sits in memory as JSON or
+ * as PHP arrays of floats.
  *
  * @param int $post_id Post whose vector sets the provider, model and language.
- * @return array<int, float[]> Vectors keyed by post ID, including the post's own.
+ * @return array<int, string> Packed vectors keyed by post ID, including the post's own.
  */
 function undergrowth_comparable_vectors( int $post_id ): array {
 	global $wpdb;
@@ -102,27 +137,40 @@ function undergrowth_comparable_vectors( int $post_id ): array {
 		return array();
 	}
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s',
-			undergrowth_vectors_table(),
-			$source['provider'],
-			$source['model'],
-			$source['language']
-		),
-		ARRAY_A
-	);
-
 	$vectors = array();
+	$after   = 0;
 
-	foreach ( (array) $rows as $row ) {
-		$vector = undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) );
+	do {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+		$rows = (array) $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id > %d ORDER BY post_id LIMIT %d',
+				undergrowth_vectors_table(),
+				$source['provider'],
+				$source['model'],
+				$source['language'],
+				$after,
+				UNDERGROWTH_VECTOR_CHUNK
+			),
+			ARRAY_A
+		);
 
-		if ( array() !== $vector ) {
-			$vectors[ (int) $row['post_id'] ] = $vector;
+		$fetched = count( $rows );
+
+		foreach ( $rows as $row ) {
+			$after  = (int) $row['post_id'];
+			$packed = undergrowth_pack_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+
+			if ( '' !== $packed ) {
+				$vectors[ $after ] = $packed;
+			}
 		}
-	}
+
+		// wpdb keeps the last result set until the next query, which would
+		// leave a chunk of JSON behind for the whole refresh.
+		unset( $rows );
+		$wpdb->flush();
+	} while ( UNDERGROWTH_VECTOR_CHUNK === $fetched );
 
 	return $vectors;
 }
@@ -251,9 +299,9 @@ function undergrowth_link_state( int $source_id, int $target_id ): string {
  * Leaves out the post itself, posts it already links to, and any pair the
  * author has accepted or vetoed.
  *
- * @param int                      $post_id Source post ID.
- * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
- * @param int                      $limit   Most targets to return, or 0 for every target above the minimum.
+ * @param int                     $post_id Source post ID.
+ * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
+ * @param int                     $limit   Most targets to return, or 0 for every target above the minimum.
  * @return array<int, float> Similarity keyed by target post ID, best first.
  */
 function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
@@ -284,14 +332,22 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
 
 	$excluded = array_flip( array_merge( array( $post_id ), undergrowth_linked_post_ids( $post ), array_map( 'intval', $decided ) ) );
 	$minimum  = undergrowth_min_link_similarity();
+	$source   = undergrowth_unpack_vector( $pool[ $post_id ] );
 	$scores   = array();
 
-	foreach ( $pool as $target_id => $vector ) {
-		if ( isset( $excluded[ $target_id ] ) || ! undergrowth_vectors_comparable( $pool[ $post_id ], $vector ) ) {
+	foreach ( $pool as $target_id => $packed ) {
+		if ( isset( $excluded[ $target_id ] ) ) {
 			continue;
 		}
 
-		$score = undergrowth_cosine( $pool[ $post_id ], $vector );
+		// One vector at a time, so only two are ever unpacked at once.
+		$vector = undergrowth_unpack_vector( $packed );
+
+		if ( ! undergrowth_vectors_comparable( $source, $vector ) ) {
+			continue;
+		}
+
+		$score = undergrowth_cosine( $source, $vector );
 
 		if ( $score < $minimum ) {
 			continue;
@@ -318,9 +374,9 @@ function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit
  * fits, so the next best target takes the place of one without. Accepted
  * and vetoed rows are never touched.
  *
- * @param int                      $post_id Source post ID.
- * @param array<int, float[]>|null $pool    Comparable vectors, when already loaded.
- * @param array|null               $corpus  Word counts across the pool, when already built.
+ * @param int                     $post_id Source post ID.
+ * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
+ * @param array|null              $corpus  Word counts across the pool, when already built.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, counts: array<int, array<string, int>>}|null $corpus
  */
@@ -459,11 +515,18 @@ function undergrowth_refresh_around( int $post_id ): void {
 
 	undergrowth_refresh_proposals( $post_id, $pool, $corpus );
 
+	$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
 	$nearest = array();
 
-	foreach ( $pool as $other_id => $vector ) {
-		if ( $other_id !== $post_id && undergrowth_vectors_comparable( $pool[ $post_id ], $vector ) ) {
-			$nearest[ $other_id ] = undergrowth_cosine( $pool[ $post_id ], $vector );
+	foreach ( $pool as $other_id => $packed ) {
+		if ( $other_id === $post_id ) {
+			continue;
+		}
+
+		$vector = undergrowth_unpack_vector( $packed );
+
+		if ( undergrowth_vectors_comparable( $source, $vector ) ) {
+			$nearest[ $other_id ] = undergrowth_cosine( $source, $vector );
 		}
 	}
 
