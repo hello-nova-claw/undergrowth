@@ -261,6 +261,28 @@ class Test_Admin_Compost extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_compost_bulk_actions( array() ) );
 	}
 
+	public function test_bulk_actions_follow_the_capability_of_the_listed_type() {
+		register_post_type(
+			'undergrowth_crop',
+			array(
+				'public'          => true,
+				'capability_type' => 'crop',
+				'map_meta_cap'    => true,
+			)
+		);
+		$grower = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		get_userdata( $grower )->add_cap( 'edit_crops' );
+		wp_set_current_user( $grower );
+
+		$GLOBALS['typenow'] = 'undergrowth_crop';
+		$this->assertArrayHasKey( 'undergrowth_compost', undergrowth_compost_bulk_actions( array() ) );
+
+		$GLOBALS['typenow'] = 'post';
+		$this->assertSame( array(), undergrowth_compost_bulk_actions( array() ) );
+
+		unregister_post_type( 'undergrowth_crop' );
+	}
+
 	public function test_bulk_compost_counts_what_changed_and_what_was_left() {
 		list( $oca, $yacon, $mashua ) = $this->plant_garden();
 		undergrowth_compost_post( $mashua );

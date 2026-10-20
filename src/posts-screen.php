@@ -117,7 +117,11 @@ function undergrowth_add_posts_list_hooks( string $post_type ): void {
  * @return array<string, string> Bulk actions.
  */
 function undergrowth_compost_bulk_actions( $actions ) {
-	if ( ! current_user_can( 'edit_posts' ) ) {
+	global $typenow;
+
+	$type = get_post_type_object( '' === (string) $typenow ? 'post' : (string) $typenow );
+
+	if ( ! $type instanceof WP_Post_Type || ! current_user_can( $type->cap->edit_posts ) ) {
 		return $actions;
 	}
 
