@@ -49,7 +49,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * Loads the proposals for the current page.
 	 *
 	 * Rows are filtered by permission before paging, so every page is full
-	 * and the count matches what the user can act on.
+	 * and the count matches what the user can act on. Composting removes a
+	 * post's proposals, but any left from before are not listed either.
 	 *
 	 * @return void
 	 */
@@ -70,19 +71,21 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 
 		$rows = (array) $rows;
 
-		// One query for every post on the screen, instead of one per row for
-		// the permission checks and again for each title and address.
+		// One query for every post on the screen, and one for their stages,
+		// instead of one per row for the checks and for each title and address.
 		_prime_post_caches(
 			array_unique( array_map( 'intval', array_merge( array_column( $rows, 'source_id' ), array_column( $rows, 'target_id' ) ) ) ),
 			false,
-			false
+			true
 		);
 
 		$rows = array_values(
 			array_filter(
 				$rows,
 				static function ( $row ) {
-					return current_user_can( 'edit_post', (int) $row['source_id'] );
+					return current_user_can( 'edit_post', (int) $row['source_id'] )
+						&& 'composting' !== undergrowth_get_stage( (int) $row['source_id'] )
+						&& 'composting' !== undergrowth_get_stage( (int) $row['target_id'] );
 				}
 			)
 		);
