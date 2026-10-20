@@ -333,6 +333,16 @@ class Test_Compost extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->proposed( $oca ) );
 	}
 
+	public function test_composted_posts_file_lists_no_proposed_links() {
+		list( $oca ) = $this->plant_garden();
+		$path        = undergrowth_memory_path( $oca );
+		$this->assertMatchesRegularExpression( "/## proposed links\n- /", (string) file_get_contents( $path ) );
+
+		undergrowth_compost_post( $oca );
+
+		$this->assertStringContainsString( "## proposed links\n\n## accepted links", (string) file_get_contents( $path ) );
+	}
+
 	public function test_compost_and_return_are_written_to_the_file() {
 		list( $oca ) = $this->plant_garden();
 

@@ -571,6 +571,10 @@ function undergrowth_compost_post( int $post_id ) {
 
 	undergrowth_forget_post_links( $post_id );
 
+	// The file was written for the change of stage, before the proposals
+	// went, so it is written again without them.
+	undergrowth_write_memory( $post_id );
+
 	return true;
 }
 
