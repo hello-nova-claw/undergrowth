@@ -52,6 +52,14 @@ describe( 'findInlineStyles', () => {
 		).toEqual( [ 1, 2 ] );
 	} );
 
+	it( 'reads past a JSX spread attribute', () => {
+		expect(
+			findInlineStyles(
+				"<Button { ...props } style={ { color: 'red' } } />"
+			)
+		).toEqual( [ 1 ] );
+	} );
+
 	it( 'reads past braces inside strings in a JSX expression', () => {
 		expect(
 			findInlineStyles( '<div title={ "}" } style="color:red">' )
