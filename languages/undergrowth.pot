@@ -9,14 +9,14 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T10:22:44+00:00\n"
+"POT-Creation-Date: 2026-10-20T10:32:57+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
 
 #. Plugin Name of the plugin
 #: undergrowth.php:3
-#: src/abilities.php:25
+#: src/abilities.php:26
 #: src/settings.php:20
 #: src/settings.php:21
 msgid "Undergrowth"
@@ -37,64 +37,118 @@ msgstr ""
 msgid "Novaclaw"
 msgstr ""
 
-#: src/abilities.php:26
-msgid "Read what Undergrowth knows about a post."
-msgstr ""
-
-#: src/abilities.php:50
-msgid "What a post has"
+#: src/abilities.php:27
+msgid "Read what Undergrowth knows about a post, and accept or veto the links it suggests."
 msgstr ""
 
 #: src/abilities.php:51
+msgid "What a post has"
+msgstr ""
+
+#: src/abilities.php:52
 msgid "Lists the words that most set a post apart from the rest of the site, taken from its own text, and the published posts it already links to."
 msgstr ""
 
-#: src/abilities.php:59
+#: src/abilities.php:60
 msgid "Words from the post, most distinctive first."
 msgstr ""
 
-#: src/abilities.php:64
+#: src/abilities.php:65
 msgid "Published posts the post links to."
 msgstr ""
 
-#: src/abilities.php:72
+#: src/abilities.php:73
 msgid "What a post lacks"
 msgstr ""
 
-#: src/abilities.php:73
+#: src/abilities.php:74
 msgid "Lists the links suggested for a post that the author has not yet accepted or vetoed, best first, each with the sentence from the post where it fits."
 msgstr ""
 
-#: src/abilities.php:81
+#: src/abilities.php:82
 msgid "Suggested links, best first."
 msgstr ""
 
-#: src/abilities.php:89
+#: src/abilities.php:90
 msgid "The sentence from the post where the link fits, quoted with formatting removed."
 msgstr ""
 
-#: src/abilities.php:101
+#: src/abilities.php:102
 msgid "A post’s scent"
 msgstr ""
 
-#: src/abilities.php:102
+#: src/abilities.php:103
 msgid "Reports how readers move through a post. Undergrowth reads no reader data until reader mode, so for now the value is always empty."
 msgstr ""
 
-#: src/abilities.php:118
+#: src/abilities.php:119
 msgid "A post’s growth stage"
 msgstr ""
 
-#: src/abilities.php:119
+#: src/abilities.php:120
 msgid "Reports a post’s growth stage, whether the author pinned it, and every recorded change to it, oldest first."
 msgstr ""
 
 #: src/abilities.php:193
+msgid "Accept a link"
+msgstr ""
+
+#: src/abilities.php:194
+msgid "Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely."
+msgstr ""
+
+#: src/abilities.php:199
+msgid "Veto a link"
+msgstr ""
+
+#: src/abilities.php:200
+msgid "Vetoes a link between two posts, so it is never suggested again. An accepted link is left as it is."
+msgstr ""
+
+#: src/abilities.php:218
+msgid "ID of the post the link sits in."
+msgstr ""
+
+#: src/abilities.php:223
+msgid "ID of the post the link points to."
+msgstr ""
+
+#: src/abilities.php:270
 msgid "ID of a published post."
 msgstr ""
 
-#: src/abilities.php:244
+#: src/abilities.php:331
 msgid "Undergrowth does not read that post, so it knows nothing about it. Only published posts without a password are read."
+msgstr ""
+
+#: src/abilities.php:523
+#: src/admin.php:313
+msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
+msgstr ""
+
+#: src/abilities.php:524
+#: src/admin.php:312
+msgid "That link was already accepted, so it was left as it is."
+msgstr ""
+
+#: src/abilities.php:525
+#: src/admin.php:317
+msgid "That suggestion is no longer on the list, so nothing was changed."
+msgstr ""
+
+#: src/abilities.php:526
+#: src/admin.php:315
+msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
+msgstr ""
+
+#: src/abilities.php:527
+#: src/admin.php:316
+msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgstr ""
+
+#: src/abilities.php:528
+#: src/admin.php:318
+msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
 #: src/admin.php:22
@@ -165,32 +219,8 @@ msgstr ""
 msgid "Your choice is saved."
 msgstr ""
 
-#: src/admin.php:312
-msgid "That link was already accepted, so it was left as it is."
-msgstr ""
-
-#: src/admin.php:313
-msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
-msgstr ""
-
 #: src/admin.php:314
 msgid "Linked. One word in your sentence now links to the suggested post."
-msgstr ""
-
-#: src/admin.php:315
-msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
-msgstr ""
-
-#: src/admin.php:316
-msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
-msgstr ""
-
-#: src/admin.php:317
-msgid "That suggestion is no longer on the list, so nothing was changed."
-msgstr ""
-
-#: src/admin.php:318
-msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
 #: src/admin.php:319
