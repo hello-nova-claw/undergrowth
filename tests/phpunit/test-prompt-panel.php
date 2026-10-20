@@ -233,7 +233,8 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( self::QUESTION, $html );
-		$this->assertStringContainsString( 'post.php?post=' . $this->post_id . '&amp;action=edit', $html );
+		// Older versions of wp_kses() write the escaped & differently.
+		$this->assertMatchesRegularExpression( '/href="[^"]*post\.php\?post=' . $this->post_id . '(&amp;|&#038;)action=edit"/', $html );
 		$this->assertStringContainsString( 'Growing oca', $html );
 		$this->assertStringContainsString( 'reader', $html );
 		$this->assertStringContainsString( 'Only you can see it', $html );
