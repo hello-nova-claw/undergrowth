@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T21:57:02+00:00\n"
+"POT-Creation-Date: 2026-10-20T22:03:09+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -350,30 +350,36 @@ msgstr ""
 #. translators: %s: title of the post, linked to its editor.
 #: src/dashboard.php:52
 #, php-format
+msgid "Claude wrote this question from %s, a post you moved to compost. Only you can see it."
+msgstr ""
+
+#. translators: %s: title of the post, linked to its editor.
+#: src/dashboard.php:55
+#, php-format
 msgid "Claude wrote this question from your post %s. Only you can see it."
 msgstr ""
 
-#: src/dashboard.php:62
+#: src/dashboard.php:65
 msgid "Ask me next month"
 msgstr ""
 
-#: src/dashboard.php:63
+#: src/dashboard.php:66
 msgid "Dismiss for good"
 msgstr ""
 
-#: src/dashboard.php:83
+#: src/dashboard.php:86
 msgid "You cannot answer questions about this post."
 msgstr ""
 
-#: src/dashboard.php:115
+#: src/dashboard.php:118
 msgid "Dismissed. Undergrowth won’t ask that again."
 msgstr ""
 
-#: src/dashboard.php:116
+#: src/dashboard.php:119
 msgid "Snoozed. This question comes back next month."
 msgstr ""
 
-#: src/dashboard.php:117
+#: src/dashboard.php:120
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
