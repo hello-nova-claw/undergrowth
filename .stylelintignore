@@ -1,0 +1,6 @@
+.claude/
+artifacts/
+build/
+dist/
+node_modules/
+vendor/
