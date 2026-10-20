@@ -100,7 +100,7 @@ class Test_Memory extends WP_UnitTestCase {
 
 		preg_match_all( '/^## (.+)$/m', (string) $this->read( $oca ), $headings );
 
-		$this->assertSame( array( 'stage', 'has', 'lacks', 'scent', 'proposed links', 'accepted links', 'vetoes' ), $headings[1] );
+		$this->assertSame( array( 'stage', 'has', 'lacks', 'scent', 'proposed links', 'accepted links', 'vetoes', 'prompts' ), $headings[1] );
 	}
 
 	public function test_stage_section_names_a_seedling_with_no_changes() {
