@@ -56,11 +56,20 @@ function matchingLines( text, pattern ) {
 /**
  * Finds style attributes in PHP, HTML or JSX, quoted, escaped or as a prop.
  *
+ * Only a style inside an opening tag counts, so a variable named style does
+ * not. The whole text is scanned, so a tag that spans lines is still read.
+ *
  * @param {string} markup File contents.
- * @return {number[]} One-based line numbers.
+ * @return {number[]} One-based line numbers of each style attribute.
  */
 function findInlineStyles( markup ) {
-	return matchingLines( markup, /(?<![\w$-])style\s*=\s*(?:\\?["']|\{)/i );
+	const tag = /(<[a-z][\w.:-]*[^<>]*?\s)style\s*=\s*(?:\\?["']|\{)/gi;
+
+	return Array.from( markup.matchAll( tag ), ( match ) => {
+		const offset = match.index + match[ 1 ].length;
+
+		return markup.slice( 0, offset ).split( '\n' ).length;
+	} );
 }
 
 /**
