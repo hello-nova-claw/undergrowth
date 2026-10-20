@@ -70,6 +70,18 @@ const WITHOUT_POSTS = [
 		fixture: 'prompt-last-error',
 	},
 	{
+		screen: 'settings',
+		state: 'discord-saved',
+		page: SETTINGS,
+		fixture: 'discord-saved',
+	},
+	{
+		screen: 'settings',
+		state: 'discord-invalid',
+		page: SETTINGS,
+		fixture: 'discord-invalid',
+	},
+	{
 		screen: 'suggestions',
 		state: 'no-provider',
 		page: SUGGESTIONS,
