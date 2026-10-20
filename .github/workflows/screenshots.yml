@@ -68,14 +68,16 @@ jobs:
         working-directory: head
 
       # Both runs use this branch's spec, so a state added here is captured on
-      # the base too, and shows as changed rather than new.
+      # the base too, and shows as changed rather than new. Playground
+      # downloads WordPress and WP-CLI as it boots, so each run gets a second
+      # try before the comment reports it as failed.
       - name: Take the "after" shots
         id: after
         continue-on-error: true
         working-directory: head
         env:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/after
-        run: npm run screenshots
+        run: npm run screenshots || npm run screenshots
       - name: Take the "before" shots
         id: before
         continue-on-error: true
@@ -83,7 +85,7 @@ jobs:
         env:
           UNDERGROWTH_PLUGIN_DIR: ${{ github.workspace }}/base
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
-        run: npm run screenshots
+        run: npm run screenshots || npm run screenshots
 
       # The screenshots branch commit doesn't exist yet, so the publish job
       # fills in its SHA.
