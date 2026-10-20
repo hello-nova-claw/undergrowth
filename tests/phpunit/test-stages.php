@@ -17,6 +17,21 @@ class Test_Stages extends WP_UnitTestCase {
 		undergrowth_register_stage_meta();
 	}
 
+	public function tear_down() {
+		global $wp_meta_boxes, $wp_rest_server;
+
+		// The test case resets neither, and a failed assertion would skip
+		// cleanup at the end of a test.
+		if ( post_type_exists( 'recipe' ) ) {
+			unregister_post_type( 'recipe' );
+		}
+
+		$wp_meta_boxes  = null;
+		$wp_rest_server = null;
+
+		parent::tear_down();
+	}
+
 	public function test_post_with_no_stored_stage_reads_as_seedling() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
@@ -87,8 +102,6 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'undergrowth_stage', get_registered_meta_keys( 'post', 'recipe' ) );
 		$this->assertArrayHasKey( 'undergrowth_stage_pinned', get_registered_meta_keys( 'post', 'recipe' ) );
-
-		unregister_post_type( 'recipe' );
 	}
 
 	public function test_stage_can_be_read_through_rest_for_a_post_type_without_custom_fields() {
@@ -126,9 +139,6 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertSame( 'seedling', $data['meta']['undergrowth_stage'] );
 		$this->assertFalse( $data['meta']['undergrowth_stage_pinned'] );
-
-		unregister_post_type( 'recipe' );
-		$wp_rest_server = null;
 	}
 
 	public function test_custom_fields_box_stays_off_for_a_type_that_only_gained_support_for_rest() {
@@ -155,9 +165,6 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertFalse( $wp_meta_boxes['recipe']['normal']['core']['postcustom'] );
 		$this->assertIsArray( $wp_meta_boxes['post']['normal']['core']['postcustom'] );
-
-		unregister_post_type( 'recipe' );
-		$wp_meta_boxes = null;
 	}
 
 	public function test_stage_can_be_read_through_rest() {
