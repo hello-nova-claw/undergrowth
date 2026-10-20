@@ -20,7 +20,7 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 
 = Where does Undergrowth keep its notes about each post? =
 
-Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, the addresses of other posts, and sentences quoted from your own post. Nothing in it is written for your readers.
+Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, the addresses of other posts, sentences quoted from your own post, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
 
 A file looks like this:
 
