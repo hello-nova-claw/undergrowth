@@ -434,3 +434,61 @@ function undergrowth_unpin_stage( int $post_id ) {
 
 	return true;
 }
+
+/**
+ * Moves a post to compost, from any stage.
+ *
+ * Composting is the author's choice alone and takes effect at once. The post
+ * stays published and indexed, but leaves the active garden: its pending
+ * proposals, and other posts' proposals to it, are removed. Links the author
+ * accepted stay, because removing them would change the site without the
+ * author's approval, and vetoes stay forever. No date or timer is stored.
+ *
+ * @param int $post_id Post ID.
+ * @return true|WP_Error True when composted, or why it was refused.
+ */
+function undergrowth_compost_post( int $post_id ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
+		return new WP_Error( 'undergrowth_composting', __( 'This post is already composting.', 'undergrowth' ) );
+	}
+
+	// Composting is outside the pinning rules, so a pin does not survive it.
+	delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+	undergrowth_set_stage( $post_id, 'composting', 'compost' );
+	undergrowth_forget_post_links( $post_id );
+
+	return true;
+}
+
+/**
+ * Returns a composting post to the garden.
+ *
+ * Its stage is measured at that moment. The stage it had before may be years
+ * out of date, and resetting it to Seedling would treat a rest as a failure.
+ * Its proposals are worked out again straight away.
+ *
+ * @param int $post_id Post ID.
+ * @return true|WP_Error True when returned, or why it was refused.
+ */
+function undergrowth_return_post( int $post_id ) {
+	$error = undergrowth_stage_action_error( $post_id );
+
+	if ( null !== $error ) {
+		return $error;
+	}
+
+	if ( 'composting' !== undergrowth_get_stage( $post_id ) ) {
+		return new WP_Error( 'undergrowth_not_composting', __( 'This post is not composting.', 'undergrowth' ) );
+	}
+
+	undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'return' );
+	undergrowth_refresh_around( $post_id );
+
+	return true;
+}
