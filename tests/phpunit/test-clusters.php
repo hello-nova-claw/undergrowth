@@ -230,6 +230,24 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
+	public function test_composting_a_post_takes_it_out_of_its_cluster_at_once() {
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+
+		$this->cluster();
+		undergrowth_set_stage( $post_id, 'composting', 'compost' );
+
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
+	}
+
+	public function test_other_stage_changes_keep_the_cluster() {
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+
+		$this->cluster();
+		undergrowth_set_stage( $post_id, 'sprout' );
+
+		$this->assertSame( $post_id, undergrowth_cluster_leader( $post_id ) );
+	}
+
 	public function test_post_with_no_magnitude_is_in_no_cluster() {
 		$a    = $this->post_with_vector( array( 1.0, 0.0 ) );
 		$zero = $this->post_with_vector( array( 0.0, 0.0 ) );

@@ -18,6 +18,7 @@ const UNDERGROWTH_MAX_CLUSTERS           = 100;
 
 add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
+add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
 add_filter( 'is_protected_meta', 'undergrowth_protect_cluster_meta', 10, 2 );
 
 /**
@@ -302,6 +303,20 @@ function undergrowth_nearest_leader( string $vector, array $leaders, float $mini
  */
 function undergrowth_forget_cluster( int $post_id ): void {
 	delete_post_meta( $post_id, 'undergrowth_cluster' );
+}
+
+/**
+ * Removes a post from its cluster when the author composts it.
+ *
+ * A composted post leaves the active garden at once, so it does not wait
+ * for the next pass to leave its cluster either.
+ *
+ * @param int $post_id Post whose stage changed.
+ */
+function undergrowth_forget_composted_cluster( int $post_id ): void {
+	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
+		undergrowth_forget_cluster( $post_id );
+	}
 }
 
 /**

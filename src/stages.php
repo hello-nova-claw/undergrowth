@@ -430,13 +430,15 @@ function undergrowth_cycle_post( int $post_id ): void {
 }
 
 /**
- * Stops the monthly cycle while the plugin is inactive, and forgets a
- * clustering pass that was under way.
+ * Stops the monthly cycle while the plugin is inactive, and forgets the
+ * clusters and any clustering pass that was under way.
  */
 function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	// Clusters would be stale by the time the plugin is active again.
+	delete_post_meta_by_key( 'undergrowth_cluster' );
 }
 
 /**
