@@ -30,3 +30,13 @@ tests_add_filter(
 require "{$_tests_dir}/includes/bootstrap.php";
 
 require __DIR__ . '/includes/trait-plants-posts.php';
+
+// The threshold meter reads Jetpack Stats. Without Jetpack, stand-ins answer
+// with whatever a test sets.
+if ( ! class_exists( 'Jetpack' ) ) {
+	require __DIR__ . '/includes/class-jetpack.php';
+}
+
+if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
+	require __DIR__ . '/includes/class-wpcom-stats.php';
+}
