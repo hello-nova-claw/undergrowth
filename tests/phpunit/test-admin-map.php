@@ -113,13 +113,19 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertSame( 2, substr_count( $html, '<ul class="undergrowth-cluster"' ) );
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Cluster 2</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Group 2</h2>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="undergrowth-cluster-' . $posts['Yacon'] . '"', $html );
 		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post\\.php\\?post=' . $posts['Yacon syrup'] . '&[^"]*action=edit">Yacon syrup<\\/a> \\(Budding\\)<\\/li>/', $html );
 
 		foreach ( $posts as $title => $post_id ) {
 			$this->assertStringContainsString( '>' . $title . '</a> (', $html );
 		}
+	}
+
+	public function test_map_calls_clusters_groups_on_screen() {
+		$this->plant_clusters();
+
+		$this->assertStringNotContainsStringIgnoringCase( 'cluster', wp_strip_all_tags( $this->render() ) );
 	}
 
 	public function test_posts_are_listed_nearest_the_centre_first() {
@@ -135,7 +141,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$posts = $this->plant_clusters();
 		$html  = $this->render();
 
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Cluster 1, with a gap</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Group 1, with a gap</h2>', $html );
 		$this->assertSame( 1, substr_count( $html, 'class="undergrowth-gap"' ) );
 		$this->assertMatchesRegularExpression( '/<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"><\/span> [^<]+<\/p>/', $html );
 	}
