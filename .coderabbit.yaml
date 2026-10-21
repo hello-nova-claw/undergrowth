@@ -29,7 +29,7 @@ reviews:
         - Check commit messages: WordPress core style, imperative, component prefix, under 72 characters, no emoji, no Conventional Commits prefixes.
         - Flag comments that restate the code instead of explaining why.
         - A pull request that touches src/ must touch tests/.
-        - A pull request must add a changelog line to readme.txt unless it has the no-changelog label.
+        - A pull request must add a changelog fragment, changelog/<issue>-<slug>.txt, unless it has the no-changelog label. It must not edit the changelog in readme.txt directly; npm run changelog folds the fragments in at release time.
         - A pull request that touches UI must say how it was tested with a keyboard.
     - path: "**/*.php"
       instructions: |
