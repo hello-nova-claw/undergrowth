@@ -10,7 +10,7 @@ Undergrowth treats a WordPress site like a mycorrhizal network and a digital gar
 
 The gardener plants. The readers decide where the paths go.
 
-Version 1 works from your own writing only. It indexes your published posts, proposes up to three links per post to your other posts, and shows your posts grouped into clusters, flagging the places where a cluster has no post at its centre. Reader signals come later, once the site has enough visitors for them to mean something.
+Version 1 works from your own writing only. It indexes your published posts, proposes up to three links per post to your other posts, measures each post's growth stage, groups posts into clusters, and asks you one question at a time about gaps between your own posts. Reader signals come later, once the site has enough visitors for them to mean something.
 
 ## What it will never do
 
@@ -22,7 +22,7 @@ Version 1 works from your own writing only. It indexes your published posts, pro
 
 ## Status
 
-Pre-release. Nothing is built yet. The full design record is in [docs/handover.md](docs/handover.md).
+0.1.0, being tested on real posts before its first release. To try it on your own posts, follow [docs/testing-v1.md](docs/testing-v1.md). The full design record is in [docs/handover.md](docs/handover.md).
 
 ## Contributing
 
