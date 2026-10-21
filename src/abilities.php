@@ -200,7 +200,7 @@ function undergrowth_register_read_abilities(): void {
 						return call_user_func( $ability['callback'], get_post( $scope['post_id'] ) );
 					}
 
-					return undergrowth_ability_scope_head( $scope ) + call_user_func( $ability['many'], $scope['posts'] );
+					return undergrowth_ability_scope_head( $scope ) + call_user_func( $ability['many'], $scope['posts'], $scope['scale'] );
 				},
 				'permission_callback' => 'undergrowth_ability_can_read',
 				'meta'                => $meta,
@@ -460,43 +460,53 @@ function undergrowth_ability_scope( array $input ) {
 /**
  * Lists every post in the index that the current user can edit.
  *
- * Composting posts are included, so they can be counted apart.
+ * Composting posts are included, so they can be counted apart. Someone who
+ * cannot edit published posts gets none, and someone who cannot edit other
+ * people's posts is only asked about their own, before any post is loaded.
+ * Posts are checked a chunk at a time and their rows dropped again, so a
+ * long archive never sits in memory; their stages stay, to be counted.
  *
  * @return int[] Post IDs, lowest first.
  */
 function undergrowth_ability_site_posts(): array {
 	$post_types = undergrowth_indexed_post_types();
 
-	if ( array() === $post_types ) {
+	if ( array() === $post_types || ! current_user_can( 'edit_published_posts' ) ) {
 		return array();
 	}
 
-	$query = new WP_Query(
-		array(
-			'post_type'              => $post_types,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'orderby'                => 'ID',
-			'order'                  => 'ASC',
-			'posts_per_page'         => -1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_term_cache' => false,
-		)
+	$args = array(
+		'post_type'              => $post_types,
+		'post_status'            => 'publish',
+		'has_password'           => false,
+		'orderby'                => 'ID',
+		'order'                  => 'ASC',
+		'posts_per_page'         => -1,
+		'no_found_rows'          => true,
+		'fields'                 => 'ids',
+		'update_post_term_cache' => false,
 	);
-	$ids   = array_map( 'intval', $query->posts );
 
-	// Checking each post loads it and its stage, so they are loaded together.
-	_prime_post_caches( $ids, false, true );
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		$args['author'] = get_current_user_id();
+	}
 
-	return array_values(
-		array_filter(
-			$ids,
-			static function ( $post_id ) {
-				return current_user_can( 'edit_post', $post_id );
+	$query    = new WP_Query( $args );
+	$editable = array();
+
+	foreach ( array_chunk( array_map( 'intval', $query->posts ), UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+		_prime_post_caches( $chunk, false, true );
+
+		foreach ( $chunk as $post_id ) {
+			if ( current_user_can( 'edit_post', $post_id ) ) {
+				$editable[] = $post_id;
 			}
-		)
-	);
+
+			wp_cache_delete( $post_id, 'posts' );
+		}
+	}
+
+	return $editable;
 }
 
 /**
@@ -570,26 +580,14 @@ function undergrowth_ability_linked_posts( WP_Post $post ): array {
  * edit, and the weights are added up, so a word many of the posts lean on
  * rises. Composting posts have left the garden and add nothing.
  *
- * @param int[] $post_ids Posts the user can edit.
+ * @param int[]  $post_ids Posts the user can edit.
+ * @param string $scale    'cluster' or 'site'. At site scale the posts are
+ *                         already every post the user can edit.
  * @return array{words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
  */
-function undergrowth_ability_has_many( array $post_ids ): array {
-	$growing = array_values(
-		array_filter(
-			$post_ids,
-			static function ( $post_id ) {
-				return 'composting' !== undergrowth_get_stage( $post_id );
-			}
-		)
-	);
-	$corpus  = undergrowth_reusable_corpus(
-		array_filter(
-			undergrowth_ability_site_posts(),
-			static function ( $post_id ) {
-				return 'composting' !== undergrowth_get_stage( $post_id );
-			}
-		)
-	);
+function undergrowth_ability_has_many( array $post_ids, string $scale = 'cluster' ): array {
+	$growing = undergrowth_ability_growing_posts( $post_ids );
+	$corpus  = undergrowth_reusable_corpus( 'site' === $scale ? $growing : undergrowth_ability_growing_posts( undergrowth_ability_site_posts() ) );
 	$weights = array();
 	$links   = array();
 
@@ -619,6 +617,24 @@ function undergrowth_ability_has_many( array $post_ids ): array {
 }
 
 /**
+ * Leaves out the composting posts, which have left the garden.
+ *
+ * @param int[] $post_ids Post IDs.
+ * @return int[] Post IDs that are not composting, in the same order.
+ */
+function undergrowth_ability_growing_posts( array $post_ids ): array {
+	$growing = array();
+
+	foreach ( $post_ids as $post_id ) {
+		if ( 'composting' !== undergrowth_get_stage( $post_id ) ) {
+			$growing[] = $post_id;
+		}
+	}
+
+	return $growing;
+}
+
+/**
  * Answers undergrowth/lacks: the links a post does not have yet.
  *
  * @param WP_Post $post Post.
@@ -644,10 +660,11 @@ function undergrowth_ability_lacks( WP_Post $post ): array {
 function undergrowth_ability_lacks_many( array $post_ids ): array {
 	global $wpdb;
 
-	$links     = array();
-	$sentences = array();
+	$links = array();
 
 	foreach ( array_chunk( array_map( 'intval', $post_ids ), UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+		// Each post's sentences are kept for its own chunk only.
+		$sentences    = array();
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The plugin's own table; there is one placeholder for each ID in the chunk.
