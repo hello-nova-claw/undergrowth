@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Undergrowth 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/hungry-einstein-954a4a\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/undergrowth\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -730,39 +730,47 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
+#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
 msgstr ""
 
+#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block title"
 msgid "Growth stage"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block description"
 msgid "Shows the post's growth stage: Seedling, Sprout, Budding or Evergreen. Composting posts show nothing."
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "seedling"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "sprout"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "evergreen"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
