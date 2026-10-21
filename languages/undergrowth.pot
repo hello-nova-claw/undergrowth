@@ -628,39 +628,47 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
+#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
 msgstr ""
 
+#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block title"
 msgid "Growth stage"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block description"
 msgid "Shows the post's growth stage: Seedling, Sprout, Budding or Evergreen. Composting posts show nothing."
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "seedling"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "sprout"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "evergreen"
 msgstr ""
 
+#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
