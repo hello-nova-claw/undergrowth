@@ -411,6 +411,8 @@ class Test_Discord_Post extends WP_UnitTestCase {
 	}
 
 	public function test_failure_is_forgotten_when_its_suggestion_will_not_be_sent() {
+		global $wpdb;
+
 		$this->configure();
 		list( $oca, $yacon ) = $this->pair();
 
@@ -418,31 +420,73 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		undergrowth_discord_post_proposals( $oca );
 		$this->assertNotFalse( get_option( 'undergrowth_last_discord_error' ) );
 
-		wp_update_post(
-			array(
-				'ID'          => $yacon,
-				'post_status' => 'draft',
-			)
-		);
+		// Changed past the save hooks, so the suggestion stays proposed and
+		// only the posting check can drop it.
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $yacon ) );
+		clean_post_cache( $yacon );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+
 		undergrowth_discord_post_proposals( $oca );
 
 		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
 	}
 
 	public function test_failure_is_forgotten_when_the_source_is_unpublished() {
+		global $wpdb;
+
 		$this->configure();
 		list( $oca ) = $this->pair();
 
 		$this->status = 400;
 		undergrowth_discord_post_proposals( $oca );
+		$this->assertSame( 400, get_option( 'undergrowth_last_discord_error' )['status'] );
 
-		wp_update_post(
-			array(
-				'ID'          => $oca,
-				'post_status' => 'private',
-			)
-		);
+		// Changed past the save hooks, so only the posting check sees it.
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'private' ), array( 'ID' => $oca ) );
+		clean_post_cache( $oca );
 		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
+	/**
+	 * Ways a post leaves for good, each through WordPress's own hooks.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public function data_posts_leaving() {
+		return array(
+			'source trashed' => array( 'source', 'trash' ),
+			'target trashed' => array( 'target', 'trash' ),
+			'source deleted' => array( 'source', 'delete' ),
+			'target deleted' => array( 'target', 'delete' ),
+		);
+	}
+
+	/**
+	 * Nothing is posted to or from a post once it is gone, so its failures
+	 * have to go without another posting run.
+	 *
+	 * @dataProvider data_posts_leaving
+	 *
+	 * @param string $which  Which post leaves.
+	 * @param string $action How it leaves.
+	 */
+	public function test_failure_is_forgotten_when_either_post_leaves( $which, $action ) {
+		$this->configure();
+		list( $oca, $yacon ) = $this->pair();
+
+		$this->status = 400;
+		undergrowth_discord_post_proposals( $oca );
+		$this->assertNotFalse( get_option( 'undergrowth_last_discord_error' ) );
+
+		$post_id = 'source' === $which ? $oca : $yacon;
+
+		if ( 'trash' === $action ) {
+			wp_trash_post( $post_id );
+		} else {
+			wp_delete_post( $post_id, true );
+		}
 
 		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
 	}
