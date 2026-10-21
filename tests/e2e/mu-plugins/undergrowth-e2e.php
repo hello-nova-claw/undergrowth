@@ -146,8 +146,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid' ) ) ) {
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'discord-saved', 'discord-invalid', 'discord-last-error' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
