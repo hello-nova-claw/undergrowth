@@ -16,6 +16,10 @@ const UNDERGROWTH_MIN_CLUSTER_SIZE       = 3;
 const UNDERGROWTH_CLUSTER_BATCH          = 50;
 const UNDERGROWTH_MAX_CLUSTERS           = 100;
 
+// A member this close to its cluster's centre counts as a post there. The
+// default suits text-embedding-3-small; other models may need the filter.
+const UNDERGROWTH_GAP_SIMILARITY = 0.8;
+
 add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
@@ -84,6 +88,161 @@ function undergrowth_cluster_members( int $post_id ): array {
 	);
 
 	return count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ? array_map( 'intval', $members ) : array();
+}
+
+/**
+ * Returns the similarity a member needs to its cluster's centre for the
+ * centre to count as written about.
+ *
+ * @return float Cosine similarity between -1 and 1.
+ */
+function undergrowth_gap_similarity(): float {
+	/**
+	 * Filters how close a post must be to its cluster's centre for the
+	 * cluster to have no gap.
+	 *
+	 * @param float $similarity Cosine similarity. Default 0.8.
+	 */
+	$similarity = apply_filters( 'undergrowth_gap_similarity', UNDERGROWTH_GAP_SIMILARITY );
+
+	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : UNDERGROWTH_GAP_SIMILARITY;
+}
+
+/**
+ * Finds clusters whose centre has no post: a gap found in the author's own
+ * writing, with no model call.
+ *
+ * A cluster's centre is the mean of its members' unit vectors. When no
+ * member reaches undergrowth_gap_similarity() to it, the posts circle
+ * something none of them is about.
+ *
+ * @return array<int, array{leader: int, members: int[], centre: float}> One entry per gap, by
+ *         leader ID: the members nearest the centre first, and the nearest one's similarity to it.
+ */
+function undergrowth_cluster_gaps(): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One grouped query instead of loading every clustered post.
+	$leaders = (array) $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT meta_value FROM %i WHERE meta_key = %s GROUP BY meta_value HAVING COUNT(*) >= %d',
+			$wpdb->postmeta,
+			'undergrowth_cluster',
+			UNDERGROWTH_MIN_CLUSTER_SIZE
+		)
+	);
+
+	$threshold = undergrowth_gap_similarity();
+	$gaps      = array();
+
+	foreach ( array_slice( array_map( 'intval', $leaders ), 0, UNDERGROWTH_MAX_CLUSTERS ) as $leader ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
+		$members = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC LIMIT %d',
+				$wpdb->postmeta,
+				'undergrowth_cluster',
+				(string) $leader,
+				UNDERGROWTH_CLUSTER_BATCH
+			)
+		);
+
+		$gap = undergrowth_cluster_gap( $leader, array_map( 'intval', $members ), $threshold );
+
+		if ( null !== $gap ) {
+			$gaps[] = $gap;
+		}
+	}
+
+	usort(
+		$gaps,
+		static function ( $a, $b ) {
+			return $a['leader'] <=> $b['leader'];
+		}
+	);
+
+	return $gaps;
+}
+
+/**
+ * Measures how close one cluster's members come to its centre.
+ *
+ * Only vectors as long as the first member's are compared, so a member
+ * embedded again with other settings is left out.
+ *
+ * @param int   $leader    Leader ID labelling the cluster.
+ * @param int[] $members   Member post IDs, lowest first.
+ * @param float $threshold Similarity at which the centre counts as written about.
+ * @return array{leader: int, members: int[], centre: float}|null The gap, or null when there is none.
+ */
+function undergrowth_cluster_gap( int $leader, array $members, float $threshold ): ?array {
+	$vectors = array();
+	$length  = 0;
+
+	foreach ( $members as $post_id ) {
+		$row    = undergrowth_get_vector( $post_id );
+		$packed = null === $row ? '' : undergrowth_unit_vector( $row['vector'] );
+
+		if ( '' === $packed || ( 0 !== $length && strlen( $packed ) !== $length ) ) {
+			continue;
+		}
+
+		$length              = strlen( $packed );
+		$vectors[ $post_id ] = undergrowth_unpack_vector( $packed );
+	}
+
+	if ( count( $vectors ) < UNDERGROWTH_MIN_CLUSTER_SIZE ) {
+		return null;
+	}
+
+	$sum = array_fill( 0, count( reset( $vectors ) ), 0.0 );
+
+	foreach ( $vectors as $vector ) {
+		foreach ( $vector as $i => $value ) {
+			$sum[ $i ] += $value;
+		}
+	}
+
+	$centre = undergrowth_unit_vector( $sum );
+
+	if ( '' === $centre ) {
+		return null;
+	}
+
+	$centre = undergrowth_unpack_vector( $centre );
+	$near   = array();
+
+	foreach ( $vectors as $post_id => $vector ) {
+		$dot = 0.0;
+
+		foreach ( $vector as $i => $value ) {
+			$dot += $value * $centre[ $i ];
+		}
+
+		$near[ $post_id ] = $dot;
+	}
+
+	// Nearest first; equally near posts stay in ID order.
+	uksort(
+		$near,
+		static function ( $a, $b ) use ( $near ) {
+			$order = $near[ $b ] <=> $near[ $a ];
+
+			return 0 !== $order ? $order : $a <=> $b;
+		}
+	);
+
+	$closest = (float) reset( $near );
+
+	if ( $closest >= $threshold ) {
+		return null;
+	}
+
+	return array(
+		'leader'  => $leader,
+		'members' => array_map( 'intval', array_keys( $near ) ),
+		'centre'  => $closest,
+	);
 }
 
 /**
