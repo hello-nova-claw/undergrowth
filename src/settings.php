@@ -133,6 +133,8 @@ function undergrowth_render_settings_page(): void {
 	$error           = get_option( 'undergrowth_last_embed_error' );
 	$anthropic_key   = undergrowth_anthropic_key();
 	$anthropic_error = get_option( 'undergrowth_last_prompt_error' );
+	$identity        = undergrowth_embed_identity();
+	$counts          = '' !== $identity['provider'] && '' !== $identity['model'] ? undergrowth_index_counts() : null;
 	?>
 	<div class="wrap undergrowth-settings">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -179,7 +181,7 @@ function undergrowth_render_settings_page(): void {
 									echo esc_html(
 										sprintf(
 											/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-											__( 'The last request to OpenAI failed on %1$s (status %2$s). Posts are tried again the next time they are saved.', 'undergrowth' ),
+											__( 'The last request to OpenAI failed on %1$s (status %2$s). Posts that were not indexed are tried again within the hour.', 'undergrowth' ),
 											wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
 											number_format_i18n( (int) ( $error['status'] ?? 0 ) )
 										)
@@ -190,6 +192,30 @@ function undergrowth_render_settings_page(): void {
 						<?php endif; ?>
 					</td>
 				</tr>
+				<?php if ( null !== $counts ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Index', 'undergrowth' ); ?></th>
+						<td>
+							<p id="undergrowth-index-count">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: number of posts indexed, 2: number of posts that can be indexed. */
+										_n( '%1$s of %2$s post indexed.', '%1$s of %2$s posts indexed.', $counts['total'], 'undergrowth' ),
+										number_format_i18n( $counts['indexed'] ),
+										number_format_i18n( $counts['total'] )
+									)
+								);
+								?>
+							</p>
+							<?php if ( $counts['indexed'] < $counts['total'] ) : ?>
+								<p class="description">
+									<?php esc_html_e( 'The rest are indexed in the background, a few at a time.', 'undergrowth' ); ?>
+								</p>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endif; ?>
 				<tr>
 					<th scope="row">
 						<label for="undergrowth_anthropic_api_key"><?php esc_html_e( 'Anthropic API key', 'undergrowth' ); ?></label>
