@@ -522,6 +522,13 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertSame( 'You once asked "Why grow oca at all?" Do you have an answer now?', undergrowth_validate_prompt( 'You once asked "Why grow oca at all?" Do you have an answer now?', $record ) );
 	}
 
+	public function test_validator_trims_a_full_stop_without_cutting_the_letter_before_it() {
+		$record          = $this->record( array( 'МОЙ ОТЕЦ' ) );
+		$record['exact'] = true;
+
+		$this->assertSame( 'Вы писали «МОЙ ОТЕЦ.» — что дальше?', undergrowth_validate_prompt( 'Вы писали «МОЙ ОТЕЦ.» — что дальше?', $record ) );
+	}
+
 	public function test_validator_rejects_any_quote_when_the_source_has_no_sentences() {
 		$this->assertNull( undergrowth_validate_prompt( 'You wrote "I lift the tubers" — why?', $this->record( array() ) ) );
 	}
