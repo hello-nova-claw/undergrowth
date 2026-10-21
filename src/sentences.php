@@ -12,6 +12,8 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DISTINCTIVE_TERMS = 20;
 
+add_action( 'clean_post_cache', 'undergrowth_forget_reusable_corpus' );
+
 // Hiragana, katakana and CJK ideographs. These scripts do not separate words
 // with spaces, so they are matched as overlapping pairs of characters.
 const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}';
@@ -272,6 +274,42 @@ function undergrowth_build_corpus( array $post_ids ): array {
 		'frequency' => $frequency,
 		'posts'     => $posts,
 	);
+}
+
+/**
+ * Counts words across a set of posts, reusing the counts last made in this
+ * request when the set is the same.
+ *
+ * Writing the files of a post and its neighbours after one embed asks for
+ * the same counts again and again, and each count reads every post.
+ *
+ * @param int[] $post_ids Posts to count across.
+ * @return array{documents: int, frequency: array<string, int>, posts: array<int, true>}
+ */
+function undergrowth_reusable_corpus( array $post_ids ): array {
+	global $undergrowth_reusable_corpus;
+
+	$ids = array_values( array_unique( array_map( 'intval', $post_ids ) ) );
+	sort( $ids );
+	$key = implode( ',', $ids );
+
+	if ( ! is_array( $undergrowth_reusable_corpus ) || $key !== $undergrowth_reusable_corpus['key'] ) {
+		$undergrowth_reusable_corpus = array(
+			'key'    => $key,
+			'corpus' => undergrowth_build_corpus( $ids ),
+		);
+	}
+
+	return $undergrowth_reusable_corpus['corpus'];
+}
+
+/**
+ * Drops the reused word counts once any post changes.
+ */
+function undergrowth_forget_reusable_corpus(): void {
+	global $undergrowth_reusable_corpus;
+
+	$undergrowth_reusable_corpus = null;
 }
 
 /**

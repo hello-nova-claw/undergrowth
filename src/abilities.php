@@ -360,7 +360,7 @@ function undergrowth_ability_describe_post( WP_Post $post ): array {
  * @return array{post_id: int, words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
  */
 function undergrowth_ability_has( WP_Post $post ): array {
-	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $post->ID ) ), array( $post->ID ) ) ) );
+	$corpus = undergrowth_reusable_corpus( array_merge( array_keys( undergrowth_comparable_vectors( $post->ID ) ), array( $post->ID ) ) );
 	$links  = array();
 
 	foreach ( undergrowth_linked_post_ids( $post ) as $target_id ) {
