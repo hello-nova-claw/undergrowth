@@ -617,18 +617,31 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->new_cluster_near_compost();
 		$this->cycle();
 
-		wp_update_post(
-			array(
-				'ID'          => $old,
-				'post_author' => self::factory()->user->create( array( 'role' => 'administrator' ) ),
-			)
-		);
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
-		$GLOBALS['current_user']->add_cap( 'edit_others_posts', false );
+		$deny = static function ( $caps, $cap, $user_id, $args ) use ( $old ) {
+			return 'edit_post' === $cap && isset( $args[0] ) && $old === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+		};
+		add_filter( 'map_meta_cap', $deny, 10, 4 );
 
-		$author_html = $this->render();
+		$html = $this->render();
 
-		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $author_html );
+		remove_filter( 'map_meta_cap', $deny, 10 );
+
+		$this->assertStringContainsString( 'nav-tab-wrapper', $html );
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $html );
+	}
+
+	public function test_stages_tab_shows_every_signal() {
+		$this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		$this->cycle();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH; $i++ ) {
+			$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+			undergrowth_set_stage( $post_id, 'composting', 'compost' );
+			add_post_meta( $post_id, 'undergrowth_resurfacing', $new[0] );
+		}
+
+		$this->assertSame( UNDERGROWTH_CLUSTER_BATCH + 1, substr_count( $this->render(), 'class="notice notice-info inline undergrowth-resurfacing"' ) );
 	}
 
 	public function test_stages_tab_skips_signal_whose_cluster_is_gone() {
