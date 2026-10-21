@@ -68,6 +68,16 @@ class Test_Discord_Endpoint extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_discord_signature', $response->get_data()['code'] );
 	}
 
+	public function test_unsigned_broken_json_is_refused_whatever_the_route_case() {
+		$request = $this->unsigned_request( '{"type":' );
+		$request->set_route( '/UNDERGROWTH/v1/Discord/' );
+
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 401, $response->get_status() );
+		$this->assertSame( 'undergrowth_discord_signature', $response->get_data()['code'] );
+	}
+
 	public function test_signed_broken_json_is_still_a_bad_request() {
 		$this->assertSame( 400, rest_get_server()->dispatch( $this->signed_request( '{"type":' ) )->get_status() );
 	}

@@ -43,7 +43,8 @@ function undergrowth_register_discord_route(): void {
  *
  * WordPress checks a JSON body before it calls the permission callback, so
  * without this an unsigned request with a broken body would be told it was
- * malformed rather than refused.
+ * malformed rather than refused. Routes match without regard to case, as
+ * they do when WordPress dispatches them.
  *
  * @param mixed           $result  Response from an earlier filter, or null.
  * @param WP_REST_Server  $server  REST server.
@@ -51,7 +52,7 @@ function undergrowth_register_discord_route(): void {
  * @return mixed The earlier response, the refusal, or null to carry on.
  */
 function undergrowth_discord_check_first( $result, $server, $request ) {
-	if ( null !== $result || ! $request instanceof WP_REST_Request || 'POST' !== $request->get_method() || '/' . UNDERGROWTH_DISCORD_NAMESPACE . UNDERGROWTH_DISCORD_ROUTE !== untrailingslashit( $request->get_route() ) ) {
+	if ( null !== $result || ! $request instanceof WP_REST_Request || 'POST' !== $request->get_method() || 0 !== strcasecmp( '/' . UNDERGROWTH_DISCORD_NAMESPACE . UNDERGROWTH_DISCORD_ROUTE, untrailingslashit( $request->get_route() ) ) ) {
 		return $result;
 	}
 
