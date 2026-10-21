@@ -340,6 +340,25 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
 	}
 
+	public function test_deleting_a_revision_keeps_its_post_in_the_index() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
+		update_post_meta( $post_id, 'undergrowth_resurfacing', 7 );
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => 'Oca keeps better in dry sand.',
+			)
+		);
+
+		wp_delete_post_revision( key( wp_get_post_revisions( $post_id ) ) );
+
+		$this->assertSame( $post_id, (int) get_post_meta( $post_id, 'undergrowth_cluster', true ) );
+		$this->assertSame( 7, undergrowth_resurfacing_signal( $post_id ) );
+		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
+	}
+
 	public function test_autosave_keeps_the_cluster_of_its_post() {
 		$post_id = $this->publish();
 		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
