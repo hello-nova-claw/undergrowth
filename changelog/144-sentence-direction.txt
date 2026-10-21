@@ -1,0 +1,1 @@
+On Posts > Link suggestions, a quoted sentence now keeps its own reading direction, so an English sentence reads correctly in a right-to-left admin and the other way round.
