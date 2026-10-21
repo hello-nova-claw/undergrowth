@@ -160,6 +160,79 @@ function undergrowth_stage_label( string $stage ): string {
 }
 
 /**
+ * Counts the posts in the garden at each stage.
+ *
+ * These are the posts the growth stages table lists, plus the composting
+ * ones it leaves out. A post with no stage stored, or one Undergrowth does
+ * not know, is a seedling, as undergrowth_get_stage() reads it.
+ *
+ * @return array<string, int> Number of posts keyed by stage, in UNDERGROWTH_STAGES order.
+ */
+function undergrowth_count_stages(): array {
+	global $wpdb;
+
+	$counts     = array_fill_keys( UNDERGROWTH_STAGES, 0 );
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return $counts;
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One grouped query instead of loading every post; there is one placeholder for each post type.
+	$rows = (array) $wpdb->get_results(
+		$wpdb->prepare(
+			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN (' . $placeholders . ') GROUP BY m.meta_value',
+			$wpdb->posts,
+			$wpdb->postmeta,
+			'undergrowth_stage',
+			'publish',
+			'',
+			...$post_types
+		),
+		ARRAY_A
+	);
+	// phpcs:enable
+
+	foreach ( $rows as $row ) {
+		$stage             = in_array( $row['stage'], UNDERGROWTH_STAGES, true ) ? $row['stage'] : 'seedling';
+		$counts[ $stage ] += (int) $row['posts'];
+	}
+
+	return $counts;
+}
+
+/**
+ * Says how many posts are at a stage, in one sentence.
+ *
+ * @param string $stage One of UNDERGROWTH_STAGES.
+ * @param int    $count Number of posts.
+ * @return string Translated sentence.
+ */
+function undergrowth_stage_count_sentence( string $stage, int $count ): string {
+	$number = number_format_i18n( $count );
+
+	switch ( $stage ) {
+		case 'sprout':
+			/* translators: %s: number of posts. */
+			return sprintf( _n( '%s post is a sprout.', '%s posts are sprouts.', $count, 'undergrowth' ), $number );
+		case 'budding':
+			/* translators: %s: number of posts. */
+			return sprintf( _n( '%s post is budding.', '%s posts are budding.', $count, 'undergrowth' ), $number );
+		case 'evergreen':
+			/* translators: %s: number of posts. */
+			return sprintf( _n( '%s post is evergreen.', '%s posts are evergreen.', $count, 'undergrowth' ), $number );
+		case 'composting':
+			/* translators: %s: number of posts. */
+			return sprintf( _n( '%s post is composting.', '%s posts are composting.', $count, 'undergrowth' ), $number );
+		default:
+			/* translators: %s: number of posts. */
+			return sprintf( _n( '%s post is a seedling.', '%s posts are seedlings.', $count, 'undergrowth' ), $number );
+	}
+}
+
+/**
  * Tells whether the author has pinned a post's stage.
  *
  * @param int $post_id Post ID.
