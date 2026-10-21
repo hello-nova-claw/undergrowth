@@ -339,4 +339,57 @@ class Test_Corpus extends WP_UnitTestCase {
 
 		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_rank_targets( $source, null, 2 ) ) );
 	}
+
+	public function test_reused_corpus_is_counted_once_for_the_same_posts() {
+		global $wpdb;
+
+		$ids   = array(
+			self::factory()->post->create( array( 'post_content' => 'Oca tubers.' ) ),
+			self::factory()->post->create( array( 'post_content' => 'Yacon roots.' ) ),
+		);
+		$first = undergrowth_reusable_corpus( $ids );
+		$count = $wpdb->num_queries;
+
+		$this->assertSame( $first, undergrowth_reusable_corpus( array_reverse( $ids ) ) );
+		$this->assertSame( $count, $wpdb->num_queries );
+		$this->assertSame( undergrowth_build_corpus( $ids ), $first );
+	}
+
+	public function test_reused_corpus_is_counted_again_for_other_posts() {
+		$oca   = self::factory()->post->create( array( 'post_content' => 'Oca tubers.' ) );
+		$yacon = self::factory()->post->create( array( 'post_content' => 'Yacon roots.' ) );
+
+		undergrowth_reusable_corpus( array( $oca, $yacon ) );
+
+		$this->assertSame( undergrowth_build_corpus( array( $oca ) ), undergrowth_reusable_corpus( array( $oca ) ) );
+	}
+
+	public function test_reused_corpus_is_counted_again_after_a_post_changes() {
+		$oca   = self::factory()->post->create( array( 'post_content' => 'Oca tubers.' ) );
+		$yacon = self::factory()->post->create( array( 'post_content' => 'Yacon roots.' ) );
+
+		undergrowth_reusable_corpus( array( $oca, $yacon ) );
+		wp_update_post(
+			array(
+				'ID'           => $yacon,
+				'post_content' => 'Mashua leaves.',
+			)
+		);
+
+		$this->assertArrayHasKey( 'mashua', undergrowth_reusable_corpus( array( $oca, $yacon ) )['frequency'] );
+	}
+
+	public function test_reused_corpus_is_counted_again_on_another_site() {
+		global $wpdb;
+
+		$ids = array( self::factory()->post->create( array( 'post_content' => 'Oca tubers.' ) ) );
+
+		undergrowth_reusable_corpus( $ids );
+		// Another site's posts table can hold the same IDs.
+		do_action( 'switch_blog', 2, 1, 'switch' );
+		$count = $wpdb->num_queries;
+		undergrowth_reusable_corpus( $ids );
+
+		$this->assertGreaterThan( $count, $wpdb->num_queries );
+	}
 }

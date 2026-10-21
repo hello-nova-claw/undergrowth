@@ -251,6 +251,109 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertNull( $this->read( $oca ) );
 	}
 
+	public function test_has_section_lists_the_words_and_links_the_has_ability_returns() {
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon roots keep in sand.</p>' ) );
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>Oca tubers sweeten after frost. Tubers keep in sand, like <a href="' . get_permalink( $yacon ) . '">yacon</a>.</p>' )
+		);
+
+		undergrowth_write_memory( $oca );
+		$has = undergrowth_ability_has( get_post( $oca ) );
+
+		$this->assertContains( 'tubers', $has['words'] );
+		$this->assertSame(
+			array(
+				'words: ' . implode( ', ', $has['words'] ),
+				'- ' . get_permalink( $yacon ),
+			),
+			$this->section( (string) $this->read( $oca ), 'has' )
+		);
+	}
+
+	public function test_lacks_section_lists_the_suggestions_the_lacks_ability_returns() {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows in the Andes. Like yacon and mashua, it is a tuber.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is a sweet tuber.</p>' ) );
+		$mashua = $this->plant( 'Mashua', array( 0.7, 0.3, 0.0 ), array( 'post_content' => '<p>Mashua is a peppery tuber.</p>' ) );
+
+		$lacks = undergrowth_ability_lacks( get_post( $oca ) );
+		$lines = array();
+
+		foreach ( $lacks['links'] as $link ) {
+			$lines[] = '- ' . $link['url'] . ' | "' . $link['sentence'] . '"';
+		}
+
+		$this->assertSame( array( $yacon, $mashua ), array_column( $lacks['links'], 'post_id' ) );
+		$this->assertSame( $lines, $this->section( (string) $this->read( $oca ), 'lacks' ) );
+	}
+
+	public function test_lacks_section_leaves_out_accepted_and_vetoed_links() {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$mashua = $this->plant( 'Mashua', array( 0.8, 0.3, 0.0 ) );
+		$this->set_state( $oca, $yacon, 'accepted' );
+		$this->set_state( $oca, $mashua, 'vetoed' );
+
+		undergrowth_write_memory( $oca );
+
+		$this->assertSame( array(), $this->section( (string) $this->read( $oca ), 'lacks' ) );
+	}
+
+	public function test_has_section_follows_a_new_link_in_the_post() {
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$this->assertNotContains( '- ' . get_permalink( $yacon ), $this->section( (string) $this->read( $oca ), 'has' ) );
+
+		wp_update_post(
+			array(
+				'ID'           => $oca,
+				'post_content' => 'Notes about Oca, and <a href="' . get_permalink( $yacon ) . '">yacon</a>.',
+			)
+		);
+
+		$this->assertContains( '- ' . get_permalink( $yacon ), $this->section( (string) $this->read( $oca ), 'has' ) );
+	}
+
+	public function test_has_and_lacks_are_read_from_the_post_with_suggestions_off() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows in the Andes. Like yacon, it is a tuber.</p>' ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is a sweet tuber.</p>' ) );
+		update_option( 'undergrowth_suggest_links', '0' );
+
+		$this->assertNotSame( array(), $this->section( (string) $this->read( $oca ), 'lacks' ) );
+
+		wp_update_post(
+			array(
+				'ID'           => $oca,
+				'post_content' => '<p>Oca grows high in the Andes.</p>',
+			)
+		);
+
+		$this->assertSame( array(), $this->section( (string) $this->read( $oca ), 'lacks' ) );
+	}
+
+	public function test_monthly_stage_pass_rewrites_every_file() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca tubers sweeten after frost.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon roots keep in sand.</p>' ) );
+		undergrowth_set_stage( $oca, 'sprout' );
+
+		// Another post's words change how distinctive this post's words are,
+		// without anything that would rewrite this post's file.
+		file_put_contents( undergrowth_memory_path( $oca ), 'stale' );
+		file_put_contents( undergrowth_memory_path( $yacon ), 'stale' );
+
+		undergrowth_run_stage_cycle( 0 );
+
+		$undated = static function ( $text ) {
+			return preg_replace( '/^updated: .*$/m', '', (string) $text );
+		};
+
+		foreach ( array( $oca, $yacon ) as $post_id ) {
+			$this->assertSame( $undated( undergrowth_memory_text( get_post( $post_id ) ) ), $undated( $this->read( $post_id ) ) );
+		}
+	}
+
 	public function test_post_outside_the_index_gets_no_file() {
 		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
 
