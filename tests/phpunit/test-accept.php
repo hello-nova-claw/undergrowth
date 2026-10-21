@@ -325,13 +325,20 @@ class Test_Accept extends WP_UnitTestCase {
 	 */
 	public function data_classic_unlinkable() {
 		return array(
-			'heading'               => array( "<h2>I keep yacon plants nearby.</h2>\n\nFrost comes late." ),
-			'list'                  => array( "<ul>\n<li>I keep yacon plants nearby.</li>\n</ul>" ),
-			'quote'                 => array( '<blockquote>I keep yacon plants nearby.</blockquote>' ),
-			'quote over paragraphs' => array( "<blockquote>\nIntro.\n\nI keep yacon plants nearby.\n\n</blockquote>" ),
-			'preformatted'          => array( '<pre>I keep yacon plants nearby.</pre>' ),
-			'table'                 => array( "<table>\n<tr><td>I keep yacon plants nearby.</td></tr>\n</table>" ),
-			'shortcode'             => array( '[caption id="attachment_1"]<img src="yacon.jpg" alt="" /> I keep yacon plants nearby.[/caption]' ),
+			'heading'                      => array( "<h2>I keep yacon plants nearby.</h2>\n\nFrost comes late." ),
+			'list'                         => array( "<ul>\n<li>I keep yacon plants nearby.</li>\n</ul>" ),
+			'quote'                        => array( '<blockquote>I keep yacon plants nearby.</blockquote>' ),
+			'quote over paragraphs'        => array( "<blockquote>\nIntro.\n\nI keep yacon plants nearby.\n\n</blockquote>" ),
+			'preformatted'                 => array( '<pre>I keep yacon plants nearby.</pre>' ),
+			'table'                        => array( "<table>\n<tr><td>I keep yacon plants nearby.</td></tr>\n</table>" ),
+			'shortcode'                    => array( '[caption id="attachment_1"]<img src="yacon.jpg" alt="" /> I keep yacon plants nearby.[/caption]' ),
+			'preformatted over paragraphs' => array( "<pre>\nIntro.\n\nI keep yacon plants nearby.\n\n</pre>" ),
+			'list over paragraphs'         => array( "<ul>\n<li>Intro.\n\nI keep yacon plants nearby.</li>\n</ul>" ),
+			'link over paragraphs'         => array( "<a href=\"https://example.test/notes/\">Intro.\n\nI keep yacon plants nearby.</a>" ),
+			'hgroup'                       => array( '<hgroup>I keep yacon plants nearby.</hgroup>' ),
+			'menu'                         => array( '<menu>I keep yacon plants nearby.</menu>' ),
+			'map'                          => array( '<map name="m">I keep yacon plants nearby.</map>' ),
+			'legend'                       => array( '<legend>I keep yacon plants nearby.</legend>' ),
 		);
 	}
 
