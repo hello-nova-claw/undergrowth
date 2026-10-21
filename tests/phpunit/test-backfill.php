@@ -502,7 +502,8 @@ class Test_Backfill extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Indexes posts with the first model, as if they were embedded before the switch.
+	 * Indexes posts with the first model through a finished backfill pass, as
+	 * a site would be before the switch.
 	 *
 	 * @param int $count How many.
 	 * @return int[] Post IDs.
@@ -510,12 +511,9 @@ class Test_Backfill extends WP_UnitTestCase {
 	private function indexed_archive( int $count ): array {
 		$ids = $this->archive( $count );
 
-		foreach ( $ids as $id ) {
-			undergrowth_embed_post( $id );
-		}
-
 		undergrowth_start_backfill();
 		$this->run_cron();
+		$this->assertSame( $this->identity(), get_option( 'undergrowth_index_identity' ) );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 		$this->embedded = array();
 
