@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-20T23:45:57+00:00\n"
+"POT-Creation-Date: 2026-10-21T00:23:50+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
@@ -269,6 +269,12 @@ msgstr ""
 
 #: src/admin.php:381
 msgid "See the change"
+msgstr ""
+
+#. translators: %s: growth stage name, such as Sprout.
+#: src/blocks.php:72
+#, php-format
+msgid "Growth stage: %s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php:41
@@ -550,4 +556,50 @@ msgstr ""
 
 #: src/stages.php:641
 msgid "This post is not composting."
+msgstr ""
+
+#: build/blocks/growth-stage/index.js:1
+#: src/blocks/growth-stage/edit.js:13
+msgid "Readers see no growth stage here. Composting posts, and post types Undergrowth does not track, show no badge."
+msgstr ""
+
+#: build/blocks/growth-stage/index.js:1
+#: src/blocks/growth-stage/edit.js:37
+msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block title"
+msgid "Growth stage"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block description"
+msgid "Shows the post's growth stage: Seedling, Sprout, Budding or Evergreen. Composting posts show nothing."
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "seedling"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "sprout"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "evergreen"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "badge"
 msgstr ""
