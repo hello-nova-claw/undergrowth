@@ -108,6 +108,30 @@ class Test_Local_Embeddings_Example extends WP_UnitTestCase {
 		$this->assertLessThanOrEqual( UNDERGROWTH_LOCAL_EMBED_MAX_BYTES, strlen( $this->requests[0]['body']['input'] ) );
 	}
 
+	public function test_cut_never_splits_a_character() {
+		undergrowth_embed( 'a' . str_repeat( 'ü', 5000 ) );
+
+		$this->assertTrue( mb_check_encoding( $this->requests[0]['body']['input'], 'UTF-8' ) );
+	}
+
+	public function test_error_status_with_a_vector_shaped_body_gives_no_vector() {
+		$this->response['response'] = array(
+			'code'    => 500,
+			'message' => 'Internal Server Error',
+		);
+
+		$this->assertSame( array(), undergrowth_embed( 'Oca keeps well over winter.' ) );
+	}
+
+	public function test_any_success_status_is_accepted() {
+		$this->response['response'] = array(
+			'code'    => 203,
+			'message' => 'Non-Authoritative Information',
+		);
+
+		$this->assertSame( array( 0.25, -1.0, 0.5 ), undergrowth_embed( 'Oca keeps well over winter.' ) );
+	}
+
 	public function test_failed_request_gives_no_vector() {
 		$this->response = new WP_Error( 'http_request_failed', 'Connection refused' );
 
