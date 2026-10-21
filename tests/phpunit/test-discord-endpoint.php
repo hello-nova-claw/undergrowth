@@ -89,18 +89,19 @@ class Test_Discord_Endpoint extends WP_UnitTestCase {
 	}
 
 	public function test_changed_timestamp_is_refused() {
-		$request = $this->signed_request( self::PING );
-		$request->set_header( 'X-Signature-Timestamp', (string) ( time() - 1 ) );
+		$now     = time();
+		$request = $this->signed_request( self::PING, $now );
+		$request->set_header( 'X-Signature-Timestamp', (string) ( $now - 10 ) );
 
 		$this->assertSame( 401, rest_get_server()->dispatch( $request )->get_status() );
 	}
 
 	public function test_stale_timestamp_is_refused_even_when_signed() {
-		$this->assertSame( 401, rest_get_server()->dispatch( $this->signed_request( self::PING, time() - 301 ) )->get_status() );
+		$this->assertSame( 401, rest_get_server()->dispatch( $this->signed_request( self::PING, time() - 400 ) )->get_status() );
 	}
 
 	public function test_timestamp_from_the_future_is_refused() {
-		$this->assertSame( 401, rest_get_server()->dispatch( $this->signed_request( self::PING, time() + 301 ) )->get_status() );
+		$this->assertSame( 401, rest_get_server()->dispatch( $this->signed_request( self::PING, time() + 400 ) )->get_status() );
 	}
 
 	public function test_slightly_old_timestamp_is_accepted() {
@@ -128,18 +129,43 @@ class Test_Discord_Endpoint extends WP_UnitTestCase {
 		$this->assertSame( array(), $data['data']['allowed_mentions']['parse'] );
 	}
 
-	public function test_body_that_is_not_json_gets_a_bad_request() {
-		$response = rest_get_server()->dispatch( $this->signed_request( 'not json' ) );
-
-		$this->assertSame( 400, $response->get_status() );
+	/**
+	 * Signed bodies that are JSON but not an interaction.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_bodies_that_are_not_interactions() {
+		return array(
+			'list'          => array( '[]' ),
+			'string'        => array( '"x"' ),
+			'no type'       => array( '{"id":"1"}' ),
+			'type as text'  => array( '{"type":"1"}' ),
+			'type as float' => array( '{"type":1.5}' ),
+		);
 	}
 
-	public function test_permission_check_never_reads_parsed_parameters() {
+	/**
+	 * Runs for each body.
+	 *
+	 * @dataProvider data_bodies_that_are_not_interactions
+	 *
+	 * @param string $body Raw request body.
+	 */
+	public function test_signed_body_that_is_not_an_interaction_gets_a_bad_request( $body ) {
+		$response = rest_get_server()->dispatch( $this->signed_request( $body ) );
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'undergrowth_discord_payload', $response->get_data()['code'] );
+	}
+
+	public function test_signature_is_checked_against_the_raw_body() {
 		$request = $this->signed_request( self::PING );
+		$request->set_param( 'type', 3 );
+		$request->set_body_params( array( 'type' => 3 ) );
 
 		$this->assertTrue( undergrowth_discord_verify_request( $request ) );
 
-		$request->set_header( 'X-Signature-Timestamp', 'yesterday' );
+		$request->set_body( str_replace( '"version":1', '"version":2', self::PING ) );
 		$this->assertWPError( undergrowth_discord_verify_request( $request ) );
 	}
 }
