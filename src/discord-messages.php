@@ -142,6 +142,8 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 			)
 		);
 
+		undergrowth_discord_record_result( $post_id . ':' . $target_id, '' !== $sent['id'], $sent['status'] );
+
 		if ( '' === $sent['id'] ) {
 			// One message Discord refuses should not hold back the rest, but a
 			// bad token, a channel the bot cannot reach, a rate limit or an
@@ -156,14 +158,67 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 	}
 
 	// Only open suggestions are kept, so one withdrawn and later made again
-	// is posted again.
+	// is posted again. A withdrawn one no longer counts as failing either.
 	$kept = array_intersect_key( undergrowth_discord_posted( $post_id ), $open );
+
+	$error = get_option( 'undergrowth_last_discord_error' );
+
+	if ( is_array( $error ) && isset( $error['pending'] ) && is_array( $error['pending'] ) ) {
+		foreach ( array_keys( $error['pending'] ) as $pair ) {
+			if ( 0 === strpos( (string) $pair, $post_id . ':' ) && ! isset( $open[ (int) substr( (string) $pair, strlen( $post_id . ':' ) ) ] ) ) {
+				undergrowth_discord_record_result( (string) $pair, true );
+			}
+		}
+	}
 
 	if ( array() === $kept ) {
 		delete_post_meta( $post_id, 'undergrowth_discord_messages' );
 	} else {
 		update_post_meta( $post_id, 'undergrowth_discord_messages', $kept );
 	}
+}
+
+/**
+ * Records whether one suggestion reached Discord.
+ *
+ * The settings page shows the last failure for as long as any suggestion
+ * that failed is still waiting, so one success does not hide another
+ * suggestion's failure.
+ *
+ * @param string $pair   Source and target post IDs, as "source:target".
+ * @param bool   $posted Whether the suggestion is in Discord now.
+ * @param int    $status HTTP status of a failure, or 0 with no response.
+ */
+function undergrowth_discord_record_result( string $pair, bool $posted, int $status = 0 ): void {
+	$error   = get_option( 'undergrowth_last_discord_error' );
+	$pending = is_array( $error ) && isset( $error['pending'] ) && is_array( $error['pending'] ) ? $error['pending'] : array();
+
+	if ( $posted ) {
+		unset( $pending[ $pair ] );
+
+		if ( array() === $pending ) {
+			delete_option( 'undergrowth_last_discord_error' );
+			return;
+		}
+
+		$error['pending'] = $pending;
+		update_option( 'undergrowth_last_discord_error', $error, false );
+		return;
+	}
+
+	$pending[ $pair ] = true;
+
+	// The status says enough to act on. The response body could echo the
+	// request, so it is not kept.
+	update_option(
+		'undergrowth_last_discord_error',
+		array(
+			'time'    => time(),
+			'status'  => $status,
+			'pending' => $pending,
+		),
+		false
+	);
 }
 
 /**
@@ -319,24 +374,11 @@ function undergrowth_discord_send( string $path, array $message ): array {
 	$id     = is_array( $data ) && isset( $data['id'] ) && is_string( $data['id'] ) ? $data['id'] : '';
 
 	if ( 200 !== $status || 1 !== preg_match( '/^[0-9]{1,20}$/', $id ) ) {
-		// The status says enough to act on. The response body could echo
-		// the request, so it is not kept.
-		update_option(
-			'undergrowth_last_discord_error',
-			array(
-				'time'   => time(),
-				'status' => $status,
-			),
-			false
-		);
-
 		return array(
 			'id'     => '',
 			'status' => $status,
 		);
 	}
-
-	delete_option( 'undergrowth_last_discord_error' );
 
 	return array(
 		'id'     => $id,

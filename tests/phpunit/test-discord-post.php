@@ -378,6 +378,47 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->requests );
 	}
 
+	public function test_failure_stays_shown_while_its_suggestion_waits() {
+		$this->configure();
+		list( $oca, $yacon, $ulluco ) = $this->three();
+
+		$this->statuses = array( 400 );
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertSame( 400, get_option( 'undergrowth_last_discord_error' )['status'] );
+
+		// The other suggestion was posted. Vetoing the refused one leaves
+		// nothing waiting, so the warning goes.
+		$refused = isset( get_post_meta( $oca, 'undergrowth_discord_messages', true )[ $yacon ] ) ? $ulluco : $yacon;
+		undergrowth_veto_link( $oca, $refused );
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
+	public function test_a_reply_without_a_message_id_counts_as_a_failure() {
+		$this->configure();
+		list( $oca ) = $this->pair();
+
+		add_filter(
+			'pre_http_request',
+			static function () {
+				return array(
+					'headers'  => array(),
+					'body'     => '{}',
+					'response' => array( 'code' => 200 ),
+					'cookies'  => array(),
+					'filename' => null,
+				);
+			},
+			20
+		);
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertSame( 200, get_option( 'undergrowth_last_discord_error' )['status'] );
+		$this->assertSame( '', get_post_meta( $oca, 'undergrowth_discord_messages', true ) );
+	}
+
 	public function test_unpublished_source_is_never_posted() {
 		$this->configure();
 		list( $oca ) = $this->pair();
