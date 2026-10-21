@@ -169,6 +169,21 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
 	}
 
+	public function test_uninstall_removes_the_meter_reading() {
+		set_transient(
+			'undergrowth_meter',
+			array(
+				'views' => 10,
+				'time'  => time(),
+			),
+			DAY_IN_SECONDS
+		);
+
+		undergrowth_uninstall();
+
+		$this->assertFalse( get_transient( 'undergrowth_meter' ) );
+	}
+
 	/**
 	 * Uninstall drops the table on every site, not only the first hundred.
 	 *
