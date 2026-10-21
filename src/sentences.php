@@ -324,11 +324,12 @@ function undergrowth_forget_reusable_corpus(): void {
  *
  * @param int   $post_id Post to describe.
  * @param array $corpus  Result of undergrowth_build_corpus().
+ * @param int   $limit   Most words to return, or 0 for every word the post uses.
  * @return array<string, float> Weight keyed by token, highest first.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
-function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
+function undergrowth_distinctive_terms( int $post_id, array $corpus, int $limit = UNDERGROWTH_DISTINCTIVE_TERMS ): array {
 	global $wpdb;
 
 	if ( ! isset( $corpus['posts'][ $post_id ] ) ) {
@@ -366,7 +367,7 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus ): array {
 		}
 	);
 
-	return array_slice( $weights, 0, UNDERGROWTH_DISTINCTIVE_TERMS, true );
+	return $limit > 0 ? array_slice( $weights, 0, $limit, true ) : $weights;
 }
 
 /**
