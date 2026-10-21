@@ -33,6 +33,10 @@ class Test_Abilities_Scale extends WP_UnitTestCase {
 		$wp_rest_server = null;
 		undergrowth_delete_memory_folder();
 
+		if ( post_type_exists( 'undergrowth_note' ) ) {
+			unregister_post_type( 'undergrowth_note' );
+		}
+
 		parent::tear_down();
 	}
 
@@ -347,8 +351,6 @@ class Test_Abilities_Scale extends WP_UnitTestCase {
 
 		$this->assertSame( 2, array_sum( $this->run_ability( 'undergrowth/stage' )['counts'] ) );
 		$this->assertSame( $notes, undergrowth_ability_site_posts() );
-
-		unregister_post_type( 'undergrowth_note' );
 	}
 
 	public function test_site_scale_runs_through_rest_without_input() {
