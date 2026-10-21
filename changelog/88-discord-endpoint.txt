@@ -1,0 +1,1 @@
+New REST endpoint, undergrowth/v1/discord, for Discord's interactions. It answers only requests Discord signed with your application's public key in the last five minutes, and refuses everything while no key is saved. It answers Discord's check when you save the address in the developer portal, and nothing else yet.
