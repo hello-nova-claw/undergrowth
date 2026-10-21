@@ -72,7 +72,7 @@ Link suggestions, clusters and growth stages need an embedding provider: an Open
 
 = Can I use a model on my own server instead of OpenAI? =
 
-Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. You run and look after the model yourself, and the plugin's settings screen does not configure it. Most sites should use an OpenAI key instead.
+Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. Each model scores similarity on its own scale, so the example also sets the thresholds for links, clusters and gaps that suit `nomic-embed-text`. You run and look after the model yourself, and the plugin's settings screen does not configure it. Most sites should use an OpenAI key instead.
 
 = Where does Undergrowth keep its notes about each post? =
 
