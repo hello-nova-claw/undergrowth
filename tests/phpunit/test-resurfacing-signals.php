@@ -424,6 +424,35 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertSame( 0, undergrowth_resurfacing_signal( $active ) );
 	}
 
+	public function test_batch_without_new_clusters_does_nothing() {
+		$old = $this->garden_with_compost();
+
+		undergrowth_run_resurfacing_cycle( 0 );
+
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+		$this->assertNull( $this->take_next( 'undergrowth_resurfacing_cycle' ) );
+	}
+
+	public function test_composting_post_with_an_empty_vector_gets_no_signal() {
+		$old = $this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		undergrowth_save_vector(
+			$old,
+			array( 0.0, 0.0, 0.0 ),
+			array(
+				'provider'     => 'test-provider',
+				'model'        => 'test-model',
+				'language'     => 'en_US',
+				'content_hash' => 'hash',
+			)
+		);
+
+		$this->cycle();
+
+		$this->assertSame( $new, undergrowth_cluster_members( $new[0] ) );
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+	}
+
 	public function test_closeness_threshold_is_a_named_constant() {
 		$this->assertSame( 0.5, UNDERGROWTH_MIN_RESURFACING_SIMILARITY );
 		$this->assertSame( 0.5, undergrowth_min_resurfacing_similarity() );
@@ -538,6 +567,9 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="post" value="' . $old . '"', $html );
 		$this->assertStringContainsString( 'name="_wpnonce"', $html );
 		$this->assertStringContainsString( 'action=undergrowth_return', $html );
+		// Each control is named by its visible text and described by the sentence.
+		$this->assertSame( 2, substr_count( $html, 'aria-describedby="undergrowth-resurfacing-' . $old . '"' ) );
+		$this->assertStringContainsString( '<p id="undergrowth-resurfacing-' . $old . '">', $html );
 	}
 
 	public function test_signal_mentions_no_time_spent_composting() {
@@ -560,6 +592,18 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertNotEmpty( $matches[1] );
 
 		return wp_strip_all_tags( implode( ' ', $matches[1] ) );
+	}
+
+	public function test_stages_tab_shows_no_signal_when_no_post_type_is_read() {
+		$this->garden_with_compost();
+		$this->new_cluster_near_compost();
+		$this->cycle();
+
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+		$html = $this->render();
+		remove_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $html );
 	}
 
 	public function test_stages_tab_shows_no_signal_without_one() {
