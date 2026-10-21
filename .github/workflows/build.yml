@@ -30,8 +30,11 @@ jobs:
       - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
       - name: Check the copy holds what the plugin needs
         run: |
-          for path in undergrowth.php uninstall.php readme.txt LICENSE src build languages; do
-            test -e "dist/undergrowth/$path" || { echo "::error::dist/undergrowth/$path is missing."; exit 1; }
+          for file in undergrowth.php uninstall.php readme.txt LICENSE; do
+            test -f "dist/undergrowth/$file" || { echo "::error::dist/undergrowth/$file is missing."; exit 1; }
+          done
+          for dir in src build languages; do
+            test -d "dist/undergrowth/$dir" || { echo "::error::dist/undergrowth/$dir/ is missing."; exit 1; }
           done
       - run: cd dist && zip -qr undergrowth.zip undergrowth && unzip -l undergrowth.zip
       - uses: actions/upload-artifact@v7.0.2
