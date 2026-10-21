@@ -33,14 +33,15 @@ add_action( 'wp_dashboard_setup', 'undergrowth_add_meter_widget' );
  * @return int At least 1.
  */
 function undergrowth_meter_line(): int {
+	$default = undergrowth_meter_sanitize_line( (int) UNDERGROWTH_METER_LINE );
+
 	/**
 	 * Filters the number of page views in the last 30 days that the threshold
 	 * meter counts towards.
 	 *
 	 * @param int $line Views in 30 days. Default UNDERGROWTH_METER_LINE.
 	 */
-	$default = undergrowth_meter_sanitize_line( (int) UNDERGROWTH_METER_LINE );
-	$line    = (int) apply_filters( 'undergrowth_meter_line', $default );
+	$line = (int) apply_filters( 'undergrowth_meter_line', $default );
 
 	return $line < 1 ? $default : $line;
 }
