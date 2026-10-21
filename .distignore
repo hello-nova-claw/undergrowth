@@ -32,3 +32,9 @@ eslint.config.cjs
 playwright.screenshots.config.js
 .stylelintignore
 .stylelintrc.json
+.claude
+.vscode
+.idea
+.DS_Store
+.wp-env.override.json
+.phpunit.result.cache
