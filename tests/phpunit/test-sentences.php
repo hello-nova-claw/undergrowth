@@ -432,6 +432,23 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
 	}
 
+	public function test_linked_heading_with_a_paragraphs_text_leaves_the_paragraph_choosable() {
+		$elsewhere = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$oca       = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<h2><a href="' . esc_url( get_permalink( $elsewhere ) ) . '">Yacon syrup.</a></h2><p>Yacon syrup.</p>' )
+		);
+		$yacon     = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertSame( 'Yacon syrup.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
+	}
+
 	public function test_proposal_with_only_a_heading_to_link_is_dropped() {
 		$oca   = $this->plant(
 			'Oca',
