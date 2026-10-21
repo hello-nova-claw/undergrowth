@@ -95,7 +95,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 	public function test_asking_for_the_map_without_clusters_shows_the_suggestions() {
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'name="undergrowth_suggest_links"', $html );
+		$this->assertStringContainsString( 'aria-current="page">Suggestions<', $html );
 		$this->assertStringNotContainsString( 'undergrowth-cluster', $html );
 	}
 
