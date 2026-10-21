@@ -78,4 +78,54 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		);
 		await expectNoA11yViolations( page, WIDGET );
 	} );
+
+	test( 'by keyboard, only core handle buttons take focus and the toggle opens and closes it', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( 'index.php' );
+
+		const widget = page.locator( WIDGET );
+
+		await widget.locator( '.handle-order-higher' ).focus();
+		await page.keyboard.press( 'Tab' );
+		await expect( widget.locator( '.handle-order-lower' ) ).toBeFocused();
+		await page.keyboard.press( 'Tab' );
+		await expect( widget.locator( '.handlediv' ) ).toBeFocused();
+
+		// The next stop is outside the widget: nothing inside it takes focus.
+		await page.keyboard.press( 'Tab' );
+		expect(
+			await widget.evaluate( ( node ) =>
+				node.contains( node.ownerDocument.activeElement )
+			)
+		).toBe( false );
+
+		// Core saves each box's open or closed state, so compare with how it
+		// started, and wait for each save so later tests find it open.
+		const toggle = widget.locator( '.handlediv' );
+		const saved = () =>
+			page.waitForResponse( ( response ) =>
+				response.url().includes( 'admin-ajax.php' )
+			);
+
+		await page.keyboard.press( 'Shift+Tab' );
+		await expect( toggle ).toBeFocused();
+
+		const wasOpen =
+			( await toggle.getAttribute( 'aria-expanded' ) ) === 'true';
+
+		await Promise.all( [ saved(), page.keyboard.press( 'Enter' ) ] );
+		await expect( toggle ).toHaveAttribute(
+			'aria-expanded',
+			String( ! wasOpen )
+		);
+		await expect( toggle ).toBeFocused();
+
+		await Promise.all( [ saved(), page.keyboard.press( 'Enter' ) ] );
+		await expect( toggle ).toHaveAttribute(
+			'aria-expanded',
+			String( wasOpen )
+		);
+	} );
 } );
