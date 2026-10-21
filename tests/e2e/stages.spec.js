@@ -69,6 +69,48 @@ test.describe( 'Growth stages tab', () => {
 			await expectNoA11yViolations( page, '.wrap' );
 		} );
 
+		test( 'counts it by stage, and a composting post apart', async ( {
+			admin,
+			page,
+			requestUtils,
+		} ) => {
+			// One seedling, then nothing at the other three stages.
+			await expect(
+				page.locator( '.undergrowth-stage-counts' )
+			).toHaveText( /1\D+0\D+0\D+0\D*$/ );
+			await expect(
+				page.locator( '.undergrowth-composting-count' )
+			).toHaveCount( 0 );
+
+			const yacon = await requestUtils.createPost( {
+				title: 'Yacon',
+				content: '<p>Yacon syrup is sweet.</p>',
+				status: 'publish',
+			} );
+			await admin.visitAdminPage( 'edit.php', '' );
+			const compost = await page
+				.locator(
+					`#post-${ yacon.id } a[href*="action=undergrowth_compost&"]`
+				)
+				.getAttribute( 'href' );
+			await page.goto( compost );
+			await admin.visitAdminPage(
+				'edit.php',
+				'page=undergrowth-links&tab=stages'
+			);
+
+			await expect(
+				page.locator( 'table.undergrowth-stages tbody tr' )
+			).toHaveCount( 1 );
+			await expect(
+				page.locator( '.undergrowth-stage-counts' )
+			).toHaveText( /1\D+0\D+0\D+0\D*$/ );
+			await expect(
+				page.locator( '.undergrowth-composting-count' )
+			).toContainText( '1' );
+			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
 		test( 'pins and unpins a stage by keyboard', async ( { page } ) => {
 			const select = page.locator( `#undergrowth-stage-${ oca.id }` );
 
