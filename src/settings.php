@@ -151,7 +151,7 @@ function undergrowth_render_settings_page(): void {
 						<input type="password" class="regular-text" id="undergrowth_openai_api_key" name="undergrowth_openai_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-openai-notice" />
 
 						<p class="description" id="undergrowth-openai-notice">
-							<?php esc_html_e( 'With a key saved, the title and text of each published post are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth never writes or changes your posts.', 'undergrowth' ); ?>
+							<?php esc_html_e( 'With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ); ?>
 						</p>
 
 						<?php if ( '' !== $key ) : ?>

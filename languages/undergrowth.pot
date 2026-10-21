@@ -680,7 +680,7 @@ msgid "OpenAI API key"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, the title and text of each published post are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth never writes or changes your posts."
+msgid "With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 
 #. translators: %s: last four characters of the saved API key.
