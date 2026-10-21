@@ -1,0 +1,1 @@
+Each post's file now lists its most distinctive words and the posts it links to under has, and its open link suggestions with their sentences under lacks.
