@@ -396,6 +396,57 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
 	}
 
+	public function test_failure_is_forgotten_when_posting_starts_again() {
+		$this->configure();
+		list( $oca ) = $this->pair();
+
+		$this->status = 401;
+		undergrowth_discord_post_proposals( $oca );
+		$this->assertSame( 401, get_option( 'undergrowth_last_discord_error' )['status'] );
+
+		delete_option( 'undergrowth_discord_bot_token' );
+		update_option( 'undergrowth_discord_bot_token', self::TOKEN );
+
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
+	public function test_failure_is_forgotten_when_its_suggestion_will_not_be_sent() {
+		$this->configure();
+		list( $oca, $yacon ) = $this->pair();
+
+		$this->status = 400;
+		undergrowth_discord_post_proposals( $oca );
+		$this->assertNotFalse( get_option( 'undergrowth_last_discord_error' ) );
+
+		wp_update_post(
+			array(
+				'ID'          => $yacon,
+				'post_status' => 'draft',
+			)
+		);
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
+	public function test_failure_is_forgotten_when_the_source_is_unpublished() {
+		$this->configure();
+		list( $oca ) = $this->pair();
+
+		$this->status = 400;
+		undergrowth_discord_post_proposals( $oca );
+
+		wp_update_post(
+			array(
+				'ID'          => $oca,
+				'post_status' => 'private',
+			)
+		);
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
 	public function test_a_reply_without_a_message_id_counts_as_a_failure() {
 		$this->configure();
 		list( $oca ) = $this->pair();
