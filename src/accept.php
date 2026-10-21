@@ -238,28 +238,11 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
  * @return array<int, array{0: string, 1: int, 2: string}> Each paragraph's inner HTML, its byte offset in the content, and its plain text, in order.
  */
 function undergrowth_linkable_paragraphs( string $content ): array {
-	$found = array();
+	$found = has_blocks( $content ) ? array() : undergrowth_classic_paragraphs( $content );
 
 	if ( preg_match_all( '#<p\b[^>]*>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
 		foreach ( $paragraphs[1] as $paragraph ) {
 			$found[ $paragraph[1] ] = $paragraph[0];
-		}
-	}
-
-	if ( ! has_blocks( $content ) ) {
-		$shortcodes = '/' . get_shortcode_regex() . '/';
-
-		foreach ( (array) preg_split( '/\n\s*\n/', $content, -1, PREG_SPLIT_OFFSET_CAPTURE ) as $chunk ) {
-			list( $text, $offset ) = $chunk;
-
-			$inner = trim( $text );
-
-			// wpautop() leaves block-level markup alone, so only plain stretches become paragraphs.
-			if ( '' === $inner || preg_match( '#</?(?:p|h[1-6]|ul|ol|li|dl|dt|dd|blockquote|pre|table|thead|tbody|tfoot|tr|td|th|caption|div|figure|figcaption|form|fieldset|hr|address|section|article|aside|header|footer|nav|details|summary|iframe|script|style|object|embed|video|audio|select|textarea|math|svg)\b#i', $inner ) || preg_match( $shortcodes, $inner ) ) {
-				continue;
-			}
-
-			$found[ $offset + strpos( $text, $inner ) ] = $inner;
 		}
 	}
 
@@ -274,6 +257,50 @@ function undergrowth_linkable_paragraphs( string $content ): array {
 	}
 
 	return $linkable;
+}
+
+/**
+ * Finds the paragraphs wpautop() would make from a post without blocks.
+ *
+ * They are the stretches between blank lines that hold no block-level
+ * markup, no shortcode, and do not sit inside a block-level element or a
+ * link that spans the blank lines around them. The element names are the
+ * ones wpautop() treats as blocks, and a few that hold no prose.
+ *
+ * @param string $content Post content.
+ * @return array<int, string> Each paragraph's HTML, keyed by its byte offset in the content.
+ */
+function undergrowth_classic_paragraphs( string $content ): array {
+	$blocks     = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
+	$shortcodes = '/' . get_shortcode_regex() . '/';
+	$found      = array();
+
+	// Elements still open where each stretch starts, read once in order.
+	preg_match_all( '#<(/?)(' . $blocks . '|a)\b[^>]*>#i', $content, $tags, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+	$tag   = 0;
+	$depth = 0;
+
+	foreach ( (array) preg_split( '/\n\s*\n/', $content, -1, PREG_SPLIT_OFFSET_CAPTURE ) as $chunk ) {
+		list( $text, $offset ) = $chunk;
+
+		while ( isset( $tags[ $tag ] ) && $tags[ $tag ][0][1] < $offset ) {
+			// Void elements and self-closed tags never stay open.
+			if ( ! preg_match( '#^(?:hr|col|area|embed)$#i', $tags[ $tag ][2][0] ) && '/>' !== substr( $tags[ $tag ][0][0], -2 ) ) {
+				$depth = max( 0, $depth + ( '' === $tags[ $tag ][1][0] ? 1 : -1 ) );
+			}
+			++$tag;
+		}
+
+		$inner = trim( $text );
+
+		if ( '' === $inner || $depth > 0 || preg_match( '#</?(?:' . $blocks . ')\b#i', $inner ) || preg_match( $shortcodes, $inner ) ) {
+			continue;
+		}
+
+		$found[ $offset + strpos( $text, $inner ) ] = $inner;
+	}
+
+	return $found;
 }
 
 /**
