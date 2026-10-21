@@ -2,7 +2,7 @@
 
 This is a guide to trying Undergrowth 0.1.0 on a site with your real posts. It takes about an hour to set up. After that you mostly wait for things to show up and then look at them.
 
-Use a local or staging copy of your site, not the live one. Undergrowth only changes a post when you press Accept, but a test is for finding surprises.
+Use a local or staging copy of your site, not the live one. Undergrowth only changes a post's text when you press Accept, but a test is for finding surprises.
 
 ## 1. Get the zip
 
@@ -40,7 +40,7 @@ Each post is read in the background, a few at a time, as WP-Cron runs. On a loca
 
 ## 5. Run the monthly cycle now
 
-Clusters, growth stages and questions only change on a monthly cycle. The first cycle ran when you activated the plugin, before any post had been read, so it found nothing. Run it again by hand:
+Clusters, growth stages and new questions come on a monthly cycle. The one exception is the first question, which is written when you save the Anthropic key. The first cycle ran when you activated the plugin, before any post had been read, so it found nothing. Run it again by hand:
 
 - **With WP-CLI:** `wp cron event run undergrowth_cluster_cycle`, then `wp cron event run --due-now` two or three times, so the batches it queues get to run.
 - **Without WP-CLI:** install the WP Crontrol plugin. Go to **Tools > Cron Events**, find `undergrowth_cluster_cycle` and choose **Run now**, then load a few admin pages.
@@ -54,7 +54,7 @@ You can run the cycle as often as you like while testing. Stages only go up on e
 These are rough figures from the providers' published prices, checked on 2026-10-21.
 
 - **OpenAI (text-embedding-3-small): $0.02 per million tokens.** One token is about three quarters of an English word, so a 1,500-word post is about 2,000 tokens. Reading 100 posts is about 200,000 tokens, or $0.004. Reading 1,000 posts is about $0.04. Each edit you save later reads that one post again. So reading your whole archive costs a few cents at most.
-- **Anthropic (Claude Opus 5.5): $4 per million input tokens and $20 per million output tokens.** A question is one request: about 2,000 tokens in and usually under 1,000 out, counting the model's thinking. That is $0.008 + $0.02, about **3 cents per question**. The output is capped at 4,000 tokens, so a single question costs 9 cents at most. A question about a composting post is checked once more, which doubles that. Undergrowth writes one question when you save the key, and then one each monthly cycle. If Claude's reply breaks the rules, it is thrown away and Undergrowth tries the next source. Even if you run the cycle by hand ten times, it should come to under a dollar.
+- **Anthropic (Claude Opus 5.5, the default model): $4 per million input tokens and $20 per million output tokens.** Most questions take one request: about 2,000 tokens in and usually under 1,000 out, counting the model's thinking. That is $0.008 + $0.02, about **3 cents a request**. Output is capped at 4,000 tokens, so one request costs 9 cents at most. A question about a composting post is checked with a second request, so up to 18 cents. If Claude's reply breaks the rules, it is thrown away and Undergrowth tries the next source. That means one cycle can make up to three requests, about 27 cents at the very most. In practice, ten cycles run by hand come to well under a dollar, but they could pass it. The `undergrowth_prompt_model` filter can change the model, and with it the price.
 
 To be safe, set a small monthly spending limit on both provider accounts before you start.
 
@@ -97,7 +97,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 
 ## 8. Feedback checklist
 
-Copy this into a new issue, tick what worked, and add a line about anything that didn't.
+Copy this into a new issue, tick what worked, and add a line about anything that didn't. If you find a security problem, such as a key or private data showing where it shouldn't, don't put it in a public issue. Report it privately through the repository's Security tab (Report a vulnerability) instead.
 
 ```markdown
 **Site:** posts indexed: __ / __ · WordPress __ · PHP __ · local / staging
