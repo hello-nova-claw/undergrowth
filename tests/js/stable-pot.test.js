@@ -1,6 +1,9 @@
 const { describe, it, expect } = require( '@jest/globals' );
 
-const { stripLineNumbers } = require( '../../bin/pot-references' );
+const {
+	stripLineNumbers,
+	dropCreationDate,
+} = require( '../../bin/stable-pot' );
 
 describe( 'stripLineNumbers', () => {
 	it( 'drops the line number from each reference', () => {
@@ -59,5 +62,17 @@ describe( 'stripLineNumbers', () => {
 		const pot =
 			'# Copyright\nmsgid ""\nmsgstr "X-Domain: undergrowth\\n"\n\n#. translators: %1$s: 12\n#, php-format\nmsgid "At 12:30"\n';
 		expect( stripLineNumbers( pot ) ).toBe( pot );
+	} );
+} );
+
+describe( 'dropCreationDate', () => {
+	it( 'removes the POT-Creation-Date header and nothing else', () => {
+		expect(
+			dropCreationDate(
+				'msgid ""\nmsgstr ""\n"MIME-Version: 1.0\\n"\n"POT-Creation-Date: 2026-10-20T23:45:57+00:00\\n"\n"X-Domain: undergrowth\\n"\n'
+			)
+		).toBe(
+			'msgid ""\nmsgstr ""\n"MIME-Version: 1.0\\n"\n"X-Domain: undergrowth\\n"\n'
+		);
 	} );
 } );
