@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Undergrowth 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/undergrowth\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/charming-shtern-d5312d\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -678,6 +678,46 @@ msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
+#. translators: %s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%s post is a sprout."
+msgid_plural "%s posts are sprouts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%s post is budding."
+msgid_plural "%s posts are budding."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%s post is evergreen."
+msgid_plural "%s posts are evergreen."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%s post is composting."
+msgid_plural "%s posts are composting."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%s post is a seedling."
+msgid_plural "%s posts are seedlings."
+msgstr[0] ""
+msgstr[1] ""
+
 #: src/stages.php
 msgid "Once a month"
 msgstr ""
@@ -714,47 +754,39 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
-#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
 msgstr ""
 
-#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block title"
 msgid "Growth stage"
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block description"
 msgid "Shows the post's growth stage: Seedling, Sprout, Budding or Evergreen. Composting posts show nothing."
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "seedling"
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "sprout"
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "evergreen"
 msgstr ""
 
-#: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
