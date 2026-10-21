@@ -694,6 +694,46 @@ msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is a sprout."
+msgid_plural "%1$s posts are sprouts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is budding."
+msgid_plural "%1$s posts are budding."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is evergreen."
+msgid_plural "%1$s posts are evergreen."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is composting."
+msgid_plural "%1$s posts are composting."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is a seedling."
+msgid_plural "%1$s posts are seedlings."
+msgstr[0] ""
+msgstr[1] ""
+
 #: src/stages.php
 msgid "Once a month"
 msgstr ""
