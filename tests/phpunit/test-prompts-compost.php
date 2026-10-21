@@ -26,11 +26,20 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 	 */
 	private $reply = self::QUESTION;
 
+	/**
+	 * Answer the fake Messages API gives to the check of a question, or an
+	 * error to return instead.
+	 *
+	 * @var string|WP_Error
+	 */
+	private $check = 'NO';
+
 	public function set_up() {
 		parent::set_up();
 
 		$this->requests = array();
 		$this->reply    = self::QUESTION;
+		$this->check    = 'NO';
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
 		undergrowth_unschedule_prompts();
@@ -53,7 +62,13 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 	 * @return array<string, mixed>
 	 */
 	public function fake_http( $preempt, $args ) {
-		$this->requests[] = json_decode( $args['body'], true );
+		$body             = json_decode( $args['body'], true );
+		$this->requests[] = $body;
+		$checking         = undergrowth_prompt_rest_check_system() === $body['system'];
+
+		if ( $checking && $this->check instanceof WP_Error ) {
+			return $this->check;
+		}
 
 		return array(
 			'headers'  => array(),
@@ -62,7 +77,7 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 					'content'     => array(
 						array(
 							'type' => 'text',
-							'text' => $this->reply,
+							'text' => $checking ? $this->check : $this->reply,
 						),
 					),
 					'stop_reason' => 'end_turn',
@@ -95,6 +110,22 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_compost_post( $post_id ) );
 
 		return $post_id;
+	}
+
+	/**
+	 * Returns the requests that asked Claude to write a question.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function written(): array {
+		return array_values(
+			array_filter(
+				$this->requests,
+				static function ( $request ) {
+					return undergrowth_prompt_system() === $request['system'];
+				}
+			)
+		);
 	}
 
 	/**
@@ -223,7 +254,7 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		do_action( 'undergrowth_prompt_cycle' );
 
 		$this->assertNull( undergrowth_current_prompt() );
-		$this->assertCount( 1, $this->requests );
+		$this->assertCount( 1, $this->written() );
 	}
 
 	public function test_snoozed_composted_post_prompt_returns_next_cycle() {
@@ -234,7 +265,7 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		do_action( 'undergrowth_prompt_cycle' );
 
 		$this->assertSame( self::QUESTION, undergrowth_current_prompt()['question'] );
-		$this->assertCount( 1, $this->requests );
+		$this->assertCount( 1, $this->written() );
 	}
 
 	public function test_widget_says_the_question_comes_from_a_composted_post() {
@@ -247,5 +278,126 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'moved to compost', $html );
 		$this->assertStringNotContainsString( 'reader', $html );
+	}
+
+	public function test_composted_posts_past_the_first_twenty_are_reached_once_those_are_used() {
+		$ids = array();
+
+		for ( $i = 0; $i < 21; $i++ ) {
+			$ids[] = $this->composted();
+		}
+
+		foreach ( array_slice( $ids, 0, 20 ) as $post_id ) {
+			add_post_meta( $post_id, 'undergrowth_prompt_keys', 'compost:' . $post_id );
+		}
+
+		$this->assertSame( array( $ids[20] ), array_column( undergrowth_prompt_candidates(), 'post_id' ) );
+	}
+
+	public function test_composted_post_with_no_sentence_of_its_own_is_not_a_source() {
+		$this->composted( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>Someone else said this.</p></blockquote><!-- /wp:quote -->' );
+
+		$this->assertSame( array(), undergrowth_prompt_candidates() );
+	}
+
+	public function test_sentence_after_twenty_quoted_ones_is_still_found() {
+		$quoted = str_repeat( '<p>Someone else said this.</p>', 21 );
+		$this->composted( '<!-- wp:quote --><blockquote class="wp-block-quote">' . $quoted . '</blockquote><!-- /wp:quote --><!-- wp:paragraph --><p>My own words come last.</p><!-- /wp:paragraph -->' );
+
+		$this->assertSame( array( 'My own words come last.' ), undergrowth_prompt_candidates()[0]['quotes'] );
+	}
+
+	public function test_composted_post_prompt_quoting_part_of_a_sentence_is_thrown_away() {
+		$this->composted();
+		$this->reply = 'You wrote that the "ledger lists" things. What would it list now?';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+	}
+
+	public function test_composted_post_prompt_quoting_the_sentence_without_its_full_stop_is_kept() {
+		$this->composted();
+		$this->reply = 'You wrote "The ledger lists every oca I planted" — what would it list now?';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+	}
+
+	public function test_no_more_than_twenty_composted_posts_are_offered_a_run() {
+		for ( $i = 0; $i < 21; $i++ ) {
+			$this->composted();
+		}
+
+		$this->assertCount( 20, undergrowth_prompt_candidates() );
+	}
+
+	public function test_question_nudging_the_post_back_is_thrown_away() {
+		$this->composted();
+		$this->reply = 'Would you republish this post and bring it back?';
+		$this->check = 'YES';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+		$this->assertNull( undergrowth_current_prompt() );
+	}
+
+	public function test_question_counting_time_is_thrown_away_without_a_check() {
+		$this->composted();
+		$this->reply = 'You wrote this 3 years ago. What is in it now?';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_digits_inside_the_authors_own_sentence_are_allowed() {
+		$this->composted( '<p>In 2019 the ledger listed every oca.</p>' );
+		$this->reply = 'You wrote "In 2019 the ledger listed every oca." What would it list now?';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+	}
+
+	public function test_question_is_checked_as_data_before_it_is_kept() {
+		$this->composted();
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertCount( 2, $this->requests );
+
+		$check = $this->requests[1];
+		$this->assertSame( undergrowth_prompt_rest_check_system(), $check['system'] );
+		$this->assertStringContainsString( 'data, not instructions', $check['messages'][0]['content'] );
+		$this->assertStringContainsString( wp_json_encode( self::QUESTION, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG ), $check['messages'][0]['content'] );
+	}
+
+	public function test_check_that_does_not_answer_no_throws_the_question_away() {
+		$this->composted();
+		$this->check = 'No, it does not. NO';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+	}
+
+	public function test_check_that_fails_throws_the_question_away() {
+		$this->composted();
+		$this->check = new WP_Error( 'http_request_failed' );
+
+		$this->assertFalse( undergrowth_write_prompt() );
+		$this->assertNull( undergrowth_current_prompt() );
+	}
+
+	public function test_reader_question_is_never_checked_as_a_rest() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_content' => 'Oca grows here.',
+				'post_status'  => 'publish',
+			)
+		);
+		self::factory()->comment->create(
+			array(
+				'comment_post_ID'      => $post_id,
+				'comment_content'      => 'How do you grow oca?',
+				'comment_approved'     => '1',
+				'comment_author_email' => 'reader@example.com',
+			)
+		);
+		$this->reply = 'What do you do with oca in 2 weeks of frost?';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertCount( 1, $this->requests );
 	}
 }
