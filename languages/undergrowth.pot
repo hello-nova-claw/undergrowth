@@ -594,7 +594,7 @@ msgid "The stage was imported, but some of its history could not be saved."
 msgstr ""
 
 #: src/meter.php
-msgid "Readers, last 30 days"
+msgid "Page views, last 30 days"
 msgstr ""
 
 #: src/meter.php
