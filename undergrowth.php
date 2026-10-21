@@ -36,6 +36,7 @@ require_once __DIR__ . '/src/abilities.php';
 require_once __DIR__ . '/src/resurfacing.php';
 require_once __DIR__ . '/src/settings.php';
 require_once __DIR__ . '/src/discord-settings.php';
+require_once __DIR__ . '/src/discord.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/dashboard.php';
 require_once __DIR__ . '/src/meter.php';

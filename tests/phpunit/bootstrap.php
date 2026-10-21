@@ -30,6 +30,7 @@ tests_add_filter(
 require "{$_tests_dir}/includes/bootstrap.php";
 
 require __DIR__ . '/includes/trait-plants-posts.php';
+require __DIR__ . '/includes/trait-signs-discord-interactions.php';
 
 // The threshold meter reads Jetpack Stats. Without Jetpack, stand-ins answer
 // with whatever a test sets.
