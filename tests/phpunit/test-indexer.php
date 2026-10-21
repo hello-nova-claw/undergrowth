@@ -179,6 +179,33 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertSame( 'test-model-v2', undergrowth_get_vector( $post_id )['model'] );
 	}
 
+	public function test_failed_embed_after_a_model_change_keeps_the_old_vector() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+
+		$this->model = 'test-model-v2';
+		remove_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10 );
+		undergrowth_embed_post( $post_id );
+
+		$this->assertSame( 'test-model-v1', undergrowth_get_vector( $post_id )['model'] );
+	}
+
+	public function test_failed_embed_of_changed_content_removes_the_old_vector() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+
+		remove_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10 );
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => 'Oca now lives in sand.',
+			)
+		);
+		undergrowth_embed_post( $post_id );
+
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
+	}
+
 	public function test_language_is_filterable_for_multilingual_sites() {
 		add_filter(
 			'undergrowth_post_language',

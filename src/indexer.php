@@ -113,9 +113,11 @@ function undergrowth_embed_post( int $post_id ): void {
 	$vector = undergrowth_embed( $text );
 
 	// A vector for text the post no longer has would keep shaping proposals,
-	// so a failed re-embed removes it until the next attempt succeeds.
+	// so a failed re-embed removes it until the next attempt succeeds. One
+	// that only came from another model still describes the post, and is
+	// never compared with the new model's, so it stays until it is replaced.
 	if ( array() === $vector ) {
-		if ( null !== $existing ) {
+		if ( null !== $existing && ( $existing['content_hash'] !== $hash || $existing['language'] !== $language ) ) {
 			undergrowth_remove_from_index( $post_id );
 		}
 		return;
