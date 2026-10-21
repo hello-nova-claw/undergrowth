@@ -47,8 +47,13 @@ function undergrowth_render_growth_stage_block( $attributes, $content, $block ):
 
 	// Only posts in the garden have a stage. A draft, a private post or one
 	// behind a password would otherwise show the Seedling default, and in a
-	// template or a Query Loop the password form would not hide it.
-	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
+	// template or a Query Loop the password form would not hide it. A post
+	// type added to the index need not be public, hence the read check.
+	if (
+		! $post instanceof WP_Post
+		|| ! undergrowth_is_indexable( $post )
+		|| ( ! is_post_publicly_viewable( $post ) && ! current_user_can( 'read_post', $post->ID ) )
+	) {
 		return '';
 	}
 
