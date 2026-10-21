@@ -268,7 +268,8 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsStringIgnoringCase( 'vector', $text );
 		$this->assertStringNotContainsStringIgnoringCase( 'index', $text );
-		$this->assertStringContainsString( 'title and text of each published post are sent to OpenAI', $text );
+		$this->assertStringContainsString( 'title and text of each published post without a password are sent to OpenAI', $text );
+		$this->assertStringContainsString( 'only when you accept a link', $text );
 	}
 
 	public function test_page_shows_no_count_until_a_provider_is_set_up() {
