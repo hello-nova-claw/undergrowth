@@ -329,7 +329,11 @@ function undergrowth_schedule_backfill_check(): void {
  * A pass walks the posts by ID, and each full batch queues the next run
  * after the last post it tried, so a post whose embed failed does not hold
  * up the rest. The hourly check starts a new pass for the posts left over.
- * The first pass to finish with a provider and model clusters the new
+ *
+ * Posts whose vector came from another provider or model count as having
+ * none, so the same passes re-embed the whole index when the model changes.
+ * A pass that was under way for another model starts again from the first
+ * post. The first pass to finish with a provider and model clusters the new
  * index, which would otherwise wait a month for the next cycle.
  */
 function undergrowth_run_backfill(): void {
@@ -368,20 +372,22 @@ function undergrowth_run_backfill(): void {
  * @phpstan-param array{provider: string, model: string} $identity
  */
 function undergrowth_run_backfill_batch( array $identity ): void {
+	$pass     = get_option( 'undergrowth_backfill' );
+	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] ? (int) ( $pass['after'] ?? 0 ) : 0;
 	$size     = undergrowth_backfill_batch_size();
-	$post_ids = undergrowth_unindexed_post_ids( $identity, (int) get_option( 'undergrowth_backfill_after', 0 ), $size );
+	$post_ids = undergrowth_unindexed_post_ids( $identity, $after, $size );
 
 	foreach ( $post_ids as $post_id ) {
 		undergrowth_embed_post( $post_id );
 	}
 
 	if ( count( $post_ids ) === $size ) {
-		update_option( 'undergrowth_backfill_after', end( $post_ids ), false );
+		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => end( $post_ids ) ) ), false );
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		return;
 	}
 
-	delete_option( 'undergrowth_backfill_after' );
+	delete_option( 'undergrowth_backfill' );
 
 	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
 		update_option( 'undergrowth_index_identity', $identity, false );
