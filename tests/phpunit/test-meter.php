@@ -21,7 +21,11 @@ class Test_Meter extends WP_UnitTestCase {
 		WPCOM_Stats::$visits     = array();
 		WPCOM_Stats::$requests   = array();
 		delete_transient( 'undergrowth_meter' );
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		// Jetpack maps view_stats to the roles chosen in its Stats settings.
+		$editor = self::factory()->user->create_and_get( array( 'role' => 'editor' ) );
+		$editor->add_cap( 'view_stats' );
+		wp_set_current_user( $editor->ID );
 	}
 
 	public function tear_down() {
@@ -115,6 +119,12 @@ class Test_Meter extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( UNDERGROWTH_METER_LINE, undergrowth_meter_line() );
+	}
+
+	public function test_a_line_below_one_is_replaced_by_one_thousand() {
+		$this->assertSame( 1000, undergrowth_meter_sanitize_line( 0 ) );
+		$this->assertSame( 1000, undergrowth_meter_sanitize_line( -5 ) );
+		$this->assertSame( 50, undergrowth_meter_sanitize_line( 50 ) );
 	}
 
 	public function test_without_jetpack_stats_there_is_no_number_and_no_request() {
@@ -305,5 +315,21 @@ class Test_Meter extends WP_UnitTestCase {
 
 		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
 		$this->assertSame( '', $this->render() );
+	}
+
+	public function test_widget_is_hidden_from_editors_jetpack_stats_does_not_show_to() {
+		$this->stats( array( 412 ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertSame( '', $this->render() );
+		$this->assertSame( array(), WPCOM_Stats::$requests );
+	}
+
+	public function test_without_jetpack_editors_see_what_is_needed() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertStringContainsString( 'Jetpack', $this->render() );
 	}
 }
