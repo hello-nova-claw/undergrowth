@@ -17,6 +17,7 @@ const WIDTHS = [ 1280, 390 ];
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
+const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
 const DASHBOARD = [ 'index.php' ];
 const POSTS_LIST = [ 'edit.php', '' ];
 const PROFILE = [ 'profile.php', '' ];
@@ -174,6 +175,11 @@ const WITH_COMPOST = [
 // Shown after a composting post was found near a new cluster.
 const WITH_RESURFACING = [
 	{ screen: 'stages', state: 'resurfacing', page: STAGES },
+];
+
+// Shown after a clustering pass made two clusters, one of them a gap.
+const WITH_CLUSTERS = [
+	{ screen: 'map', state: 'clusters', page: MAP, fixture: 'tight-gaps' },
 ];
 
 // Filled in once the badge's posts exist, since the shots need their IDs.
@@ -529,6 +535,45 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_RESURFACING );
+	} );
+
+	test.describe( 'with clusters', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			// Repeated fixture words give each post a known vector. Three
+			// identical posts make a cluster with a post at its middle; three
+			// pulling apart make a gap. Titles hold no fixture word.
+			for ( const [ title, content ] of [
+				[ 'First', 'yacon '.repeat( 6 ) ],
+				[ 'Second', 'yacon '.repeat( 6 ) ],
+				[ 'Third', 'yacon '.repeat( 6 ) ],
+				[ 'Roots', 'oca '.repeat( 6 ) ],
+				[ 'Sweet roots', 'oca '.repeat( 6 ) + 'syrup '.repeat( 3 ) ],
+				[
+					'Roots on paper',
+					'oca '.repeat( 6 ) + 'ledger '.repeat( 3 ),
+				],
+			] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ content.trim() }</p>`,
+					status: 'publish',
+				} );
+			}
+
+			const response = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			if ( ! response.ok() ) {
+				throw new Error(
+					`Clustering failed with HTTP ${ response.status() }.`
+				);
+			}
+		} );
+
+		capture( WITH_CLUSTERS );
 	} );
 
 	test.describe( 'with a growth-stage badge', () => {
