@@ -163,8 +163,9 @@ function undergrowth_stage_label( string $stage ): string {
  * Counts the posts in the garden at each stage.
  *
  * These are the posts the growth stages table lists, plus the composting
- * ones it leaves out. A post with no stage stored, or one Undergrowth does
- * not know, is a seedling, as undergrowth_get_stage() reads it.
+ * ones it leaves out. Each post is counted once, by the stage
+ * undergrowth_get_stage() reads: its first stored row, or seedling when it
+ * has none or one Undergrowth does not know.
  *
  * @return array<string, int> Number of posts keyed by stage, in UNDERGROWTH_STAGES order.
  */
@@ -183,8 +184,9 @@ function undergrowth_count_stages(): array {
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One grouped query instead of loading every post; there is one placeholder for each post type.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.post_id = p.ID AND m.meta_key = %s WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN (' . $placeholders . ') GROUP BY m.meta_value',
+			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = p.ID AND f.meta_key = %s ) WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN (' . $placeholders . ') GROUP BY m.meta_value',
 			$wpdb->posts,
+			$wpdb->postmeta,
 			$wpdb->postmeta,
 			'undergrowth_stage',
 			'publish',
@@ -215,20 +217,20 @@ function undergrowth_stage_count_sentence( string $stage, int $count ): string {
 
 	switch ( $stage ) {
 		case 'sprout':
-			/* translators: %s: number of posts. */
-			return sprintf( _n( '%s post is a sprout.', '%s posts are sprouts.', $count, 'undergrowth' ), $number );
+			/* translators: %1$s: number of posts. */
+			return sprintf( _n( '%1$s post is a sprout.', '%1$s posts are sprouts.', $count, 'undergrowth' ), $number );
 		case 'budding':
-			/* translators: %s: number of posts. */
-			return sprintf( _n( '%s post is budding.', '%s posts are budding.', $count, 'undergrowth' ), $number );
+			/* translators: %1$s: number of posts. */
+			return sprintf( _n( '%1$s post is budding.', '%1$s posts are budding.', $count, 'undergrowth' ), $number );
 		case 'evergreen':
-			/* translators: %s: number of posts. */
-			return sprintf( _n( '%s post is evergreen.', '%s posts are evergreen.', $count, 'undergrowth' ), $number );
+			/* translators: %1$s: number of posts. */
+			return sprintf( _n( '%1$s post is evergreen.', '%1$s posts are evergreen.', $count, 'undergrowth' ), $number );
 		case 'composting':
-			/* translators: %s: number of posts. */
-			return sprintf( _n( '%s post is composting.', '%s posts are composting.', $count, 'undergrowth' ), $number );
+			/* translators: %1$s: number of posts. */
+			return sprintf( _n( '%1$s post is composting.', '%1$s posts are composting.', $count, 'undergrowth' ), $number );
 		default:
-			/* translators: %s: number of posts. */
-			return sprintf( _n( '%s post is a seedling.', '%s posts are seedlings.', $count, 'undergrowth' ), $number );
+			/* translators: %1$s: number of posts. */
+			return sprintf( _n( '%1$s post is a seedling.', '%1$s posts are seedlings.', $count, 'undergrowth' ), $number );
 	}
 }
 
