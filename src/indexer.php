@@ -7,9 +7,17 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const UNDERGROWTH_BACKFILL_BATCH = 20;
+
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
 add_action( 'deleted_post', 'undergrowth_delete_vector' );
+add_action( 'undergrowth_backfill', 'undergrowth_run_backfill' );
+add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
+// Activation does not run on plugin updates or on every site of a network.
+add_action( 'init', 'undergrowth_schedule_backfill_check' );
+add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 20, 0 );
+add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 10, 0 );
 
 /**
  * Lists the post types whose published posts are indexed.
@@ -182,4 +190,172 @@ function undergrowth_post_language( WP_Post $post ): string {
 	$locale = apply_filters( 'undergrowth_post_language', get_locale(), $post );
 
 	return is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
+}
+
+/**
+ * Returns how many posts one backfill run embeds.
+ *
+ * @return int Posts per run, at least one.
+ */
+function undergrowth_backfill_batch_size(): int {
+	/**
+	 * Filters how many posts one backfill run sends to the provider.
+	 *
+	 * Each post is one request, so a slow provider may need a smaller batch
+	 * to finish within one cron request.
+	 *
+	 * @param int $size Posts per run. Default 20.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_backfill_batch_size', UNDERGROWTH_BACKFILL_BATCH ) );
+}
+
+/**
+ * Lists indexable posts that have no vector from the current provider and model.
+ *
+ * Mirrors undergrowth_is_indexable() in SQL, so posts that must not be sent
+ * are never picked. undergrowth_embed_post() checks each post again.
+ *
+ * @param array $identity {
+ *     The current provider and model.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ * }
+ * @param int   $after_id Only posts with a higher ID than this.
+ * @param int   $limit    Most posts to return.
+ * @return int[] Post IDs in ascending order.
+ *
+ * @phpstan-param array{provider: string, model: string} $identity
+ */
+function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $limit ): array {
+	global $wpdb;
+
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return array();
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
+	$post_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s WHERE v.post_id IS NULL AND p.ID > %d AND p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders}) ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $after_id, 'publish', '' ), $post_types, array( $limit ) )
+		)
+	);
+	// phpcs:enable
+
+	return array_map( 'intval', $post_ids );
+}
+
+/**
+ * Counts indexable posts, and how many of them have a vector from the
+ * current provider and model.
+ *
+ * @return array {
+ *     @type int $indexed Posts with a current vector.
+ *     @type int $total   Posts that can be indexed.
+ * }
+ *
+ * @phpstan-return array{indexed: int, total: int}
+ */
+function undergrowth_index_counts(): array {
+	global $wpdb;
+
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return array(
+			'indexed' => 0,
+			'total'   => 0,
+		);
+	}
+
+	$identity     = undergrowth_embed_identity();
+	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
+	$row = $wpdb->get_row(
+		$wpdb->prepare(
+			"SELECT COUNT(p.ID) AS total, COUNT(v.post_id) AS indexed FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders})",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], 'publish', '' ), $post_types )
+		),
+		ARRAY_A
+	);
+	// phpcs:enable
+
+	return array(
+		'indexed' => (int) ( $row['indexed'] ?? 0 ),
+		'total'   => (int) ( $row['total'] ?? 0 ),
+	);
+}
+
+/**
+ * Queues a backfill run when some indexable post has no current vector.
+ *
+ * Runs on activation, when an OpenAI key is saved and from the hourly
+ * check, which also retries posts whose embed failed. WP-Cron refuses a
+ * second identical event within ten minutes, so calling this while a run
+ * is queued adds nothing.
+ */
+function undergrowth_start_backfill(): void {
+	$identity = undergrowth_embed_identity();
+
+	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+		return;
+	}
+
+	if ( array() !== undergrowth_unindexed_post_ids( $identity, 0, 1 ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_backfill' );
+	}
+}
+
+/**
+ * Schedules the hourly check for posts without a vector.
+ */
+function undergrowth_schedule_backfill_check(): void {
+	if ( false === wp_next_scheduled( 'undergrowth_backfill_check' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'undergrowth_backfill_check' );
+	}
+}
+
+/**
+ * Embeds one batch of indexable posts that have no current vector.
+ *
+ * A pass walks the posts by ID, and each full batch queues the next run
+ * after the last post it tried, so a post whose embed failed does not hold
+ * up the rest. The hourly check starts a new pass for the posts left over.
+ * The first pass to finish with a provider and model clusters the new
+ * index, which would otherwise wait a month for the next cycle.
+ */
+function undergrowth_run_backfill(): void {
+	$identity = undergrowth_embed_identity();
+
+	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+		return;
+	}
+
+	$size     = undergrowth_backfill_batch_size();
+	$post_ids = undergrowth_unindexed_post_ids( $identity, (int) get_option( 'undergrowth_backfill_after', 0 ), $size );
+
+	foreach ( $post_ids as $post_id ) {
+		undergrowth_embed_post( $post_id );
+	}
+
+	if ( count( $post_ids ) === $size ) {
+		update_option( 'undergrowth_backfill_after', end( $post_ids ), false );
+		wp_schedule_single_event( time(), 'undergrowth_backfill' );
+		return;
+	}
+
+	delete_option( 'undergrowth_backfill_after' );
+
+	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		update_option( 'undergrowth_index_identity', $identity, false );
+		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
+	}
 }

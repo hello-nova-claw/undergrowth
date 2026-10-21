@@ -442,6 +442,9 @@ function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
+	wp_unschedule_hook( 'undergrowth_backfill' );
+	wp_unschedule_hook( 'undergrowth_backfill_check' );
+	delete_option( 'undergrowth_backfill_after' );
 	delete_option( 'undergrowth_cluster_leaders' );
 	// Clusters, and the record of the last pass to compare new ones with,
 	// would be stale by the time the plugin is active again.

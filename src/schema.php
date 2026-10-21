@@ -104,6 +104,8 @@ function undergrowth_install_schema(): bool {
 function undergrowth_activate(): void {
 	undergrowth_install_schema();
 	undergrowth_schedule_stage_cycle();
+	undergrowth_schedule_backfill_check();
+	undergrowth_start_backfill();
 }
 
 /**
@@ -144,6 +146,10 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_backfill' );
+	wp_unschedule_hook( 'undergrowth_backfill_check' );
+	delete_option( 'undergrowth_backfill_after' );
+	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
