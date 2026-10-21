@@ -290,4 +290,22 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'tried again within the hour', $this->render() );
 	}
+
+	public function test_plugins_screen_links_to_settings_before_deactivate() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$links = apply_filters( 'plugin_action_links_' . plugin_basename( UNDERGROWTH_FILE ), array( 'deactivate' => '<a href="#">Deactivate</a>' ) );
+
+		$this->assertSame( array( 'settings', 'deactivate' ), array_keys( $links ) );
+		$this->assertStringContainsString( 'options-general.php?page=undergrowth', $links['settings'] );
+		$this->assertStringContainsString( '>Settings</a>', $links['settings'] );
+	}
+
+	public function test_plugins_screen_has_no_settings_link_for_users_who_cannot_manage_options() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$links = apply_filters( 'plugin_action_links_' . plugin_basename( UNDERGROWTH_FILE ), array() );
+
+		$this->assertArrayNotHasKey( 'settings', $links );
+	}
 }

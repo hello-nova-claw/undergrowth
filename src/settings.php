@@ -13,6 +13,7 @@ add_action( 'admin_init', 'undergrowth_register_settings' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_stop_autoloading_key' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_stop_autoloading_key' );
 add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_settings_style' );
+add_filter( 'plugin_action_links_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_add_settings_link' );
 
 /**
  * Adds Settings > Undergrowth.
@@ -24,6 +25,30 @@ function undergrowth_add_settings_page(): void {
 		'manage_options',
 		'undergrowth',
 		'undergrowth_render_settings_page'
+	);
+}
+
+/**
+ * Puts a Settings link first in Undergrowth's row on the Plugins screen,
+ * where a new owner looks first after activating.
+ *
+ * @param string[] $links Action links for the plugin's row.
+ * @return string[] The links, with Settings first for users who can use it.
+ */
+function undergrowth_add_settings_link( $links ) {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return $links;
+	}
+
+	return array_merge(
+		array(
+			'settings' => sprintf(
+				'<a href="%1$s">%2$s</a>',
+				esc_url( admin_url( 'options-general.php?page=undergrowth' ) ),
+				esc_html__( 'Settings', 'undergrowth' )
+			),
+		),
+		(array) $links
 	);
 }
 
