@@ -387,4 +387,117 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 			'stage_pin_lost'   => array( 'stage_pin_lost', 'Pin the stage again to keep it' ),
 		);
 	}
+
+	/**
+	 * Publishes one post at each stage, some of them more than once, and
+	 * posts the stages table leaves out.
+	 *
+	 * @return void
+	 */
+	private function plant_garden(): void {
+		$stages = array( 'seedling', 'sprout', 'sprout', 'budding', 'budding', 'budding', 'evergreen', 'composting', 'composting' );
+
+		foreach ( $stages as $i => $stage ) {
+			$post_id = self::factory()->post->create(
+				array(
+					'post_title'  => 'Post ' . $i,
+					'post_status' => 'publish',
+				)
+			);
+
+			if ( 'seedling' !== $stage ) {
+				undergrowth_set_stage( $post_id, $stage );
+			}
+		}
+
+		// No stage stored and an unknown one both read as seedling.
+		$unknown = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $unknown, 'undergrowth_stage', 'wilting' );
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		undergrowth_set_stage( $draft, 'evergreen' );
+		$locked = self::factory()->post->create(
+			array(
+				'post_status'   => 'publish',
+				'post_password' => 'secret',
+			)
+		);
+		undergrowth_set_stage( $locked, 'evergreen' );
+		self::factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'publish',
+			)
+		);
+	}
+
+	public function test_stage_counts_cover_the_posts_the_tab_lists() {
+		$this->plant_garden();
+
+		$this->assertSame(
+			array(
+				'seedling'   => 3,
+				'sprout'     => 2,
+				'budding'    => 3,
+				'evergreen'  => 1,
+				'composting' => 2,
+			),
+			undergrowth_count_stages()
+		);
+	}
+
+	public function test_stage_counts_are_zero_when_no_post_type_is_indexed() {
+		$this->plant_garden();
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$this->assertSame( array( 0, 0, 0, 0, 0 ), array_values( undergrowth_count_stages() ) );
+	}
+
+	public function test_stages_tab_sums_up_the_garden_with_composting_apart() {
+		$this->plant_garden();
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression(
+			'/<p class="undergrowth-stage-counts">3 posts are seedlings\. 2 posts are sprouts\. 3 posts are budding\. 1 post is evergreen\.<\/p>/',
+			$html
+		);
+		$this->assertStringContainsString( '<p class="undergrowth-composting-count">2 posts are composting.', $html );
+	}
+
+	public function test_stages_tab_counts_a_stage_with_no_posts_as_none() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '1 post is a seedling. 0 posts are sprouts. 0 posts are budding. 0 posts are evergreen.', $html );
+		$this->assertStringNotContainsString( 'undergrowth-composting-count', $html );
+	}
+
+	public function test_stages_tab_shows_no_counts_without_published_posts() {
+		$this->assertStringNotContainsString( 'undergrowth-stage-counts', $this->render() );
+	}
+
+	public function test_stages_tab_shows_no_counts_when_every_post_is_composting() {
+		undergrowth_compost_post( self::factory()->post->create( array( 'post_status' => 'publish' ) ) );
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'undergrowth-stage-counts', $html );
+		$this->assertStringContainsString( 'Every published post is composting', $html );
+	}
+
+	public function test_stage_counts_are_formatted_for_the_locale() {
+		global $wp_locale;
+
+		$separator                                 = $wp_locale->number_format['thousands_sep'];
+		$wp_locale->number_format['thousands_sep'] = '.';
+
+		try {
+			$this->assertSame( '1.200 posts are seedlings.', undergrowth_stage_count_sentence( 'seedling', 1200 ) );
+		} finally {
+			$wp_locale->number_format['thousands_sep'] = $separator;
+		}
+	}
 }
