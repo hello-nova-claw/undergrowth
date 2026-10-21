@@ -17,7 +17,7 @@ The AI may speak to the author, never for the author. Before you build anything,
 1. **Issue first.** Every change starts as an issue made from the task template. An issue is not ready until all five fields are filled in: problem, scope, out of scope, acceptance criteria, how to test. Agents fill the template before writing code.
 2. **Board.** Issues move across the project board: Backlog, Ready, In progress, In review, Done. Move the issue, not the pull request.
 3. **One branch and one pull request per issue.** Name the branch `<issue number>-<short-slug>`, for example `12-vector-table`.
-4. **Pull request.** Use the template. Link the issue with `Fixes #12`. Add a changelog line under `= Unreleased =` in `readme.txt`. If the change really has no user-facing effect, say so in the PR and a maintainer will add the `no-changelog` label.
+4. **Pull request.** Use the template. Link the issue with `Fixes #12`. Add your changelog line as a fragment, `changelog/<issue>-<slug>.txt`, for example `changelog/12-vector-table.txt`. Do not edit the changelog in `readme.txt`: when several pull requests are open, they would all change the same lines and conflict whenever one merges. At release time `npm run changelog` folds every fragment into `= Unreleased =` and deletes them. If the change really has no user-facing effect, say so in the PR and a maintainer will add the `no-changelog` label.
 5. **Review.** CodeRabbit reviews every pull request, and its approval is the required review. Nothing merges that only one agent has seen. `main` is protected: no direct pushes, all checks green, stale approvals dismissed on push.
 
 ## Housekeeping
@@ -95,7 +95,7 @@ npm run test:e2e
 - Never build a sentence by concatenation. Use `sprintf()` with numbered placeholders (`%1$s`, `%2$d`) so translators can reorder them, and add a `/* translators: */` comment for every placeholder.
 - JavaScript uses `@wordpress/i18n`, and each script is registered with `wp_set_script_translations()`.
 - Dates use `wp_date()`. Numbers use `number_format_i18n()`.
-- `languages/undergrowth.pot` is committed. Regenerate it with `npm run i18n:pot` whenever you add or change a string. CI fails if it is out of date.
+- `languages/undergrowth.pot` is committed. Regenerate it with `npm run i18n:pot` whenever you add or change a string. CI fails if it is out of date. Its references name the file but not the line, and it has no creation date, so moving code doesn't change it and open pull requests don't conflict over it.
 - No `.po` or `.mo` files in the repository. Translations live on translate.wordpress.org. The pseudo-locale used in CI is generated from the POT at test time.
 - Vectors carry the language of the post they came from. Never compare vectors across languages.
 

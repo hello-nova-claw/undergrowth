@@ -1,0 +1,1 @@
+A post you moved to compost can now be the source of a question: Claude may quote one of its sentences whole and ask what is in it now. The question never suggests bringing the post back and never mentions how long it has rested; each one is checked for both before it is shown.
