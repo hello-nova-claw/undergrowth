@@ -123,6 +123,16 @@ class Test_Schema extends WP_UnitTestCase {
 		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
 		wp_schedule_single_event( time(), 'undergrowth_write_prompt' );
 		undergrowth_schedule_prompt_cycle();
+		wp_schedule_single_event( time(), 'undergrowth_backfill' );
+		undergrowth_schedule_backfill_check();
+		update_option( 'undergrowth_backfill_after', 5 );
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'openai',
+				'model'    => UNDERGROWTH_OPENAI_MODEL,
+			)
+		);
 
 		// Recorded ahead of the test suite's own filter, which would turn the drop into a no-op on temporary tables.
 		$queries = array();
@@ -151,6 +161,10 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_snoozed_prompts' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
+		$this->assertFalse( get_option( 'undergrowth_backfill_after' ) );
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
 	}
 
 	/**
