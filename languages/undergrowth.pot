@@ -676,6 +676,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: src/settings.php
+msgid "Settings"
+msgstr ""
+
+#: src/settings.php
 msgid "OpenAI API key"
 msgstr ""
 
