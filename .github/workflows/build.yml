@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
@@ -26,6 +28,11 @@ jobs:
       - run: npm run build
       # The same copy the Plugin Check job checks, so what is checked is what ships.
       - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
+      - name: Check the copy holds what the plugin needs
+        run: |
+          for path in undergrowth.php uninstall.php readme.txt LICENSE src build languages; do
+            test -e "dist/undergrowth/$path" || { echo "::error::dist/undergrowth/$path is missing."; exit 1; }
+          done
       - run: cd dist && zip -qr undergrowth.zip undergrowth && unzip -l undergrowth.zip
       - uses: actions/upload-artifact@v7.0.2
         with:
