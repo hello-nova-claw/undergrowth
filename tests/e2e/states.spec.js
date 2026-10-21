@@ -83,6 +83,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'discord-last-error',
+		page: SETTINGS,
+		fixture: 'discord-last-error',
+	},
+	{
+		screen: 'settings',
 		state: 'discord-invalid',
 		page: SETTINGS,
 		fixture: 'discord-invalid',

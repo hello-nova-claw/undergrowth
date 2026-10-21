@@ -323,6 +323,7 @@ msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Accept"
 msgstr ""
 
@@ -333,6 +334,7 @@ msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Veto"
 msgstr ""
 
@@ -426,6 +428,28 @@ msgstr ""
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/discord-messages.php
+#, php-format
+msgid "Suggested link from “%1$s” to “%2$s”"
+msgstr ""
+
+#. translators: %s: address of the post the link would sit in.
+#: src/discord-messages.php
+#, php-format
+msgid "In: %s"
+msgstr ""
+
+#. translators: %s: address of the post the link would point to.
+#: src/discord-messages.php
+#, php-format
+msgid "To: %s"
+msgstr ""
+
+#: src/discord-messages.php
+msgid "Open in WordPress"
+msgstr ""
+
 #: src/discord-settings.php
 msgid "Discord"
 msgstr ""
@@ -464,6 +488,12 @@ msgstr ""
 
 #: src/discord-settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/discord-settings.php
+#, php-format
+msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
 #. translators: %s: last four characters of the saved bot token.

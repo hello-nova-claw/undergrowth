@@ -213,10 +213,28 @@ function undergrowth_sanitize_discord_bot_token( $value ): string {
  * Prints the introduction to the Discord section, which says what is sent.
  */
 function undergrowth_render_discord_section(): void {
+	$error = get_option( 'undergrowth_last_discord_error' );
 	?>
 	<p class="description" id="undergrowth-discord-notice">
 		<?php esc_html_e( 'Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers.', 'undergrowth' ); ?>
 	</p>
+
+	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
+		<div class="notice notice-warning inline">
+			<p>
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
+						__( 'The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ),
+						wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
+						number_format_i18n( (int) ( $error['status'] ?? 0 ) )
+					)
+				);
+				?>
+			</p>
+		</div>
+	<?php endif; ?>
 	<?php
 }
 
