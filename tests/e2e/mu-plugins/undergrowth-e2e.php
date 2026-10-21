@@ -309,16 +309,20 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 
 				$includes = dirname( UNDERGROWTH_FILE ) . '/tests/phpunit/includes/';
 
-				if ( ! class_exists( 'Jetpack' ) ) {
-					require_once $includes . 'class-jetpack.php';
+				if ( ! class_exists( 'Automattic\Jetpack\Modules' ) ) {
+					require_once $includes . 'class-modules.php';
+				}
+
+				if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
+					require_once $includes . 'class-manager.php';
 				}
 
 				if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
 					require_once $includes . 'class-wpcom-stats.php';
 				}
 
-				Jetpack::$active_modules = array( 'stats' );
-				Jetpack::$connected      = true;
+				Automattic\Jetpack\Modules::$active               = array( 'stats' );
+				Automattic\Jetpack\Connection\Manager::$connected = true;
 
 				$fixture = undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'meter-crossed', 'meter-no-answer' ) );
 
