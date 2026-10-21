@@ -358,17 +358,26 @@ function undergrowth_ability_post_schema(): array {
  * Tells whether the current user may read the fields asked for.
  *
  * A cluster or the site is read only through the posts the user can edit,
- * so anyone who can edit posts may ask; each post is checked when counted.
+ * so anyone who can edit posts of an indexed type may ask; each post is
+ * checked when counted.
  *
  * @param mixed $input Ability input.
- * @return bool True when the user can edit the post, or can edit posts at all.
+ * @return bool True when the user can edit the post, or can edit posts of an indexed type.
  */
 function undergrowth_ability_can_read( $input ): bool {
 	if ( is_array( $input ) && isset( $input['post_id'] ) ) {
 		return current_user_can( 'edit_post', (int) $input['post_id'] );
 	}
 
-	return current_user_can( 'edit_posts' );
+	foreach ( undergrowth_indexed_post_types() as $post_type ) {
+		$object = get_post_type_object( $post_type );
+
+		if ( null !== $object && current_user_can( $object->cap->edit_posts ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
@@ -460,41 +469,47 @@ function undergrowth_ability_scope( array $input ) {
 /**
  * Lists every post in the index that the current user can edit.
  *
- * Composting posts are included, so they can be counted apart. Someone who
- * cannot edit published posts gets none, and someone who cannot edit other
- * people's posts is only asked about their own, before any post is loaded.
+ * Composting posts are included, so they can be counted apart. For each
+ * indexed post type, someone who cannot edit its published posts gets none,
+ * and someone who cannot edit other people's is only asked about their own,
+ * before any post is loaded.
  * Posts are checked a chunk at a time and their rows dropped again, so a
  * long archive never sits in memory; their stages stay, to be counted.
  *
  * @return int[] Post IDs, lowest first.
  */
 function undergrowth_ability_site_posts(): array {
-	$post_types = undergrowth_indexed_post_types();
+	$ids = array();
 
-	if ( array() === $post_types || ! current_user_can( 'edit_published_posts' ) ) {
-		return array();
+	foreach ( undergrowth_indexed_post_types() as $post_type ) {
+		$object = get_post_type_object( $post_type );
+
+		if ( null === $object || ! current_user_can( $object->cap->edit_published_posts ) ) {
+			continue;
+		}
+
+		$args = array(
+			'post_type'              => $post_type,
+			'post_status'            => 'publish',
+			'has_password'           => false,
+			'posts_per_page'         => -1,
+			'no_found_rows'          => true,
+			'fields'                 => 'ids',
+			'update_post_term_cache' => false,
+		);
+
+		if ( ! current_user_can( $object->cap->edit_others_posts ) ) {
+			$args['author'] = get_current_user_id();
+		}
+
+		$query = new WP_Query( $args );
+		$ids   = array_merge( $ids, array_map( 'intval', $query->posts ) );
 	}
 
-	$args = array(
-		'post_type'              => $post_types,
-		'post_status'            => 'publish',
-		'has_password'           => false,
-		'orderby'                => 'ID',
-		'order'                  => 'ASC',
-		'posts_per_page'         => -1,
-		'no_found_rows'          => true,
-		'fields'                 => 'ids',
-		'update_post_term_cache' => false,
-	);
-
-	if ( ! current_user_can( 'edit_others_posts' ) ) {
-		$args['author'] = get_current_user_id();
-	}
-
-	$query    = new WP_Query( $args );
+	sort( $ids );
 	$editable = array();
 
-	foreach ( array_chunk( array_map( 'intval', $query->posts ), UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
 		_prime_post_caches( $chunk, false, true );
 
 		foreach ( $chunk as $post_id ) {
