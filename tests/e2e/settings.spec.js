@@ -274,15 +274,22 @@ test.describe( 'Settings page', () => {
 	}
 
 	test.describe( 'with posts', () => {
+		let created = [];
+
+		// The count covers every published post, so the site starts empty.
 		test.beforeEach( async ( { admin, requestUtils } ) => {
 			await requestUtils.deleteAllPosts();
 
+			created = [];
+
 			for ( const title of [ 'Oca', 'Yacon' ] ) {
-				await requestUtils.createPost( {
-					title,
-					content: `<p>${ title } grows here.</p>`,
-					status: 'publish',
-				} );
+				created.push(
+					await requestUtils.createPost( {
+						title,
+						content: `<p>${ title } grows here.</p>`,
+						status: 'publish',
+					} )
+				);
 			}
 
 			await admin.visitAdminPage(
@@ -292,7 +299,13 @@ test.describe( 'Settings page', () => {
 		} );
 
 		test.afterEach( async ( { requestUtils } ) => {
-			await requestUtils.deleteAllPosts();
+			for ( const post of created ) {
+				await requestUtils.rest( {
+					method: 'DELETE',
+					path: `/wp/v2/posts/${ post.id }`,
+					params: { force: true },
+				} );
+			}
 		} );
 
 		test( 'counts the indexed posts', async ( { page } ) => {
