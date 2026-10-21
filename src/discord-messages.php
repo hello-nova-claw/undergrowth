@@ -10,8 +10,9 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DISCORD_API = 'https://discord.com/api/v10';
 
-// Discord refuses a message over 2,000 characters. Escaping can double these,
-// which still leaves room for the fixed text and both addresses.
+// Discord refuses a message over 2,000 characters. Titles and the sentence
+// start at these lengths and are cut further when a message would not fit.
+const UNDERGROWTH_DISCORD_MAX_CONTENT  = 2000;
 const UNDERGROWTH_DISCORD_MAX_TITLE    = 150;
 const UNDERGROWTH_DISCORD_MAX_SENTENCE = 500;
 
@@ -19,6 +20,13 @@ add_action( 'undergrowth_proposals_refreshed', 'undergrowth_discord_queue_propos
 add_action( 'undergrowth_discord_post_proposals', 'undergrowth_discord_post_proposals' );
 add_action( 'add_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 add_action( 'update_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
+
+foreach ( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ) as $undergrowth_discord_field ) {
+	add_action( 'add_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
+	add_action( 'update_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
+	add_action( 'delete_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
+}
+unset( $undergrowth_discord_field );
 add_filter( 'is_protected_meta', 'undergrowth_protect_discord_meta', 10, 2 );
 
 /**
@@ -28,6 +36,19 @@ add_filter( 'is_protected_meta', 'undergrowth_protect_discord_meta', 10, 2 );
  */
 function undergrowth_discord_start_posting(): void {
 	update_option( 'undergrowth_discord_since', current_time( 'mysql', true ), false );
+}
+
+/**
+ * Forgets when posting started while Discord is not fully set up, and
+ * starts again from now once it is, so suggestions made in between are
+ * never posted as a backlog.
+ */
+function undergrowth_discord_track_setup(): void {
+	if ( ! undergrowth_discord_enabled() ) {
+		delete_option( 'undergrowth_discord_since' );
+	} elseif ( '' === (string) get_option( 'undergrowth_discord_since', '' ) ) {
+		undergrowth_discord_start_posting();
+	}
 }
 
 /**
@@ -60,8 +81,8 @@ function undergrowth_discord_queue_proposals( int $post_id ): void {
 /**
  * Posts each of a post's suggestions that is not in Discord yet.
  *
- * A failed request stops the rest, which are tried again the next time the
- * post's suggestions are refreshed.
+ * A rate limit or an outage stops the rest. Any failure is tried again the
+ * next time the post's suggestions are refreshed.
  *
  * @param int $post_id Source post ID.
  */
@@ -70,7 +91,8 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 
 	$source = get_post( $post_id );
 
-	if ( ! undergrowth_discord_enabled() || ! $source instanceof WP_Post ) {
+	// A post that is no longer published must not have its title sent.
+	if ( ! undergrowth_discord_enabled() || ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) ) {
 		return;
 	}
 
@@ -92,45 +114,65 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 		ARRAY_A
 	);
 
-	$posted = get_post_meta( $post_id, 'undergrowth_discord_messages', true );
-	$posted = is_array( $posted ) ? $posted : array();
-	$kept   = array();
-	$failed = false;
+	$open    = array();
+	$stopped = false;
 
 	foreach ( (array) $rows as $row ) {
-		$target_id = (int) $row['target_id'];
+		$target_id          = (int) $row['target_id'];
+		$open[ $target_id ] = true;
+		$target             = get_post( $target_id );
 
-		if ( isset( $posted[ $target_id ] ) ) {
-			$kept[ $target_id ] = $posted[ $target_id ];
+		// Read again before each send, so a run that overlaps this one and
+		// has just posted a suggestion is not followed by a second copy.
+		if ( $stopped || isset( undergrowth_discord_posted( $post_id )[ $target_id ] ) || (string) $row['created_at'] < $since || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
 			continue;
 		}
 
-		$target = get_post( $target_id );
-
-		if ( $failed || (string) $row['created_at'] < $since || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
-			continue;
-		}
-
-		$message_id = undergrowth_discord_send(
+		$sent = undergrowth_discord_send(
 			'/channels/' . undergrowth_discord_setting( 'channel_id' ) . '/messages',
-			undergrowth_discord_proposal_message( $source, $target, (string) $row['sentence'] )
+			array_merge(
+				undergrowth_discord_proposal_message( $source, $target, (string) $row['sentence'] ),
+				array(
+					// Discord drops a repeat with the same nonce, so a retry
+					// after a request that timed out does not post twice.
+					'nonce'         => substr( md5( 'undergrowth:' . $post_id . ':' . $target_id . ':' . $row['created_at'] ), 0, 25 ),
+					'enforce_nonce' => true,
+				)
+			)
 		);
 
-		if ( '' === $message_id ) {
-			$failed = true;
+		if ( '' === $sent['id'] ) {
+			// One message Discord refuses should not hold back the rest.
+			$stopped = 0 === $sent['status'] || 429 === $sent['status'] || $sent['status'] >= 500;
 			continue;
 		}
 
-		$kept[ $target_id ] = $message_id;
+		$posted               = undergrowth_discord_posted( $post_id );
+		$posted[ $target_id ] = $sent['id'];
+		update_post_meta( $post_id, 'undergrowth_discord_messages', $posted );
 	}
 
 	// Only open suggestions are kept, so one withdrawn and later made again
 	// is posted again.
+	$kept = array_intersect_key( undergrowth_discord_posted( $post_id ), $open );
+
 	if ( array() === $kept ) {
 		delete_post_meta( $post_id, 'undergrowth_discord_messages' );
 	} else {
 		update_post_meta( $post_id, 'undergrowth_discord_messages', $kept );
 	}
+}
+
+/**
+ * Returns the suggestions already posted from a post.
+ *
+ * @param int $post_id Source post ID.
+ * @return array<int, string> Message ID keyed by target post ID.
+ */
+function undergrowth_discord_posted( int $post_id ): array {
+	$posted = get_post_meta( $post_id, 'undergrowth_discord_messages', true );
+
+	return is_array( $posted ) ? $posted : array();
 }
 
 /**
@@ -148,29 +190,45 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
  * @return array<string, mixed> Message fields for the Discord API.
  */
 function undergrowth_discord_proposal_message( WP_Post $source, WP_Post $target, string $sentence, string $result = '' ): array {
-	$lines = array(
-		sprintf(
-			/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
-			__( 'Suggested link from “%1$s” to “%2$s”', 'undergrowth' ),
-			undergrowth_discord_plain( get_the_title( $source ), UNDERGROWTH_DISCORD_MAX_TITLE ),
-			undergrowth_discord_plain( get_the_title( $target ), UNDERGROWTH_DISCORD_MAX_TITLE )
-		),
-		/* translators: %s: address of the post the link would sit in. */
-		sprintf( __( 'In: %s', 'undergrowth' ), '<' . get_permalink( $source ) . '>' ),
-		/* translators: %s: address of the post the link would point to. */
-		sprintf( __( 'To: %s', 'undergrowth' ), '<' . get_permalink( $target ) . '>' ),
-	);
+	$title_max    = UNDERGROWTH_DISCORD_MAX_TITLE;
+	$sentence_max = UNDERGROWTH_DISCORD_MAX_SENTENCE;
 
-	// A vetoed pair the author never saw suggested has no sentence to quote.
-	if ( '' !== trim( $sentence ) ) {
-		array_splice( $lines, 1, 0, '> ' . undergrowth_discord_plain( $sentence, UNDERGROWTH_DISCORD_MAX_SENTENCE ) );
-	}
+	// Escaping, long addresses and long translations can all push a message
+	// past Discord's limit, so the author's text is cut until it fits.
+	do {
+		$lines = array(
+			sprintf(
+				/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+				__( 'Suggested link from “%1$s” to “%2$s”', 'undergrowth' ),
+				undergrowth_discord_plain( get_the_title( $source ), $title_max ),
+				undergrowth_discord_plain( get_the_title( $target ), $title_max )
+			),
+			/* translators: %s: address of the post the link would sit in. */
+			sprintf( __( 'In: %s', 'undergrowth' ), '<' . get_permalink( $source ) . '>' ),
+			/* translators: %s: address of the post the link would point to. */
+			sprintf( __( 'To: %s', 'undergrowth' ), '<' . get_permalink( $target ) . '>' ),
+		);
+
+		// A vetoed pair the author never saw suggested has no sentence to quote.
+		if ( '' !== trim( $sentence ) ) {
+			array_splice( $lines, 1, 0, '> ' . undergrowth_discord_plain( $sentence, $sentence_max ) );
+		}
+
+		if ( '' !== $result ) {
+			$lines[] = $result;
+		}
+
+		$content      = implode( "\n", $lines );
+		$fits         = mb_strlen( $content ) <= UNDERGROWTH_DISCORD_MAX_CONTENT;
+		$sentence_max = (int) floor( $sentence_max / 2 );
+		$title_max    = $sentence_max < 20 ? (int) floor( $title_max / 2 ) : $title_max;
+	} while ( ! $fits && $title_max >= 10 );
+
+	$content = mb_substr( $content, 0, UNDERGROWTH_DISCORD_MAX_CONTENT );
 
 	$components = array();
 
-	if ( '' !== $result ) {
-		$lines[] = $result;
-	} else {
+	if ( '' === $result ) {
 		$pair       = $source->ID . ':' . $target->ID;
 		$components = array(
 			array(
@@ -200,7 +258,7 @@ function undergrowth_discord_proposal_message( WP_Post $source, WP_Post $target,
 	}
 
 	return array(
-		'content'          => implode( "\n", $lines ),
+		'content'          => $content,
 		'components'       => $components,
 		'allowed_mentions' => array( 'parse' => array() ),
 	);
@@ -230,9 +288,11 @@ function undergrowth_discord_plain( string $text, int $max ): string {
  *
  * @param string               $path    API path, starting with a slash.
  * @param array<string, mixed> $message Message fields.
- * @return string ID of the new message, or an empty string when it failed.
+ * @return array{id: string, status: int} ID of the new message, or an empty
+ *                                        string when it failed, and the HTTP
+ *                                        status, or 0 with no response.
  */
-function undergrowth_discord_send( string $path, array $message ): string {
+function undergrowth_discord_send( string $path, array $message ): array {
 	$response = wp_remote_post(
 		UNDERGROWTH_DISCORD_API . $path,
 		array(
@@ -262,10 +322,17 @@ function undergrowth_discord_send( string $path, array $message ): string {
 			),
 			false
 		);
-		return '';
+
+		return array(
+			'id'     => '',
+			'status' => $status,
+		);
 	}
 
 	delete_option( 'undergrowth_last_discord_error' );
 
-	return $id;
+	return array(
+		'id'     => $id,
+		'status' => $status,
+	);
 }

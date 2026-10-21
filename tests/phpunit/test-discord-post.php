@@ -30,12 +30,20 @@ class Test_Discord_Post extends WP_UnitTestCase {
 	 */
 	private $status = 200;
 
+	/**
+	 * Statuses for the next requests, used before $status.
+	 *
+	 * @var int[]
+	 */
+	private $statuses = array();
+
 	public function set_up() {
 		parent::set_up();
 
 		$this->start_planting();
 		$this->requests = array();
 		$this->status   = 200;
+		$this->statuses = array();
 		add_filter( 'pre_http_request', array( $this, 'fake_discord' ), 10, 3 );
 	}
 
@@ -68,11 +76,13 @@ class Test_Discord_Post extends WP_UnitTestCase {
 			'args' => $args,
 		);
 
+		$status = array() === $this->statuses ? $this->status : array_shift( $this->statuses );
+
 		return array(
 			'headers'  => array(),
-			'body'     => 200 === $this->status ? (string) wp_json_encode( array( 'id' => (string) ( 1000 + count( $this->requests ) ) ) ) : '{"message":"You are being rate limited."}',
+			'body'     => 200 === $status ? (string) wp_json_encode( array( 'id' => (string) ( 1000 + count( $this->requests ) ) ) ) : '{"message":"You are being rate limited."}',
 			'response' => array(
-				'code'    => $this->status,
+				'code'    => $status,
 				'message' => '',
 			),
 			'cookies'  => array(),
@@ -258,6 +268,120 @@ class Test_Discord_Post extends WP_UnitTestCase {
 
 	public function test_discord_messages_meta_is_protected() {
 		$this->assertTrue( is_protected_meta( 'undergrowth_discord_messages', 'post' ) );
+	}
+
+	/**
+	 * Publishes Oca with proposed links to Yacon and to Ulluco.
+	 *
+	 * @return int[] Oca's ID, then the two targets'.
+	 */
+	private function three(): array {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows in the Andes. Like yacon and ulluco, it is a tuber.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is a sweet tuber. The yacon root stores well.</p>' ) );
+		$ulluco = $this->plant( 'Ulluco', array( 0.8, 0.2, 0.0 ), array( 'post_content' => '<p>Ulluco is a bright tuber. The ulluco grows high.</p>' ) );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $ulluco ) );
+
+		return array( $oca, $yacon, $ulluco );
+	}
+
+	public function test_a_refused_message_does_not_hold_back_the_rest() {
+		$this->configure();
+		list( $oca ) = $this->three();
+
+		$this->statuses = array( 400 );
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertCount( 2, $this->requests );
+		$this->assertCount( 1, get_post_meta( $oca, 'undergrowth_discord_messages', true ) );
+	}
+
+	/**
+	 * Statuses after which Discord should not be asked again straight away.
+	 *
+	 * @return array<string, int[]>
+	 */
+	public function data_statuses_that_stop_posting() {
+		return array(
+			'rate limited' => array( 429 ),
+			'outage'       => array( 503 ),
+			'no response'  => array( 0 ),
+		);
+	}
+
+	/**
+	 * A rate limit or an outage would refuse the next message too.
+	 *
+	 * @dataProvider data_statuses_that_stop_posting
+	 *
+	 * @param int $status Status of the first response.
+	 */
+	public function test_a_rate_limit_or_outage_stops_the_rest( $status ) {
+		$this->configure();
+		list( $oca ) = $this->three();
+
+		$this->statuses = array( $status );
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_each_message_carries_a_nonce_for_its_pair() {
+		$this->configure();
+		list( $oca ) = $this->three();
+
+		undergrowth_discord_post_proposals( $oca );
+
+		$first  = $this->body( 0 );
+		$second = $this->body( 1 );
+		$this->assertTrue( $first['enforce_nonce'] );
+		$this->assertLessThanOrEqual( 25, strlen( $first['nonce'] ) );
+		$this->assertNotSame( $first['nonce'], $second['nonce'] );
+	}
+
+	public function test_unpublished_source_is_never_posted() {
+		$this->configure();
+		list( $oca ) = $this->pair();
+
+		wp_update_post(
+			array(
+				'ID'          => $oca,
+				'post_status' => 'private',
+			)
+		);
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertSame( array(), $this->requests );
+	}
+
+	public function test_long_titles_and_addresses_still_fit_one_message() {
+		$this->configure();
+		$long  = str_repeat( '*Oca_ ', 400 );
+		$oca   = $this->plant( $long, array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows in the Andes. ' . str_repeat( 'Like yacon, it is a *tuber*. ', 60 ) . '</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is a sweet tuber. The yacon root stores well.</p>' ) );
+
+		add_filter(
+			'post_link',
+			static function ( $link ) {
+				return $link . '?' . str_repeat( 'x', 600 );
+			}
+		);
+
+		$message = undergrowth_discord_proposal_message( get_post( $oca ), get_post( $yacon ), str_repeat( 'Like yacon, it is a *tuber*. ', 60 ), str_repeat( 'Done. ', 50 ) );
+
+		$this->assertLessThanOrEqual( 2000, mb_strlen( $message['content'] ) );
+		$this->assertStringContainsString( 'Done.', $message['content'] );
+	}
+
+	public function test_setting_up_again_starts_posting_from_then() {
+		$this->configure();
+		delete_option( 'undergrowth_discord_bot_token' );
+		$this->assertSame( 'missing', get_option( 'undergrowth_discord_since', 'missing' ) );
+
+		update_option( 'undergrowth_discord_bot_token', self::TOKEN );
+
+		$this->assertNotSame( 'missing', get_option( 'undergrowth_discord_since', 'missing' ) );
 	}
 
 	public function test_uninstall_removes_what_posting_stored() {
