@@ -20,6 +20,7 @@ const ALLOWED_PACKAGES = [
 	'@playwright/test',
 	'@wp-playground/cli',
 	'jest',
+	'jest-environment-jsdom',
 	'pa11y-ci',
 	'pixelmatch',
 	'pngjs',

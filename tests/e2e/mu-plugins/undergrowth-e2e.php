@@ -127,7 +127,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -205,6 +205,32 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 					undergrowth_write_prompt();
 				}
 			}
+		);
+		break;
+
+	case 'discord-saved':
+		foreach ( array(
+			'application_id' => '112233445566778899',
+			'public_key'     => str_repeat( '0f1e2d3c', 8 ),
+			'bot_token'      => 'not-a-real-discord-token-klmn',
+			'channel_id'     => '998877665544332211',
+		) as $name => $value ) {
+			add_filter(
+				'pre_option_undergrowth_discord_' . $name,
+				static function () use ( $value ) {
+					return $value;
+				}
+			);
+		}
+		break;
+
+	case 'discord-invalid':
+		add_action(
+			'admin_init',
+			static function () {
+				undergrowth_sanitize_discord_application_id( 'abc' );
+			},
+			20
 		);
 		break;
 

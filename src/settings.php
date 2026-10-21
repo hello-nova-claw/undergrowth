@@ -241,6 +241,8 @@ function undergrowth_render_settings_page(): void {
 				</tr>
 			</table>
 
+			<?php do_settings_sections( 'undergrowth' ); ?>
+
 			<?php submit_button(); ?>
 		</form>
 	</div>
