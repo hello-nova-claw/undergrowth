@@ -37,9 +37,23 @@ function undergrowth_meter_line(): int {
 	 *
 	 * @param int $line Views in 30 days. Default UNDERGROWTH_METER_LINE.
 	 */
-	$line = (int) apply_filters( 'undergrowth_meter_line', UNDERGROWTH_METER_LINE );
+	$default = undergrowth_meter_sanitize_line( (int) UNDERGROWTH_METER_LINE );
+	$line    = (int) apply_filters( 'undergrowth_meter_line', $default );
 
-	return $line < 1 ? UNDERGROWTH_METER_LINE : $line;
+	return $line < 1 ? $default : $line;
+}
+
+/**
+ * Replaces a switch line below one view with 1,000.
+ *
+ * A site can define UNDERGROWTH_METER_LINE itself, and a line of zero would
+ * show it crossed with no readers at all.
+ *
+ * @param int $line Views in 30 days.
+ * @return int At least 1.
+ */
+function undergrowth_meter_sanitize_line( int $line ): int {
+	return $line < 1 ? 1000 : $line;
 }
 
 /**
@@ -137,10 +151,27 @@ function undergrowth_meter_reading(): array {
 }
 
 /**
- * Adds the meter widget for users who can see the Link suggestions screen.
+ * Tells whether the current user may see the meter.
+ *
+ * Without Jetpack Stats there is no count, so anyone who can see the Link
+ * suggestions screen is told what the meter needs. With Stats on, the count
+ * is Stats data, so it follows Jetpack's own setting for who may view it.
+ *
+ * @return bool
+ */
+function undergrowth_meter_user_can_see(): bool {
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		return false;
+	}
+
+	return ! undergrowth_meter_has_stats() || current_user_can( 'view_stats' );
+}
+
+/**
+ * Adds the meter widget for users who may see it.
  */
 function undergrowth_add_meter_widget(): void {
-	if ( ! current_user_can( 'edit_others_posts' ) ) {
+	if ( ! undergrowth_meter_user_can_see() ) {
 		return;
 	}
 
@@ -152,7 +183,7 @@ function undergrowth_add_meter_widget(): void {
  * one.
  */
 function undergrowth_render_meter_widget(): void {
-	if ( ! current_user_can( 'edit_others_posts' ) ) {
+	if ( ! undergrowth_meter_user_can_see() ) {
 		return;
 	}
 
