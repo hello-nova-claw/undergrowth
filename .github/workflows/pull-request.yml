@@ -29,6 +29,8 @@ jobs:
           fi
 
   changelog:
+    # The name predates changelog fragments; it stays because main's branch
+    # protection requires a check by this name.
     name: Changelog line in readme.txt
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
     runs-on: ubuntu-latest
@@ -39,7 +41,7 @@ jobs:
       - env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          if ! git diff --name-only "origin/${BASE_REF}...HEAD" | grep -qx 'readme.txt'; then
-            echo "::error file=readme.txt::Add a line under = Unreleased = in readme.txt, or ask a maintainer for the no-changelog label."
+          if ! git diff --name-only --diff-filter=AM "origin/${BASE_REF}...HEAD" | grep -qE '^changelog/[^/]+\.txt$'; then
+            echo "::error::Add a changelog fragment, changelog/<issue>-<slug>.txt, holding your changelog line, or ask a maintainer for the no-changelog label."
             exit 1
           fi
