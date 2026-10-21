@@ -73,10 +73,73 @@ class Test_Memory extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_file_lives_in_the_sites_uploads_folder() {
+	public function test_file_lives_in_a_folder_with_a_random_name_in_the_sites_uploads_folder() {
 		$uploads = wp_upload_dir();
 
-		$this->assertSame( $uploads['basedir'] . '/undergrowth/posts/42.txt', undergrowth_memory_path( 42 ) );
+		$this->assertMatchesRegularExpression( '#^' . preg_quote( $uploads['basedir'], '#' ) . '/undergrowth-[0-9a-f]{12}/posts/42\.txt$#D', undergrowth_memory_path( 42 ) );
+	}
+
+	public function test_folder_name_is_made_once_and_kept() {
+		$folder = undergrowth_memory_folder();
+
+		$this->assertSame( $folder, get_option( 'undergrowth_memory_folder' ) );
+		$this->assertSame( $folder, undergrowth_memory_folder() );
+	}
+
+	public function test_each_site_gets_its_own_folder_name() {
+		$first = undergrowth_memory_folder();
+		delete_option( 'undergrowth_memory_folder' );
+
+		$this->assertNotSame( $first, undergrowth_memory_folder() );
+	}
+
+	public function test_a_stored_folder_name_that_is_not_one_of_ours_is_replaced() {
+		update_option( 'undergrowth_memory_folder', '../../wp-content' );
+
+		$this->assertMatchesRegularExpression( '/^undergrowth-[0-9a-f]{12}$/D', undergrowth_memory_folder() );
+	}
+
+	public function test_posts_folder_has_its_own_index_file() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertTrue( undergrowth_write_memory( $oca ) );
+		$this->assertFileExists( undergrowth_memory_root() . '/posts/index.php' );
+	}
+
+	public function test_files_at_the_old_address_move_to_the_new_folder() {
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+		delete_option( 'undergrowth_memory_folder' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertSame( 'notes', file_get_contents( undergrowth_memory_root() . '/posts/7.txt' ) );
+	}
+
+	public function test_old_folder_is_removed_when_it_cannot_be_moved() {
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+		wp_mkdir_p( undergrowth_memory_root() . '/posts' );
+		file_put_contents( undergrowth_memory_root() . '/posts/8.txt', 'newer' );
+
+		undergrowth_move_legacy_memory_folder( undergrowth_memory_root() );
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertSame( 'newer', file_get_contents( undergrowth_memory_root() . '/posts/8.txt' ) );
+	}
+
+	public function test_preparing_the_folder_again_leaves_it_alone() {
+		$folder = undergrowth_memory_folder();
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertSame( $folder, undergrowth_memory_folder() );
 	}
 
 	public function test_file_is_written_when_a_post_gets_proposals() {
