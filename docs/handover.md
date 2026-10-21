@@ -195,7 +195,7 @@ Personalised prompts that point the author in a direction. The one feature where
 ### Process
 1. Every piece of work starts as an issue. Issue template, five required fields: problem, scope, out of scope, acceptance criteria, how to test. Not ready without all five. Agents fill the template before touching code.
 2. GitHub Projects board with an Iteration field for sprints. Columns: Backlog, Ready, In progress, In review, Done. Issues move, not PRs.
-3. Branch per issue. PR per issue. PR template, three sections: what, why, how to test. Link the issue. Changelog line in `readme.txt` is part of the PR.
+3. Branch per issue. PR per issue. PR template, three sections: what, why, how to test. Link the issue. Changelog line, as a fragment in `changelog/`, is part of the PR.
 4. Small commits, one thing each. Test commit before code commit.
 
 ### Commit and PR style (anti-AI-tell rules)
