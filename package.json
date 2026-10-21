@@ -21,7 +21,8 @@
 		"test:e2e": "wp-scripts test-playwright --pass-with-no-tests",
 		"screenshots": "playwright test -c playwright.screenshots.config.js",
 		"test:a11y": "pa11y-ci",
-		"i18n:pot": "vendor/bin/wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,dist,docs,node_modules,tests,vendor",
+		"i18n:pot": "vendor/bin/wp i18n make-pot . languages/undergrowth.pot --exclude=artifacts,bin,changelog,dist,docs,node_modules,tests,vendor && node bin/stable-pot.js languages/undergrowth.pot",
+		"changelog": "node bin/changelog.js",
 		"i18n:pseudo": "node bin/pseudo-locale.mjs languages/undergrowth.pot"
 	},
 	"devDependencies": {
