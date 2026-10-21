@@ -50,6 +50,9 @@ function undergrowth_render_prompt_widget(): void {
 	} elseif ( 'compost' === $prompt['source'] ) {
 		/* translators: %1$s: title of the post, linked to its editor. */
 		$from = __( 'Claude wrote this question from %1$s, a post you moved to compost. Only you can see it.', 'undergrowth' );
+	} elseif ( 'gap' === $prompt['source'] ) {
+		/* translators: %1$s: title of the post, linked to its editor. */
+		$from = __( 'Claude wrote this question from a gap among your posts, next to %1$s. Only you can see it.', 'undergrowth' );
 	} else {
 		/* translators: %1$s: title of the post, linked to its editor. */
 		$from = __( 'Claude wrote this question from your post %1$s. Only you can see it.', 'undergrowth' );
