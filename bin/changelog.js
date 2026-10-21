@@ -98,6 +98,16 @@ function fold( root ) {
 		return 0;
 	}
 
+	const empty = fragments.filter( ( fragment ) => ! fragment.entries.length );
+
+	if ( empty.length ) {
+		throw new Error(
+			`Changelog fragments with no line: ${ empty
+				.map( ( fragment ) => fragment.name )
+				.join( ', ' ) }`
+		);
+	}
+
 	const readme = join( root, 'readme.txt' );
 
 	writeFileSync(
