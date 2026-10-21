@@ -503,6 +503,21 @@ test.describe( 'Screenshot catalogue', () => {
 				'Oca seed',
 			] );
 			await pass();
+
+			// Without a signal the shot would show the plain table instead.
+			const stages = await requestUtils.request.get(
+				'wp-admin/edit.php?page=undergrowth-links&tab=stages'
+			);
+
+			if (
+				! ( await stages.text() ).includes(
+					'value="undergrowth_dismiss_resurfacing"'
+				)
+			) {
+				throw new Error(
+					'No resurfacing signal after the second pass.'
+				);
+			}
 		} );
 
 		capture( WITH_RESURFACING );
