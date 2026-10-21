@@ -118,27 +118,43 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertSame( $this->render( $this->post_at( 'sprout' ) ), $this->render( $post_id ) );
 	}
 
-	public function test_a_draft_shows_nothing_to_a_reader_but_shows_to_its_author() {
-		$author  = self::factory()->user->create( array( 'role' => 'author' ) );
-		$post_id = $this->post_at(
-			'sprout',
-			array(
-				'post_status' => 'draft',
-				'post_author' => $author,
-			)
-		);
+	public function test_registers_again_without_a_build() {
+		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/growth-stage' );
 
-		wp_set_current_user( 0 );
-		$this->assertSame( '', $this->render( $post_id ) );
+		undergrowth_register_blocks();
 
-		wp_set_current_user( $author );
-		$this->assertStringContainsString( 'Growth stage: Sprout', $this->render( $post_id ) );
+		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/growth-stage' ) );
 	}
 
-	public function test_a_private_post_shows_nothing_to_a_reader() {
-		wp_set_current_user( 0 );
+	/**
+	 * Shows nothing for a post outside the garden, even to its author.
+	 *
+	 * @dataProvider data_posts_outside_the_garden
+	 *
+	 * @param array<string, string> $args Post fields.
+	 */
+	public function test_a_post_outside_the_garden_shows_nothing( array $args ) {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		$post   = $this->post_at( 'sprout', $args + array( 'post_author' => $author ) );
 
-		$this->assertSame( '', $this->render( $this->post_at( 'sprout', array( 'post_status' => 'private' ) ) ) );
+		wp_set_current_user( 0 );
+		$this->assertSame( '', $this->render( $post ) );
+
+		wp_set_current_user( $author );
+		$this->assertSame( '', $this->render( $post ) );
+	}
+
+	/**
+	 * Posts Undergrowth does not read.
+	 *
+	 * @return array<string, array<int, array<string, string>>>
+	 */
+	public function data_posts_outside_the_garden(): array {
+		return array(
+			'draft'              => array( array( 'post_status' => 'draft' ) ),
+			'private'            => array( array( 'post_status' => 'private' ) ),
+			'password-protected' => array( array( 'post_password' => 'oca' ) ),
+		);
 	}
 
 	public function test_a_post_type_that_is_not_indexed_shows_nothing() {

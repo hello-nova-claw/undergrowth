@@ -14,8 +14,14 @@ test.describe( 'Growth stage block', () => {
 		admin,
 		editor,
 		page,
+		requestUtils,
 	} ) => {
-		await admin.createNewPost();
+		// Only published posts have a stage to preview.
+		const post = await requestUtils.createPost( {
+			title: 'Oca',
+			status: 'publish',
+		} );
+		await admin.editPost( post.id );
 		await editor.insertBlock( { name: 'undergrowth/growth-stage' } );
 
 		// The preview comes from the server, inside the block's own wrapper.
