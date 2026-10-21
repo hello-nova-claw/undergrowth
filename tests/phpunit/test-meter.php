@@ -32,6 +32,7 @@ class Test_Meter extends WP_UnitTestCase {
 
 	public function tear_down() {
 		unset( $GLOBALS['wp_meta_boxes'] );
+		set_current_screen( 'front' );
 
 		parent::tear_down();
 	}
