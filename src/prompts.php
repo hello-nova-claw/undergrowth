@@ -524,12 +524,18 @@ function undergrowth_gap_prompt_sources( $records ): array {
 	foreach ( undergrowth_cluster_gaps() as $gap ) {
 		$quotes = array();
 
-		foreach ( array_slice( $gap['members'], 0, UNDERGROWTH_PROMPT_GAP_POSTS ) as $post_id ) {
+		// The nearest posts that have a sentence of their own, so a post made
+		// only of quotes never leaves the gap with fewer of the author's words.
+		foreach ( $gap['members'] as $post_id ) {
 			$post  = get_post( $post_id );
 			$quote = $post instanceof WP_Post ? undergrowth_longest_sentence( $post ) : null;
 
 			if ( null !== $quote ) {
 				$quotes[] = $quote;
+			}
+
+			if ( count( $quotes ) >= UNDERGROWTH_PROMPT_GAP_POSTS ) {
+				break;
 			}
 		}
 
