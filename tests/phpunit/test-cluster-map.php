@@ -110,6 +110,18 @@ class Test_Cluster_Map extends WP_UnitTestCase {
 		$this->assertEqualsCanonicalizing( array( $a, $d ), $members );
 	}
 
+	public function test_post_left_off_the_map_does_not_fill_a_gap() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$this->member( array( 0.0, 1.0, 0.0 ), $a );
+		$this->member( array( 0.0, 0.0, 1.0 ), $a );
+		$d = $this->member( array( 1.0, 1.0, 1.0 ), $a );
+		// Stored straight away, as if the cluster key had been left behind.
+		update_post_meta( $d, 'undergrowth_stage', 'composting' );
+
+		$this->assertTrue( undergrowth_cluster_map()[0]['gap'] );
+		$this->assertSame( array( $a ), array_column( undergrowth_cluster_gaps(), 'leader' ) );
+	}
+
 	public function test_member_that_cannot_be_measured_comes_last() {
 		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
 		$b = $this->member( array( 0.0, 1.0, 0.0 ), $a );
