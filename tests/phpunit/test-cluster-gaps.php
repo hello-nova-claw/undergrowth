@@ -160,14 +160,15 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 
 	public function test_no_more_than_a_hundred_clusters_are_measured_lowest_leaders_first() {
 		$leaders = array();
+		$posts   = self::factory()->post->create_many( 303, array( 'post_status' => 'publish' ) );
 
-		// IDs of every length, so ordering them as text would pick other ones.
+		// Labels of every length, so ordering them as text would pick other ones.
 		for ( $i = 0; $i < 101; $i++ ) {
 			$leader    = 7 + $i * 13;
 			$leaders[] = $leader;
 
 			foreach ( array( array( 1.0, 0.0, 0.0 ), array( 0.0, 1.0, 0.0 ), array( 0.0, 0.0, 1.0 ) ) as $axis => $vector ) {
-				$post_id = 100000 + $i * 3 + $axis;
+				$post_id = $posts[ $i * 3 + $axis ];
 				undergrowth_save_vector(
 					$post_id,
 					$vector,
