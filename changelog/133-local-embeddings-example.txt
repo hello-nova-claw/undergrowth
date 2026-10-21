@@ -1,0 +1,1 @@
+Docs: Add an example must-use plugin for embedding posts with a model on your own server.
