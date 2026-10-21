@@ -738,11 +738,22 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->new_cluster_near_compost();
 		$this->cycle();
 		wp_schedule_single_event( time(), 'undergrowth_resurfacing_cycle', array( 5 ) );
+		$this->assertNotSame( array(), get_post_meta( $old, 'undergrowth_resurfacing_log', false ) );
+
+		// Only what uninstall deletes is checked here. A failed drop of the
+		// test suite's temporary tables can roll back everything before it.
+		$keep_tables = static function ( $query ) {
+			return 0 === stripos( ltrim( $query ), 'DROP ' ) ? 'SELECT 1' : $query;
+		};
+		add_filter( 'query', $keep_tables, 1 );
 
 		undergrowth_uninstall_site();
 
+		remove_filter( 'query', $keep_tables, 1 );
+
 		$this->assertFalse( get_option( 'undergrowth_previous_clusters' ) );
 		$this->assertSame( '', get_post_meta( $old, 'undergrowth_resurfacing', true ) );
+		$this->assertSame( array(), get_post_meta( $old, 'undergrowth_resurfacing_log', false ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_resurfacing_cycle', array( 5 ) ) );
 	}
 }
