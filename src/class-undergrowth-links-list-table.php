@@ -126,11 +126,14 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	/**
 	 * Prints the sentence the link would sit in.
 	 *
+	 * It is the author's own text, which may run the other way from the
+	 * admin language, so the browser takes its direction from the text.
+	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
 	 * @return string Cell HTML.
 	 */
 	public function column_sentence( $item ) {
-		return '<q>' . esc_html( $item['sentence'] ) . '</q>';
+		return '<q dir="auto">' . esc_html( $item['sentence'] ) . '</q>';
 	}
 
 	/**
