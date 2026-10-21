@@ -26,7 +26,7 @@ What it does in this version:
 * **A Growth stage block** that shows readers a post's stage as a small line of text your theme styles.
 * **Discord, optionally.** Each new link suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
 * **A readers meter** on your Dashboard: with Jetpack Stats on, one number, your page views in the last 30 days, against a milestone of 1,000. Passing it changes nothing in this version. It marks when the reader features of a later version can start.
-* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read a post's stage and suggestions and to accept or veto a suggestion as the buttons do.
+* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read the stages and suggestions of a post, a cluster or the whole site, and to accept or veto a suggestion as the buttons do.
 
 Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
 

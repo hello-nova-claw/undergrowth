@@ -70,7 +70,9 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 		$this->assertInstanceOf( WP_Ability::class, $ability );
 		$this->assertSame( 'undergrowth', $ability->get_category() );
 		$this->assertSame( 'object', $ability->get_input_schema()['type'] );
-		$this->assertSame( array( 'post_id' ), $ability->get_input_schema()['required'] );
+		$this->assertArrayNotHasKey( 'required', $ability->get_input_schema() );
+		$this->assertSame( array( 'post_id', 'cluster' ), array_keys( $ability->get_input_schema()['properties'] ) );
+		$this->assertSame( array( 'scale' ), array_slice( $ability->get_output_schema()['required'], 0, 1 ) );
 		$this->assertSame( 'object', $ability->get_output_schema()['type'] );
 		$this->assertTrue( $ability->get_meta_item( 'annotations' )['readonly'] );
 		$this->assertTrue( $ability->get_meta_item( 'show_in_rest' ) );
@@ -131,8 +133,18 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 	 *
 	 * @param string $name Ability name.
 	 */
-	public function test_read_ability_refuses_input_without_a_post( $name ) {
-		$this->assertWPError( $this->run_ability( $name, array() ) );
+	public function test_read_ability_refuses_a_post_and_a_cluster_together( $name ) {
+		$post_id = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+
+		$this->assertWPError(
+			$this->run_ability(
+				$name,
+				array(
+					'post_id' => $post_id,
+					'cluster' => $post_id,
+				)
+			)
+		);
 	}
 
 	public function test_has_lists_the_posts_distinctive_words() {
@@ -183,10 +195,11 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 		$this->assertSame(
 			array(
 				array(
-					'post_id'  => $yacon,
-					'title'    => 'Yacon',
-					'url'      => get_permalink( $yacon ),
-					'sentence' => $sentence,
+					'source_id' => $oca,
+					'post_id'   => $yacon,
+					'title'     => 'Yacon',
+					'url'       => get_permalink( $yacon ),
+					'sentence'  => $sentence,
 				),
 			),
 			$lacks['links']
@@ -247,7 +260,7 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 
 		$lacks = $this->run_ability( 'undergrowth/lacks', array( 'post_id' => $oca ) );
 
-		$this->assertSame( array( 'post_id', 'title', 'url', 'sentence' ), array_keys( $lacks['links'][0] ) );
+		$this->assertSame( array( 'source_id', 'post_id', 'title', 'url', 'sentence' ), array_keys( $lacks['links'][0] ) );
 	}
 
 	public function test_scent_has_no_value_in_germination_mode() {
@@ -255,6 +268,7 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 
 		$this->assertSame(
 			array(
+				'scale'   => 'post',
 				'post_id' => $oca,
 				'mode'    => 'germination',
 				'value'   => null,
@@ -268,7 +282,15 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 
 		$this->assertSame(
 			array(
+				'scale'   => 'post',
 				'post_id' => $oca,
+				'counts'  => array(
+					'seedling'   => 1,
+					'sprout'     => 0,
+					'budding'    => 0,
+					'evergreen'  => 0,
+					'composting' => 0,
+				),
 				'stage'   => 'seedling',
 				'pinned'  => false,
 				'changes' => array(),
