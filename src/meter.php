@@ -19,7 +19,9 @@ use Automattic\Jetpack\Stats\WPCOM_Stats;
  * half, a check before each reader suggestion that its pages have enough
  * visits, comes with reader mode.
  */
-define( 'UNDERGROWTH_METER_LINE', 1000 );
+if ( ! defined( 'UNDERGROWTH_METER_LINE' ) ) {
+	define( 'UNDERGROWTH_METER_LINE', 1000 );
+}
 
 add_action( 'wp_dashboard_setup', 'undergrowth_add_meter_widget' );
 
