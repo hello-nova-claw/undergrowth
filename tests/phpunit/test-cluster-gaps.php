@@ -15,9 +15,10 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 	 *
 	 * @param float[] $vector Vector to store.
 	 * @param int     $leader Leader of the cluster, or 0 for the post to lead.
+	 * @param string  $model  Model the vector came from.
 	 * @return int Post ID.
 	 */
-	private function member( array $vector, int $leader = 0 ): int {
+	private function member( array $vector, int $leader = 0, string $model = 'test-model' ): int {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
 		undergrowth_save_vector(
@@ -25,7 +26,7 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 			$vector,
 			array(
 				'provider'     => 'test-provider',
-				'model'        => 'test-model',
+				'model'        => $model,
 				'language'     => 'en_US',
 				'content_hash' => 'hash',
 			)
@@ -137,5 +138,50 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 		$this->member( array( 0.0, -1.0, 0.0 ), $a );
 
 		$this->assertSame( array(), undergrowth_cluster_gaps() );
+	}
+
+	public function test_member_embedded_by_another_model_is_never_compared() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.0, 1.0, 0.0 ), $a );
+		$c = $this->member( array( 0.0, 0.0, 1.0 ), $a );
+		$this->member( array( 1.0, 1.0, 1.0 ), $a, 'other-model' );
+
+		$this->assertSame( array( $a, $b, $c ), undergrowth_cluster_gaps()[0]['members'] );
+	}
+
+	public function test_largest_group_from_one_model_is_the_one_measured() {
+		$a = $this->member( array( 1.0, 1.0, 1.0 ), 0, 'other-model' );
+		$b = $this->member( array( 1.0, 0.0, 0.0 ), $a );
+		$c = $this->member( array( 0.0, 1.0, 0.0 ), $a );
+		$d = $this->member( array( 0.0, 0.0, 1.0 ), $a );
+
+		$this->assertSame( array( $b, $c, $d ), undergrowth_cluster_gaps()[0]['members'] );
+	}
+
+	public function test_no_more_than_a_hundred_clusters_are_measured_lowest_leaders_first() {
+		$leaders = array();
+
+		// IDs of every length, so ordering them as text would pick other ones.
+		for ( $i = 0; $i < 101; $i++ ) {
+			$leader    = 7 + $i * 13;
+			$leaders[] = $leader;
+
+			foreach ( array( array( 1.0, 0.0, 0.0 ), array( 0.0, 1.0, 0.0 ), array( 0.0, 0.0, 1.0 ) ) as $axis => $vector ) {
+				$post_id = 100000 + $i * 3 + $axis;
+				undergrowth_save_vector(
+					$post_id,
+					$vector,
+					array(
+						'provider'     => 'test-provider',
+						'model'        => 'test-model',
+						'language'     => 'en_US',
+						'content_hash' => 'hash',
+					)
+				);
+				add_post_meta( $post_id, 'undergrowth_cluster', $leader );
+			}
+		}
+
+		$this->assertSame( array_slice( $leaders, 0, 100 ), array_column( undergrowth_cluster_gaps(), 'leader' ) );
 	}
 }
