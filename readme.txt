@@ -75,6 +75,10 @@ Undergrowth is free. The services it uses bill your own accounts. Embedding is v
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. When you change the model, give it a new name through `undergrowth_embed_identity`, and every post is embedded again in the background. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
 
+= Can I use a model on my own server instead of OpenAI? =
+
+Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. Each model scores similarity on its own scale, so the example also sets the thresholds for links, clusters and gaps that suit `nomic-embed-text`. You run and look after the model yourself, and the plugin's settings screen does not configure it. Most sites should use an OpenAI key instead.
+
 = Where does Undergrowth keep its notes about each post? =
 
 Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, words and sentences from your own post, the addresses of other posts, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
