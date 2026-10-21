@@ -274,8 +274,23 @@ function undergrowth_render_stages_tab(): void {
 
 	echo '<p>' . esc_html__( 'Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is.', 'undergrowth' ) . '</p>';
 
-	if ( undergrowth_has_composting_posts() ) {
-		echo '<p>' . esc_html__( 'Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden.', 'undergrowth' ) . '</p>';
+	// The counts are the garden's health. Composting is counted on its own
+	// line and never in a stage, so resting a post never reads as decline.
+	$counts    = undergrowth_count_stages();
+	$sentences = array();
+
+	foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $stage ) {
+		$sentences[] = undergrowth_stage_count_sentence( $stage, $counts[ $stage ] );
+	}
+
+	echo '<p class="undergrowth-stage-counts">' . esc_html( implode( ' ', $sentences ) ) . '</p>';
+
+	if ( $counts['composting'] > 0 ) {
+		printf(
+			'<p class="undergrowth-composting-count">%1$s %2$s</p>',
+			esc_html( undergrowth_stage_count_sentence( 'composting', $counts['composting'] ) ),
+			esc_html__( 'Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden.', 'undergrowth' )
+		);
 	}
 
 	$table->display();
