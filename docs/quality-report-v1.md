@@ -27,15 +27,17 @@ There are 60 posts, about 73,000 words in all (900–1,600 words each, mean 1,21
 
 | Source | Gutenberg # | Essays or chapters used | Posts |
 |---|---|---|---|
-| Ralph Waldo Emerson, *Essays: First Series* (1841) | 2944 | Self-Reliance, Compensation, Love, Friendship, Prudence, Heroism, Circles, Art | 21 |
+| Ralph Waldo Emerson, *Essays: First Series* (1841) | 2944 | Self-Reliance, Compensation, Love, Friendship, Prudence, Heroism, Circles, Art | 20 |
 | Ralph Waldo Emerson, *Essays: Second Series* (1844) | 2945 | Experience, Gifts, Nature, Manners | 9 |
-| Henry David Thoreau, *Walden* (1854) | 205 | Economy through Conclusion, 13 chapters | 26 |
+| Henry David Thoreau, *Walden* (1854) | 205 | Economy through Conclusion, 13 chapters | 27 |
 | Henry David Thoreau, *Walking* (1862) | 1022 | the whole essay | 4 |
 
 The texts overlap on nature, solitude, friendship, work and self-reliance, so there are real cross-links to find and real near-misses to avoid. No text was written for the test. The posts are the authors' own words with these additions:
 
 - Each post is titled after its essay, for example "Compensation, part 2". It opens with a short heading, "From Compensation", and ends with a source credit paragraph.
 - Verse and epigraphs (44 in 23 posts) are Quote blocks with a `<cite>` where the source names one.
+
+The tested corpus had two flaws, found in review after the runs and fixed in the committed builder. "Economy, part 1" opened with *Walden*'s table of contents as a Quote block (one of the 44). Each *Walden* chapter's first post opened with the chapter title as a one-word paragraph. Neither text was ever chosen for a link. Both slightly blur the embeddings of 13 posts. The committed builder gives 42 quote blocks, and the runs were not repeated with it.
 - Where a text has no paragraph breaks (*Walking*), paragraphs were cut at sentence ends every 200 words or so.
 
 The corpus builder is `docs/quality-report-v1/build_corpus.py`. Posts are block markup. A second copy converted to Classic-editor markup (paragraphs separated by blank lines, no `<p>` tags) tested #170. WordPress's own "Hello world!" post stayed published, as on a fresh site.
@@ -222,9 +224,22 @@ Memory stays flat, thanks to bounded vector memory (#26). Time doesn't: each emb
 ## Reproducing
 
 1. Install Ollama, run `ollama pull nomic-embed-text`, and serve it on 127.0.0.1.
-2. Run `python3 -I docs/quality-report-v1/build_corpus.py <dir with pg2944.txt, pg2945.txt, pg205.txt, pg1022.txt> corpus.json` on the plain-text files from gutenberg.org.
-3. On a fresh WordPress site, publish each post in `corpus.json` with `wp_insert_post()`, using its `post_date`.
-4. Copy `docs/examples/local-embeddings.php` to `wp-content/mu-plugins/`, then activate Undergrowth.
-5. Run cron until nothing is due, for example with `wp cron event run --due-now` in a loop. Then read `wp_undergrowth_links`, the `undergrowth_cluster` and `undergrowth_stage` post meta, and Posts > Link suggestions.
+2. Download the plain-text UTF-8 files of Gutenberg eBooks 2944, 2945, 205 and 1022 into one directory as `pg2944.txt`, `pg2945.txt`, `pg205.txt` and `pg1022.txt`.
+3. Build the three corpora:
+   - `python3 -I docs/quality-report-v1/build_corpus.py <dir> corpus.json` for the block posts
+   - `… <dir> corpus-classic.json --classic` for the Classic-editor runs
+   - `… <dir> corpus-300.json --copies 5` for the timing run
+4. On a fresh WordPress site, publish each post in the JSON file with `wp_insert_post()`, using its `post_date`.
+5. Copy `docs/examples/local-embeddings.php` to `wp-content/mu-plugins/`, then activate Undergrowth.
+6. Run cron until nothing is due, for example with `wp cron event run --due-now` in a loop. Then read `wp_undergrowth_links`, the `undergrowth_cluster` and `undergrowth_stage` post meta, and Posts > Link suggestions.
+7. For the default-threshold run, add a mu-plugin that returns 0.4, 0.5 and 0.8 from `undergrowth_min_link_similarity`, `undergrowth_min_cluster_similarity` and `undergrowth_gap_similarity`, at a later priority than the example's.
 
 When an OpenAI key is available, the same corpus gives a direct comparison with these numbers.
+
+## Cleaning up
+
+The test left Ollama and the model installed but stopped. To remove both:
+
+```bash
+brew uninstall ollama && rm -rf ~/.ollama
+```

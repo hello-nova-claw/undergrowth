@@ -4,7 +4,11 @@ The corpus for docs/quality-report-v1.md. Download the plain-text UTF-8 files
 of eBooks 2944, 2945, 205 and 1022 from gutenberg.org into one directory as
 pg2944.txt, pg2945.txt, pg205.txt and pg1022.txt.
 
-Usage: python3 -I build_corpus.py <gutenberg dir> <out.json>
+Usage: python3 -I build_corpus.py <gutenberg dir> <out.json> [--classic] [--copies N]
+
+--classic writes Classic-editor markup instead of blocks: paragraphs as text
+between blank lines, headings and quotes as plain HTML. --copies N repeats the
+corpus N times with "(copy n)" added to later titles, for timing only.
 """
 import html
 import json
@@ -14,6 +18,8 @@ from datetime import datetime, timedelta
 
 SRC = sys.argv[1]
 OUT = sys.argv[2]
+CLASSIC = '--classic' in sys.argv
+COPIES = int(sys.argv[sys.argv.index('--copies') + 1]) if '--copies' in sys.argv else 1
 
 BOOKS = {
     'pg2944.txt': ('Ralph Waldo Emerson, Essays: First Series (1841)', 2944),
@@ -57,6 +63,7 @@ MAX_WORDS = 1600
 
 
 def body(name):
+    """Lines of a Gutenberg file between its START and END markers."""
     text = open(f'{SRC}/{name}', encoding='utf-8').read().replace('\r', '')
     start = text.index('*** START OF')
     start = text.index('\n', start) + 1
@@ -67,9 +74,8 @@ def body(name):
 def essay_lines(lines, pattern, all_patterns):
     """Lines from the last match of pattern (titles repeat after epigraphs) to the next essay."""
     rx = re.compile(pattern)
-    hits = [i for i, l in enumerate(lines) if rx.match(l.strip())]
-    # Contents lists name every chapter; skip hits in the first 120 lines.
-    hits = [h for h in hits if h > 120] or hits
+    # Contents lists are indented; chapter and essay headings are not.
+    hits = [i for i, l in enumerate(lines) if l == l.lstrip() and rx.match(l.strip())]
     first = hits[0]
     # Section ends at the next line that starts any other essay or a roman numeral heading.
     stops = re.compile(r'^([IVX]+\.( [A-Z].*)?|THE END)$')
@@ -80,15 +86,17 @@ def essay_lines(lines, pattern, all_patterns):
         if j > hits[-1] and (any(re.match(p, s) for p in chapter_names) or stops.match(s)):
             end = j
             break
-    return lines[first:end]
+    return lines[first + 1:end]
 
 
 def inline(text):
+    """Escapes text as HTML and turns _underscored_ words into <em>."""
     text = html.escape(text, quote=False)
     return re.sub(r'_([^_]+)_', r'<em>\1</em>', text)
 
 
 def blocks(lines):
+    """Groups lines into paragraphs, verse quotes and quote citations."""
     paras, cur = [], []
     for l in lines + ['']:
         if l.strip() == '':
@@ -130,6 +138,7 @@ def split_long(text, limit=400, size=200):
 
 
 def render(parts):
+    """Renders paragraphs and quotes as block markup."""
     html_out = []
     i = 0
     while i < len(parts):
@@ -153,11 +162,25 @@ def render(parts):
 
 
 def words(part):
+    """Counts the words in one paragraph or quote."""
     kind, val = part
     return len((' '.join(val) if kind == 'quote' else val).split())
 
 
+def classic(content):
+    """Converts block markup to what the Classic editor stores."""
+    out = []
+    for block in (b.strip() for b in content.split('\n\n') if b.strip()):
+        if block.startswith('<!-- wp:paragraph'):
+            out.append(re.sub(r'(?s)^<!-- wp:paragraph -->\s*<p>(.*)</p>\s*<!-- /wp:paragraph -->$', r'\1', block))
+        else:
+            block = re.sub(r'<!-- /?wp:[^>]*-->\n?', '', block)
+            out.append(block.replace(' class="wp-block-quote"', '').replace(' class="wp-block-heading"', '').strip())
+    return '\n\n'.join(out)
+
+
 def main():
+    """Builds the corpus and prints each post's length."""
     cache = {}
     posts = []
     for name, title, pattern, max_posts in ESSAYS:
@@ -200,6 +223,10 @@ def main():
     start = datetime(2024, 1, 8, 9, 0)
     for i, p in enumerate(posts):
         p['date'] = (start + timedelta(days=11 * i)).strftime('%Y-%m-%d %H:%M:%S')
+    if CLASSIC:
+        for p in posts:
+            p['content'] = classic(p['content'])
+    posts += [dict(p, title=f"{p['title']} (copy {k})") for k in range(1, COPIES) for p in posts]
     json.dump(posts, open(OUT, 'w'), indent=1, ensure_ascii=False)
     print(len(posts), 'posts,', sum(p['words'] for p in posts), 'words')
     for p in posts:
