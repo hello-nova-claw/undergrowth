@@ -1,0 +1,1 @@
+Settings > Undergrowth now says in plain words what is sent to OpenAI and why, and counts posts read rather than indexed.

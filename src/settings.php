@@ -151,7 +151,7 @@ function undergrowth_render_settings_page(): void {
 						<input type="password" class="regular-text" id="undergrowth_openai_api_key" name="undergrowth_openai_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-openai-notice" />
 
 						<p class="description" id="undergrowth-openai-notice">
-							<?php esc_html_e( 'With a key saved, the title and text of each published post are sent to OpenAI to be turned into vectors, which Undergrowth uses to suggest links between your posts. Nothing is sent until you save a key. Undergrowth never writes or changes your posts.', 'undergrowth' ); ?>
+							<?php esc_html_e( 'With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ); ?>
 						</p>
 
 						<?php if ( '' !== $key ) : ?>
@@ -181,7 +181,7 @@ function undergrowth_render_settings_page(): void {
 									echo esc_html(
 										sprintf(
 											/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-											__( 'The last request to OpenAI failed on %1$s (status %2$s). Posts that were not indexed are tried again within the hour.', 'undergrowth' ),
+											__( 'The last request to OpenAI failed on %1$s (status %2$s). Posts that were not read are tried again within the hour.', 'undergrowth' ),
 											wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
 											number_format_i18n( (int) ( $error['status'] ?? 0 ) )
 										)
@@ -194,14 +194,14 @@ function undergrowth_render_settings_page(): void {
 				</tr>
 				<?php if ( null !== $counts ) : ?>
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Index', 'undergrowth' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Posts read', 'undergrowth' ); ?></th>
 						<td>
 							<p id="undergrowth-index-count">
 								<?php
 								echo esc_html(
 									sprintf(
-										/* translators: 1: number of posts indexed, 2: number of posts that can be indexed. */
-										_n( '%1$s of %2$s post indexed.', '%1$s of %2$s posts indexed.', $counts['total'], 'undergrowth' ),
+										/* translators: 1: number of posts read, 2: number of posts that can be read. */
+										_n( '%1$s of %2$s post read.', '%1$s of %2$s posts read.', $counts['total'], 'undergrowth' ),
 										number_format_i18n( $counts['indexed'] ),
 										number_format_i18n( $counts['total'] )
 									)
@@ -210,7 +210,7 @@ function undergrowth_render_settings_page(): void {
 							</p>
 							<?php if ( $counts['indexed'] < $counts['total'] ) : ?>
 								<p class="description">
-									<?php esc_html_e( 'The rest are indexed in the background, a few at a time.', 'undergrowth' ); ?>
+									<?php esc_html_e( 'The rest are read in the background, a few at a time.', 'undergrowth' ); ?>
 								</p>
 							<?php endif; ?>
 						</td>
