@@ -7,6 +7,10 @@
  * or other model output is ever returned, and the only sentences are quotes
  * from the post.
  *
+ * The read abilities keep the fractal contract: the same fields answer for one
+ * post, one cluster or the whole site, and only posts the current user can
+ * edit are ever counted.
+ *
  * @package Undergrowth
  */
 
@@ -24,17 +28,19 @@ function undergrowth_register_ability_category(): void {
 		'undergrowth',
 		array(
 			'label'       => __( 'Undergrowth', 'undergrowth' ),
-			'description' => __( 'Read what Undergrowth knows about a post, and accept or veto the links it suggests.', 'undergrowth' ),
+			'description' => __( 'Read what Undergrowth knows about a post, a cluster or the whole site, and accept or veto the links it suggests.', 'undergrowth' ),
 		)
 	);
 }
 
 /**
- * Registers the abilities that read one post's has, lacks, scent and stage.
+ * Registers the abilities that read has, lacks, scent and stage for a post,
+ * a cluster or the whole site.
  *
  * Proposals and vetoes are the author's notes, like the per-post file, so
- * reading needs the right to edit the post. They are shown in REST, where
- * the same check applies, so another site can later ask over a signed request.
+ * reading needs the right to edit the post, and a cluster or the site is read
+ * only through the posts the user can edit. They are shown in REST, where the
+ * same check applies, so another site can later ask over a signed request.
  */
 function undergrowth_register_read_abilities(): void {
 	$meta = array(
@@ -48,81 +54,96 @@ function undergrowth_register_read_abilities(): void {
 
 	$abilities = array(
 		'undergrowth/has'   => array(
-			'label'         => __( 'What a post has', 'undergrowth' ),
-			'description'   => __( 'Lists the words that most set a post apart from the rest of the site, taken from its own text, and the published posts it already links to.', 'undergrowth' ),
+			'label'         => __( 'What a post, cluster or site has', 'undergrowth' ),
+			'description'   => __( 'Lists the words that most set the posts apart from the rest of the site, taken from their own text, and the published posts they already link to.', 'undergrowth' ),
 			'callback'      => 'undergrowth_ability_has',
+			'many'          => 'undergrowth_ability_has_many',
 			'output_schema' => array(
 				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array( 'type' => 'integer' ),
-					'words'   => array(
-						'type'        => 'array',
-						'description' => __( 'Words from the post, most distinctive first.', 'undergrowth' ),
-						'items'       => array( 'type' => 'string' ),
+				'properties' => undergrowth_ability_scope_schema()
+					+ array(
+						'words' => array(
+							'type'        => 'array',
+							'description' => __( 'Words from the posts, most distinctive first.', 'undergrowth' ),
+							'items'       => array( 'type' => 'string' ),
+						),
+						'links' => array(
+							'type'        => 'array',
+							'description' => __( 'Published posts the posts link to.', 'undergrowth' ),
+							'items'       => undergrowth_ability_post_schema(),
+						),
 					),
-					'links'   => array(
-						'type'        => 'array',
-						'description' => __( 'Published posts the post links to.', 'undergrowth' ),
-						'items'       => undergrowth_ability_post_schema(),
-					),
-				),
-				'required'   => array( 'post_id', 'words', 'links' ),
+				'required'   => array( 'scale', 'words', 'links' ),
 			),
 		),
 		'undergrowth/lacks' => array(
-			'label'         => __( 'What a post lacks', 'undergrowth' ),
-			'description'   => __( 'Lists the links suggested for a post that the author has not yet accepted or vetoed, best first, each with the sentence from the post where it fits.', 'undergrowth' ),
+			'label'         => __( 'What a post, cluster or site lacks', 'undergrowth' ),
+			'description'   => __( 'Lists the links suggested for the posts that the author has not yet accepted or vetoed, best first, each with the post it would sit in and the sentence from that post where it fits.', 'undergrowth' ),
 			'callback'      => 'undergrowth_ability_lacks',
+			'many'          => 'undergrowth_ability_lacks_many',
 			'output_schema' => array(
 				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array( 'type' => 'integer' ),
-					'links'   => array(
-						'type'        => 'array',
-						'description' => __( 'Suggested links, best first.', 'undergrowth' ),
-						'items'       => array(
-							'type'       => 'object',
-							'properties' => array_merge(
-								undergrowth_ability_post_schema()['properties'],
-								array(
-									'sentence' => array(
-										'type'        => 'string',
-										'description' => __( 'The sentence from the post where the link fits, quoted with formatting removed.', 'undergrowth' ),
+				'properties' => undergrowth_ability_scope_schema()
+					+ array(
+						'links' => array(
+							'type'        => 'array',
+							'description' => __( 'Suggested links, best first.', 'undergrowth' ),
+							'items'       => array(
+								'type'       => 'object',
+								'properties' => array_merge(
+									array(
+										'source_id' => array(
+											'type'        => 'integer',
+											'description' => __( 'ID of the post the link would sit in.', 'undergrowth' ),
+										),
 									),
-								)
+									undergrowth_ability_post_schema()['properties'],
+									array(
+										'sentence' => array(
+											'type'        => 'string',
+											'description' => __( 'The sentence from the post where the link fits, quoted with formatting removed.', 'undergrowth' ),
+										),
+									)
+								),
+								'required'   => array( 'source_id', 'post_id', 'title', 'url', 'sentence' ),
 							),
-							'required'   => array( 'post_id', 'title', 'url', 'sentence' ),
 						),
 					),
-				),
-				'required'   => array( 'post_id', 'links' ),
+				'required'   => array( 'scale', 'links' ),
 			),
 		),
 		'undergrowth/scent' => array(
-			'label'         => __( 'A post’s scent', 'undergrowth' ),
-			'description'   => __( 'Reports how readers move through a post. Undergrowth reads no reader data until reader mode, so for now the value is always empty.', 'undergrowth' ),
+			'label'         => __( 'The scent of a post, cluster or site', 'undergrowth' ),
+			'description'   => __( 'Reports how readers move through the posts. Undergrowth reads no reader data until reader mode, so for now the value is always empty.', 'undergrowth' ),
 			'callback'      => 'undergrowth_ability_scent',
+			'many'          => 'undergrowth_ability_scent_many',
 			'output_schema' => array(
 				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array( 'type' => 'integer' ),
-					'mode'    => array(
-						'type' => 'string',
-						'enum' => array( 'germination', 'reader' ),
+				'properties' => undergrowth_ability_scope_schema()
+					+ array(
+						'mode'  => array(
+							'type' => 'string',
+							'enum' => array( 'germination', 'reader' ),
+						),
+						'value' => array( 'type' => array( 'number', 'null' ) ),
 					),
-					'value'   => array( 'type' => array( 'number', 'null' ) ),
-				),
-				'required'   => array( 'post_id', 'mode', 'value' ),
+				'required'   => array( 'scale', 'mode', 'value' ),
 			),
 		),
 		'undergrowth/stage' => array(
-			'label'         => __( 'A post’s growth stage', 'undergrowth' ),
-			'description'   => __( 'Reports a post’s growth stage, whether the author pinned it, and every recorded change to it, oldest first.', 'undergrowth' ),
+			'label'         => __( 'Growth stages of a post, cluster or site', 'undergrowth' ),
+			'description'   => __( 'Counts the posts at each growth stage, with composting posts counted apart. For one post it also reports its stage, whether the author pinned it, and every recorded change to it, oldest first.', 'undergrowth' ),
 			'callback'      => 'undergrowth_ability_stage',
+			'many'          => 'undergrowth_ability_stage_many',
 			'output_schema' => array(
 				'type'       => 'object',
-				'properties' => array(
-					'post_id' => array( 'type' => 'integer' ),
+				'properties' => undergrowth_ability_scope_schema() + array(
+					'counts'  => array(
+						'type'        => 'object',
+						'description' => __( 'Number of posts at each stage. Composting posts are counted apart and are in no other stage.', 'undergrowth' ),
+						'properties'  => array_fill_keys( UNDERGROWTH_STAGES, array( 'type' => 'integer' ) ),
+						'required'    => UNDERGROWTH_STAGES,
+					),
 					'stage'   => array(
 						'type' => 'string',
 						'enum' => UNDERGROWTH_STAGES,
@@ -154,7 +175,7 @@ function undergrowth_register_read_abilities(): void {
 						),
 					),
 				),
-				'required'   => array( 'post_id', 'stage', 'pinned', 'changes' ),
+				'required'   => array( 'scale', 'counts' ),
 			),
 		),
 	);
@@ -166,14 +187,22 @@ function undergrowth_register_read_abilities(): void {
 				'label'               => $ability['label'],
 				'description'         => $ability['description'],
 				'category'            => 'undergrowth',
-				'input_schema'        => undergrowth_ability_post_input_schema(),
+				'input_schema'        => undergrowth_ability_scope_input_schema(),
 				'output_schema'       => $ability['output_schema'],
 				'execute_callback'    => static function ( $input ) use ( $ability ) {
-					$post = undergrowth_ability_post( (int) $input['post_id'] );
+					$scope = undergrowth_ability_scope( is_array( $input ) ? $input : array() );
 
-					return $post instanceof WP_Post ? call_user_func( $ability['callback'], $post ) : $post;
+					if ( is_wp_error( $scope ) ) {
+						return $scope;
+					}
+
+					if ( 'post' === $scope['scale'] ) {
+						return call_user_func( $ability['callback'], get_post( $scope['post_id'] ) );
+					}
+
+					return undergrowth_ability_scope_head( $scope ) + call_user_func( $ability['many'], $scope['posts'] );
 				},
-				'permission_callback' => 'undergrowth_ability_can_edit_post',
+				'permission_callback' => 'undergrowth_ability_can_read',
 				'meta'                => $meta,
 			)
 		);
@@ -257,22 +286,51 @@ function undergrowth_register_write_abilities(): void {
 }
 
 /**
- * Returns the input schema of the abilities that read one post.
+ * Returns the input schema of the read abilities: a post, a cluster, or
+ * neither for the whole site.
  *
  * @return array<string, mixed> JSON schema.
  */
-function undergrowth_ability_post_input_schema(): array {
+function undergrowth_ability_scope_input_schema(): array {
 	return array(
 		'type'                 => 'object',
 		'properties'           => array(
 			'post_id' => array(
 				'type'        => 'integer',
-				'description' => __( 'ID of a published post.', 'undergrowth' ),
+				'description' => __( 'ID of a published post. Leave out, with cluster, to ask about the whole site.', 'undergrowth' ),
+				'minimum'     => 1,
+			),
+			'cluster' => array(
+				'type'        => 'integer',
+				'description' => __( 'ID of a cluster from the monthly clustering, which is the ID of the post that leads it. Leave out, with post_id, to ask about the whole site.', 'undergrowth' ),
 				'minimum'     => 1,
 			),
 		),
-		'required'             => array( 'post_id' ),
+		'maxProperties'        => 1,
 		'additionalProperties' => false,
+		'default'              => array(),
+	);
+}
+
+/**
+ * Returns the schema of the fields that say what a read ability answered for.
+ *
+ * @return array<string, mixed> JSON schema properties.
+ */
+function undergrowth_ability_scope_schema(): array {
+	return array(
+		'scale'   => array(
+			'type' => 'string',
+			'enum' => array( 'post', 'cluster', 'site' ),
+		),
+		'post_id' => array(
+			'type'        => 'integer',
+			'description' => __( 'The post, at post scale.', 'undergrowth' ),
+		),
+		'cluster' => array(
+			'type'        => 'integer',
+			'description' => __( 'The cluster, at cluster scale.', 'undergrowth' ),
+		),
 	);
 }
 
@@ -297,13 +355,20 @@ function undergrowth_ability_post_schema(): array {
 }
 
 /**
- * Tells whether the current user may read or act on a post's fields.
+ * Tells whether the current user may read the fields asked for.
+ *
+ * A cluster or the site is read only through the posts the user can edit,
+ * so anyone who can edit posts may ask; each post is checked when counted.
  *
  * @param mixed $input Ability input.
- * @return bool True when the user can edit the post.
+ * @return bool True when the user can edit the post, or can edit posts at all.
  */
-function undergrowth_ability_can_edit_post( $input ): bool {
-	return is_array( $input ) && isset( $input['post_id'] ) && current_user_can( 'edit_post', (int) $input['post_id'] );
+function undergrowth_ability_can_read( $input ): bool {
+	if ( is_array( $input ) && isset( $input['post_id'] ) ) {
+		return current_user_can( 'edit_post', (int) $input['post_id'] );
+	}
+
+	return current_user_can( 'edit_posts' );
 }
 
 /**
@@ -337,6 +402,114 @@ function undergrowth_ability_post( int $post_id ) {
 }
 
 /**
+ * Works out which posts a read ability answers for.
+ *
+ * A cluster the user can see no post of is refused as if it did not exist,
+ * so nothing about posts they cannot edit is given away.
+ *
+ * @param array<string, mixed> $input Ability input.
+ * @return array{scale: string, post_id?: int, cluster?: int, posts: int[]}|WP_Error The scope, or why it cannot be read.
+ */
+function undergrowth_ability_scope( array $input ) {
+	if ( isset( $input['post_id'] ) ) {
+		$post = undergrowth_ability_post( (int) $input['post_id'] );
+
+		return $post instanceof WP_Post
+			? array(
+				'scale'   => 'post',
+				'post_id' => $post->ID,
+				'posts'   => array( $post->ID ),
+			)
+			: $post;
+	}
+
+	if ( ! isset( $input['cluster'] ) ) {
+		return array(
+			'scale' => 'site',
+			'posts' => undergrowth_ability_site_posts(),
+		);
+	}
+
+	$cluster = (int) $input['cluster'];
+	$members = undergrowth_cluster_posts( $cluster );
+	$posts   = array();
+
+	if ( count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ) {
+		foreach ( $members as $post_id ) {
+			if ( undergrowth_can_cluster( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
+				$posts[] = $post_id;
+			}
+		}
+	}
+
+	if ( array() === $posts ) {
+		return new WP_Error(
+			'undergrowth_no_cluster',
+			__( 'There is no such cluster among the posts you can edit. Clusters are made once a month.', 'undergrowth' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	return array(
+		'scale'   => 'cluster',
+		'cluster' => $cluster,
+		'posts'   => $posts,
+	);
+}
+
+/**
+ * Lists every post in the index that the current user can edit.
+ *
+ * Composting posts are included, so they can be counted apart.
+ *
+ * @return int[] Post IDs, lowest first.
+ */
+function undergrowth_ability_site_posts(): array {
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return array();
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => $post_types,
+			'post_status'            => 'publish',
+			'has_password'           => false,
+			'orderby'                => 'ID',
+			'order'                  => 'ASC',
+			'posts_per_page'         => -1,
+			'no_found_rows'          => true,
+			'fields'                 => 'ids',
+			'update_post_term_cache' => false,
+		)
+	);
+	$ids   = array_map( 'intval', $query->posts );
+
+	// Checking each post loads it and its stage, so they are loaded together.
+	_prime_post_caches( $ids, false, true );
+
+	return array_values(
+		array_filter(
+			$ids,
+			static function ( $post_id ) {
+				return current_user_can( 'edit_post', $post_id );
+			}
+		)
+	);
+}
+
+/**
+ * Starts a cluster or site answer with what it answers for.
+ *
+ * @param array{scale: string, post_id?: int, cluster?: int, posts: int[]} $scope Scope.
+ * @return array<string, mixed> The scale, and the cluster at cluster scale.
+ */
+function undergrowth_ability_scope_head( array $scope ): array {
+	return array_intersect_key( $scope, array_flip( array( 'scale', 'cluster' ) ) );
+}
+
+/**
  * Describes a post named in an ability's output.
  *
  * @param WP_Post $post Post.
@@ -357,11 +530,27 @@ function undergrowth_ability_describe_post( WP_Post $post ): array {
  * choosing a sentence, so they read the same way the suggestions do.
  *
  * @param WP_Post $post Post.
- * @return array{post_id: int, words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
+ * @return array{scale: string, post_id: int, words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
  */
 function undergrowth_ability_has( WP_Post $post ): array {
 	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $post->ID ) ), array( $post->ID ) ) ) );
-	$links  = array();
+
+	return array(
+		'scale'   => 'post',
+		'post_id' => $post->ID,
+		'words'   => array_map( 'strval', array_keys( undergrowth_distinctive_terms( $post->ID, $corpus ) ) ),
+		'links'   => undergrowth_ability_linked_posts( $post ),
+	);
+}
+
+/**
+ * Lists the published posts a post links to.
+ *
+ * @param WP_Post $post Post.
+ * @return array<int, array{post_id: int, title: string, url: string}>
+ */
+function undergrowth_ability_linked_posts( WP_Post $post ): array {
+	$links = array();
 
 	foreach ( undergrowth_linked_post_ids( $post ) as $target_id ) {
 		$target = get_post( $target_id );
@@ -371,69 +560,154 @@ function undergrowth_ability_has( WP_Post $post ): array {
 		}
 	}
 
+	return $links;
+}
+
+/**
+ * Answers undergrowth/has for a cluster or the site.
+ *
+ * Each post's distinctive words are weighed against every post the user can
+ * edit, and the weights are added up, so a word many of the posts lean on
+ * rises. Composting posts have left the garden and add nothing.
+ *
+ * @param int[] $post_ids Posts the user can edit.
+ * @return array{words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
+ */
+function undergrowth_ability_has_many( array $post_ids ): array {
+	$growing = array_values(
+		array_filter(
+			$post_ids,
+			static function ( $post_id ) {
+				return 'composting' !== undergrowth_get_stage( $post_id );
+			}
+		)
+	);
+	$corpus  = undergrowth_reusable_corpus(
+		array_filter(
+			undergrowth_ability_site_posts(),
+			static function ( $post_id ) {
+				return 'composting' !== undergrowth_get_stage( $post_id );
+			}
+		)
+	);
+	$weights = array();
+	$links   = array();
+
+	foreach ( $growing as $post_id ) {
+		foreach ( undergrowth_distinctive_terms( $post_id, $corpus ) as $word => $weight ) {
+			$weights[ (string) $word ] = ( $weights[ (string) $word ] ?? 0.0 ) + $weight;
+		}
+
+		foreach ( undergrowth_ability_linked_posts( get_post( $post_id ) ) as $link ) {
+			$links[ $link['post_id'] ] = $link;
+		}
+	}
+
+	uksort(
+		$weights,
+		static function ( $a, $b ) use ( $weights ) {
+			$order = $weights[ $b ] <=> $weights[ $a ];
+
+			return 0 !== $order ? $order : strcmp( (string) $a, (string) $b );
+		}
+	);
+
 	return array(
-		'post_id' => $post->ID,
-		'words'   => array_map( 'strval', array_keys( undergrowth_distinctive_terms( $post->ID, $corpus ) ) ),
-		'links'   => $links,
+		'words' => array_map( 'strval', array_keys( array_slice( $weights, 0, UNDERGROWTH_DISTINCTIVE_TERMS, true ) ) ),
+		'links' => array_values( $links ),
 	);
 }
 
 /**
  * Answers undergrowth/lacks: the links a post does not have yet.
  *
+ * @param WP_Post $post Post.
+ * @return array{scale: string, post_id: int, links: array<int, array{source_id: int, post_id: int, title: string, url: string, sentence: string}>}
+ */
+function undergrowth_ability_lacks( WP_Post $post ): array {
+	return array(
+		'scale'   => 'post',
+		'post_id' => $post->ID,
+	) + undergrowth_ability_lacks_many( array( $post->ID ) );
+}
+
+/**
+ * Answers undergrowth/lacks for any set of posts: the links they do not have
+ * yet, best first across all of them.
+ *
  * The score stays behind: it is arithmetic on vectors, and the order
  * already says which suggestion is best.
  *
- * @param WP_Post $post Post.
- * @return array{post_id: int, links: array<int, array{post_id: int, title: string, url: string, sentence: string}>}
+ * @param int[] $post_ids Posts the user can edit.
+ * @return array{links: array<int, array{source_id: int, post_id: int, title: string, url: string, sentence: string}>}
  */
-function undergrowth_ability_lacks( WP_Post $post ): array {
+function undergrowth_ability_lacks_many( array $post_ids ): array {
 	global $wpdb;
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT target_id, sentence FROM %i WHERE source_id = %d AND state = %s ORDER BY score DESC, target_id ASC',
-			undergrowth_links_table(),
-			$post->ID,
-			'proposed'
-		),
-		ARRAY_A
-	);
-
-	// While suggestions are off, an edit does not refresh them, so a stored
-	// sentence may no longer be in the post. Only the author's current words go out.
-	$sentences = array_flip( array_column( undergrowth_split_sentences( $post->post_content ), 'text' ) );
 	$links     = array();
+	$sentences = array();
 
-	foreach ( (array) $rows as $row ) {
-		$target = get_post( (int) $row['target_id'] );
+	foreach ( array_chunk( array_map( 'intval', $post_ids ), UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
-		if ( isset( $sentences[ (string) $row['sentence'] ] ) && $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
-			$links[] = undergrowth_ability_describe_post( $target ) + array( 'sentence' => (string) $row['sentence'] );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The plugin's own table; there is one placeholder for each ID in the chunk.
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT source_id, target_id, sentence, score FROM %i WHERE state = %s AND source_id IN (' . $placeholders . ')', undergrowth_links_table(), 'proposed', ...$chunk ), ARRAY_A );
+
+		foreach ( $rows as $row ) {
+			$source_id = (int) $row['source_id'];
+			$target    = get_post( (int) $row['target_id'] );
+
+			// While suggestions are off, an edit does not refresh them, so a stored
+			// sentence may no longer be in the post. Only the author's current words go out.
+			if ( ! isset( $sentences[ $source_id ] ) ) {
+				$sentences[ $source_id ] = array_flip( array_column( undergrowth_split_sentences( (string) get_post_field( 'post_content', $source_id ) ), 'text' ) );
+			}
+
+			if ( isset( $sentences[ $source_id ][ (string) $row['sentence'] ] ) && $target instanceof WP_Post && undergrowth_is_indexable( $target ) ) {
+				$links[] = array(
+					'score' => (float) $row['score'],
+					'link'  => array( 'source_id' => $source_id ) + undergrowth_ability_describe_post( $target ) + array( 'sentence' => (string) $row['sentence'] ),
+				);
+			}
 		}
 	}
 
-	return array(
-		'post_id' => $post->ID,
-		'links'   => $links,
+	usort(
+		$links,
+		static function ( $a, $b ) {
+			return array( $b['score'], $a['link']['source_id'], $a['link']['post_id'] ) <=> array( $a['score'], $b['link']['source_id'], $b['link']['post_id'] );
+		}
 	);
+
+	return array( 'links' => array_column( $links, 'link' ) );
 }
 
 /**
  * Answers undergrowth/scent: how readers move through a post.
  *
- * Germination mode reads no reader data, so there is no value yet. The
- * shape is fixed now so callers need not change when reader mode arrives.
- *
  * @param WP_Post $post Post.
- * @return array{post_id: int, mode: string, value: null}
+ * @return array{scale: string, post_id: int, mode: string, value: null}
  */
 function undergrowth_ability_scent( WP_Post $post ): array {
 	return array(
+		'scale'   => 'post',
 		'post_id' => $post->ID,
-		'mode'    => 'germination',
-		'value'   => null,
+	) + undergrowth_ability_scent_many( array( $post->ID ) );
+}
+
+/**
+ * Answers undergrowth/scent for any set of posts.
+ *
+ * Germination mode reads no reader data, so there is no value yet. The
+ * shape is fixed now so callers need not change when reader mode arrives.
+ *
+ * @param int[] $post_ids Posts the user can edit.
+ * @return array{mode: string, value: null}
+ */
+function undergrowth_ability_scent_many( array $post_ids ): array { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Reader mode will read these posts.
+	return array(
+		'mode'  => 'germination',
+		'value' => null,
 	);
 }
 
@@ -443,7 +717,7 @@ function undergrowth_ability_scent( WP_Post $post ): array {
  * Composting is never pinned, as in the per-post file.
  *
  * @param WP_Post $post Post.
- * @return array{post_id: int, stage: string, pinned: bool, changes: array<int, array{date: string, from: string, to: string, reason: string}>}
+ * @return array{scale: string, post_id: int, counts: array<string, int>, stage: string, pinned: bool, changes: array<int, array{date: string, from: string, to: string, reason: string}>}
  */
 function undergrowth_ability_stage( WP_Post $post ): array {
 	$stage   = undergrowth_get_stage( $post->ID );
@@ -459,11 +733,32 @@ function undergrowth_ability_stage( WP_Post $post ): array {
 	}
 
 	return array(
+		'scale'   => 'post',
 		'post_id' => $post->ID,
+	) + undergrowth_ability_stage_many( array( $post->ID ) ) + array(
 		'stage'   => $stage,
 		'pinned'  => 'composting' !== $stage && undergrowth_is_stage_pinned( $post->ID ),
 		'changes' => $changes,
 	);
+}
+
+/**
+ * Answers undergrowth/stage for any set of posts: how many are at each stage.
+ *
+ * Composting is a stage of its own here, so resting posts never count
+ * against the others.
+ *
+ * @param int[] $post_ids Posts the user can edit.
+ * @return array{counts: array<string, int>}
+ */
+function undergrowth_ability_stage_many( array $post_ids ): array {
+	$counts = array_fill_keys( UNDERGROWTH_STAGES, 0 );
+
+	foreach ( $post_ids as $post_id ) {
+		++$counts[ undergrowth_get_stage( $post_id ) ];
+	}
+
+	return array( 'counts' => $counts );
 }
 
 /**
