@@ -27,6 +27,15 @@
 		</properties>
 	</rule>
 
+	<!-- Jetpack maps view_stats to the roles chosen in its Stats settings. -->
+	<rule ref="WordPress.WP.Capabilities">
+		<properties>
+			<property name="custom_capabilities" type="array">
+				<element value="view_stats"/>
+			</property>
+		</properties>
+	</rule>
+
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
