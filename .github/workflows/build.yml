@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zip:
+    name: Plugin zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The same copy the Plugin Check job checks, so what is checked is what ships.
+      - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
+      - run: cd dist && zip -qr undergrowth.zip undergrowth && unzip -l undergrowth.zip
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          path: dist/undergrowth.zip
+          archive: false
+          if-no-files-found: error
