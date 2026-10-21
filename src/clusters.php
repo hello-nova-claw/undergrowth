@@ -109,18 +109,12 @@ function undergrowth_gap_similarity(): float {
 }
 
 /**
- * Finds clusters whose centre has no post: a gap found in the author's own
- * writing, with no model call.
+ * Lists the leaders of the clusters made by the last pass.
  *
- * A cluster's centre is the mean of its members' unit vectors. When no
- * member reaches undergrowth_gap_similarity() to it, the posts circle
- * something none of them is about.
- *
- * @return array<int, array{leader: int, members: int[], cluster: int[], centre: float}> One entry per gap,
- *         by leader ID: the members measured, nearest the centre first; every member of the cluster,
- *         lowest first; and the nearest one's similarity to the centre.
+ * @param int $limit Most leaders to return.
+ * @return int[] Leader IDs, lowest first.
  */
-function undergrowth_cluster_gaps(): array {
+function undergrowth_cluster_leaders( int $limit = UNDERGROWTH_MAX_CLUSTERS ): array {
 	global $wpdb;
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One grouped query instead of loading every clustered post.
@@ -133,29 +127,99 @@ function undergrowth_cluster_gaps(): array {
 		)
 	);
 
-	$threshold = undergrowth_gap_similarity();
-	$gaps      = array();
-
 	// Grouped rows come back in no defined order, so the leaders are sorted
-	// by number before the cap, and every run measures the same clusters.
+	// by number before the cap, and every run reads the same clusters.
 	$leaders = array_map( 'intval', $leaders );
 	sort( $leaders );
 
-	foreach ( array_slice( $leaders, 0, UNDERGROWTH_MAX_CLUSTERS ) as $leader ) {
-		$members = array_map(
-			'intval',
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
-			$wpdb->get_col(
-				$wpdb->prepare(
-					'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC',
-					$wpdb->postmeta,
-					'undergrowth_cluster',
-					(string) $leader
-				)
-			)
-		);
+	return array_slice( $leaders, 0, $limit );
+}
 
-		$gap = undergrowth_cluster_gap( $leader, array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
+/**
+ * Lists every post labelled with a cluster's leader.
+ *
+ * @param int $leader Leader ID.
+ * @return int[] Post IDs, lowest first.
+ */
+function undergrowth_cluster_posts( int $leader ): array {
+	global $wpdb;
+
+	return array_map(
+		'intval',
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
+		$wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC',
+				$wpdb->postmeta,
+				'undergrowth_cluster',
+				(string) $leader
+			)
+		)
+	);
+}
+
+/**
+ * Tells whether the last pass made at least one cluster.
+ *
+ * @return bool True when there is a cluster to show.
+ */
+function undergrowth_has_clusters(): bool {
+	return array() !== undergrowth_cluster_leaders( 1 );
+}
+
+/**
+ * Lists every cluster with its posts, for the author to see.
+ *
+ * Posts come nearest the centre first, as measured for gaps, and any that
+ * could not be measured after them. Composting and unpublished posts are
+ * left out even if their cluster key is still there. Nothing is named: a
+ * cluster is only its posts.
+ *
+ * @return array<int, array{leader: int, members: int[], gap: bool}> Clusters with posts to show, lowest leader first.
+ */
+function undergrowth_cluster_map(): array {
+	$threshold = undergrowth_gap_similarity();
+	$map       = array();
+
+	foreach ( undergrowth_cluster_leaders() as $leader ) {
+		$members  = undergrowth_cluster_posts( $leader );
+		$measured = undergrowth_measure_cluster( array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ) );
+		$ordered  = null === $measured ? $members : array_merge( $measured['members'], array_diff( $members, $measured['members'] ) );
+		$shown    = array_values( array_filter( $ordered, 'undergrowth_can_cluster' ) );
+
+		if ( array() === $shown ) {
+			continue;
+		}
+
+		$map[] = array(
+			'leader'  => $leader,
+			'members' => $shown,
+			'gap'     => null !== $measured && $measured['centre'] < $threshold,
+		);
+	}
+
+	return $map;
+}
+
+/**
+ * Finds clusters whose centre has no post: a gap found in the author's own
+ * writing, with no model call.
+ *
+ * A cluster's centre is the mean of its members' unit vectors. When no
+ * member reaches undergrowth_gap_similarity() to it, the posts circle
+ * something none of them is about.
+ *
+ * @return array<int, array{leader: int, members: int[], cluster: int[], centre: float}> One entry per gap,
+ *         by leader ID: the members measured, nearest the centre first; every member of the cluster,
+ *         lowest first; and the nearest one's similarity to the centre.
+ */
+function undergrowth_cluster_gaps(): array {
+	$threshold = undergrowth_gap_similarity();
+	$gaps      = array();
+
+	foreach ( undergrowth_cluster_leaders() as $leader ) {
+		$members = undergrowth_cluster_posts( $leader );
+		$gap     = undergrowth_cluster_gap( $leader, array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
 
 		if ( null !== $gap ) {
 			$gaps[] = $gap + array( 'cluster' => $members );
@@ -173,12 +237,8 @@ function undergrowth_cluster_gaps(): array {
 }
 
 /**
- * Measures how close one cluster's members come to its centre.
- *
- * Vectors are only ever compared within one provider, model, language and
- * length. A member embedded again with other settings keeps its cluster
- * until the next pass, so the largest such group is the one measured; on a
- * tie, the group of the lowest member ID.
+ * Measures how close one cluster's members come to its centre, and returns
+ * it as a gap when none comes close enough.
  *
  * @param int   $leader    Leader ID labelling the cluster.
  * @param int[] $members   Member post IDs, lowest first.
@@ -186,6 +246,28 @@ function undergrowth_cluster_gaps(): array {
  * @return array{leader: int, members: int[], centre: float}|null The gap, or null when there is none.
  */
 function undergrowth_cluster_gap( int $leader, array $members, float $threshold ): ?array {
+	$measured = undergrowth_measure_cluster( $members );
+
+	if ( null === $measured || $measured['centre'] >= $threshold ) {
+		return null;
+	}
+
+	return array( 'leader' => $leader ) + $measured;
+}
+
+/**
+ * Measures how close one cluster's members come to its centre.
+ *
+ * Vectors are only ever compared within one provider, model, language and
+ * length. A member embedded again with other settings keeps its cluster
+ * until the next pass, so the largest such group is the one measured; on a
+ * tie, the group of the lowest member ID.
+ *
+ * @param int[] $members Member post IDs, lowest first.
+ * @return array{members: int[], centre: float}|null The members measured, nearest the centre first,
+ *         and the nearest one's similarity to it; or null when too few can be measured.
+ */
+function undergrowth_measure_cluster( array $members ): ?array {
 	$groups = array();
 
 	foreach ( $members as $post_id ) {
@@ -249,16 +331,9 @@ function undergrowth_cluster_gap( int $leader, array $members, float $threshold 
 		}
 	);
 
-	$closest = (float) reset( $near );
-
-	if ( $closest >= $threshold ) {
-		return null;
-	}
-
 	return array(
-		'leader'  => $leader,
 		'members' => array_map( 'intval', array_keys( $near ) ),
-		'centre'  => $closest,
+		'centre'  => (float) reset( $near ),
 	);
 }
 
