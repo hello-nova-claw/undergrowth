@@ -74,22 +74,73 @@ jobs:
   coverage:
     name: Coverage gate
     runs-on: ubuntu-latest
+    # Runs on the runner rather than in wp-env: wp-env adds Xdebug with
+    # `pecl install`, so every pecl.php.net outage failed this required check.
+    # setup-php brings Xdebug from its own builds instead.
+    services:
+      mysql:
+        # The image wp-env uses.
+        image: mariadb:lts
+        env:
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: wordpress_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    defaults:
+      run:
+        working-directory: wordpress/wp-content/plugins/undergrowth
+    env:
+      WP_TESTS_DIR: ${{ github.workspace }}/wordpress-phpunit
     steps:
+      # The plugin sits where wp-env mounts it, so file paths match.
       - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v7.1.0
         with:
-          node-version-file: .nvmrc
-          cache: npm
+          path: wordpress/wp-content/plugins/undergrowth
+          persist-credentials: false
       - uses: shivammathur/setup-php@2.40.0
         with:
           php-version: "8.3"
-          coverage: none
+          coverage: xdebug
+          extensions: mysqli
       - uses: ramsey/composer-install@4.0.0
-      - run: npm ci
-      - run: npx wp-env start --xdebug=coverage
+        with:
+          working-directory: wordpress/wp-content/plugins/undergrowth
+      # Like wp-env with "core": null: the latest release, and the PHPUnit
+      # suite from wordpress-develop at the same tag.
+      - name: Install WordPress and its test suite
+        working-directory: ${{ github.workspace }}
+        run: |
+          version=$(curl -fsSL --retry 5 https://api.wordpress.org/core/version-check/1.7/ | jq -r '.offers[0].version')
+          echo "WordPress $version"
+          curl -fsSL --retry 5 -o wordpress.tar.gz "https://wordpress.org/wordpress-$version.tar.gz"
+          tar -xzf wordpress.tar.gz
+          git clone --quiet --depth=1 --filter=blob:none --sparse --branch "$version" https://github.com/WordPress/wordpress-develop.git wordpress-develop
+          git -C wordpress-develop sparse-checkout set tests/phpunit
+          mv wordpress-develop/tests/phpunit "$WP_TESTS_DIR"
+          cat > "$WP_TESTS_DIR/wp-tests-config.php" <<'PHP'
+          <?php
+          define( 'ABSPATH', getenv( 'GITHUB_WORKSPACE' ) . '/wordpress/' );
+          define( 'WP_DEFAULT_THEME', 'default' );
+          define( 'DB_NAME', 'wordpress_test' );
+          define( 'DB_USER', 'root' );
+          define( 'DB_PASSWORD', 'password' );
+          define( 'DB_HOST', '127.0.0.1:3306' );
+          define( 'DB_CHARSET', 'utf8' );
+          define( 'DB_COLLATE', '' );
+          define( 'WP_DEBUG', true );
+          define( 'SCRIPT_DEBUG', true );
+          define( 'WP_ENVIRONMENT_TYPE', 'local' );
+          define( 'WP_PHP_BINARY', 'php' );
+          define( 'WP_TESTS_DOMAIN', 'localhost:8889' );
+          define( 'WP_TESTS_EMAIL', 'admin@example.org' );
+          define( 'WP_TESTS_TITLE', 'Test Blog' );
+          $table_prefix = 'wptests_';
+          PHP
       # Network-only code runs only in the multisite suite, so both runs count.
-      - run: npm run test:php -- --coverage-php coverage/single-site.cov
-      - run: npm run test:php:multisite -- --coverage-php coverage/multisite.cov
-      # The .cov files record container paths, so merge where those exist.
-      - run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/undergrowth vendor/bin/phpcov merge --clover coverage/clover.xml coverage
+      - run: vendor/bin/phpunit --coverage-php coverage/single-site.cov
+      - run: vendor/bin/phpunit -c phpunit-multisite.xml.dist --coverage-php coverage/multisite.cov
+      - run: vendor/bin/phpcov merge --clover coverage/clover.xml coverage
       - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline
