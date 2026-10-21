@@ -145,6 +145,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_schema_version' );
+	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
