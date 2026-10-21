@@ -22,6 +22,8 @@ const UNDERGROWTH_PROMPT_COMMENTS   = 50;
 // the full-width one used in Chinese and Japanese and the Arabic one.
 const UNDERGROWTH_QUESTION_MARKS = '?？؟';
 
+const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed' );
+
 add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
 add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
@@ -30,6 +32,7 @@ add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_fi
 register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_unschedule_prompts' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_comment_prompt_sources' );
 add_filter( 'is_protected_meta', 'undergrowth_protect_prompt_meta', 10, 2 );
+add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 2 );
 
 /**
  * Schedules the monthly prompt cycle when it is not scheduled yet.
@@ -61,14 +64,14 @@ function undergrowth_unschedule_prompts(): void {
 }
 
 /**
- * Hides the prompt record from the Custom Fields box.
+ * Hides the prompt records from the Custom Fields box.
  *
  * @param bool   $is_protected Whether the key is protected already.
  * @param string $meta_key     Meta key.
  * @return bool True for the plugin's prompt keys.
  */
 function undergrowth_protect_prompt_meta( $is_protected, $meta_key ) {
-	return 'undergrowth_prompt_keys' === $meta_key ? true : $is_protected;
+	return in_array( $meta_key, array( 'undergrowth_prompt_keys', 'undergrowth_prompt_log' ), true ) ? true : $is_protected;
 }
 
 /**
@@ -82,20 +85,182 @@ function undergrowth_write_first_prompt(): void {
 
 /**
  * Runs the monthly prompt cycle.
+ *
+ * A prompt still waiting stays. Otherwise a snoozed prompt comes back
+ * first, without asking Claude again, and only then is a new one written.
  */
 function undergrowth_run_prompt_cycle(): void {
+	if ( ! undergrowth_prompts_enabled() || null !== undergrowth_current_prompt() || undergrowth_wake_snoozed_prompt() ) {
+		return;
+	}
+
 	undergrowth_write_prompt();
 }
 
 /**
+ * Brings back the oldest snoozed prompt whose post is still read.
+ *
+ * @return bool True when a prompt came back.
+ */
+function undergrowth_wake_snoozed_prompt(): bool {
+	$snoozed = get_option( 'undergrowth_snoozed_prompts', array() );
+	$snoozed = is_array( $snoozed ) ? array_values( $snoozed ) : array();
+
+	while ( array() !== $snoozed ) {
+		$prompt = array_shift( $snoozed );
+
+		update_option( 'undergrowth_snoozed_prompts', $snoozed, false );
+
+		if ( ! is_array( $prompt ) ) {
+			continue;
+		}
+
+		$prompt['time'] = time();
+		update_option( 'undergrowth_prompt', $prompt, false );
+		$current = undergrowth_current_prompt();
+
+		if ( null === $current ) {
+			delete_option( 'undergrowth_prompt' );
+			continue;
+		}
+
+		undergrowth_log_prompt( $current['post_id'], 'asked', $current );
+
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Removes the waiting prompt for good.
+ *
+ * Its source was recorded as sent when the prompt was written, so the same
+ * source never prompts again.
+ *
+ * @param string $key Key of the prompt the author chose to dismiss.
+ * @return bool True when it was the waiting prompt and is gone.
+ */
+function undergrowth_dismiss_prompt( string $key ): bool {
+	$prompt = undergrowth_current_prompt();
+
+	if ( null === $prompt || $prompt['key'] !== $key ) {
+		return false;
+	}
+
+	delete_option( 'undergrowth_prompt' );
+	undergrowth_log_prompt( $prompt['post_id'], 'dismissed', $prompt );
+
+	return true;
+}
+
+/**
+ * Puts the waiting prompt aside until the next monthly cycle.
+ *
+ * @param string $key Key of the prompt the author chose to snooze.
+ * @return bool True when it was the waiting prompt and is put aside.
+ */
+function undergrowth_snooze_prompt( string $key ): bool {
+	$prompt = undergrowth_current_prompt();
+
+	if ( null === $prompt || $prompt['key'] !== $key ) {
+		return false;
+	}
+
+	$snoozed   = get_option( 'undergrowth_snoozed_prompts', array() );
+	$snoozed   = is_array( $snoozed ) ? array_values( $snoozed ) : array();
+	$snoozed[] = $prompt;
+
+	update_option( 'undergrowth_snoozed_prompts', $snoozed, false );
+	delete_option( 'undergrowth_prompt' );
+	undergrowth_log_prompt( $prompt['post_id'], 'snoozed', $prompt );
+
+	return true;
+}
+
+/**
+ * Logs a newly written prompt in its post's record.
+ *
+ * @param int                  $post_id Post the prompt is about.
+ * @param array<string, mixed> $prompt  The prompt.
+ */
+function undergrowth_log_written_prompt( int $post_id, array $prompt ): void {
+	undergrowth_log_prompt( $post_id, 'asked', $prompt );
+}
+
+/**
+ * Adds one event to a post's prompt log, which the post's file is written
+ * from.
+ *
+ * Only the date, the event, the source's name and the question are kept.
+ * Text from a reader never is.
+ *
+ * @param int                  $post_id Post the prompt is about.
+ * @param string               $event   One of UNDERGROWTH_PROMPT_EVENTS.
+ * @param array<string, mixed> $prompt  The prompt.
+ */
+function undergrowth_log_prompt( int $post_id, string $event, array $prompt ): void {
+	add_post_meta(
+		$post_id,
+		'undergrowth_prompt_log',
+		array(
+			'time'     => time(),
+			'event'    => $event,
+			'source'   => (string) ( $prompt['source'] ?? '' ),
+			'question' => (string) ( $prompt['question'] ?? '' ),
+		)
+	);
+
+	/**
+	 * Fires after an event is added to a post's prompt log.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	do_action( 'undergrowth_prompt_logged', $post_id );
+}
+
+/**
+ * Returns a post's prompt log, oldest first.
+ *
+ * @param int $post_id Post ID.
+ * @return array<int, array{time: int, event: string, source: string, question: string}> Events.
+ */
+function undergrowth_prompt_log( int $post_id ): array {
+	$log = array();
+
+	foreach ( get_post_meta( $post_id, 'undergrowth_prompt_log', false ) as $row ) {
+		if (
+			! is_array( $row )
+			|| ! isset( $row['time'], $row['event'], $row['source'], $row['question'] )
+			|| ! in_array( $row['event'], UNDERGROWTH_PROMPT_EVENTS, true )
+			|| ! is_string( $row['source'] )
+			|| ! is_string( $row['question'] )
+		) {
+			continue;
+		}
+
+		$log[] = array(
+			'time'     => (int) $row['time'],
+			'event'    => $row['event'],
+			'source'   => $row['source'],
+			'question' => $row['question'],
+		);
+	}
+
+	return $log;
+}
+
+/**
  * Returns the prompt waiting for the author, if there is one.
+ *
+ * With no key saved the feature is off, so nothing is waiting.
  *
  * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
  */
 function undergrowth_current_prompt(): ?array {
 	$prompt = get_option( 'undergrowth_prompt' );
 
-	if ( ! is_array( $prompt ) || ! is_string( $prompt['key'] ?? null ) || ! is_string( $prompt['question'] ?? null ) || ! is_string( $prompt['source'] ?? null ) ) {
+	if ( ! undergrowth_prompts_enabled() || ! is_array( $prompt ) || ! is_string( $prompt['key'] ?? null ) || ! is_string( $prompt['question'] ?? null ) || ! is_string( $prompt['source'] ?? null ) ) {
 		return null;
 	}
 
