@@ -152,6 +152,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	delete_post_meta_by_key( 'undergrowth_stage_log' );
 	delete_post_meta_by_key( 'undergrowth_resurfacing' );
+	delete_post_meta_by_key( 'undergrowth_resurfacing_log' );
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	undergrowth_delete_memory_folder();
