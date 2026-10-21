@@ -552,7 +552,7 @@ msgstr ""
 
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
-msgid "Readers see no growth stage here. Composting posts, and post types Undergrowth does not track, show no badge."
+msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
 msgstr ""
 
 #: build/blocks/growth-stage/index.js

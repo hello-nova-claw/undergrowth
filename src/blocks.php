@@ -45,11 +45,10 @@ function undergrowth_register_blocks(): void {
 function undergrowth_render_growth_stage_block( $attributes, $content, $block ): string {
 	$post = get_post( (int) ( $block->context['postId'] ?? 0 ) );
 
-	if (
-		! $post instanceof WP_Post
-		|| ! in_array( $post->post_type, undergrowth_indexed_post_types(), true )
-		|| ! ( is_post_publicly_viewable( $post ) || current_user_can( 'read_post', $post->ID ) )
-	) {
+	// Only posts in the garden have a stage. A draft, a private post or one
+	// behind a password would otherwise show the Seedling default, and in a
+	// template or a Query Loop the password form would not hide it.
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
 		return '';
 	}
 

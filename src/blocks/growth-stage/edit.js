@@ -11,7 +11,7 @@ function NoBadge() {
 	return (
 		<p>
 			{ __(
-				'Readers see no growth stage here. Composting posts, and post types Undergrowth does not track, show no badge.',
+				'Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none.',
 				'undergrowth'
 			) }
 		</p>
