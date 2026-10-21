@@ -106,6 +106,10 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'abcd', $html );
 	}
 
+	public function test_page_shows_where_the_per_post_files_are() {
+		$this->assertStringContainsString( undergrowth_memory_folder() . '/posts/', $this->render() );
+	}
+
 	public function test_page_says_what_is_sent_to_openai() {
 		$this->assertStringContainsString( 'sent to OpenAI', $this->render() );
 	}
