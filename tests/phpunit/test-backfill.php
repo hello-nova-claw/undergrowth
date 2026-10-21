@@ -500,4 +500,116 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_backfill' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
 	}
+
+	/**
+	 * Indexes posts with the first model, as if they were embedded before the switch.
+	 *
+	 * @param int $count How many.
+	 * @return int[] Post IDs.
+	 */
+	private function indexed_archive( int $count ): array {
+		$ids = $this->archive( $count );
+
+		foreach ( $ids as $id ) {
+			undergrowth_embed_post( $id );
+		}
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+		$this->embedded = array();
+
+		return $ids;
+	}
+
+	public function test_changed_model_reembeds_every_post_one_batch_per_run() {
+		$this->batch_size( 2 );
+		$ids = $this->indexed_archive( 5 );
+
+		$this->model = 'test-model-v2';
+		do_action( 'undergrowth_backfill_check' );
+		$runs = $this->run_cron();
+
+		$this->assertSame( array( 2, 2, 1 ), $runs );
+
+		foreach ( $ids as $id ) {
+			$this->assertSame( 'test-model-v2', undergrowth_get_vector( $id )['model'] );
+		}
+	}
+
+	public function test_old_vectors_stay_until_their_post_is_reembedded() {
+		$this->batch_size( 2 );
+		$ids = $this->indexed_archive( 3 );
+
+		$this->model = 'test-model-v2';
+		do_action( 'undergrowth_backfill_check' );
+		wp_unschedule_hook( 'undergrowth_backfill' );
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( 'test-model-v2', undergrowth_get_vector( $ids[1] )['model'] );
+		$this->assertSame( 'test-model-v1', undergrowth_get_vector( $ids[2] )['model'] );
+	}
+
+	public function test_failed_reembed_keeps_the_old_vector_and_is_tried_again() {
+		$ids             = $this->indexed_archive( 1 );
+		$this->model     = 'test-model-v2';
+		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( 'test-model-v1', undergrowth_get_vector( $ids[0] )['model'] );
+
+		$this->failing = array();
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( 'test-model-v2', undergrowth_get_vector( $ids[0] )['model'] );
+	}
+
+	public function test_reembed_never_compares_vectors_from_two_models() {
+		$this->batch_size( 1 );
+		$ids = $this->indexed_archive( 3 );
+
+		$this->model = 'test-model-v2';
+		do_action( 'undergrowth_backfill_check' );
+		wp_unschedule_hook( 'undergrowth_backfill' );
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( array( $ids[0] ), array_keys( undergrowth_comparable_vectors( $ids[0] ) ) );
+		$this->assertSame( array(), undergrowth_score_targets( $ids[0] ) );
+		$this->assertNotContains( $ids[0], array_keys( undergrowth_comparable_vectors( $ids[1] ) ) );
+	}
+
+	public function test_switching_models_back_and_forth_queues_one_run() {
+		$this->indexed_archive( 2 );
+
+		foreach ( array( 'test-model-v2', 'test-model-v1', 'test-model-v2' ) as $model ) {
+			$this->model = $model;
+			do_action( 'undergrowth_backfill_check' );
+		}
+
+		$this->assertCount( 1, array_filter( _get_cron_array(), static fn( $hooks ) => isset( $hooks['undergrowth_backfill'] ) ) );
+	}
+
+	public function test_switching_back_before_the_reembed_runs_sends_nothing() {
+		$this->indexed_archive( 2 );
+
+		$this->model = 'test-model-v2';
+		do_action( 'undergrowth_backfill_check' );
+		$this->model = 'test-model-v1';
+		$this->run_cron();
+
+		$this->assertSame( array(), $this->embedded );
+	}
+
+	public function test_finished_reembed_clusters_the_new_vectors() {
+		$this->indexed_archive( 2 );
+
+		$this->model = 'test-model-v2';
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
 }
