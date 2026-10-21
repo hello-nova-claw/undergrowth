@@ -73,7 +73,7 @@ No reader data. Signals come from the author's own text only.
 - Fusion: propose a hub where a cluster trades heavily. Owner writes the hub text.
 
 ### Switch line
-Mixed rule. A fixed visit number for the meter (milestone the owner can see). A statistical check before each reader proposal (enough visits on the top pages for proposals to repeat). Two rules, both documented in the UI.
+Mixed rule. A fixed visit number for the meter (milestone the owner can see): 1,000 page views in the last 30 days, from Jetpack / WordPress.com Stats. A statistical check before each reader proposal (enough visits on the top pages for proposals to repeat), which arrives with reader mode in v2. Crossing the fixed number alone never unlocks a proposal. Two rules, both documented in the UI.
 
 ---
 
@@ -256,7 +256,7 @@ Everything in sections 4 "Reader mode" is v2.
 ## 10. Open items
 
 - Domain for Undergrowth (name itself is locked).
-- Exact fixed number for the threshold meter.
+- ~~Exact fixed number for the threshold meter.~~ Decided 2026-10-21: 1,000 views in the last 30 days (Jetpack Stats). It is the visible milestone; the per-proposal statistical check still applies in v2 (section 4).
 - ~~Which embedding API is the default (OpenAI / Voyage / Jina).~~ Decided 2026-10-18: OpenAI `text-embedding-3-small`, others later (section 6).
 - Whether to test the in-PHP ONNX embedding path for a fully non-dev install.
 - WordPress.com embedding endpoint question (parked until Anna is back at work).
