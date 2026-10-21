@@ -36,6 +36,10 @@ add_filter( 'is_protected_meta', 'undergrowth_protect_discord_meta', 10, 2 );
  */
 function undergrowth_discord_start_posting(): void {
 	update_option( 'undergrowth_discord_since', current_time( 'mysql', true ), false );
+
+	// Suggestions that failed before now will never be sent, so their
+	// failure no longer has anything to tell the owner.
+	delete_option( 'undergrowth_last_discord_error' );
 }
 
 /**
@@ -92,8 +96,13 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 
 	$source = get_post( $post_id );
 
+	if ( ! undergrowth_discord_enabled() ) {
+		return;
+	}
+
 	// A post that is no longer published must not have its title sent.
-	if ( ! undergrowth_discord_enabled() || ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) ) {
+	if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) ) {
+		undergrowth_discord_forget_failures( $post_id, array() );
 		return;
 	}
 
@@ -116,6 +125,7 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 	);
 
 	$open    = array();
+	$waiting = array();
 	$stopped = false;
 
 	foreach ( (array) $rows as $row ) {
@@ -123,9 +133,15 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 		$open[ $target_id ] = true;
 		$target             = get_post( $target_id );
 
+		if ( (string) $row['created_at'] < $since || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
+			continue;
+		}
+
+		$waiting[ $target_id ] = true;
+
 		// Read again before each send, so a run that overlaps this one and
 		// has just posted a suggestion is not followed by a second copy.
-		if ( $stopped || isset( undergrowth_discord_posted( $post_id )[ $target_id ] ) || (string) $row['created_at'] < $since || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) ) {
+		if ( $stopped || isset( undergrowth_discord_posted( $post_id )[ $target_id ] ) ) {
 			continue;
 		}
 
@@ -158,18 +174,11 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 	}
 
 	// Only open suggestions are kept, so one withdrawn and later made again
-	// is posted again. A withdrawn one no longer counts as failing either.
+	// is posted again. One that will not be tried again no longer counts as
+	// failing either.
 	$kept = array_intersect_key( undergrowth_discord_posted( $post_id ), $open );
 
-	$error = get_option( 'undergrowth_last_discord_error' );
-
-	if ( is_array( $error ) && isset( $error['pending'] ) && is_array( $error['pending'] ) ) {
-		foreach ( array_keys( $error['pending'] ) as $pair ) {
-			if ( 0 === strpos( (string) $pair, $post_id . ':' ) && ! isset( $open[ (int) substr( (string) $pair, strlen( $post_id . ':' ) ) ] ) ) {
-				undergrowth_discord_record_result( (string) $pair, true );
-			}
-		}
-	}
+	undergrowth_discord_forget_failures( $post_id, $waiting );
 
 	if ( array() === $kept ) {
 		delete_post_meta( $post_id, 'undergrowth_discord_messages' );
@@ -219,6 +228,27 @@ function undergrowth_discord_record_result( string $pair, bool $posted, int $sta
 		),
 		false
 	);
+}
+
+/**
+ * Forgets the failures of a post's suggestions that will not be sent again.
+ *
+ * @param int               $post_id Source post ID.
+ * @param array<int, mixed> $waiting Target post IDs, as keys, still to be tried.
+ */
+function undergrowth_discord_forget_failures( int $post_id, array $waiting ): void {
+	$error  = get_option( 'undergrowth_last_discord_error' );
+	$prefix = $post_id . ':';
+
+	if ( ! is_array( $error ) || ! isset( $error['pending'] ) || ! is_array( $error['pending'] ) ) {
+		return;
+	}
+
+	foreach ( array_keys( $error['pending'] ) as $pair ) {
+		if ( 0 === strpos( (string) $pair, $prefix ) && ! isset( $waiting[ (int) substr( (string) $pair, strlen( $prefix ) ) ] ) ) {
+			undergrowth_discord_record_result( (string) $pair, true );
+		}
+	}
 }
 
 /**
