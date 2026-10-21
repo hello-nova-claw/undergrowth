@@ -277,14 +277,22 @@ function undergrowth_linkable_paragraphs( string $content ): array {
  * @return array<int, string> Each paragraph's HTML, keyed by its byte offset in the content.
  */
 function undergrowth_classic_paragraphs( string $content ): array {
-	// Tags inside comments are not markup. Blanking them keeps every offset.
-	$scan = (string) preg_replace_callback(
+	// Tags inside comments are not markup. Blanking them keeps every offset,
+	// and a stretch that a comment runs into or out of is skipped.
+	$comments = array();
+	$scan     = (string) preg_replace_callback(
 		'/<!--.*?(?:-->|$)/s',
 		static function ( $comment ) {
 			return str_repeat( ' ', strlen( $comment[0] ) );
 		},
 		$content
 	);
+
+	if ( preg_match_all( '/<!--.*?(?:-->|$)/s', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
+		foreach ( $matches[0] as $match ) {
+			$comments[] = array( $match[1], $match[1] + strlen( $match[0] ) );
+		}
+	}
 
 	$skip  = array_merge( undergrowth_element_ranges( $scan ), undergrowth_shortcode_ranges( $scan ) );
 	$found = array();
@@ -295,7 +303,9 @@ function undergrowth_classic_paragraphs( string $content ): array {
 		$inner = trim( $text );
 		$start = $offset + (int) strpos( $text, $inner );
 
-		if ( '' !== $inner && ! preg_match( '#</?(?:' . UNDERGROWTH_BLOCK_ELEMENTS . ')\b#i', $inner ) && ! undergrowth_overlaps_any( $start, $start + strlen( $inner ), $skip ) ) {
+		$end = $start + strlen( $inner );
+
+		if ( '' !== $inner && ! preg_match( '#</?(?:' . UNDERGROWTH_BLOCK_ELEMENTS . ')\b#i', $inner ) && ! undergrowth_overlaps_any( $start, $end, $skip ) && ! undergrowth_crosses_any( $start, $end, $comments ) ) {
 			$found[ $start ] = $inner;
 		}
 	}
@@ -355,6 +365,26 @@ function undergrowth_shortcode_ranges( string $html ): array {
 	}
 
 	return $ranges;
+}
+
+/**
+ * Tells whether any of several stretches runs across a stretch's edge.
+ *
+ * A stretch lying wholly inside the given one does not count.
+ *
+ * @param int                               $start  First byte.
+ * @param int                               $end    Byte after the last.
+ * @param array<int, array{0: int, 1: int}> $ranges Stretches as start and end offsets.
+ * @return bool True when one of them crosses the start or the end.
+ */
+function undergrowth_crosses_any( int $start, int $end, array $ranges ): bool {
+	foreach ( $ranges as $range ) {
+		if ( $range[0] < $end && $start < $range[1] && ( $range[0] < $start || $range[1] > $end ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**
