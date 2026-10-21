@@ -32,6 +32,9 @@ class Test_Local_Embeddings_Example extends WP_UnitTestCase {
 		require_once dirname( __DIR__, 2 ) . '/docs/examples/local-embeddings.php';
 		add_filter( 'undergrowth_embed_provider', 'undergrowth_local_embeddings_vector', 10, 2 );
 		add_filter( 'undergrowth_embed_identity', 'undergrowth_local_embeddings_identity' );
+		add_filter( 'undergrowth_min_link_similarity', 'undergrowth_local_embeddings_link_similarity' );
+		add_filter( 'undergrowth_min_cluster_similarity', 'undergrowth_local_embeddings_cluster_similarity' );
+		add_filter( 'undergrowth_gap_similarity', 'undergrowth_local_embeddings_gap_similarity' );
 
 		$this->requests = array();
 		$this->respond( array( 'data' => array( array( 'embedding' => array( 0.25, -1, 0.5 ) ) ) ) );
@@ -124,5 +127,17 @@ class Test_Local_Embeddings_Example extends WP_UnitTestCase {
 		undergrowth_embed( 'Oca keeps well over winter.' );
 
 		$this->assertSame( array( 'http://127.0.0.1:11434/v1/embeddings' ), wp_list_pluck( $this->requests, 'url' ) );
+	}
+
+	public function test_nomic_thresholds_replace_the_openai_defaults() {
+		$this->assertSame( 0.7, undergrowth_min_link_similarity() );
+		$this->assertSame( 0.8, undergrowth_min_cluster_similarity() );
+		$this->assertSame( 0.94, undergrowth_gap_similarity() );
+	}
+
+	public function test_other_models_keep_the_default_thresholds() {
+		$this->assertSame( 0.4, undergrowth_local_embeddings_link_similarity( 0.4, 'all-minilm' ) );
+		$this->assertSame( 0.5, undergrowth_local_embeddings_cluster_similarity( 0.5, 'all-minilm' ) );
+		$this->assertSame( 0.8, undergrowth_local_embeddings_gap_similarity( 0.8, 'all-minilm' ) );
 	}
 }
