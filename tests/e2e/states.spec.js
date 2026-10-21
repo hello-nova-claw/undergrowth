@@ -42,6 +42,8 @@ const STAGE_NOTICES = [
 	'stage_composting',
 	'not_pinned',
 	'stage_not_saved',
+	'resurfacing_dismissed',
+	'resurfacing_gone',
 ];
 
 // Notices the Dashboard returns with after a prompt is dismissed or snoozed.
@@ -147,6 +149,11 @@ const WITH_COMPOST = [
 	} ) ),
 	{ screen: 'suggestions', state: 'with-composting', page: SUGGESTIONS },
 	{ screen: 'stages', state: 'with-composting', page: STAGES },
+];
+
+// Shown after a composting post was found near a new cluster.
+const WITH_RESURFACING = [
+	{ screen: 'stages', state: 'resurfacing', page: STAGES },
 ];
 
 // Posts share fixture words, so the e2e provider suggests links between them.
@@ -370,5 +377,74 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_COMPOST );
+	} );
+
+	test.describe( 'with a resurfacing signal', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			// Repeating one fixture word gives posts almost the same vector.
+			const publish = async ( word, titles ) => {
+				const created = [];
+
+				for ( const title of titles ) {
+					created.push(
+						await requestUtils.createPost( {
+							title,
+							content: `<p>${ Array( 6 )
+								.fill( word )
+								.join( ' ' ) }</p>`,
+							status: 'publish',
+						} )
+					);
+				}
+
+				return created;
+			};
+			const pass = async () => {
+				const response = await requestUtils.request.get(
+					'wp-admin/index.php?undergrowth_e2e_cluster=1'
+				);
+
+				if ( ! response.ok() ) {
+					throw new Error(
+						`Clustering failed with HTTP ${ response.status() }.`
+					);
+				}
+			};
+
+			const [ old ] = await publish( 'oca', [ 'Oca in winter' ] );
+			await publish( 'yacon', [
+				'Yacon',
+				'Yacon syrup',
+				'Yacon leaves',
+			] );
+
+			const list = await requestUtils.request.get( 'wp-admin/edit.php' );
+			const link = ( await list.text() ).match(
+				new RegExp(
+					`href="([^"]*action=undergrowth_compost&#038;post=${ old.id }&#038;[^"]*)"`
+				)
+			);
+
+			if ( ! link ) {
+				throw new Error( 'No Compost row action for the old post.' );
+			}
+
+			await requestUtils.request.get(
+				link[ 1 ].replaceAll( '&#038;', '&' )
+			);
+
+			// The first pass is the previous cycle; the second finds the new cluster.
+			await pass();
+			await publish( 'oca', [
+				'Oca planting',
+				'Oca harvest',
+				'Oca seed',
+			] );
+			await pass();
+		} );
+
+		capture( WITH_RESURFACING );
 	} );
 } );
