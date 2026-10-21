@@ -312,6 +312,45 @@ class Test_Abilities_Scale extends WP_UnitTestCase {
 		$this->assertSame( array( $posts['Taxes'] ), undergrowth_ability_site_posts() );
 	}
 
+	public function test_site_scale_uses_each_post_types_own_capabilities() {
+		register_post_type(
+			'undergrowth_note',
+			array(
+				'public'          => true,
+				'capability_type' => 'note',
+				'map_meta_cap'    => true,
+			)
+		);
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'undergrowth_note' );
+			}
+		);
+		$other  = self::factory()->user->create();
+		$notes  = self::factory()->post->create_many(
+			2,
+			array(
+				'post_type'   => 'undergrowth_note',
+				'post_status' => 'publish',
+				'post_author' => $other,
+			)
+		);
+		$keeper = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$user   = get_user_by( 'id', $keeper );
+
+		foreach ( array( 'edit_notes', 'edit_published_notes', 'edit_others_notes' ) as $cap ) {
+			$user->add_cap( $cap );
+		}
+
+		wp_set_current_user( $keeper );
+
+		$this->assertSame( 2, array_sum( $this->run_ability( 'undergrowth/stage' )['counts'] ) );
+		$this->assertSame( $notes, undergrowth_ability_site_posts() );
+
+		unregister_post_type( 'undergrowth_note' );
+	}
+
 	public function test_site_scale_runs_through_rest_without_input() {
 		$this->plant_garden();
 
