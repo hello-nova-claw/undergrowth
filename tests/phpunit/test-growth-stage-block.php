@@ -172,6 +172,23 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Growth stage: Sprout', $this->render( $this->post_at( 'sprout', array( 'post_type' => 'page' ) ) ) );
 	}
 
+	public function test_an_indexed_post_type_readers_cannot_view_shows_only_to_those_who_can_read_it() {
+		register_post_type( 'undergrowth_note', array( 'public' => false ) );
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'undergrowth_note' );
+			}
+		);
+		$post_id = $this->post_at( 'sprout', array( 'post_type' => 'undergrowth_note' ) );
+
+		wp_set_current_user( 0 );
+		$this->assertSame( '', $this->render( $post_id ) );
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->assertStringContainsString( 'Growth stage: Sprout', $this->render( $post_id ) );
+	}
+
 	public function test_no_post_in_context_shows_nothing() {
 		$this->assertSame( '', $this->render( 0 ) );
 		$this->assertSame( '', $this->render( PHP_INT_MAX ) );
