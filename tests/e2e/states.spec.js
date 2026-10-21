@@ -106,6 +106,13 @@ const WITHOUT_POSTS = [
 ];
 
 const WITH_POSTS = [
+	{ screen: 'settings', state: 'index-complete', page: SETTINGS },
+	{
+		screen: 'settings',
+		state: 'index-partial',
+		page: SETTINGS,
+		fixture: 'index-partial',
+	},
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
 	{
 		screen: 'suggestions',

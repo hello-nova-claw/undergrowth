@@ -624,7 +624,23 @@ msgstr ""
 #. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/settings.php
 #, php-format
-msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts are tried again the next time they are saved."
+msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts that were not indexed are tried again within the hour."
+msgstr ""
+
+#: src/settings.php
+msgid "Index"
+msgstr ""
+
+#. translators: 1: number of posts indexed, 2: number of posts that can be indexed.
+#: src/settings.php
+#, php-format
+msgid "%1$s of %2$s post indexed."
+msgid_plural "%1$s of %2$s posts indexed."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/settings.php
+msgid "The rest are indexed in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
@@ -677,6 +693,46 @@ msgstr ""
 msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is a sprout."
+msgid_plural "%1$s posts are sprouts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is budding."
+msgid_plural "%1$s posts are budding."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is evergreen."
+msgid_plural "%1$s posts are evergreen."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is composting."
+msgid_plural "%1$s posts are composting."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/stages.php
+#, php-format
+msgid "%1$s post is a seedling."
+msgid_plural "%1$s posts are seedlings."
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/stages.php
 msgid "Once a month"

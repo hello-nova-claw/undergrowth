@@ -533,7 +533,7 @@ function undergrowth_ability_describe_post( WP_Post $post ): array {
  * @return array{scale: string, post_id: int, words: string[], links: array<int, array{post_id: int, title: string, url: string}>}
  */
 function undergrowth_ability_has( WP_Post $post ): array {
-	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $post->ID ) ), array( $post->ID ) ) ) );
+	$corpus = undergrowth_reusable_corpus( array_merge( array_keys( undergrowth_comparable_vectors( $post->ID ) ), array( $post->ID ) ) );
 
 	return array(
 		'scale'   => 'post',

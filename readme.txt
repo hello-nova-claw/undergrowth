@@ -35,7 +35,7 @@ Readers come into it later. A future version reads where readers go and what the
 
 1. Upload the plugin through Plugins > Add New > Upload Plugin, or unzip it into `wp-content/plugins/undergrowth/`, and activate it.
 2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. Without a key, or a provider of your own through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
-3. Posts are read when they are saved, so posts published before the key was saved are not read yet. To read them now, select them on Posts > All Posts, choose Edit from Bulk actions, and press Update without changing anything.
+3. Posts you published before saving the key are read in the background, a few at a time, as WP-Cron runs. Settings > Undergrowth shows how many are indexed so far.
 4. Optionally, paste an Anthropic API key on the same page to get the occasional question on your Dashboard.
 5. Optionally, set up Discord. See Setting up Discord below.
 
@@ -72,7 +72,7 @@ Link suggestions, clusters and growth stages need an embedding provider: an Open
 
 = Where does Undergrowth keep its notes about each post? =
 
-Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, the addresses of other posts, sentences quoted from your own post, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
+Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID: `wp-content/uploads/undergrowth/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth/posts/` on each site of a multisite network. You can read it with any text editor. It holds only the post's title, address and slug, words and sentences from your own post, the addresses of other posts, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
 
 A file looks like this:
 
@@ -88,8 +88,11 @@ A file looks like this:
     ## resurfacing
 
     ## has
+    words: oca, tubers, frost, sweeten, sand, winter, store, harvest
+    - https://example.com/growing-oca/
 
     ## lacks
+    - https://example.com/yacon-syrup/ | "I keep a few yacon plants nearby for their syrup."
 
     ## scent
 
@@ -105,7 +108,7 @@ A file looks like this:
     - 2026-11-01: asked (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
     - 2026-11-03: snoozed (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
 
-The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section lists, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals, stage, resurfacing record or prompts change, so edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
+The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section lists, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has section lists the words from your post that most set it apart from your other posts, then the published posts it links to. The lacks section lists the links suggested for it that you have not yet accepted or vetoed, best first, each with the sentence from your post where it fits. The scent section stays empty until a later version fills it. The file is rewritten whenever the post itself, its proposals, stage, resurfacing record or prompts change, and once a month in any case, since how distinctive a post's words are depends on your other posts. Edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
 
 = Can visitors open these files? =
 
