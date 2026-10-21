@@ -135,6 +135,20 @@ describe( 'files', () => {
 		);
 	} );
 
+	it( 'refuses an empty fragment and changes nothing', () => {
+		writeFileSync( join( root, 'changelog', '3-a.txt' ), 'Three.' );
+		writeFileSync( join( root, 'changelog', '4-blank.txt' ), ' \n' );
+
+		expect( () => fold( root ) ).toThrow( /4-blank\.txt/ );
+
+		expect( readFileSync( join( root, 'readme.txt' ), 'utf8' ) ).toBe(
+			README
+		);
+		expect( existsSync( join( root, 'changelog', '3-a.txt' ) ) ).toBe(
+			true
+		);
+	} );
+
 	it( 'changes nothing when there are no fragments', () => {
 		expect( fold( root ) ).toBe( 0 );
 		expect( readFileSync( join( root, 'readme.txt' ), 'utf8' ) ).toBe(
