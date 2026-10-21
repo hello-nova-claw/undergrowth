@@ -108,8 +108,8 @@ function undergrowth_embed_identity(): array {
 	 * Filters the provider and model names stored with every vector.
 	 *
 	 * Vectors from different models are never compared, so a provider must
-	 * say which model it uses. Change the model name whenever the model
-	 * changes, and posts are embedded again on their next save.
+	 * say which model it uses. When the provider or model name changes, every
+	 * indexed post is embedded again from cron, a batch at a time.
 	 *
 	 * @param array $identity {
 	 *     OpenAI when a key is saved, otherwise empty strings.

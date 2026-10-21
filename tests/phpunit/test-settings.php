@@ -210,4 +210,64 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '529', $this->render() );
 	}
+
+	public function test_page_counts_indexed_posts_out_of_indexable_ones() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		$ids = self::factory()->post->create_many( 3, array( 'post_status' => 'publish' ) );
+		self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		undergrowth_save_vector(
+			$ids[0],
+			array( 1.0 ),
+			array(
+				'provider'     => 'openai',
+				'model'        => UNDERGROWTH_OPENAI_MODEL,
+				'language'     => 'en_US',
+				'content_hash' => 'x',
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/id="undergrowth-index-count"[^>]*>\s*1 of 3 posts indexed\./', $html );
+		$this->assertStringContainsString( 'in the background', $html );
+	}
+
+	public function test_page_says_nothing_is_left_once_every_post_is_indexed() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		$id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		undergrowth_save_vector(
+			$id,
+			array( 1.0 ),
+			array(
+				'provider'     => 'openai',
+				'model'        => UNDERGROWTH_OPENAI_MODEL,
+				'language'     => 'en_US',
+				'content_hash' => 'x',
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '1 of 1 post indexed.', $html );
+		$this->assertStringNotContainsString( 'in the background', $html );
+	}
+
+	public function test_page_shows_no_count_until_a_provider_is_set_up() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertStringNotContainsString( 'undergrowth-index-count', $this->render() );
+	}
+
+	public function test_failed_request_notice_says_when_posts_are_tried_again() {
+		update_option(
+			'undergrowth_last_embed_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 429,
+				'time'   => time(),
+			)
+		);
+
+		$this->assertStringContainsString( 'tried again within the hour', $this->render() );
+	}
 }

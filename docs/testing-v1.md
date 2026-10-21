@@ -28,19 +28,15 @@ Once you save a key, it is never shown again. The page only shows its last four 
 
 The Discord section is optional, and you can skip it for a first test. If you want to try it, follow **Setting up Discord** in the plugin's readme.
 
-## 4. Get your existing posts read
+## 4. Wait for your existing posts to be read
 
-For now Undergrowth reads a post only when it is saved (#113 will fix this). So read the posts you already have like this:
+Once the OpenAI key is saved, Undergrowth reads every published post in the background, twenty at a time, as WP-Cron runs. You don't need to save any post. On a local site, WP-Cron only runs when you load pages, so click around wp-admin for a minute. **Settings > Undergrowth** shows how many posts are indexed so far. Link suggestions start to appear on **Posts > Link suggestions** as posts are read.
 
-1. Go to **Posts > All Posts** and show as many posts per page as you can (Screen Options, top right).
-2. Select them all, choose **Edit** from **Bulk actions**, press **Apply**, and press **Update** without changing anything.
-3. Do the same for each page of posts.
-
-Each post is read in the background, a few at a time, as WP-Cron runs. On a local site, WP-Cron only runs when you load pages, so click around wp-admin for a minute. Within a few minutes, link suggestions start to appear on **Posts > Link suggestions**.
+A post that fails to be read, for example because OpenAI was busy, is tried again within the hour.
 
 ## 5. Run the monthly cycle now
 
-Clusters, growth stages and new questions come on a monthly cycle. The one exception is the first question, which is written when you save the Anthropic key. The first cycle ran when you activated the plugin, before any post had been read, so it found nothing. Run it again by hand:
+Clusters, growth stages and new questions come on a monthly cycle. The one exception is the first question, which is written when you save the Anthropic key. The first cycle ran when you activated the plugin, before any post had been read, so it found nothing. Once every post has been read, Undergrowth runs the cycle once more by itself, so clusters and stages appear a few page loads after the count on the settings page reaches the total. To run it again by hand:
 
 - **With WP-CLI:** `wp cron event run undergrowth_cluster_cycle`, then `wp cron event run --due-now` two or three times, so the batches it queues get to run.
 - **Without WP-CLI:** install the WP Crontrol plugin. Go to **Tools > Cron Events**, find `undergrowth_cluster_cycle` and choose **Run now**, then load a few admin pages.
@@ -107,7 +103,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 
 - [ ] Zip installed and activated without errors
 - [ ] Settings page made clear what is sent where
-- [ ] Existing posts were read after the bulk update
+- [ ] Existing posts were all read without saving them
 - [ ] Link suggestions mostly connect posts that belong together
 - [ ] Quoted sentences are good places for the links
 - [ ] Accept linked one word and changed nothing else
