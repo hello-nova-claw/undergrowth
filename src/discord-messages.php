@@ -81,7 +81,8 @@ function undergrowth_discord_queue_proposals( int $post_id ): void {
 /**
  * Posts each of a post's suggestions that is not in Discord yet.
  *
- * A rate limit or an outage stops the rest. Any failure is tried again the
+ * A refusal that would apply to every message, such as a bad token or a
+ * rate limit, stops the rest. Any failure is tried again the
  * next time the post's suggestions are refreshed.
  *
  * @param int $post_id Source post ID.
@@ -142,8 +143,10 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
 		);
 
 		if ( '' === $sent['id'] ) {
-			// One message Discord refuses should not hold back the rest.
-			$stopped = 0 === $sent['status'] || 429 === $sent['status'] || $sent['status'] >= 500;
+			// One message Discord refuses should not hold back the rest, but a
+			// bad token, a channel the bot cannot reach, a rate limit or an
+			// outage would refuse every one of them.
+			$stopped = in_array( $sent['status'], array( 0, 401, 403, 404, 429 ), true ) || $sent['status'] >= 500;
 			continue;
 		}
 
@@ -170,6 +173,10 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
  * @return array<int, string> Message ID keyed by target post ID.
  */
 function undergrowth_discord_posted( int $post_id ): array {
+	// Without a persistent object cache, a write from another request would
+	// otherwise stay hidden behind this request's copy.
+	wp_cache_delete( $post_id, 'post_meta' );
+
 	$posted = get_post_meta( $post_id, 'undergrowth_discord_messages', true );
 
 	return is_array( $posted ) ? $posted : array();

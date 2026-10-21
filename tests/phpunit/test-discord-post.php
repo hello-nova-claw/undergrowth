@@ -304,6 +304,9 @@ class Test_Discord_Post extends WP_UnitTestCase {
 	 */
 	public function data_statuses_that_stop_posting() {
 		return array(
+			'bad token'    => array( 401 ),
+			'no access'    => array( 403 ),
+			'no channel'   => array( 404 ),
 			'rate limited' => array( 429 ),
 			'outage'       => array( 503 ),
 			'no response'  => array( 0 ),
@@ -311,7 +314,7 @@ class Test_Discord_Post extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A rate limit or an outage would refuse the next message too.
+	 * Each of these would refuse the next message too.
 	 *
 	 * @dataProvider data_statuses_that_stop_posting
 	 *
@@ -338,6 +341,41 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		$this->assertTrue( $first['enforce_nonce'] );
 		$this->assertLessThanOrEqual( 25, strlen( $first['nonce'] ) );
 		$this->assertNotSame( $first['nonce'], $second['nonce'] );
+	}
+
+	public function test_a_retry_after_no_response_reuses_the_nonce() {
+		$this->configure();
+		list( $oca ) = $this->pair();
+
+		$this->statuses = array( 0 );
+		undergrowth_discord_post_proposals( $oca );
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertCount( 2, $this->requests );
+		$this->assertSame( $this->body( 0 )['nonce'], $this->body( 1 )['nonce'] );
+	}
+
+	public function test_a_message_posted_by_another_request_is_not_posted_again() {
+		global $wpdb;
+
+		$this->configure();
+		list( $oca, $yacon ) = $this->pair();
+
+		// Warms this request's cache, then writes the way another request
+		// would, past this request's cache.
+		get_post_meta( $oca, 'undergrowth_discord_messages', true );
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'post_id'    => $oca,
+				'meta_key'   => 'undergrowth_discord_messages', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value' => maybe_serialize( array( $yacon => '1' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			)
+		);
+
+		undergrowth_discord_post_proposals( $oca );
+
+		$this->assertSame( array(), $this->requests );
 	}
 
 	public function test_unpublished_source_is_never_posted() {
