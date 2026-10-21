@@ -167,7 +167,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'tight-gaps' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -283,6 +283,17 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				undergrowth_sanitize_discord_application_id( 'abc' );
 			},
 			20
+		);
+		break;
+
+	// Fixture vectors are too few and too regular to leave a cluster's centre
+	// empty at the real threshold, so only a perfectly tight cluster has none.
+	case 'tight-gaps':
+		add_filter(
+			'undergrowth_gap_similarity',
+			static function () {
+				return 0.99;
+			}
 		);
 		break;
 
