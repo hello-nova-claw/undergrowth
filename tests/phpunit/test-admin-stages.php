@@ -447,6 +447,18 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_post_with_two_stage_rows_is_counted_once_by_the_stage_it_reads_as() {
+		$oca = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_post_meta( $oca, 'undergrowth_stage', 'budding' );
+		add_post_meta( $oca, 'undergrowth_stage', 'evergreen' );
+
+		$counts = undergrowth_count_stages();
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $oca ) );
+		$this->assertSame( 1, $counts['budding'] );
+		$this->assertSame( 1, array_sum( $counts ) );
+	}
+
 	public function test_stage_counts_are_zero_when_no_post_type_is_indexed() {
 		$this->plant_garden();
 		add_filter( 'undergrowth_post_types', '__return_empty_array' );
@@ -460,10 +472,10 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression(
-			'/<p class="undergrowth-stage-counts">3 posts are seedlings\. 2 posts are sprouts\. 3 posts are budding\. 1 post is evergreen\.<\/p>/',
+			'/<p class="undergrowth-stage-counts"><span>3 posts are seedlings\.<\/span> <span>2 posts are sprouts\.<\/span> <span>3 posts are budding\.<\/span> <span>1 post is evergreen\.<\/span><\/p>/',
 			$html
 		);
-		$this->assertStringContainsString( '<p class="undergrowth-composting-count">2 posts are composting.', $html );
+		$this->assertStringContainsString( '<p class="undergrowth-composting-count"><span>2 posts are composting.</span> <span>Composting posts rest outside the garden', $html );
 	}
 
 	public function test_stages_tab_counts_a_stage_with_no_posts_as_none() {
@@ -471,7 +483,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '1 post is a seedling. 0 posts are sprouts. 0 posts are budding. 0 posts are evergreen.', $html );
+		$this->assertStringContainsString( '<span>1 post is a seedling.</span> <span>0 posts are sprouts.</span> <span>0 posts are budding.</span> <span>0 posts are evergreen.</span>', $html );
 		$this->assertStringNotContainsString( 'undergrowth-composting-count', $html );
 	}
 

@@ -88,12 +88,17 @@ test.describe( 'Growth stages tab', () => {
 				status: 'publish',
 			} );
 			await admin.visitAdminPage( 'edit.php', '' );
-			const compost = await page
-				.locator(
-					`#post-${ yacon.id } a[href*="action=undergrowth_compost&"]`
+			// Row actions show once focus is inside the row.
+			const compost = page.locator(
+				`#post-${ yacon.id } a[href*="action=undergrowth_compost&"]`
+			);
+			await compost.focus();
+			await compost.click();
+			await expect(
+				page.locator(
+					`#post-${ yacon.id } a[href*="action=undergrowth_return&"]`
 				)
-				.getAttribute( 'href' );
-			await page.goto( compost );
+			).toHaveCount( 1 );
 			await admin.visitAdminPage(
 				'edit.php',
 				'page=undergrowth-links&tab=stages'
