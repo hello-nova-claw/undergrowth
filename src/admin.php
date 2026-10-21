@@ -318,11 +318,10 @@ function undergrowth_render_resurfacing_signals(): void {
 			continue;
 		}
 
-		$title  = get_the_title( $post_id );
 		$newest = max( $members );
 
 		printf(
-			'<div class="notice notice-info inline undergrowth-resurfacing"><p>%1$s</p><form method="post" action="%2$s"><input type="hidden" name="action" value="undergrowth_dismiss_resurfacing" /><input type="hidden" name="post" value="%3$d" />',
+			'<div class="notice notice-info inline undergrowth-resurfacing"><p id="undergrowth-resurfacing-%3$d">%1$s</p><form method="post" action="%2$s"><input type="hidden" name="action" value="undergrowth_dismiss_resurfacing" /><input type="hidden" name="post" value="%3$d" />',
 			wp_kses(
 				sprintf(
 					/* translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to. */
@@ -337,13 +336,10 @@ function undergrowth_render_resurfacing_signals(): void {
 		);
 		wp_nonce_field( 'undergrowth_dismiss_resurfacing_' . $post_id );
 		printf(
-			'<p><a href="%1$s" class="button" aria-label="%2$s">%3$s</a> <button type="submit" class="button" aria-label="%4$s">%5$s</button></p></form></div>',
+			'<p><a href="%1$s" class="button" aria-describedby="undergrowth-resurfacing-%2$d">%3$s</a> <button type="submit" class="button" aria-describedby="undergrowth-resurfacing-%2$d">%4$s</button></p></form></div>',
 			esc_url( undergrowth_stage_row_url( 'return', $post_id ) ),
-			/* translators: %s: post title. */
-			esc_attr( sprintf( __( 'Return &#8220;%s&#8221; to the garden', 'undergrowth' ), $title ) ),
+			(int) $post_id,
 			esc_html__( 'Return to garden', 'undergrowth' ),
-			/* translators: %s: post title. */
-			esc_attr( sprintf( __( 'Dismiss, and leave &#8220;%s&#8221; composting', 'undergrowth' ), $title ) ),
 			esc_html__( 'Dismiss', 'undergrowth' )
 		);
 	}
