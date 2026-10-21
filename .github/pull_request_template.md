@@ -14,4 +14,4 @@ Fixes #
 
 <!-- If this touches UI, describe how you tested it with a keyboard alone: what you tabbed through, what you activated, where focus went. -->
 
-<!-- Checklist: changelog line added to readme.txt, POT regenerated if strings changed, tests committed before code. -->
+<!-- Checklist: changelog fragment added as changelog/<issue>-<slug>.txt, POT regenerated if strings changed, tests committed before code. -->
