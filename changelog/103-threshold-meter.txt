@@ -1,0 +1,1 @@
+New Readers dashboard widget counts your page views over the last 30 days from Jetpack Stats, against a milestone of 1,000. Crossing it changes nothing yet: reader features come in a later version, and each of their suggestions will also need enough visits on its own pages. Without Jetpack Stats the widget says what it needs.
