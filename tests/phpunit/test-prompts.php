@@ -484,6 +484,9 @@ class Test_Prompts extends WP_UnitTestCase {
 			'curly quote not theirs'  => array( 'You wrote “oca is easy” — is it?' ),
 			'unclosed quote'          => array( 'You wrote "I lift the tubers, so why?' ),
 			'empty quote'             => array( 'You wrote "" so why?' ),
+			'single quote not theirs' => array( 'A reader asks ‘how do you store the tubers’ — what do you do?' ),
+			'straight single quote'   => array( "A reader asks 'how do you store the tubers' — what do you do?" ),
+			'unclosed single quote'   => array( 'You wrote ‘I lift the tubers, so why?' ),
 		);
 	}
 
@@ -511,6 +514,9 @@ class Test_Prompts extends WP_UnitTestCase {
 			'part of a sentence'   => array( 'You lift them "after the first frost", so where do they go then?' ),
 			'curly quotes'         => array( 'You wrote “I lift the tubers after the first frost” — and then?' ),
 			'guillemets'           => array( 'Vous écrivez «I lift the tubers» : et ensuite ?' ),
+			'single quotes'        => array( 'You wrote ‘I lift the tubers after the first frost’ — and then?' ),
+			'straight single'      => array( "You wrote 'I lift the tubers' — and then?" ),
+			'apostrophes'          => array( "What don’t you say about your neighbours' oca, or the frost’s timing?" ),
 			'arabic question mark' => array( 'ماذا تفعل بالدرنات في الشتاء؟' ),
 			'full-width mark'      => array( '冬の間、塊茎をどうしていますか？' ),
 		);
