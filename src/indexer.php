@@ -61,7 +61,21 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
  * @param WP_Post $post    Post that was saved.
  */
 function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
+	// Core saves a revision on every update. Post meta functions map a
+	// revision's ID to its parent, so treating the revision as a post that
+	// left the index would wipe the parent's cluster and resurfacing meta.
+	if ( wp_is_post_revision( $post ) ) {
+		return;
+	}
+
 	if ( ! undergrowth_is_indexable( $post ) ) {
+		// Menu items, synced patterns and the like are never indexed and are
+		// saved often, so only a post that has a vector, or whose type is
+		// indexed, is announced as leaving.
+		if ( ! in_array( $post->post_type, undergrowth_indexed_post_types(), true ) && null === undergrowth_get_vector( $post_id ) ) {
+			return;
+		}
+
 		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
 		undergrowth_remove_from_index( $post_id );
 		return;
