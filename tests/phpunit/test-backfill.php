@@ -24,14 +24,22 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	private $failing = array();
 
+	/**
+	 * Model name the test provider reports.
+	 *
+	 * @var string
+	 */
+	private $model = 'test-model-v1';
+
 	public function set_up() {
 		parent::set_up();
 
 		$this->embedded = array();
 		$this->failing  = array();
+		$this->model    = 'test-model-v1';
 
 		delete_option( 'undergrowth_openai_api_key' );
-		delete_option( 'undergrowth_backfill_after' );
+		delete_option( 'undergrowth_backfill' );
 		delete_option( 'undergrowth_backfill.lock' );
 		delete_option( 'undergrowth_index_identity' );
 		wp_unschedule_hook( 'undergrowth_backfill' );
@@ -63,7 +71,7 @@ class Test_Backfill extends WP_UnitTestCase {
 	public function identity() {
 		return array(
 			'provider' => 'test-provider',
-			'model'    => 'test-model-v1',
+			'model'    => $this->model,
 		);
 	}
 
@@ -334,6 +342,22 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
 	}
 
+	public function test_pass_starts_over_when_the_model_changes_mid_pass() {
+		$this->batch_size( 2 );
+		$ids = $this->archive( 4 );
+
+		undergrowth_start_backfill();
+		wp_unschedule_hook( 'undergrowth_backfill' );
+		do_action( 'undergrowth_backfill' );
+
+		$this->model = 'test-model-v2';
+		$this->run_cron();
+
+		foreach ( $ids as $id ) {
+			$this->assertSame( 'test-model-v2', undergrowth_get_vector( $id )['model'] );
+		}
+	}
+
 	public function test_check_starts_a_backfill_when_a_post_has_no_vector() {
 		$this->archive( 1 );
 
@@ -466,14 +490,14 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->archive( 1 );
 		undergrowth_start_backfill();
 		undergrowth_schedule_backfill_check();
-		update_option( 'undergrowth_backfill_after', 5 );
+		update_option( 'undergrowth_backfill', array( 'after' => 5 ) );
 		update_option( 'undergrowth_backfill.lock', time(), false );
 
 		undergrowth_deactivate();
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
-		$this->assertFalse( get_option( 'undergrowth_backfill_after' ) );
+		$this->assertFalse( get_option( 'undergrowth_backfill' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
 	}
 }
