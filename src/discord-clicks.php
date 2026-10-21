@@ -49,15 +49,17 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 	$previous_user = get_current_user_id();
 	wp_set_current_user( $user->ID );
 
-	if ( 'accept' === $button[1] ) {
-		$result = undergrowth_accept_link( $source_id, $target_id );
-	} elseif ( undergrowth_veto_link( $source_id, $target_id ) ) {
-		$result = 'vetoed';
-	} else {
-		$result = 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone';
+	try {
+		if ( 'accept' === $button[1] ) {
+			$result = undergrowth_accept_link( $source_id, $target_id );
+		} elseif ( undergrowth_veto_link( $source_id, $target_id ) ) {
+			$result = 'vetoed';
+		} else {
+			$result = 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone';
+		}
+	} finally {
+		wp_set_current_user( $previous_user );
 	}
-
-	wp_set_current_user( $previous_user );
 
 	return undergrowth_discord_click_reply( $source_id, $target_id, $result );
 }
