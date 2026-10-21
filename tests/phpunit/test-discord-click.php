@@ -144,6 +144,33 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$this->assertSame( 0, get_current_user_id() );
 	}
 
+	public function test_current_user_is_restored_when_acting_fails() {
+		list( $oca, $yacon ) = $this->pair();
+
+		add_filter(
+			'wp_insert_post_data',
+			static function () {
+				throw new RuntimeException( 'Saving failed.' );
+			}
+		);
+
+		$thrown = false;
+
+		try {
+			undergrowth_discord_click(
+				array(
+					'user' => array( 'id' => self::DISCORD_USER ),
+					'data' => array( 'custom_id' => 'undergrowth:accept:' . $oca . ':' . $yacon ),
+				)
+			);
+		} catch ( RuntimeException $e ) {
+			$thrown = true;
+		}
+
+		$this->assertTrue( $thrown );
+		$this->assertSame( 0, get_current_user_id() );
+	}
+
 	public function test_click_from_an_unlinked_user_is_refused_privately() {
 		list( $oca, $yacon ) = $this->pair();
 
