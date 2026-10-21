@@ -126,7 +126,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		undergrowth_render_suggestions_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'name="undergrowth_suggest_links"', $html );
+		$this->assertStringContainsString( 'aria-current="page">Suggestions<', $html );
 		$this->assertStringNotContainsString( 'undergrowth-stages', $html );
 	}
 
