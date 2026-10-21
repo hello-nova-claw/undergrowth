@@ -13,6 +13,8 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_DISTINCTIVE_TERMS = 20;
 
 add_action( 'clean_post_cache', 'undergrowth_forget_reusable_corpus' );
+// Another site's posts table can hold the same IDs.
+add_action( 'switch_blog', 'undergrowth_forget_reusable_corpus' );
 
 // Hiragana, katakana and CJK ideographs. These scripts do not separate words
 // with spaces, so they are matched as overlapping pairs of characters.
@@ -304,7 +306,8 @@ function undergrowth_reusable_corpus( array $post_ids ): array {
 }
 
 /**
- * Drops the reused word counts once any post changes.
+ * Drops the reused word counts once any post changes, or another site's
+ * posts are read.
  */
 function undergrowth_forget_reusable_corpus(): void {
 	global $undergrowth_reusable_corpus;
