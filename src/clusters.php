@@ -171,9 +171,11 @@ function undergrowth_has_clusters(): bool {
  * Lists every cluster with its posts, for the author to see.
  *
  * Posts come nearest the centre first, as measured for gaps, and any that
- * could not be measured after them. Composting and unpublished posts are
- * left out even if their cluster key is still there. Nothing is named: a
- * cluster is only its posts.
+ * could not be measured after them, in ID order. Measuring is capped at
+ * UNDERGROWTH_CLUSTER_BATCH posts, as for gaps, so a very large cluster lists
+ * the rest after the measured ones. Composting and unpublished posts are
+ * left out, and never counted towards the centre, even if their cluster key
+ * is still there. Nothing is named: a cluster is only its posts.
  *
  * @return array<int, array{leader: int, members: int[], gap: bool}> Clusters with posts to show, lowest leader first.
  */
@@ -182,10 +184,9 @@ function undergrowth_cluster_map(): array {
 	$map       = array();
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
-		$members  = undergrowth_cluster_posts( $leader );
-		$measured = undergrowth_measure_cluster( array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ) );
-		$ordered  = null === $measured ? $members : array_merge( $measured['members'], array_diff( $members, $measured['members'] ) );
-		$shown    = array_values( array_filter( $ordered, 'undergrowth_can_cluster' ) );
+		$shown    = array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) );
+		$measured = undergrowth_measure_cluster( array_slice( $shown, 0, UNDERGROWTH_CLUSTER_BATCH ) );
+		$shown    = null === $measured ? $shown : array_merge( $measured['members'], array_diff( $shown, $measured['members'] ) );
 
 		if ( array() === $shown ) {
 			continue;
@@ -207,7 +208,8 @@ function undergrowth_cluster_map(): array {
  *
  * A cluster's centre is the mean of its members' unit vectors. When no
  * member reaches undergrowth_gap_similarity() to it, the posts circle
- * something none of them is about.
+ * something none of them is about. Only posts still in the garden are
+ * measured, so a composted post whose key was left behind fills no gap.
  *
  * @return array<int, array{leader: int, members: int[], cluster: int[], centre: float}> One entry per gap,
  *         by leader ID: the members measured, nearest the centre first; every member of the cluster,
@@ -219,7 +221,7 @@ function undergrowth_cluster_gaps(): array {
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
 		$members = undergrowth_cluster_posts( $leader );
-		$gap     = undergrowth_cluster_gap( $leader, array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
+		$gap     = undergrowth_cluster_gap( $leader, array_slice( array_values( array_filter( $members, 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
 
 		if ( null !== $gap ) {
 			$gaps[] = $gap + array( 'cluster' => $members );
