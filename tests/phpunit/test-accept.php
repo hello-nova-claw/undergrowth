@@ -334,6 +334,7 @@ class Test_Accept extends WP_UnitTestCase {
 			'shortcode'                    => array( '[caption id="attachment_1"]<img src="yacon.jpg" alt="" /> I keep yacon plants nearby.[/caption]' ),
 			'preformatted over paragraphs' => array( "<pre>\nIntro.\n\nI keep yacon plants nearby.\n\n</pre>" ),
 			'preformatted with a comment'  => array( "<pre>Intro.<!-- </pre> -->\n\nI keep yacon plants nearby.\n\n</pre>" ),
+			'comment over paragraphs'     => array( "<!-- Draft:\n\nI keep yacon plants nearby.\n\n-->\n\nFrost comes late." ),
 			'shortcode over paragraphs'    => array( "[caption id=\"attachment_1\"]Intro.\n\nI keep yacon plants nearby.\n\n[/caption]" ),
 			'list over paragraphs'         => array( "<ul>\n<li>Intro.\n\nI keep yacon plants nearby.</li>\n</ul>" ),
 			'link over paragraphs'         => array( "<a href=\"https://example.test/notes/\">Intro.\n\nI keep yacon plants nearby.</a>" ),
