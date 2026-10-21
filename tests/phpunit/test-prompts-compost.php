@@ -372,12 +372,17 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_write_prompt() );
 	}
 
-	public function test_check_that_fails_throws_the_question_away() {
+	public function test_check_that_fails_leaves_the_post_to_try_again() {
 		$this->composted();
 		$this->check = new WP_Error( 'http_request_failed' );
 
 		$this->assertFalse( undergrowth_write_prompt() );
 		$this->assertNull( undergrowth_current_prompt() );
+
+		$this->check = 'NO';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertSame( self::QUESTION, undergrowth_current_prompt()['question'] );
 	}
 
 	public function test_reader_question_is_never_checked_as_a_rest() {
