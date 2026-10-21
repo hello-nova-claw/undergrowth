@@ -364,7 +364,7 @@ class Test_Indexer extends WP_UnitTestCase {
 		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
-		wp_create_post_autosave(
+		$autosave = wp_create_post_autosave(
 			array(
 				'post_ID'      => $post_id,
 				'post_type'    => 'post',
@@ -372,6 +372,9 @@ class Test_Indexer extends WP_UnitTestCase {
 				'post_content' => 'A draft of a change.',
 			)
 		);
+
+		$this->assertIsInt( $autosave );
+		$this->assertGreaterThan( 0, $autosave );
 
 		$this->assertSame( $post_id, (int) get_post_meta( $post_id, 'undergrowth_cluster', true ) );
 	}
@@ -394,10 +397,27 @@ class Test_Indexer extends WP_UnitTestCase {
 		$post_id = $this->publish();
 		undergrowth_embed_post( $post_id );
 
-		set_post_type( $post_id, 'page' );
-		do_action( 'wp_after_insert_post', $post_id, get_post( $post_id ), true, null );
+		wp_update_post(
+			array(
+				'ID'        => $post_id,
+				'post_type' => 'page',
+			)
+		);
 
 		$this->assertNull( undergrowth_get_vector( $post_id ) );
+	}
+
+	public function test_post_moved_to_a_type_that_is_not_indexed_before_its_embed_is_not_embedded() {
+		$post_id = $this->publish();
+
+		wp_update_post(
+			array(
+				'ID'        => $post_id,
+				'post_type' => 'page',
+			)
+		);
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
 	}
 
 	public function test_embed_for_a_missing_post_does_nothing() {
