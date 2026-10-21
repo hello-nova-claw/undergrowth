@@ -282,6 +282,36 @@ class Test_Abilities_Scale extends WP_UnitTestCase {
 		$this->assertSame( 1, array_sum( $stage['counts'] ) );
 	}
 
+	public function test_contributor_counts_no_published_post_at_site_scale() {
+		$this->plant_garden();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'contributor' ) ) );
+
+		$this->assertSame( array(), undergrowth_ability_site_posts() );
+		$this->assertSame( 0, array_sum( $this->run_ability( 'undergrowth/stage' )['counts'] ) );
+	}
+
+	public function test_site_posts_leave_no_post_body_in_the_cache() {
+		$posts = $this->plant_garden();
+
+		foreach ( $posts as $post_id ) {
+			clean_post_cache( $post_id );
+		}
+
+		$this->assertEqualsCanonicalizing( array_values( $posts ), undergrowth_ability_site_posts() );
+
+		foreach ( $posts as $post_id ) {
+			$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
+		}
+	}
+
+	public function test_site_posts_for_an_author_are_only_their_own() {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		$posts  = $this->plant_garden( array( 'Taxes' => array( 'post_author' => $author ) ) );
+		wp_set_current_user( $author );
+
+		$this->assertSame( array( $posts['Taxes'] ), undergrowth_ability_site_posts() );
+	}
+
 	public function test_site_scale_runs_through_rest_without_input() {
 		$this->plant_garden();
 
