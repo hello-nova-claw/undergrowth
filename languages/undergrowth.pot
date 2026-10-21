@@ -453,6 +453,18 @@ msgstr ""
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
+#: src/discord.php
+msgid "This request is not signed by Discord."
+msgstr ""
+
+#: src/discord.php
+msgid "This interaction could not be read."
+msgstr ""
+
+#: src/discord.php
+msgid "Undergrowth only answers its own Accept and Veto buttons."
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
