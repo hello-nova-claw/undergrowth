@@ -48,25 +48,34 @@ function undergrowth_compost_row_actions( $actions, $post ) {
 		$text  = __( 'Compost', 'undergrowth' );
 	}
 
-	$url = wp_nonce_url(
-		add_query_arg(
-			array(
-				'action' => 'undergrowth_' . $action,
-				'post'   => $post->ID,
-			),
-			admin_url( 'admin-post.php' )
-		),
-		'undergrowth_' . $action . '_' . $post->ID
-	);
-
 	$actions[ 'undergrowth_' . $action ] = sprintf(
 		'<a href="%1$s" aria-label="%2$s">%3$s</a>',
-		esc_url( $url ),
+		esc_url( undergrowth_stage_row_url( $action, $post->ID ) ),
 		esc_attr( $label ),
 		esc_html( $text )
 	);
 
 	return $actions;
+}
+
+/**
+ * Builds the address of a post's compost or return link.
+ *
+ * @param string $action  'compost' or 'return'.
+ * @param int    $post_id Post ID.
+ * @return string Address with a nonce, not yet escaped.
+ */
+function undergrowth_stage_row_url( string $action, int $post_id ): string {
+	return wp_nonce_url(
+		add_query_arg(
+			array(
+				'action' => 'undergrowth_' . $action,
+				'post'   => $post_id,
+			),
+			admin_url( 'admin-post.php' )
+		),
+		'undergrowth_' . $action . '_' . $post_id
+	);
 }
 
 /**
