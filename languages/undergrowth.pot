@@ -9,544 +9,537 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-21T00:17:32+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: undergrowth\n"
 
 #. Plugin Name of the plugin
-#: undergrowth.php:3
-#: src/abilities.php:26
-#: src/discord-clicks.php:158
-#: src/settings.php:22
-#: src/settings.php:23
+#: undergrowth.php
+#: src/abilities.php
+#: src/discord-clicks.php
+#: src/settings.php
 msgid "Undergrowth"
 msgstr ""
 
 #. Plugin URI of the plugin
-#: undergrowth.php:4
+#: undergrowth.php
 msgid "https://github.com/hello-nova-claw/undergrowth"
 msgstr ""
 
 #. Description of the plugin
-#: undergrowth.php:5
+#: undergrowth.php
 msgid "Uses AI to read your site and ask you questions. It never writes a word your readers will see."
 msgstr ""
 
 #. Author of the plugin
-#: undergrowth.php:9
+#: undergrowth.php
 msgid "Novaclaw"
 msgstr ""
 
-#: src/abilities.php:27
+#: src/abilities.php
 msgid "Read what Undergrowth knows about a post, and accept or veto the links it suggests."
 msgstr ""
 
-#: src/abilities.php:51
+#: src/abilities.php
 msgid "What a post has"
 msgstr ""
 
-#: src/abilities.php:52
+#: src/abilities.php
 msgid "Lists the words that most set a post apart from the rest of the site, taken from its own text, and the published posts it already links to."
 msgstr ""
 
-#: src/abilities.php:60
+#: src/abilities.php
 msgid "Words from the post, most distinctive first."
 msgstr ""
 
-#: src/abilities.php:65
+#: src/abilities.php
 msgid "Published posts the post links to."
 msgstr ""
 
-#: src/abilities.php:73
+#: src/abilities.php
 msgid "What a post lacks"
 msgstr ""
 
-#: src/abilities.php:74
+#: src/abilities.php
 msgid "Lists the links suggested for a post that the author has not yet accepted or vetoed, best first, each with the sentence from the post where it fits."
 msgstr ""
 
-#: src/abilities.php:82
+#: src/abilities.php
 msgid "Suggested links, best first."
 msgstr ""
 
-#: src/abilities.php:90
+#: src/abilities.php
 msgid "The sentence from the post where the link fits, quoted with formatting removed."
 msgstr ""
 
-#: src/abilities.php:102
+#: src/abilities.php
 msgid "A post’s scent"
 msgstr ""
 
-#: src/abilities.php:103
+#: src/abilities.php
 msgid "Reports how readers move through a post. Undergrowth reads no reader data until reader mode, so for now the value is always empty."
 msgstr ""
 
-#: src/abilities.php:119
+#: src/abilities.php
 msgid "A post’s growth stage"
 msgstr ""
 
-#: src/abilities.php:120
+#: src/abilities.php
 msgid "Reports a post’s growth stage, whether the author pinned it, and every recorded change to it, oldest first."
 msgstr ""
 
-#: src/abilities.php:193
+#: src/abilities.php
 msgid "Accept a link"
 msgstr ""
 
-#: src/abilities.php:194
+#: src/abilities.php
 msgid "Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely."
 msgstr ""
 
-#: src/abilities.php:199
+#: src/abilities.php
 msgid "Veto a link"
 msgstr ""
 
-#: src/abilities.php:200
+#: src/abilities.php
 msgid "Vetoes a link between two posts, so it is never suggested again. An accepted link is left as it is."
 msgstr ""
 
-#: src/abilities.php:218
+#: src/abilities.php
 msgid "ID of the post the link sits in."
 msgstr ""
 
-#: src/abilities.php:223
+#: src/abilities.php
 msgid "ID of the post the link points to."
 msgstr ""
 
-#: src/abilities.php:270
+#: src/abilities.php
 msgid "ID of a published post."
 msgstr ""
 
-#: src/abilities.php:331
+#: src/abilities.php
 msgid "Undergrowth does not read that post, so it knows nothing about it. Only published posts without a password are read."
 msgstr ""
 
-#: src/abilities.php:523
-#: src/admin.php:353
-#: src/discord-clicks.php:83
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
-#: src/abilities.php:524
-#: src/admin.php:352
-#: src/discord-clicks.php:82
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
-#: src/abilities.php:525
-#: src/admin.php:357
-#: src/discord-clicks.php:84
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
-#: src/abilities.php:526
-#: src/admin.php:355
-#: src/discord-clicks.php:85
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/abilities.php:527
-#: src/admin.php:356
-#: src/discord-clicks.php:86
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
-#: src/abilities.php:528
-#: src/admin.php:358
-#: src/discord-clicks.php:87
+#: src/abilities.php
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
-#: src/admin.php:22
-#: src/admin.php:23
+#: src/admin.php
 msgid "Link suggestions"
 msgstr ""
 
-#: src/admin.php:79
-#: src/admin.php:107
+#: src/admin.php
 msgid "You cannot change links in this post."
 msgstr ""
 
-#: src/admin.php:132
+#: src/admin.php
 msgid "You cannot change this setting."
 msgstr ""
 
-#: src/admin.php:204
+#: src/admin.php
 msgid "Link suggestions screen"
 msgstr ""
 
-#: src/admin.php:207
+#: src/admin.php
 msgid "Suggestions"
 msgstr ""
 
-#: src/admin.php:208
+#: src/admin.php
 msgid "Growth stages"
 msgstr ""
 
-#: src/admin.php:246
+#: src/admin.php
 msgid "Every published post is composting, so none has a growth stage to show here. Composting posts are marked on the Posts screen."
 msgstr ""
 
-#: src/admin.php:248
+#: src/admin.php
 msgid "No published posts yet. Each post gets a growth stage once it is published."
 msgstr ""
 
-#: src/admin.php:254
+#: src/admin.php
 msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is."
 msgstr ""
 
-#: src/admin.php:257
+#: src/admin.php
 msgid "Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden."
 msgstr ""
 
-#: src/admin.php:306
+#: src/admin.php
 msgid "Suggest links between my posts"
 msgstr ""
 
-#: src/admin.php:308
+#: src/admin.php
 msgid "Save"
 msgstr ""
 
 #. translators: %s: address of the Undergrowth settings page.
-#: src/admin.php:317
+#: src/admin.php
 #, php-format
 msgid "Link suggestions need an embedding provider. <a href=\"%s\">Add an API key in Settings</a> to start."
 msgstr ""
 
-#: src/admin.php:323
+#: src/admin.php
 msgid "Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on."
 msgstr ""
 
-#: src/admin.php:330
+#: src/admin.php
 msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
 msgstr ""
 
-#: src/admin.php:332
+#: src/admin.php
 msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
 msgstr ""
 
-#: src/admin.php:350
-#: src/discord-clicks.php:81
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
-#: src/admin.php:351
+#: src/admin.php
 msgid "Your choice is saved."
 msgstr ""
 
-#: src/admin.php:354
-#: src/discord-clicks.php:80
+#: src/admin.php
+#: src/discord-clicks.php
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
-#: src/admin.php:359
+#: src/admin.php
 msgid "Stage pinned. The monthly cycle will leave it as it is."
 msgstr ""
 
-#: src/admin.php:360
+#: src/admin.php
 msgid "Stage unpinned and measured again from the links you have accepted."
 msgstr ""
 
-#: src/admin.php:361
+#: src/admin.php
 msgid "That stage cannot be pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:362
+#: src/admin.php
 msgid "A composting post cannot be pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:363
+#: src/admin.php
 msgid "That stage was not pinned, so nothing was changed."
 msgstr ""
 
-#: src/admin.php:364
+#: src/admin.php
 msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
 msgstr ""
 
-#: src/admin.php:365
-#: src/stages.php:522
+#: src/admin.php
+#: src/stages.php
 msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
-#: src/admin.php:366
-#: src/memory.php:524
-#: src/stages.php:562
-#: src/stages.php:607
+#: src/admin.php
+#: src/memory.php
+#: src/stages.php
 msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
 msgstr ""
 
-#: src/admin.php:381
+#: src/admin.php
 msgid "See the change"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:41
+#: src/class-undergrowth-links-list-table.php
 msgid "In this post"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:42
+#: src/class-undergrowth-links-list-table.php
 msgid "At this sentence"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:43
+#: src/class-undergrowth-links-list-table.php
 msgid "Link to"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:44
-#: src/class-undergrowth-stages-list-table.php:43
+#: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-stages-list-table.php
 msgid "Actions"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
-#: src/class-undergrowth-links-list-table.php:164
+#: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:165
-#: src/discord-messages.php:182
+#: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Accept"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
-#: src/class-undergrowth-links-list-table.php:171
+#: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
-#: src/class-undergrowth-links-list-table.php:172
-#: src/discord-messages.php:188
+#: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Veto"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:41
+#: src/class-undergrowth-stages-list-table.php
 msgid "Post"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:42
+#: src/class-undergrowth-stages-list-table.php
 msgid "Stage"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:136
+#: src/class-undergrowth-stages-list-table.php
 msgid "Pinned"
 msgstr ""
 
 #. translators: %s: post title.
-#: src/class-undergrowth-stages-list-table.php:166
+#: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Unpin the stage of %s"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:167
+#: src/class-undergrowth-stages-list-table.php
 msgid "Unpin"
 msgstr ""
 
 #. translators: %s: post title.
-#: src/class-undergrowth-stages-list-table.php:181
+#: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Stage to pin for %s"
 msgstr ""
 
 #. translators: %s: post title.
-#: src/class-undergrowth-stages-list-table.php:190
+#: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Pin the stage of %s"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php:191
+#: src/class-undergrowth-stages-list-table.php
 msgid "Pin"
 msgstr ""
 
-#: src/dashboard.php:28
+#: src/dashboard.php
 msgid "A question for you"
 msgstr ""
 
 #. translators: %1$s: title of the post, linked to its editor.
-#: src/dashboard.php:49
+#: src/dashboard.php
 #, php-format
 msgid "Claude wrote this question from a reader’s comment on %1$s and your own words there. Only you can see it."
 msgstr ""
 
 #. translators: %1$s: title of the post, linked to its editor.
-#: src/dashboard.php:52
+#: src/dashboard.php
 #, php-format
 msgid "Claude wrote this question from your post %1$s. Only you can see it."
 msgstr ""
 
-#: src/dashboard.php:62
+#: src/dashboard.php
 msgid "Ask me next month"
 msgstr ""
 
-#: src/dashboard.php:63
+#: src/dashboard.php
 msgid "Dismiss for good"
 msgstr ""
 
-#: src/dashboard.php:83
+#: src/dashboard.php
 msgid "You cannot answer questions about this post."
 msgstr ""
 
-#: src/dashboard.php:115
+#: src/dashboard.php
 msgid "Dismissed. Undergrowth won’t ask that again."
 msgstr ""
 
-#: src/dashboard.php:116
+#: src/dashboard.php
 msgid "Snoozed. This question comes back next month."
 msgstr ""
 
-#: src/dashboard.php:117
+#: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
-#: src/discord-clicks.php:36
+#: src/discord-clicks.php
 msgid "Undergrowth does not know this button, so nothing was changed."
 msgstr ""
 
-#: src/discord-clicks.php:44
+#: src/discord-clicks.php
 msgid "Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed."
 msgstr ""
 
-#: src/discord-clicks.php:162
+#: src/discord-clicks.php
 msgid "Discord user ID"
 msgstr ""
 
-#: src/discord-clicks.php:167
+#: src/discord-clicks.php
 msgid "Lets this Discord user press Accept and Veto on Undergrowth’s Discord messages, with this account’s permissions. Only administrators can see or change this. In Discord, turn on Developer Mode, then right-click the user and choose Copy User ID. Leave it blank to unlink."
 msgstr ""
 
-#: src/discord-clicks.php:205
+#: src/discord-clicks.php
 msgid "The Discord user ID should be a long number, so it was not saved."
 msgstr ""
 
-#: src/discord-clicks.php:220
+#: src/discord-clicks.php
 msgid "That Discord user is already linked to another account, so it was not saved."
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
-#: src/discord-messages.php:154
+#: src/discord-messages.php
 #, php-format
 msgid "Suggested link from “%1$s” to “%2$s”"
 msgstr ""
 
 #. translators: %s: address of the post the link would sit in.
-#: src/discord-messages.php:159
+#: src/discord-messages.php
 #, php-format
 msgid "In: %s"
 msgstr ""
 
 #. translators: %s: address of the post the link would point to.
-#: src/discord-messages.php:161
+#: src/discord-messages.php
 #, php-format
 msgid "To: %s"
 msgstr ""
 
-#: src/discord-messages.php:194
+#: src/discord-messages.php
 msgid "Open in WordPress"
 msgstr ""
 
-#: src/discord-settings.php:94
+#: src/discord-settings.php
 msgid "Discord"
 msgstr ""
 
-#: src/discord-settings.php:100
+#: src/discord-settings.php
 msgid "Application ID"
 msgstr ""
 
-#: src/discord-settings.php:101
+#: src/discord-settings.php
 msgid "Public key"
 msgstr ""
 
-#: src/discord-settings.php:102
+#: src/discord-settings.php
 msgid "Bot token"
 msgstr ""
 
-#: src/discord-settings.php:103
+#: src/discord-settings.php
 msgid "Channel ID for link suggestions"
 msgstr ""
 
-#: src/discord-settings.php:122
+#: src/discord-settings.php
 msgid "Interactions endpoint URL"
 msgstr ""
 
-#: src/discord-settings.php:139
+#: src/discord-settings.php
 msgid "The Discord application ID should be a long number, so the saved one was kept."
 msgstr ""
 
-#: src/discord-settings.php:153
+#: src/discord-settings.php
 msgid "The Discord channel ID should be a long number, so the saved one was kept."
 msgstr ""
 
-#: src/discord-settings.php:195
+#: src/discord-settings.php
 msgid "The Discord public key should be 64 letters and numbers, as shown in the developer portal, so the saved one was kept."
 msgstr ""
 
-#: src/discord-settings.php:219
+#: src/discord-settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
 #. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
-#: src/discord-settings.php:229
+#: src/discord-settings.php
 #, php-format
 msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
 #. translators: %s: last four characters of the saved bot token.
-#: src/discord-settings.php:269
+#: src/discord-settings.php
 #, php-format
 msgid "A token ending in %s is saved. Leave the field blank to keep it."
 msgstr ""
 
-#: src/discord-settings.php:278
+#: src/discord-settings.php
 msgid "Remove the saved token and stop sending anything to Discord"
 msgstr ""
 
-#: src/discord-settings.php:292
+#: src/discord-settings.php
 msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
 msgstr ""
 
-#: src/discord.php:49
+#: src/discord.php
 msgid "This request is not signed by Discord."
 msgstr ""
 
-#: src/discord.php:87
+#: src/discord.php
 msgid "This interaction could not be read."
 msgstr ""
 
-#: src/discord.php:98
+#: src/discord.php
 msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
-#: src/memory.php:496
+#: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
 
-#: src/memory.php:545
+#: src/memory.php
 msgid "The stage was imported, but some of its history could not be saved."
 msgstr ""
 
 #. translators: %s: post title.
-#: src/posts-screen.php:42
+#: src/posts-screen.php
 #, php-format
 msgid "Return &#8220;%s&#8221; to the garden"
 msgstr ""
 
-#: src/posts-screen.php:43
-#: src/posts-screen.php:129
+#: src/posts-screen.php
 msgid "Return to garden"
 msgstr ""
 
 #. translators: %s: post title.
-#: src/posts-screen.php:47
+#: src/posts-screen.php
 #, php-format
 msgid "Compost &#8220;%s&#8221;"
 msgstr ""
 
-#: src/posts-screen.php:48
-#: src/posts-screen.php:128
+#: src/posts-screen.php
 msgid "Compost"
 msgstr ""
 
 #. translators: %s: number of posts.
-#: src/posts-screen.php:357
+#: src/posts-screen.php
 #, php-format
 msgid "%s post moved to compost. It stays published, and no links are suggested to or from it."
 msgid_plural "%s posts moved to compost. They stay published, and no links are suggested to or from them."
@@ -554,7 +547,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of posts.
-#: src/posts-screen.php:365
+#: src/posts-screen.php
 #, php-format
 msgid "%s post returned to the garden. Its stage was measured again from the links you have accepted."
 msgid_plural "%s posts returned to the garden. Their stages were measured again from the links you have accepted."
@@ -562,121 +555,120 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: number of posts.
-#: src/posts-screen.php:375
+#: src/posts-screen.php
 #, php-format
 msgid "%s post was left as it was, because it is not published, is already at that stage, or you cannot edit it."
 msgid_plural "%s posts were left as they were, because they are not published, are already at that stage, or you cannot edit them."
 msgstr[0] ""
 msgstr[1] ""
 
-#: src/settings.php:146
+#: src/settings.php
 msgid "OpenAI API key"
 msgstr ""
 
-#: src/settings.php:152
+#: src/settings.php
 msgid "With a key saved, the title and text of each published post are sent to OpenAI to be turned into vectors, which Undergrowth uses to suggest links between your posts. Nothing is sent until you save a key. Undergrowth never writes or changes your posts."
 msgstr ""
 
 #. translators: %s: last four characters of the saved API key.
-#: src/settings.php:161
-#: src/settings.php:210
+#: src/settings.php
 #, php-format
 msgid "A key ending in %s is saved. Leave the field blank to keep it."
 msgstr ""
 
-#: src/settings.php:170
+#: src/settings.php
 msgid "Remove the saved key and stop sending posts to OpenAI"
 msgstr ""
 
 #. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
-#: src/settings.php:182
+#: src/settings.php
 #, php-format
 msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts are tried again the next time they are saved."
 msgstr ""
 
-#: src/settings.php:195
+#: src/settings.php
 msgid "Anthropic API key"
 msgstr ""
 
-#: src/settings.php:201
+#: src/settings.php
 msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
 msgstr ""
 
-#: src/settings.php:219
+#: src/settings.php
 msgid "Remove the saved key and stop sending anything to Anthropic"
 msgstr ""
 
 #. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
-#: src/settings.php:231
+#: src/settings.php
 #, php-format
 msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
-#: src/stages.php:56
+#: src/stages.php
 msgid "Growth stage, measured from the links between posts or chosen by the author."
 msgstr ""
 
-#: src/stages.php:73
+#: src/stages.php
 msgid "Whether the author pinned the growth stage."
 msgstr ""
 
-#: src/stages.php:152
+#: src/stages.php
 msgctxt "growth stage"
 msgid "Seedling"
 msgstr ""
 
-#: src/stages.php:153
+#: src/stages.php
 msgctxt "growth stage"
 msgid "Sprout"
 msgstr ""
 
-#: src/stages.php:154
+#: src/stages.php
 msgctxt "growth stage"
 msgid "Budding"
 msgstr ""
 
-#: src/stages.php:155
+#: src/stages.php
 msgctxt "growth stage"
 msgid "Evergreen"
 msgstr ""
 
-#: src/stages.php:156
+#: src/stages.php
 msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
-#: src/stages.php:346
+#: src/stages.php
 msgid "Once a month"
 msgstr ""
 
-#: src/stages.php:459
+#: src/stages.php
 msgid "Only published posts in the garden have a growth stage."
 msgstr ""
 
-#: src/stages.php:463
+#: src/stages.php
 msgid "You cannot change the growth stage of this post."
 msgstr ""
 
-#: src/stages.php:475
+#: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
 msgstr ""
 
-#: src/stages.php:498
+#: src/stages.php
 msgid "That stage cannot be pinned."
 msgstr ""
 
-#: src/stages.php:502
+#: src/stages.php
 msgid "A composting post cannot be pinned."
 msgstr ""
 
-#: src/stages.php:549
+#: src/stages.php
 msgid "This post's stage is not pinned."
 msgstr ""
 
-#: src/stages.php:591
+#: src/stages.php
 msgid "This post is already composting."
 msgstr ""
 
-#: src/stages.php:641
+#: src/stages.php
 msgid "This post is not composting."
 msgstr ""
