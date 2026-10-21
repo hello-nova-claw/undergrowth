@@ -12,9 +12,9 @@ Uses AI to read your site and ask you questions. It never writes a word your rea
 
 == Description ==
 
-Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and nothing changes on your site until you approve it.
+Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and it changes a post's text only when you accept a suggestion.
 
-The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. Everything it works from is your own writing.
+The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and, for some questions, from approved comments your readers left, which it treats as data, never as instructions.
 
 What it does in this version:
 
@@ -29,7 +29,7 @@ What it does in this version:
 
 Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
 
-Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits. This version works from your writing alone.
+Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits. This version works from your posts and their approved comments only.
 
 == Installation ==
 
@@ -68,7 +68,7 @@ Undergrowth is free. The services it uses bill your own accounts. Embedding is v
 
 = Does it need a key to work at all? =
 
-Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. Questions need an Anthropic key. With no keys, Undergrowth sends nothing and does nothing but wait.
+Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
 
 = Where does Undergrowth keep its notes about each post? =
 
