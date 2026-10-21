@@ -266,6 +266,12 @@ msgstr ""
 msgid "See the change"
 msgstr ""
 
+#. translators: %s: growth stage name, such as Sprout.
+#: src/blocks.php
+#, php-format
+msgid "Growth stage: %s"
+msgstr ""
+
 #: src/class-undergrowth-links-list-table.php
 msgid "In this post"
 msgstr ""
@@ -351,6 +357,12 @@ msgstr ""
 #: src/dashboard.php
 #, php-format
 msgid "Claude wrote this question from a reader’s comment on %1$s and your own words there. Only you can see it."
+msgstr ""
+
+#. translators: %1$s: title of the post, linked to its editor.
+#: src/dashboard.php
+#, php-format
+msgid "Claude wrote this question from %1$s, a post you moved to compost. Only you can see it."
 msgstr ""
 
 #. translators: %1$s: title of the post, linked to its editor.
@@ -558,7 +570,7 @@ msgid "Anthropic API key"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
+msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
 msgstr ""
 
 #: src/settings.php
@@ -638,4 +650,50 @@ msgstr ""
 
 #: src/stages.php
 msgid "This post is not composting."
+msgstr ""
+
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
+msgstr ""
+
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block title"
+msgid "Growth stage"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block description"
+msgid "Shows the post's growth stage: Seedling, Sprout, Budding or Evergreen. Composting posts show nothing."
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "seedling"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "sprout"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "evergreen"
+msgstr ""
+
+#: build/blocks/growth-stage/block.json
+#: src/blocks/growth-stage/block.json
+msgctxt "block keyword"
+msgid "badge"
 msgstr ""
