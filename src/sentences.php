@@ -390,9 +390,10 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 
 	$best       = null;
 	$best_score = 0.0;
+	$paragraphs = array_column( undergrowth_linkable_paragraphs( $source->post_content ), 2 );
 
 	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
-		if ( $sentence['linked'] || $sentence['quoted'] ) {
+		if ( $sentence['linked'] || $sentence['quoted'] || ! undergrowth_in_any( $sentence['text'], $paragraphs ) ) {
 			continue;
 		}
 
@@ -412,4 +413,21 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 	}
 
 	return $best;
+}
+
+/**
+ * Tells whether a piece of text appears in any of several texts.
+ *
+ * @param string   $needle   Text to find.
+ * @param string[] $haystack Texts to search.
+ * @return bool True when one of them contains it.
+ */
+function undergrowth_in_any( string $needle, array $haystack ): bool {
+	foreach ( $haystack as $text ) {
+		if ( false !== mb_strpos( $text, $needle ) ) {
+			return true;
+		}
+	}
+
+	return false;
 }
