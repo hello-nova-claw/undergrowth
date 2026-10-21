@@ -290,6 +290,89 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'I keep <a href="https://example.test/">yacon</a> plants', (string) $linked );
 	}
 
+	public function test_classic_paragraph_is_linked_in_place() {
+		$before              = "Oca grows in the Andes.\n\nI keep a few yacon plants nearby for their syrup.\n\nHarvest comes after frost.";
+		list( $oca, $yacon ) = $this->pair( $before );
+		$this->set_sentence( $oca, $yacon, 'I keep a few yacon plants nearby for their syrup.' );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$after = get_post( $oca )->post_content;
+		$this->assertStringContainsString( 'I keep a few <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $after );
+		$this->assertSame( $before, $this->without_links_to( $after, $yacon ) );
+	}
+
+	public function test_classic_paragraph_with_line_breaks_and_inline_markup_is_linked() {
+		$linked = undergrowth_link_word(
+			"Oca grows here.\nOca &amp; <em>yacon</em> grow together.\n\nFrost comes late.",
+			'Oca & yacon grow together.',
+			'yacon',
+			'https://example.test/'
+		);
+
+		$this->assertSame( "Oca grows here.\nOca &amp; <em><a href=\"https://example.test/\">yacon</a></em> grow together.\n\nFrost comes late.", $linked );
+	}
+
+	public function test_classic_paragraph_beside_a_more_tag_is_linked() {
+		$linked = undergrowth_link_word( "Oca grows here.<!--more-->\n\nI keep yacon plants nearby.", 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' );
+
+		$this->assertSame( "Oca grows here.<!--more-->\n\nI keep <a href=\"https://example.test/\">yacon</a> plants nearby.", $linked );
+	}
+
+	public function test_classic_paragraph_holding_a_whole_comment_is_linked() {
+		$linked = undergrowth_link_word( "Oca grows here. I keep yacon plants nearby.<!--more-->\n\nFrost comes late.", 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' );
+
+		$this->assertSame( "Oca grows here. I keep <a href=\"https://example.test/\">yacon</a> plants nearby.<!--more-->\n\nFrost comes late.", $linked );
+	}
+
+	/**
+	 * Classic posts whose only copy of the sentence sits where no link may go.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function data_classic_unlinkable() {
+		return array(
+			'heading'                      => array( "<h2>I keep yacon plants nearby.</h2>\n\nFrost comes late." ),
+			'list'                         => array( "<ul>\n<li>I keep yacon plants nearby.</li>\n</ul>" ),
+			'quote'                        => array( '<blockquote>I keep yacon plants nearby.</blockquote>' ),
+			'quote over paragraphs'        => array( "<blockquote>\nIntro.\n\nI keep yacon plants nearby.\n\n</blockquote>" ),
+			'preformatted'                 => array( '<pre>I keep yacon plants nearby.</pre>' ),
+			'table'                        => array( "<table>\n<tr><td>I keep yacon plants nearby.</td></tr>\n</table>" ),
+			'shortcode'                    => array( '[caption id="attachment_1"]<img src="yacon.jpg" alt="" /> I keep yacon plants nearby.[/caption]' ),
+			'preformatted over paragraphs' => array( "<pre>\nIntro.\n\nI keep yacon plants nearby.\n\n</pre>" ),
+			'preformatted with a comment'  => array( "<pre>Intro.<!-- </pre> -->\n\nI keep yacon plants nearby.\n\n</pre>" ),
+			'comment over paragraphs'      => array( "<!-- Draft:\n\nI keep yacon plants nearby.\n\n-->\n\nFrost comes late." ),
+			'shortcode over paragraphs'    => array( "[caption id=\"attachment_1\"]Intro.\n\nI keep yacon plants nearby.\n\n[/caption]" ),
+			'list over paragraphs'         => array( "<ul>\n<li>Intro.\n\nI keep yacon plants nearby.</li>\n</ul>" ),
+			'link over paragraphs'         => array( "<a href=\"https://example.test/notes/\">Intro.\n\nI keep yacon plants nearby.</a>" ),
+			'hgroup'                       => array( '<hgroup>I keep yacon plants nearby.</hgroup>' ),
+			'menu'                         => array( '<menu>I keep yacon plants nearby.</menu>' ),
+			'map'                          => array( '<map name="m">I keep yacon plants nearby.</map>' ),
+			'legend'                       => array( '<legend>I keep yacon plants nearby.</legend>' ),
+		);
+	}
+
+	/**
+	 * Checks nothing is linked outside a Classic post's own paragraphs.
+	 *
+	 * @dataProvider data_classic_unlinkable
+	 *
+	 * @param string $content Post content.
+	 */
+	public function test_classic_post_is_never_linked_outside_its_paragraphs( string $content ) {
+		$this->assertNull( undergrowth_link_word( $content, 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' ) );
+	}
+
+	public function test_text_outside_paragraphs_in_a_block_post_is_never_linked() {
+		$this->assertNull(
+			undergrowth_link_word(
+				"<!-- wp:heading --><h2>Oca</h2><!-- /wp:heading -->\n\nI keep yacon plants nearby.",
+				'I keep yacon plants nearby.',
+				'yacon',
+				'https://example.test/'
+			)
+		);
+	}
+
 	/**
 	 * Publishes Oca and a Yacon post whose words rank "syrup" below its top 20.
 	 *
