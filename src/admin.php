@@ -212,20 +212,26 @@ function undergrowth_render_suggestions_page(): void {
 		return;
 	}
 
+	$tabs = array(
+		''       => __( 'Suggestions', 'undergrowth' ),
+		'stages' => __( 'Growth stages', 'undergrowth' ),
+	);
+
+	// The map only appears once the monthly pass has made a cluster.
+	if ( undergrowth_has_clusters() ) {
+		$tabs['map'] = __( 'Map', 'undergrowth' );
+	}
+
 	// The tab only selects what to show; nothing is changed.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$tab = isset( $_GET['tab'] ) && 'stages' === sanitize_key( wp_unslash( $_GET['tab'] ) ) ? 'stages' : '';
+	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+	$tab = isset( $tabs[ $tab ] ) ? $tab : '';
 	?>
 	<div class="wrap">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 		<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Link suggestions screen', 'undergrowth' ); ?>">
 			<?php
-			$tabs = array(
-				''       => __( 'Suggestions', 'undergrowth' ),
-				'stages' => __( 'Growth stages', 'undergrowth' ),
-			);
-
 			foreach ( $tabs as $key => $label ) {
 				printf(
 					'<a href="%1$s" class="nav-tab%2$s"%3$s>%4$s</a>',
@@ -245,6 +251,8 @@ function undergrowth_render_suggestions_page(): void {
 
 		if ( 'stages' === $tab ) {
 			undergrowth_render_stages_tab();
+		} elseif ( 'map' === $tab ) {
+			undergrowth_render_map_tab();
 		} else {
 			undergrowth_render_suggestions_tab();
 		}
@@ -295,6 +303,60 @@ function undergrowth_render_stages_tab(): void {
 	}
 
 	$table->display();
+}
+
+/**
+ * Prints the map tab: each cluster as a heading over its posts.
+ *
+ * Clusters are numbered, never named, so nothing on the screen is written
+ * by a model. A gap is marked in the heading, where a screen reader's list
+ * of headings finds it, and said in words that name no post or topic.
+ */
+function undergrowth_render_map_tab(): void {
+	echo '<p>' . esc_html__( 'Clusters are groups of your posts that are close in meaning, found once a month. Posts nearest the middle of each cluster come first.', 'undergrowth' ) . '</p>';
+
+	foreach ( undergrowth_cluster_map() as $number => $cluster ) {
+		$id    = 'undergrowth-cluster-' . $cluster['leader'];
+		$label = number_format_i18n( $number + 1 );
+
+		printf(
+			'<h2 id="%1$s">%2$s</h2>',
+			esc_attr( $id ),
+			esc_html(
+				$cluster['gap']
+					/* translators: %1$s: number of the cluster on the screen. */
+					? sprintf( __( 'Cluster %1$s, with a gap', 'undergrowth' ), $label )
+					/* translators: %1$s: number of the cluster on the screen. */
+					: sprintf( __( 'Cluster %1$s', 'undergrowth' ), $label )
+			)
+		);
+
+		if ( $cluster['gap'] ) {
+			printf(
+				'<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"></span> %s</p>',
+				esc_html__( 'No post sits at the middle of this cluster. These posts circle something none of them is about yet.', 'undergrowth' )
+			);
+		}
+
+		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
+
+		foreach ( $cluster['members'] as $post_id ) {
+			printf(
+				'<li>%s</li>',
+				wp_kses(
+					sprintf(
+						/* translators: 1: post title, linked to its editor when you can edit it, 2: growth stage. */
+						__( '%1$s (%2$s)', 'undergrowth' ),
+						undergrowth_post_link( $post_id ),
+						esc_html( undergrowth_stage_label( undergrowth_get_stage( $post_id ) ) )
+					),
+					array( 'a' => array( 'href' => array() ) )
+				)
+			);
+		}
+
+		echo '</ul>';
+	}
 }
 
 /**
