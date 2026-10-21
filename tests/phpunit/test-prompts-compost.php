@@ -289,4 +289,12 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 
 		$this->assertTrue( undergrowth_write_prompt() );
 	}
+
+	public function test_no_more_than_twenty_composted_posts_are_offered_a_run() {
+		for ( $i = 0; $i < 21; $i++ ) {
+			$this->composted();
+		}
+
+		$this->assertCount( 20, undergrowth_prompt_candidates() );
+	}
 }
