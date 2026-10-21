@@ -478,8 +478,8 @@ function undergrowth_render_suggestions_tab(): void {
 	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
 		echo '<p>' . wp_kses(
 			sprintf(
-				/* translators: %s: address of the Undergrowth settings page. */
-				__( 'Link suggestions need an OpenAI API key. <a href="%s">Add one in Settings</a> to start.', 'undergrowth' ),
+				/* translators: %1$s: address of the Undergrowth settings page. */
+				__( 'Link suggestions need an OpenAI API key. <a href="%1$s">Add one in Settings</a> to start.', 'undergrowth' ),
 				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
 			),
 			array( 'a' => array( 'href' => array() ) )
