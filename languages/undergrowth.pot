@@ -173,15 +173,19 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
-msgid "Link suggestions screen"
-msgstr ""
-
-#: src/admin.php
 msgid "Suggestions"
 msgstr ""
 
 #: src/admin.php
 msgid "Growth stages"
+msgstr ""
+
+#: src/admin.php
+msgid "Map"
+msgstr ""
+
+#: src/admin.php
+msgid "Link suggestions screen"
 msgstr ""
 
 #: src/admin.php
@@ -198,6 +202,32 @@ msgstr ""
 
 #: src/admin.php
 msgid "Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden."
+msgstr ""
+
+#: src/admin.php
+msgid "Clusters are groups of your posts that are close in meaning, found once a month. Posts nearest the middle of each cluster come first."
+msgstr ""
+
+#. translators: %1$s: number of the cluster on the screen.
+#: src/admin.php
+#, php-format
+msgid "Cluster %1$s, with a gap"
+msgstr ""
+
+#. translators: %1$s: number of the cluster on the screen.
+#: src/admin.php
+#, php-format
+msgid "Cluster %1$s"
+msgstr ""
+
+#: src/admin.php
+msgid "No post sits at the middle of this cluster. These posts circle something none of them is about yet."
+msgstr ""
+
+#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage.
+#: src/admin.php
+#, php-format
+msgid "%1$s (%2$s)"
 msgstr ""
 
 #. translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to.
