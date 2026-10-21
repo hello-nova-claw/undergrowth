@@ -55,6 +55,12 @@ test.describe( 'Growth stage block', () => {
 		await toggle.focus();
 		await page.keyboard.press( 'Enter' );
 
+		// The inserter does not always move focus to its search field, and
+		// keys typed before it has focus go elsewhere, so focus it first.
+		const search = page.getByRole( 'searchbox' );
+		await expect( search ).toBeVisible();
+		await search.focus();
+
 		// The block's name is translated, so search by its slug keyword.
 		await page.keyboard.type( 'undergrowth/growth-stage' );
 		const option = page.locator(

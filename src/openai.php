@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_OPENAI_MODEL = 'text-embedding-3-small';
-const UNDERGROWTH_OPENAI_URL   = 'https://api.openai.com/v1/embeddings';
+const UNDERGROWTH_OPENAI_URL   = 'https://api.openai.com/v1/embeddings'; // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- The owner's own key, as the handover decided; the core AI Client needs WordPress 7.0 (#119).
 
 // The model takes 8,192 tokens. A token is never shorter than a byte, so the
 // retry limit is always safe; the first limit fits most posts in one request.

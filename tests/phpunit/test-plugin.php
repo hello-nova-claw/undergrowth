@@ -41,4 +41,29 @@ class Test_Plugin extends WP_UnitTestCase {
 
 		$this->assertSame( 'GPL-2.0-or-later', $header['License'] );
 	}
+
+	public function test_readme_headers_match_plugin_header() {
+		$data   = $this->plugin_data();
+		$readme = get_file_data(
+			dirname( UNDERGROWTH_FILE ) . '/readme.txt',
+			array(
+				'RequiresWP'  => 'Requires at least',
+				'RequiresPHP' => 'Requires PHP',
+				'StableTag'   => 'Stable tag',
+				'License'     => 'License',
+			)
+		);
+		$header = get_file_data( UNDERGROWTH_FILE, array( 'License' => 'License' ) );
+
+		$this->assertSame( $data['RequiresWP'], $readme['RequiresWP'] );
+		$this->assertSame( $data['RequiresPHP'], $readme['RequiresPHP'] );
+		$this->assertSame( $data['Version'], $readme['StableTag'] );
+		$this->assertSame( $header['License'], $readme['License'] );
+	}
+
+	public function test_readme_short_description_matches_header() {
+		$readme = file_get_contents( dirname( UNDERGROWTH_FILE ) . '/readme.txt' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A local file in a test.
+
+		$this->assertStringContainsString( "\n\n" . $this->plugin_data()['Description'] . "\n\n", $readme );
+	}
 }
