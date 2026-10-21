@@ -248,4 +248,45 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'moved to compost', $html );
 		$this->assertStringNotContainsString( 'reader', $html );
 	}
+
+	public function test_composted_posts_past_the_first_twenty_are_reached_once_those_are_used() {
+		$ids = array();
+
+		for ( $i = 0; $i < 21; $i++ ) {
+			$ids[] = $this->composted();
+		}
+
+		foreach ( array_slice( $ids, 0, 20 ) as $post_id ) {
+			add_post_meta( $post_id, 'undergrowth_prompt_keys', 'compost:' . $post_id );
+		}
+
+		$this->assertSame( array( $ids[20] ), array_column( undergrowth_prompt_candidates(), 'post_id' ) );
+	}
+
+	public function test_composted_post_with_no_sentence_of_its_own_is_not_a_source() {
+		$this->composted( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>Someone else said this.</p></blockquote><!-- /wp:quote -->' );
+
+		$this->assertSame( array(), undergrowth_prompt_candidates() );
+	}
+
+	public function test_sentence_after_twenty_quoted_ones_is_still_found() {
+		$quoted = str_repeat( '<p>Someone else said this.</p>', 21 );
+		$this->composted( '<!-- wp:quote --><blockquote class="wp-block-quote">' . $quoted . '</blockquote><!-- /wp:quote --><!-- wp:paragraph --><p>My own words come last.</p><!-- /wp:paragraph -->' );
+
+		$this->assertSame( array( 'My own words come last.' ), undergrowth_prompt_candidates()[0]['quotes'] );
+	}
+
+	public function test_composted_post_prompt_quoting_part_of_a_sentence_is_thrown_away() {
+		$this->composted();
+		$this->reply = 'You wrote that the "ledger lists" things. What would it list now?';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+	}
+
+	public function test_composted_post_prompt_quoting_the_sentence_without_its_full_stop_is_kept() {
+		$this->composted();
+		$this->reply = 'You wrote "The ledger lists every oca I planted" — what would it list now?';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+	}
 }
