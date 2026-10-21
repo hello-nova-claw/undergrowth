@@ -161,6 +161,34 @@ const WITH_COMPOST = [
 	{ screen: 'stages', state: 'with-composting', page: STAGES },
 ];
 
+// Filled in once the badge's posts exist, since the shots need their IDs.
+const badgePosts = {};
+
+// The growth-stage block, on the front end where readers see it and in the
+// editor where the author places it. A composted post shows no badge.
+const WITH_BADGE = [
+	{
+		screen: 'block-growth-stage',
+		state: 'front-seedling',
+		front: () => `/?p=${ badgePosts.seedling }`,
+	},
+	{
+		screen: 'block-growth-stage',
+		state: 'front-composting',
+		front: () => `/?p=${ badgePosts.composting }`,
+	},
+	{
+		screen: 'block-growth-stage',
+		state: 'editor-seedling',
+		edit: () => badgePosts.seedling,
+	},
+	{
+		screen: 'block-growth-stage',
+		state: 'editor-composting',
+		edit: () => badgePosts.composting,
+	},
+];
+
 // Posts share fixture words, so the e2e provider suggests links between them.
 const POSTS = [
 	{ title: 'Oca', content: '<p>Oca grows here. I keep yacon nearby.</p>' },
@@ -231,6 +259,7 @@ function capture( states ) {
 		for ( const entry of states ) {
 			test( `${ entry.screen } ${ entry.state } ${ locale }`, async ( {
 				admin,
+				editor,
 				page,
 				context,
 				baseURL,
@@ -252,7 +281,20 @@ function capture( states ) {
 					} ) )
 				);
 
-				await admin.visitAdminPage( ...entry.page );
+				if ( entry.front ) {
+					await page.goto( entry.front() );
+				} else if ( entry.edit ) {
+					await admin.editPost( entry.edit() );
+					// The badge preview is rendered by the server after load.
+					await editor.canvas
+						.locator(
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+						)
+						.first()
+						.waitFor();
+				} else {
+					await admin.visitAdminPage( ...entry.page );
+				}
 
 				// A build without this notice would only show the plain table.
 				// The marker lets the comment list it, rather than drop it.
@@ -382,5 +424,42 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_COMPOST );
+	} );
+
+	test.describe( 'with a growth-stage badge', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			for ( const [ stage, title ] of [
+				[ 'seedling', 'Oca' ],
+				[ 'composting', 'Yacon' ],
+			] ) {
+				badgePosts[ stage ] = (
+					await requestUtils.createPost( {
+						title,
+						content:
+							'<!-- wp:paragraph --><p>Oca grows here.</p><!-- /wp:paragraph --><!-- wp:undergrowth/growth-stage /-->',
+						status: 'publish',
+					} )
+				).id;
+			}
+
+			const list = await requestUtils.request.get( 'wp-admin/edit.php' );
+			const link = ( await list.text() ).match(
+				new RegExp(
+					`href="([^"]*action=undergrowth_compost&#038;post=${ badgePosts.composting }&#038;[^"]*)"`
+				)
+			);
+
+			if ( ! link ) {
+				throw new Error( 'No Compost row action for the badge post.' );
+			}
+
+			await requestUtils.request.get(
+				link[ 1 ].replaceAll( '&#038;', '&' )
+			);
+		} );
+
+		capture( WITH_BADGE );
 	} );
 } );
