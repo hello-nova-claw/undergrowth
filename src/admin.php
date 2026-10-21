@@ -473,6 +473,20 @@ function undergrowth_has_composting_posts(): bool {
 function undergrowth_render_suggestions_tab(): void {
 	$identity = undergrowth_embed_identity();
 	$enabled  = undergrowth_suggestions_enabled();
+
+	// Without a provider the toggle would change nothing the owner can see.
+	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+		echo '<p>' . wp_kses(
+			sprintf(
+				/* translators: %s: address of the Undergrowth settings page. */
+				__( 'Link suggestions need an OpenAI API key. <a href="%s">Add one in Settings</a> to start.', 'undergrowth' ),
+				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
+			),
+			array( 'a' => array( 'href' => array() ) )
+		) . '</p>';
+
+		return;
+	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="undergrowth_toggle" />
@@ -487,16 +501,7 @@ function undergrowth_render_suggestions_tab(): void {
 	</form>
 
 	<?php
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
-		echo '<p>' . wp_kses(
-			sprintf(
-				/* translators: %s: address of the Undergrowth settings page. */
-				__( 'Link suggestions need an embedding provider. <a href="%s">Add an API key in Settings</a> to start.', 'undergrowth' ),
-				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
-			),
-			array( 'a' => array( 'href' => array() ) )
-		) . '</p>';
-	} elseif ( ! $enabled ) {
+	if ( ! $enabled ) {
 		echo '<p>' . esc_html__( 'Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on.', 'undergrowth' ) . '</p>';
 	} else {
 		undergrowth_load_list_table();

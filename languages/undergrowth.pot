@@ -245,18 +245,18 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
+#. translators: %s: address of the Undergrowth settings page.
+#: src/admin.php
+#, php-format
+msgid "Link suggestions need an OpenAI API key. <a href=\"%s\">Add one in Settings</a> to start."
+msgstr ""
+
 #: src/admin.php
 msgid "Suggest links between my posts"
 msgstr ""
 
 #: src/admin.php
 msgid "Save"
-msgstr ""
-
-#. translators: %s: address of the Undergrowth settings page.
-#: src/admin.php
-#, php-format
-msgid "Link suggestions need an embedding provider. <a href=\"%s\">Add an API key in Settings</a> to start."
 msgstr ""
 
 #: src/admin.php
