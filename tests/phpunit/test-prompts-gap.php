@@ -313,4 +313,24 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		$this->assertSame( $yacon, undergrowth_cluster_gaps()[0]['members'][0] );
 		$this->assertSame( array(), undergrowth_prompt_candidates() );
 	}
+
+	public function test_gap_quotes_the_nearest_posts_that_have_sentences_of_their_own() {
+		add_filter(
+			'undergrowth_gap_similarity',
+			static function () {
+				return 0.99;
+			}
+		);
+
+		// The quoted post sits nearest the centre, then Ulluco, then the others.
+		$quoted = $this->member( 'Quoted', '<!-- wp:quote --><blockquote class="wp-block-quote"><p>Someone else said this.</p></blockquote><!-- /wp:quote -->', array( 0.3, 0.7, 0.7 ) );
+		$this->member( 'Yacon', '<p>Yacon needs a long season.</p>', array( 0.0, 1.0, 0.0 ), $quoted );
+		$this->member( 'Mashua', '<p>Mashua climbs whatever is near it.</p>', array( 0.0, 0.0, 1.0 ), $quoted );
+		$this->member( 'Ulluco', '<p>Ulluco is the brightest of them.</p>', array( -0.5, 0.5, 0.5 ), $quoted );
+
+		$this->assertSame(
+			array( 'Ulluco is the brightest of them.', 'Yacon needs a long season.', 'Mashua climbs whatever is near it.' ),
+			undergrowth_prompt_candidates()[0]['quotes']
+		);
+	}
 }
