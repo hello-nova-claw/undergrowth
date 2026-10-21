@@ -381,6 +381,60 @@ msgstr ""
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
+#: src/discord-settings.php
+msgid "Discord"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Application ID"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Public key"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Bot token"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Channel ID for link suggestions"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Interactions endpoint URL"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "The Discord application ID should be a long number, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "The Discord channel ID should be a long number, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "The Discord public key should be 64 letters and numbers, as shown in the developer portal, so the saved one was kept."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#. translators: %s: last four characters of the saved bot token.
+#: src/discord-settings.php
+#, php-format
+msgid "A token ending in %s is saved. Leave the field blank to keep it."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Remove the saved token and stop sending anything to Discord"
+msgstr ""
+
+#: src/discord-settings.php
+msgid "Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet."
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
