@@ -379,6 +379,58 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'I grow yacon beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
+	/**
+	 * Source posts whose best sentence for a link to Yacon is in a block Accept never links into.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function data_unlinkable_blocks() {
+		return array(
+			'heading'     => array( '<!-- wp:heading --><h2 class="wp-block-heading">Yacon syrup is a gentle sweetener</h2><!-- /wp:heading -->' ),
+			'list item'   => array( '<!-- wp:list --><ul class="wp-block-list"><!-- wp:list-item --><li>Yacon syrup is a gentle sweetener.</li><!-- /wp:list-item --></ul><!-- /wp:list -->' ),
+			'caption'     => array( '<!-- wp:image --><figure class="wp-block-image"><img src="yacon.jpg" alt=""/><figcaption class="wp-element-caption">Yacon syrup is a gentle sweetener.</figcaption></figure><!-- /wp:image -->' ),
+			'table cell'  => array( '<!-- wp:table --><figure class="wp-block-table"><table><tbody><tr><td>Yacon syrup is a gentle sweetener.</td></tr></tbody></table></figure><!-- /wp:table -->' ),
+			'verse block' => array( '<!-- wp:verse --><pre class="wp-block-verse">Yacon syrup is a gentle sweetener.</pre><!-- /wp:verse -->' ),
+		);
+	}
+
+	/**
+	 * Checks the next best sentence is chosen over one Accept could not link.
+	 *
+	 * @dataProvider data_unlinkable_blocks
+	 *
+	 * @param string $block Markup holding the best sentence.
+	 */
+	public function test_sentence_outside_a_paragraph_is_never_chosen( string $block ) {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => $block . '<!-- wp:paragraph --><p>I grow yacon beside the oca.</p><!-- /wp:paragraph -->' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertSame( 'I grow yacon beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_proposal_with_only_a_heading_to_link_is_dropped() {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<h2>Yacon syrup</h2><p>Tubers like cool weather.</p>' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup is a gentle sweetener.</p>' )
+		);
+
+		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
+	}
+
 	public function test_proposal_with_only_quoted_sentences_is_dropped() {
 		$oca   = $this->plant(
 			'Oca',
