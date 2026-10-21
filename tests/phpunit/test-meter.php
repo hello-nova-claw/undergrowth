@@ -6,6 +6,8 @@
  * @package Undergrowth
  */
 
+use Automattic\Jetpack\Connection\Manager;
+use Automattic\Jetpack\Modules;
 use Automattic\Jetpack\Stats\WPCOM_Stats;
 
 /**
@@ -16,10 +18,10 @@ class Test_Meter extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		Jetpack::$active_modules = array();
-		Jetpack::$connected      = false;
-		WPCOM_Stats::$visits     = array();
-		WPCOM_Stats::$requests   = array();
+		Modules::$active       = array();
+		Manager::$connected    = false;
+		WPCOM_Stats::$visits   = array();
+		WPCOM_Stats::$requests = array();
 		delete_transient( 'undergrowth_meter' );
 
 		// Jetpack maps view_stats to the roles chosen in its Stats settings.
@@ -40,8 +42,8 @@ class Test_Meter extends WP_UnitTestCase {
 	 * @param int[] $daily Views per day, oldest first.
 	 */
 	private function stats( array $daily ): void {
-		Jetpack::$active_modules = array( 'stats' );
-		Jetpack::$connected      = true;
+		Modules::$active    = array( 'stats' );
+		Manager::$connected = true;
 
 		$data = array();
 
@@ -135,14 +137,14 @@ class Test_Meter extends WP_UnitTestCase {
 	}
 
 	public function test_stats_module_off_counts_as_missing() {
-		Jetpack::$connected = true;
+		Manager::$connected = true;
 
 		$this->assertSame( 'no-stats', undergrowth_meter_reading()['state'] );
 		$this->assertSame( array(), WPCOM_Stats::$requests );
 	}
 
 	public function test_a_site_not_connected_counts_as_missing() {
-		Jetpack::$active_modules = array( 'stats' );
+		Modules::$active = array( 'stats' );
 
 		$this->assertSame( 'no-stats', undergrowth_meter_reading()['state'] );
 		$this->assertSame( array(), WPCOM_Stats::$requests );
@@ -286,9 +288,9 @@ class Test_Meter extends WP_UnitTestCase {
 	}
 
 	public function test_a_failed_answer_shows_no_number_and_waits_a_day() {
-		Jetpack::$active_modules = array( 'stats' );
-		Jetpack::$connected      = true;
-		WPCOM_Stats::$visits     = new WP_Error( 'stats_error', 'Failed to fetch Stats from WPCOM' );
+		Modules::$active     = array( 'stats' );
+		Manager::$connected  = true;
+		WPCOM_Stats::$visits = new WP_Error( 'stats_error', 'Failed to fetch Stats from WPCOM' );
 
 		$this->assertSame( 'no-answer', undergrowth_meter_reading()['state'] );
 		$this->assertSame( 'no-answer', undergrowth_meter_reading()['state'] );

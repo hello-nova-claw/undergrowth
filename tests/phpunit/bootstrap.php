@@ -34,8 +34,12 @@ require __DIR__ . '/includes/trait-signs-discord-interactions.php';
 
 // The threshold meter reads Jetpack Stats. Without Jetpack, stand-ins answer
 // with whatever a test sets.
-if ( ! class_exists( 'Jetpack' ) ) {
-	require __DIR__ . '/includes/class-jetpack.php';
+if ( ! class_exists( 'Automattic\Jetpack\Modules' ) ) {
+	require __DIR__ . '/includes/class-modules.php';
+}
+
+if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
+	require __DIR__ . '/includes/class-manager.php';
 }
 
 if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
