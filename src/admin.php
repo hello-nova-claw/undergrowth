@@ -13,6 +13,7 @@ add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_toggle', 'undergrowth_handle_toggle' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
+add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
 
 /**
  * Adds Posts > Link suggestions.
@@ -162,6 +163,23 @@ function undergrowth_handle_unpin(): void {
 }
 
 /**
+ * Dismisses the resurfacing signal posted from its form, then returns to
+ * the stages tab.
+ */
+function undergrowth_handle_dismiss_resurfacing(): void {
+	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_dismiss_resurfacing_' . $post_id );
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		wp_die( esc_html__( 'You cannot change this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'stages' ) );
+	exit;
+}
+
+/**
  * Returns to the stages tab with the notice for a stage action's result.
  *
  * @param true|WP_Error $result  What the action returned.
@@ -222,6 +240,8 @@ function undergrowth_render_suggestions_page(): void {
 
 		<?php
 		undergrowth_render_suggestions_notice();
+		// A post returned to the garden from its resurfacing signal comes back here.
+		undergrowth_render_compost_notice();
 
 		if ( 'stages' === $tab ) {
 			undergrowth_render_stages_tab();
@@ -237,6 +257,7 @@ function undergrowth_render_suggestions_page(): void {
  * Prints the growth stages tab.
  */
 function undergrowth_render_stages_tab(): void {
+	undergrowth_render_resurfacing_signals();
 	undergrowth_load_stages_table();
 	$table = new Undergrowth_Stages_List_Table();
 	$table->prepare_items();
@@ -258,6 +279,87 @@ function undergrowth_render_stages_tab(): void {
 	}
 
 	$table->display();
+}
+
+/**
+ * Prints one notice for each composting post found near a new cluster this
+ * cycle, with a way to return it to the garden or leave it be.
+ *
+ * The cluster is named by its newest post, the one closest to what the
+ * author is writing now. Nothing says how long the post has been resting.
+ */
+function undergrowth_render_resurfacing_signals(): void {
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return;
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => $post_types,
+			'post_status'            => 'publish',
+			'has_password'           => false,
+			'meta_key'               => 'undergrowth_resurfacing', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only composting posts near a new cluster have the key.
+			'orderby'                => 'ID',
+			'order'                  => 'ASC',
+			// One signal per post, and only posts the author composted.
+			'posts_per_page'         => UNDERGROWTH_CLUSTER_BATCH,
+			'no_found_rows'          => true,
+			'fields'                 => 'ids',
+			'update_post_term_cache' => false,
+		)
+	);
+
+	foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
+		$members = undergrowth_cluster_members( undergrowth_resurfacing_signal( $post_id ) );
+
+		if ( array() === $members || 'composting' !== undergrowth_get_stage( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
+			continue;
+		}
+
+		$title  = get_the_title( $post_id );
+		$newest = max( $members );
+
+		printf(
+			'<div class="notice notice-info inline undergrowth-resurfacing"><p>%1$s</p><form method="post" action="%2$s"><input type="hidden" name="action" value="undergrowth_dismiss_resurfacing" /><input type="hidden" name="post" value="%3$d" />',
+			wp_kses(
+				sprintf(
+					/* translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to. */
+					__( 'Your composting post %1$s is near what you are writing now, in the cluster with %2$s.', 'undergrowth' ),
+					undergrowth_post_link( $post_id ),
+					undergrowth_post_link( $newest )
+				),
+				array( 'a' => array( 'href' => array() ) )
+			),
+			esc_url( admin_url( 'admin-post.php' ) ),
+			(int) $post_id
+		);
+		wp_nonce_field( 'undergrowth_dismiss_resurfacing_' . $post_id );
+		printf(
+			'<p><a href="%1$s" class="button" aria-label="%2$s">%3$s</a> <button type="submit" class="button" aria-label="%4$s">%5$s</button></p></form></div>',
+			esc_url( undergrowth_stage_row_url( 'return', $post_id ) ),
+			/* translators: %s: post title. */
+			esc_attr( sprintf( __( 'Return &#8220;%s&#8221; to the garden', 'undergrowth' ), $title ) ),
+			esc_html__( 'Return to garden', 'undergrowth' ),
+			/* translators: %s: post title. */
+			esc_attr( sprintf( __( 'Dismiss, and leave &#8220;%s&#8221; composting', 'undergrowth' ), $title ) ),
+			esc_html__( 'Dismiss', 'undergrowth' )
+		);
+	}
+}
+
+/**
+ * Builds a post's title, linked to its editor when the user can edit it.
+ *
+ * @param int $post_id Post ID.
+ * @return string Escaped HTML.
+ */
+function undergrowth_post_link( int $post_id ): string {
+	$title = esc_html( get_the_title( $post_id ) );
+	$link  = get_edit_post_link( $post_id, 'raw' );
+
+	return null === $link ? $title : sprintf( '<a href="%1$s">%2$s</a>', esc_url( $link ), $title );
 }
 
 /**
@@ -347,23 +449,25 @@ function undergrowth_render_suggestions_notice(): void {
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
 	$messages = array(
-		'vetoed'           => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'saved'            => __( 'Your choice is saved.', 'undergrowth' ),
-		'unchanged'        => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'             => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'accepted'         => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
-		'edited'           => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'          => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'not_proposed'     => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
-		'needs_admin'      => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
-		'pinned'           => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
-		'unpinned'         => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
-		'stage_refused'    => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
-		'stage_composting' => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
-		'not_pinned'       => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
-		'stage_not_saved'  => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
-		'stage_pin_left'   => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
-		'stage_pin_lost'   => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+		'vetoed'                => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
+		'saved'                 => __( 'Your choice is saved.', 'undergrowth' ),
+		'unchanged'             => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'gone'                  => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
+		'accepted'              => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
+		'edited'                => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'no_word'               => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_proposed'          => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
+		'needs_admin'           => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
+		'pinned'                => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
+		'unpinned'              => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
+		'stage_refused'         => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_composting'      => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'not_pinned'            => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_not_saved'       => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
+		'stage_pin_left'        => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
+		'stage_pin_lost'        => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
+		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
@@ -384,7 +488,7 @@ function undergrowth_render_suggestions_notice(): void {
 
 	printf(
 		'<div id="undergrowth-notice" class="notice %1$s" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
-		in_array( $notice, array( 'vetoed', 'saved', 'accepted', 'pinned', 'unpinned' ), true ) ? 'notice-success' : 'notice-warning',
+		in_array( $notice, array( 'vetoed', 'saved', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
 		esc_html( $messages[ $notice ] ),
 		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
 	);
