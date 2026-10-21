@@ -1,0 +1,1 @@
+When the embedding provider or model changes, every post is now embedded again in the background, a few at a time. Each post keeps its old vector until the new one is saved, and vectors from the two models are never compared.
