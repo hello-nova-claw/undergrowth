@@ -259,4 +259,13 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'gap among your posts', $html );
 		$this->assertStringNotContainsString( 'reader', $html );
 	}
+
+	public function test_gap_with_no_sentence_of_the_authors_own_is_not_a_source() {
+		$quote = '<!-- wp:quote --><blockquote class="wp-block-quote"><p>Someone else said this.</p></blockquote><!-- /wp:quote -->';
+		$oca   = $this->member( 'Oca', $quote, array( 1.0, 0.0, 0.0 ) );
+		$this->member( 'Yacon', $quote, array( 0.0, 1.0, 0.0 ), $oca );
+		$this->member( 'Mashua', $quote, array( 0.0, 0.0, 1.0 ), $oca );
+
+		$this->assertSame( array(), undergrowth_prompt_candidates() );
+	}
 }
