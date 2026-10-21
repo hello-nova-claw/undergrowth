@@ -303,8 +303,9 @@ function undergrowth_render_resurfacing_signals(): void {
 			'meta_key'               => 'undergrowth_resurfacing', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only composting posts near a new cluster have the key.
 			'orderby'                => 'ID',
 			'order'                  => 'ASC',
-			// One signal per post, and only posts the author composted.
-			'posts_per_page'         => UNDERGROWTH_CLUSTER_BATCH,
+			// Every signal is listed, since this is the only place it shows. There
+			// is one per post, and only posts the author composted have one.
+			'posts_per_page'         => -1,
 			'no_found_rows'          => true,
 			'fields'                 => 'ids',
 			'update_post_term_cache' => false,
