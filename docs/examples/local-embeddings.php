@@ -93,3 +93,67 @@ function undergrowth_local_embeddings_identity() {
 	);
 }
 add_filter( 'undergrowth_embed_identity', 'undergrowth_local_embeddings_identity' );
+
+/*
+ * Each model spreads its similarity scores differently. nomic-embed-text
+ * scores most pairs of posts by one author between 0.6 and 0.8, where
+ * OpenAI's defaults would propose links between everything and put every post
+ * in one cluster. These values come from a test on 60 essays; see
+ * docs/quality-report-v1.md. Other models keep the defaults until you add a
+ * row for them.
+ */
+const UNDERGROWTH_LOCAL_EMBED_THRESHOLDS = array(
+	'nomic-embed-text' => array(
+		'link'    => 0.7,
+		'cluster' => 0.8,
+		'gap'     => 0.94,
+	),
+);
+
+/**
+ * Returns a model's threshold, or the default when the model has none.
+ *
+ * @param string $name     'link', 'cluster' or 'gap'.
+ * @param float  $fallback Undergrowth's default.
+ * @param string $model    Model name.
+ * @return float The threshold.
+ */
+function undergrowth_local_embeddings_threshold( $name, $fallback, $model ) {
+	return UNDERGROWTH_LOCAL_EMBED_THRESHOLDS[ $model ][ $name ] ?? $fallback;
+}
+
+/**
+ * Sets the lowest similarity worth proposing a link for.
+ *
+ * @param float  $similarity Default similarity.
+ * @param string $model      Model name.
+ * @return float The model's similarity.
+ */
+function undergrowth_local_embeddings_link_similarity( $similarity, $model = UNDERGROWTH_LOCAL_EMBED_MODEL ) {
+	return undergrowth_local_embeddings_threshold( 'link', $similarity, $model );
+}
+add_filter( 'undergrowth_min_link_similarity', 'undergrowth_local_embeddings_link_similarity' );
+
+/**
+ * Sets the lowest similarity at which a post joins a cluster.
+ *
+ * @param float  $similarity Default similarity.
+ * @param string $model      Model name.
+ * @return float The model's similarity.
+ */
+function undergrowth_local_embeddings_cluster_similarity( $similarity, $model = UNDERGROWTH_LOCAL_EMBED_MODEL ) {
+	return undergrowth_local_embeddings_threshold( 'cluster', $similarity, $model );
+}
+add_filter( 'undergrowth_min_cluster_similarity', 'undergrowth_local_embeddings_cluster_similarity' );
+
+/**
+ * Sets how close a post must be to its cluster's centre for the cluster to have no gap.
+ *
+ * @param float  $similarity Default similarity.
+ * @param string $model      Model name.
+ * @return float The model's similarity.
+ */
+function undergrowth_local_embeddings_gap_similarity( $similarity, $model = UNDERGROWTH_LOCAL_EMBED_MODEL ) {
+	return undergrowth_local_embeddings_threshold( 'gap', $similarity, $model );
+}
+add_filter( 'undergrowth_gap_similarity', 'undergrowth_local_embeddings_gap_similarity' );
