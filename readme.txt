@@ -25,11 +25,12 @@ What it does in this version:
 * **A plain-text file for each post**, in your uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
 * **A Growth stage block** that shows readers a post's stage as a small line of text your theme styles.
 * **Discord, optionally.** Each new link suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
+* **A readers meter** on your Dashboard: with Jetpack Stats on, one number, your page views in the last 30 days, against a milestone of 1,000. Passing it changes nothing in this version. It marks when the reader features of a later version can start.
 * **Abilities** for agents and other plugins, through the WordPress Abilities API, to read a post's stage and suggestions and to accept or veto a suggestion as the buttons do.
 
 Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
 
-Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits. This version works from your posts and their approved comments only.
+Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits: 1,000 page views in 30 days, and enough visits on the pages behind each suggestion. This version works from your posts and their approved comments, plus one site-wide view count from Jetpack Stats for the meter.
 
 == Installation ==
 
@@ -61,6 +62,10 @@ With an Anthropic key saved, each request to Claude sends one post's title and a
 = What is sent to Discord? =
 
 Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Button clicks come back to your site signed by Discord, and are checked against your application's public key.
+
+= What does the readers meter read from Jetpack? =
+
+Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen; Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, the meter says what it needs instead.
 
 = What does it cost? =
 

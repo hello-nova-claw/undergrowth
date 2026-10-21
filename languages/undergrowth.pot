@@ -593,6 +593,48 @@ msgstr ""
 msgid "The stage was imported, but some of its history could not be saved."
 msgstr ""
 
+#: src/meter.php
+msgid "Readers, last 30 days"
+msgstr ""
+
+#: src/meter.php
+msgid "When they arrive, each suggestion from reader data will also need enough visits on the pages it draws on, checked before it is shown."
+msgstr ""
+
+#: src/meter.php
+msgid "This meter counts page views from Jetpack Stats. To see it, install Jetpack, connect it to WordPress.com and turn on Stats."
+msgstr ""
+
+#: src/meter.php
+msgid "Jetpack Stats did not answer, so there is no count today. Undergrowth will ask again tomorrow."
+msgstr ""
+
+#. translators: 1: views in the last 30 days, 2: the switch line. Both are formatted numbers.
+#: src/meter.php
+#, php-format
+msgid "%1$s views in the last 30 days. Your site has passed the line of %2$s."
+msgstr ""
+
+#: src/meter.php
+msgid "Reader features are not part of this version yet, so nothing changes for now."
+msgstr ""
+
+#. translators: 1: views in the last 30 days, 2: the switch line. Both are formatted numbers.
+#: src/meter.php
+#, php-format
+msgid "%1$s of %2$s views in the last 30 days."
+msgstr ""
+
+#. translators: %s: the switch line, a formatted number of views.
+#: src/meter.php
+#, php-format
+msgid "Reader features, which will suggest links from the paths readers take between your posts, wait for %s views in 30 days. They are not part of this version yet."
+msgstr ""
+
+#: src/meter.php
+msgid "Counted from Jetpack Stats once a day."
+msgstr ""
+
 #. translators: %s: post title.
 #: src/posts-screen.php
 #, php-format

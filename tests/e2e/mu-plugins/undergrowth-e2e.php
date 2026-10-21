@@ -167,7 +167,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -283,6 +283,67 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				undergrowth_sanitize_discord_application_id( 'abc' );
 			},
 			20
+		);
+		break;
+
+	// Jetpack is not installed on the test site. The PHPUnit stand-ins take its
+	// place, connected with Stats on, and answer with made-up daily views.
+	case 'meter-below':
+	case 'meter-crossed':
+	case 'meter-no-answer':
+		// Jetpack shows Stats to administrators unless its settings say otherwise.
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap ) {
+				return 'view_stats' === $cap ? array( 'manage_options' ) : $caps;
+			},
+			10,
+			2
+		);
+		add_action(
+			'plugins_loaded',
+			static function () {
+				if ( ! defined( 'UNDERGROWTH_FILE' ) ) {
+					return;
+				}
+
+				$includes = dirname( UNDERGROWTH_FILE ) . '/tests/phpunit/includes/';
+
+				if ( ! class_exists( 'Automattic\Jetpack\Modules' ) ) {
+					require_once $includes . 'class-modules.php';
+				}
+
+				if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
+					require_once $includes . 'class-manager.php';
+				}
+
+				if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
+					require_once $includes . 'class-wpcom-stats.php';
+				}
+
+				Automattic\Jetpack\Modules::$active               = array( 'stats' );
+				Automattic\Jetpack\Connection\Manager::$connected = true;
+
+				$fixture = undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'meter-crossed', 'meter-no-answer' ) );
+
+				if ( 'meter-no-answer' === $fixture ) {
+					Automattic\Jetpack\Stats\WPCOM_Stats::$visits = new WP_Error( 'stats_error', 'Failed to fetch Stats from WPCOM' );
+				} else {
+					$data = array();
+
+					for ( $day = 0; $day < 30; $day++ ) {
+						$data[] = array( gmdate( 'Y-m-d', 1789776000 + $day * DAY_IN_SECONDS ), 'meter-crossed' === $fixture ? 41 : 14, 5 );
+					}
+
+					Automattic\Jetpack\Stats\WPCOM_Stats::$visits = array(
+						'fields' => array( 'period', 'views', 'visitors' ),
+						'data'   => $data,
+					);
+				}
+
+				// Each request shows its own fixture, never one cached by another.
+				delete_transient( 'undergrowth_meter' );
+			}
 		);
 		break;
 

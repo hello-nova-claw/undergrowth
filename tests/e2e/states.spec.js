@@ -104,6 +104,16 @@ const WITHOUT_POSTS = [
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
+	// The threshold meter. Without a fixture the site has no Jetpack.
+	{ screen: 'dashboard', state: 'meter-no-stats', page: DASHBOARD },
+	...[ 'meter-below', 'meter-crossed', 'meter-no-answer' ].map(
+		( state ) => ( {
+			screen: 'dashboard',
+			state,
+			page: DASHBOARD,
+			fixture: state,
+		} )
+	),
 ];
 
 const WITH_POSTS = [
