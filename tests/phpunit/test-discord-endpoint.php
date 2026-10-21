@@ -61,6 +61,22 @@ class Test_Discord_Endpoint extends WP_UnitTestCase {
 		$this->assertFalse( $this->reached_handler( $response ) );
 	}
 
+	public function test_unsigned_broken_json_is_refused_not_parsed() {
+		$response = rest_get_server()->dispatch( $this->unsigned_request( '{"type":' ) );
+
+		$this->assertSame( 401, $response->get_status() );
+		$this->assertSame( 'undergrowth_discord_signature', $response->get_data()['code'] );
+	}
+
+	public function test_signed_broken_json_is_still_a_bad_request() {
+		$this->assertSame( 400, rest_get_server()->dispatch( $this->signed_request( '{"type":' ) )->get_status() );
+	}
+
+	public function test_other_routes_are_left_alone() {
+		$this->assertSame( 'earlier', undergrowth_discord_check_first( 'earlier', rest_get_server(), $this->unsigned_request( '' ) ) );
+		$this->assertNull( undergrowth_discord_check_first( null, rest_get_server(), new WP_REST_Request( 'POST', '/wp/v2/posts' ) ) );
+	}
+
 	public function test_tampered_body_is_refused() {
 		$request = $this->signed_request( self::PING );
 		$request->set_body( str_replace( '"type":1', '"type":3', self::PING ) );
@@ -145,7 +161,8 @@ class Test_Discord_Endpoint extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Runs for each body.
+	 * Each body is valid JSON, so it gets past WordPress's own JSON check and
+	 * reaches the handler's.
 	 *
 	 * @dataProvider data_bodies_that_are_not_interactions
 	 *

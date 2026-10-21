@@ -20,6 +20,7 @@ const UNDERGROWTH_DISCORD_CHANNEL_MESSAGE = 4;
 const UNDERGROWTH_DISCORD_FLAG_EPHEMERAL  = 64;
 
 add_action( 'rest_api_init', 'undergrowth_register_discord_route' );
+add_filter( 'rest_pre_dispatch', 'undergrowth_discord_check_first', 10, 3 );
 
 /**
  * Registers the interactions endpoint.
@@ -34,6 +35,28 @@ function undergrowth_register_discord_route(): void {
 			'permission_callback' => 'undergrowth_discord_verify_request',
 		)
 	);
+}
+
+/**
+ * Refuses an unsigned request to the endpoint before WordPress reads it.
+ *
+ * WordPress checks a JSON body before it calls the permission callback, so
+ * without this an unsigned request with a broken body would be told it was
+ * malformed rather than refused.
+ *
+ * @param mixed           $result  Response from an earlier filter, or null.
+ * @param WP_REST_Server  $server  REST server.
+ * @param WP_REST_Request $request Request.
+ * @return mixed The earlier response, the refusal, or null to carry on.
+ */
+function undergrowth_discord_check_first( $result, $server, $request ) {
+	if ( null !== $result || ! $request instanceof WP_REST_Request || 'POST' !== $request->get_method() || '/' . UNDERGROWTH_DISCORD_NAMESPACE . UNDERGROWTH_DISCORD_ROUTE !== untrailingslashit( $request->get_route() ) ) {
+		return $result;
+	}
+
+	$verified = undergrowth_discord_verify_request( $request );
+
+	return is_wp_error( $verified ) ? $verified : null;
 }
 
 /**
