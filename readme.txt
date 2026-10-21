@@ -71,7 +71,7 @@ Discord is optional. Posts > Link suggestions does everything Discord does. With
 4. Invite the bot to your server with the scope `bot` and the permissions View Channel and Send Messages, and give it access to a private channel. Anyone who can read the channel sees your suggestions.
 5. In Discord, turn on Developer Mode (User Settings > Advanced), right-click the channel, choose Copy Channel ID, and paste it into Channel ID for link suggestions. Save the settings.
 6. Copy the Interactions endpoint URL shown on the settings page into Interactions Endpoint URL on the application's General Information page, and save it there. Discord checks the address before it accepts it.
-7. On Users > Profile, an administrator enters the Discord user ID of each person who may press the buttons. A click works only for a linked Discord user whose WordPress account can edit the post; anyone else gets a private refusal and nothing changes.
+7. An administrator enters the Discord user ID of each person who may press the buttons: on Users > Profile for their own account, or on Users > All Users > Edit for anyone else. A click works only for a linked Discord user whose WordPress account can edit the post; anyone else gets a private refusal and nothing changes.
 
 Each message sends Discord the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Only suggestions made after you set the channel are posted.
 
