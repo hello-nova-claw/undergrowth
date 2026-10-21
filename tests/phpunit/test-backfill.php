@@ -103,7 +103,9 @@ class Test_Backfill extends WP_UnitTestCase {
 	private function run_cron(): array {
 		$runs = array();
 
-		while ( false !== wp_next_scheduled( 'undergrowth_backfill' ) && count( $runs ) < 100 ) {
+		while ( false !== wp_next_scheduled( 'undergrowth_backfill' ) ) {
+			// A pass that never ends fails here rather than hanging the suite.
+			$this->assertLessThan( 100, count( $runs ) );
 			wp_unschedule_hook( 'undergrowth_backfill' );
 			$before = count( $this->embedded );
 			do_action( 'undergrowth_backfill' );
@@ -183,7 +185,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		$sent = array();
 		add_filter(
 			'pre_http_request',
-			static function ( $preempt, $args, $url ) use ( &$sent ) {
+			static function ( $preempt, $args ) use ( &$sent ) {
 				$sent[] = json_decode( $args['body'], true )['input'];
 
 				return array(
@@ -198,7 +200,7 @@ class Test_Backfill extends WP_UnitTestCase {
 				);
 			},
 			10,
-			3
+			2
 		);
 
 		undergrowth_start_backfill();
