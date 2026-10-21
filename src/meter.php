@@ -12,6 +12,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+use Automattic\Jetpack\Connection\Manager as Connection_Manager;
+use Automattic\Jetpack\Modules;
 use Automattic\Jetpack\Stats\WPCOM_Stats;
 
 /*
@@ -59,13 +61,17 @@ function undergrowth_meter_sanitize_line( int $line ): int {
 /**
  * Tells whether Jetpack is connected and has its Stats module on.
  *
+ * Asks Jetpack's status and connection packages, which full Jetpack and the
+ * standalone Jetpack Stats plugin both load.
+ *
  * @return bool
  */
 function undergrowth_meter_has_stats(): bool {
-	return class_exists( 'Jetpack' )
-		&& class_exists( WPCOM_Stats::class )
-		&& Jetpack::is_module_active( 'stats' )
-		&& Jetpack::is_connection_ready();
+	return class_exists( WPCOM_Stats::class )
+		&& class_exists( Modules::class )
+		&& class_exists( Connection_Manager::class )
+		&& ( new Modules() )->is_active( 'stats' )
+		&& ( new Connection_Manager() )->is_connected();
 }
 
 /**
