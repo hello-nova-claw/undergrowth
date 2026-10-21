@@ -105,8 +105,13 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		// started, and wait for each save so later tests find it open.
 		const toggle = widget.locator( '.handlediv' );
 		const saved = () =>
-			page.waitForResponse( ( response ) =>
-				response.url().includes( 'admin-ajax.php' )
+			// Heartbeat also posts to admin-ajax.php, so match core's action.
+			page.waitForResponse(
+				( response ) =>
+					response.url().includes( 'admin-ajax.php' ) &&
+					( response.request().postData() || '' ).includes(
+						'action=closed-postboxes'
+					)
 			);
 
 		await page.keyboard.press( 'Shift+Tab' );
