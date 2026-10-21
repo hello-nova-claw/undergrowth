@@ -63,6 +63,11 @@ add_filter(
 			return $preempt;
 		}
 
+		$body = json_decode( (string) ( $args['body'] ?? '' ), true );
+
+		// A question about a composted post is checked once more on its own.
+		$checking = function_exists( 'undergrowth_prompt_rest_check_system' ) && undergrowth_prompt_rest_check_system() === ( $body['system'] ?? '' );
+
 		return array(
 			'headers'  => array(),
 			'body'     => (string) wp_json_encode(
@@ -70,7 +75,7 @@ add_filter(
 					'content'     => array(
 						array(
 							'type' => 'text',
-							'text' => 'A reader asked how you keep oca through the winter. What do you actually do?',
+							'text' => $checking ? 'NO' : 'A reader asked how you keep oca through the winter. What do you actually do?',
 						),
 					),
 					'stop_reason' => 'end_turn',
