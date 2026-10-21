@@ -378,4 +378,18 @@ class Test_Corpus extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'mashua', undergrowth_reusable_corpus( array( $oca, $yacon ) )['frequency'] );
 	}
+
+	public function test_reused_corpus_is_counted_again_on_another_site() {
+		global $wpdb;
+
+		$ids = array( self::factory()->post->create( array( 'post_content' => 'Oca tubers.' ) ) );
+
+		undergrowth_reusable_corpus( $ids );
+		// Another site's posts table can hold the same IDs.
+		do_action( 'switch_blog', 2, 1, 'switch' );
+		$count = $wpdb->num_queries;
+		undergrowth_reusable_corpus( $ids );
+
+		$this->assertGreaterThan( $count, $wpdb->num_queries );
+	}
 }

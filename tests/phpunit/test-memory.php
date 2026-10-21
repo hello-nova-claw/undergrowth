@@ -333,6 +333,27 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->section( (string) $this->read( $oca ), 'lacks' ) );
 	}
 
+	public function test_monthly_stage_pass_rewrites_every_file() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca tubers sweeten after frost.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon roots keep in sand.</p>' ) );
+		undergrowth_set_stage( $oca, 'sprout' );
+
+		// Another post's words change how distinctive this post's words are,
+		// without anything that would rewrite this post's file.
+		file_put_contents( undergrowth_memory_path( $oca ), 'stale' );
+		file_put_contents( undergrowth_memory_path( $yacon ), 'stale' );
+
+		undergrowth_run_stage_cycle( 0 );
+
+		$undated = static function ( $text ) {
+			return preg_replace( '/^updated: .*$/m', '', (string) $text );
+		};
+
+		foreach ( array( $oca, $yacon ) as $post_id ) {
+			$this->assertSame( $undated( undergrowth_memory_text( get_post( $post_id ) ) ), $undated( $this->read( $post_id ) ) );
+		}
+	}
+
 	public function test_post_outside_the_index_gets_no_file() {
 		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
 
