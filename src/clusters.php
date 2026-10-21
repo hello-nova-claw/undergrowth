@@ -135,7 +135,12 @@ function undergrowth_cluster_gaps(): array {
 	$threshold = undergrowth_gap_similarity();
 	$gaps      = array();
 
-	foreach ( array_slice( array_map( 'intval', $leaders ), 0, UNDERGROWTH_MAX_CLUSTERS ) as $leader ) {
+	// Grouped rows come back in no defined order, so the leaders are sorted
+	// by number before the cap, and every run measures the same clusters.
+	$leaders = array_map( 'intval', $leaders );
+	sort( $leaders );
+
+	foreach ( array_slice( $leaders, 0, UNDERGROWTH_MAX_CLUSTERS ) as $leader ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
 		$members = $wpdb->get_col(
 			$wpdb->prepare(
@@ -167,8 +172,10 @@ function undergrowth_cluster_gaps(): array {
 /**
  * Measures how close one cluster's members come to its centre.
  *
- * Only vectors as long as the first member's are compared, so a member
- * embedded again with other settings is left out.
+ * Vectors are only ever compared within one provider, model, language and
+ * length. A member embedded again with other settings keeps its cluster
+ * until the next pass, so the largest such group is the one measured; on a
+ * tie, the group of the lowest member ID.
  *
  * @param int   $leader    Leader ID labelling the cluster.
  * @param int[] $members   Member post IDs, lowest first.
@@ -176,19 +183,26 @@ function undergrowth_cluster_gaps(): array {
  * @return array{leader: int, members: int[], centre: float}|null The gap, or null when there is none.
  */
 function undergrowth_cluster_gap( int $leader, array $members, float $threshold ): ?array {
-	$vectors = array();
-	$length  = 0;
+	$groups = array();
 
 	foreach ( $members as $post_id ) {
 		$row    = undergrowth_get_vector( $post_id );
 		$packed = null === $row ? '' : undergrowth_unit_vector( $row['vector'] );
 
-		if ( '' === $packed || ( 0 !== $length && strlen( $packed ) !== $length ) ) {
+		if ( '' === $packed ) {
 			continue;
 		}
 
-		$length              = strlen( $packed );
-		$vectors[ $post_id ] = undergrowth_unpack_vector( $packed );
+		$space                        = $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'] . "\n" . strlen( $packed );
+		$groups[ $space ][ $post_id ] = undergrowth_unpack_vector( $packed );
+	}
+
+	$vectors = array();
+
+	foreach ( $groups as $group ) {
+		if ( count( $group ) > count( $vectors ) ) {
+			$vectors = $group;
+		}
 	}
 
 	if ( count( $vectors ) < UNDERGROWTH_MIN_CLUSTER_SIZE ) {
