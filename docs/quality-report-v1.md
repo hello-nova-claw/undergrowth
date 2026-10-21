@@ -238,10 +238,22 @@ When an OpenAI key is available, the same corpus gives a direct comparison with 
 
 ## Cleaning up
 
-The test left Ollama and the model installed but stopped. To remove the test model and Ollama:
+The test left Ollama and the model installed but stopped. `ollama rm` needs the server running, so start it first:
 
 ```bash
-ollama rm nomic-embed-text && brew uninstall ollama
+ollama serve
+```
+
+Then, in a second terminal:
+
+```bash
+ollama rm nomic-embed-text
+```
+
+Stop the server with Ctrl-C, then uninstall Ollama:
+
+```bash
+brew uninstall ollama
 ```
 
 On the machine used here, Ollama wasn't installed before the test, so `~/.ollama` holds nothing else and can be deleted too. On a machine with other local models, keep it.
