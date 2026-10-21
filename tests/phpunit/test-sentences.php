@@ -416,6 +416,22 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'I grow yacon beside the oca.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
+	public function test_heading_whose_words_recur_in_a_paragraph_is_not_chosen() {
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<h2>Yacon</h2><p>Yacon grows here.</p>' )
+		);
+		$yacon = $this->plant(
+			'Yacon',
+			array( 0.9, 0.1, 0.0 ),
+			array( 'post_content' => '<p>Yacon syrup.</p>' )
+		);
+
+		$this->assertSame( 'Yacon grows here.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
+	}
+
 	public function test_proposal_with_only_a_heading_to_link_is_dropped() {
 		$oca   = $this->plant(
 			'Oca',
