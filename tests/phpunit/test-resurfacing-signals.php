@@ -19,7 +19,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		unset( $_POST['post'], $_POST['_wpnonce'], $_REQUEST['_wpnonce'], $_GET['tab'], $_GET['undergrowth_notice'] );
+		unset( $_POST['post'], $_POST['_wpnonce'], $_REQUEST['_wpnonce'], $_GET['tab'], $_GET['undergrowth_notice'], $_GET['undergrowth_returned'] );
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
@@ -655,6 +655,12 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 
 		$_GET['undergrowth_notice'] = 'resurfacing_gone';
 		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-warning"/', $this->render() );
+	}
+
+	public function test_stages_tab_confirms_a_post_returned_from_its_signal() {
+		$_GET['undergrowth_returned'] = '1';
+
+		$this->assertStringContainsString( 'post returned to the garden', $this->render() );
 	}
 
 	public function test_deactivation_forgets_the_cycles_and_signals() {
