@@ -29,7 +29,7 @@ There are 60 posts, about 73,000 words in all (900–1,600 words each, mean 1,21
 |---|---|---|---|
 | Ralph Waldo Emerson, *Essays: First Series* (1841) | 2944 | Self-Reliance, Compensation, Love, Friendship, Prudence, Heroism, Circles, Art | 20 |
 | Ralph Waldo Emerson, *Essays: Second Series* (1844) | 2945 | Experience, Gifts, Nature, Manners | 9 |
-| Henry David Thoreau, *Walden* (1854) | 205 | Economy through Conclusion, 13 chapters | 27 |
+| Henry David Thoreau, *Walden* (1854) | 205 | Economy, Where I Lived, and What I Lived For, Reading, Sounds, Solitude, Visitors, The Bean-Field, The Ponds, Higher Laws, Brute Neighbors, Winter Animals, Spring, Conclusion (13 of its 18 chapters) | 27 |
 | Henry David Thoreau, *Walking* (1862) | 1022 | the whole essay | 4 |
 
 The texts overlap on nature, solitude, friendship, work and self-reliance, so there are real cross-links to find and real near-misses to avoid. No text was written for the test. The posts are the authors' own words with these additions:
@@ -37,7 +37,7 @@ The texts overlap on nature, solitude, friendship, work and self-reliance, so th
 - Each post is titled after its essay, for example "Compensation, part 2". It opens with a short heading, "From Compensation", and ends with a source credit paragraph.
 - Verse and epigraphs (44 in 23 posts) are Quote blocks with a `<cite>` where the source names one.
 
-The tested corpus had two flaws, found in review after the runs and fixed in the committed builder. "Economy, part 1" opened with *Walden*'s table of contents as a Quote block (one of the 44). Each *Walden* chapter's first post opened with the chapter title as a one-word paragraph. Neither text was ever chosen for a link. Both slightly blur the embeddings of 13 posts. The committed builder gives 42 quote blocks, and the runs were not repeated with it.
+The tested corpus came from `docs/quality-report-v1/build_corpus.py` as first committed (7dc2d03). It had two flaws, found in review after the runs and fixed in the builder since. "Economy, part 1" opened with *Walden*'s table of contents as a Quote block (one of the 44). Each *Walden* chapter's first post opened with the chapter title as a one-word paragraph. Neither text was ever chosen for a link. Both slightly blur the embeddings of 13 posts. The committed builder gives 42 quote blocks, and the runs were not repeated with it.
 - Where a text has no paragraph breaks (*Walking*), paragraphs were cut at sentence ends every 200 words or so.
 
 The corpus builder is `docs/quality-report-v1/build_corpus.py`. Posts are block markup. A second copy converted to Classic-editor markup (paragraphs separated by blank lines, no `<p>` tags) tested #170. WordPress's own "Hello world!" post stayed published, as on a fresh site.
@@ -238,8 +238,10 @@ When an OpenAI key is available, the same corpus gives a direct comparison with 
 
 ## Cleaning up
 
-The test left Ollama and the model installed but stopped. To remove both:
+The test left Ollama and the model installed but stopped. To remove the test model and Ollama:
 
 ```bash
-brew uninstall ollama && rm -rf ~/.ollama
+ollama rm nomic-embed-text && brew uninstall ollama
 ```
+
+On the machine used here, Ollama wasn't installed before the test, so `~/.ollama` holds nothing else and can be deleted too. On a machine with other local models, keep it.
