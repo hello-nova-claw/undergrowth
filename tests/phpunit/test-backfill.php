@@ -32,6 +32,7 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_backfill_after' );
+		delete_option( 'undergrowth_backfill.lock' );
 		delete_option( 'undergrowth_index_identity' );
 		wp_unschedule_hook( 'undergrowth_backfill' );
 		wp_unschedule_hook( 'undergrowth_backfill_check' );
@@ -304,6 +305,35 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotNull( undergrowth_get_vector( $ids[2] ) );
 	}
 
+	public function test_run_does_nothing_while_another_run_holds_the_lock() {
+		$this->archive( 1 );
+		update_option( 'undergrowth_backfill.lock', time(), false );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( array(), $this->embedded );
+	}
+
+	public function test_run_takes_over_a_lock_left_by_a_run_that_died() {
+		$this->archive( 1 );
+		update_option( 'undergrowth_backfill.lock', time() - HOUR_IN_SECONDS, false );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $this->embedded );
+	}
+
+	public function test_run_releases_its_lock() {
+		$this->batch_size( 1 );
+		$this->archive( 2 );
+
+		do_action( 'undergrowth_backfill' );
+		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
+
+		$this->run_cron();
+		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
+	}
+
 	public function test_check_starts_a_backfill_when_a_post_has_no_vector() {
 		$this->archive( 1 );
 
@@ -437,11 +467,13 @@ class Test_Backfill extends WP_UnitTestCase {
 		undergrowth_start_backfill();
 		undergrowth_schedule_backfill_check();
 		update_option( 'undergrowth_backfill_after', 5 );
+		update_option( 'undergrowth_backfill.lock', time(), false );
 
 		undergrowth_deactivate();
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill_after' ) );
+		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
 	}
 }

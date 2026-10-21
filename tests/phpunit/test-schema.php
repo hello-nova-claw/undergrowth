@@ -126,6 +126,7 @@ class Test_Schema extends WP_UnitTestCase {
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		undergrowth_schedule_backfill_check();
 		update_option( 'undergrowth_backfill_after', 5 );
+		update_option( 'undergrowth_backfill.lock', time(), false );
 		update_option(
 			'undergrowth_index_identity',
 			array(
@@ -164,6 +165,7 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill_after' ) );
+		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
 		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
 	}
 
