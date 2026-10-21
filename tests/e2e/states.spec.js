@@ -431,9 +431,15 @@ test.describe( 'Screenshot catalogue', () => {
 				throw new Error( 'No Compost row action for the old post.' );
 			}
 
-			await requestUtils.request.get(
+			const composted = await requestUtils.request.get(
 				link[ 1 ].replaceAll( '&#038;', '&' )
 			);
+
+			if ( ! composted.ok() ) {
+				throw new Error(
+					`Composting failed with HTTP ${ composted.status() }.`
+				);
+			}
 
 			// The first pass is the previous cycle; the second finds the new cluster.
 			await pass();
