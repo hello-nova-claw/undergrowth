@@ -268,4 +268,23 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 
 		$this->assertSame( array(), undergrowth_prompt_candidates() );
 	}
+
+	public function test_gap_key_stays_when_a_member_is_embedded_again_with_another_model() {
+		list( $oca ) = $this->gap();
+		$ulluco      = $this->member( 'Ulluco', '<p>Ulluco is the brightest of them.</p>', array( -0.5, 0.5, 0.5 ), $oca );
+		$key         = undergrowth_prompt_candidates()[0]['key'];
+
+		undergrowth_save_vector(
+			$ulluco,
+			array( 0.3, 0.3, 0.3 ),
+			array(
+				'provider'     => 'test-provider',
+				'model'        => 'other-model',
+				'language'     => 'en_US',
+				'content_hash' => 'hash',
+			)
+		);
+
+		$this->assertSame( $key, undergrowth_prompt_candidates()[0]['key'] );
+	}
 }
