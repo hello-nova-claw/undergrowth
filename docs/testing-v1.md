@@ -85,7 +85,10 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - In the editor, add the **Growth stage** block to a post or to a Query Loop. Check how it looks on the front end with your theme. A composting post should show nothing.
 
 **The threshold meter** (Dashboard, "Readers, last 30 days")
-- This arrives with #104. If your build has it, the meter needs Jetpack with Stats on. Without Jetpack it should say so plainly.
+- Without Jetpack, or with Stats off or not connected, it should say in one sentence what it needs, with no number.
+- With Jetpack connected and Stats on, it shows one number: your page views in the last 30 days against 1,000. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
+- Past 1,000, it should say plainly that the line is passed and that nothing changes yet.
+- Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 
 **The per-post files**
 - On the server, open `wp-content/uploads/undergrowth/posts/`. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. The `has`, `lacks` and `scent` sections stay empty for now (#118).
@@ -112,7 +115,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Dashboard question is one question, quoting only me
 - [ ] Ask me next month and Dismiss for good work
 - [ ] Growth stage block looks right in my theme
-- [ ] Threshold meter shows a sensible state (if present)
+- [ ] Threshold meter shows a sensible state, and its count matches Jetpack Stats
 - [ ] Per-post files hold nothing unexpected
 - [ ] Costs on both provider dashboards match the estimate
 - [ ] Nothing anywhere spoke *for* me
