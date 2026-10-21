@@ -69,15 +69,15 @@ function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 	}
 
 	if ( ! undergrowth_is_indexable( $post ) ) {
+		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
+
 		// Menu items, synced patterns and the like are never indexed and are
 		// saved often, so only a post that has a vector, or whose type is
 		// indexed, is announced as leaving.
-		if ( ! in_array( $post->post_type, undergrowth_indexed_post_types(), true ) && null === undergrowth_get_vector( $post_id ) ) {
-			return;
+		if ( in_array( $post->post_type, undergrowth_indexed_post_types(), true ) || null !== undergrowth_get_vector( $post_id ) ) {
+			undergrowth_remove_from_index( $post_id );
 		}
 
-		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
-		undergrowth_remove_from_index( $post_id );
 		return;
 	}
 
