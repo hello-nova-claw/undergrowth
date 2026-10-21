@@ -8,7 +8,8 @@
  * Copy this file to wp-content/mu-plugins/. It sends each post's text to an
  * OpenAI-compatible /v1/embeddings endpoint, such as Ollama, LM Studio,
  * llama.cpp's server or text-embeddings-inference, and tells Undergrowth
- * which model made the vectors. No OpenAI key is needed or used.
+ * which model made the vectors. No OpenAI key is needed or used. Like
+ * Undergrowth itself, it needs PHP's mbstring extension.
  *
  * With Ollama:
  *
@@ -68,7 +69,13 @@ function undergrowth_local_embeddings_vector( $vector, $text ) {
 		)
 	);
 
-	if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+	if ( is_wp_error( $response ) ) {
+		return null;
+	}
+
+	$status = (int) wp_remote_retrieve_response_code( $response );
+
+	if ( $status < 200 || $status > 299 ) {
 		return null;
 	}
 
