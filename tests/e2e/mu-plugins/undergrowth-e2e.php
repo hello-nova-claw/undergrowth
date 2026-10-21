@@ -291,6 +291,15 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 	case 'meter-below':
 	case 'meter-crossed':
 	case 'meter-no-answer':
+		// Jetpack shows Stats to administrators unless its settings say otherwise.
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap ) {
+				return 'view_stats' === $cap ? array( 'manage_options' ) : $caps;
+			},
+			10,
+			2
+		);
 		add_action(
 			'plugins_loaded',
 			static function () {
