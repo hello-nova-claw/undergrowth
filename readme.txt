@@ -12,11 +12,63 @@ Uses AI to read your site and ask you questions. It never writes a word your rea
 
 == Description ==
 
-Undergrowth treats your site like a garden. It reads your published posts, proposes links between them, and groups them into clusters so you can see where your writing is dense and where it has gaps. You approve or veto every proposal. Nothing changes on your site without you.
+Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and it changes a post's text only when you accept a suggestion.
 
-The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research.
+The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and, for some questions, from approved comments your readers left, which it treats as data, never as instructions.
+
+What it does in this version:
+
+* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links one word of that sentence to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Link suggestions.
+* **Growth stages.** Each post has a stage, Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never change when you save a post, and the monthly cycle never lowers one. You can pin a stage to keep it as it is.
+* **Composting.** Move a post to compost when you want it to rest. It stays published and keeps its links, but leaves the active garden: no new suggestions, no stage changes, no timer. When a composting post sits close to what you are writing now, Undergrowth tells you once. Return it to the garden whenever you like.
+* **One question at a time.** With an Anthropic key, Claude writes you an occasional question on your Dashboard, drawn from a gap between your own posts, a reader's question in an approved comment, or a post you composted. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. Dismiss it for good or ask to see it next month. There are no streaks and no reminders.
+* **A plain-text file for each post**, in your uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
+* **A Growth stage block** that shows readers a post's stage as a small line of text your theme styles.
+* **Discord, optionally.** Each new link suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
+* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read a post's stage and suggestions and to accept or veto a suggestion as the buttons do.
+
+Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
+
+Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits. This version works from your posts and their approved comments only.
+
+== Installation ==
+
+1. Upload the plugin through Plugins > Add New > Upload Plugin, or unzip it into `wp-content/plugins/undergrowth/`, and activate it.
+2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. Without a key, or a provider of your own through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
+3. Posts are read when they are saved, so posts published before the key was saved are not read yet. To read them now, select them on Posts > All Posts, choose Edit from Bulk actions, and press Update without changing anything.
+4. Optionally, paste an Anthropic API key on the same page to get the occasional question on your Dashboard.
+5. Optionally, set up Discord. See Setting up Discord below.
+
+Suggestions appear on Posts > Link suggestions a few moments after a post is read. Clusters, growth stages and questions follow on the monthly cycle.
+
+= Requirements =
+
+* WordPress 6.9 or later, for the Abilities API.
+* PHP 7.4 or later.
+* WP-Cron, or a real cron job calling it. Every request to an outside service runs from cron, so the editor never waits for one.
+* For Discord only: a site reachable from the internet over HTTPS.
 
 == Frequently Asked Questions ==
+
+= What is sent to OpenAI? =
+
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. Remove the key on Settings > Undergrowth to stop.
+
+= What is sent to Anthropic? =
+
+With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, never as instructions. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard.
+
+= What is sent to Discord? =
+
+Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Button clicks come back to your site signed by Discord, and are checked against your application's public key.
+
+= What does it cost? =
+
+Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually a few cents each, and at most a handful are written each month.
+
+= Does it need a key to work at all? =
+
+Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
 
 = Where does Undergrowth keep its notes about each post? =
 
@@ -53,7 +105,7 @@ A file looks like this:
     - 2026-11-01: asked (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
     - 2026-11-03: snoozed (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
 
-The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section is ready to list, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`; the signal itself comes in a later version. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals, stage, resurfacing record or prompts change, so edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
+The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section lists, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has, lacks and scent sections stay empty until later versions fill them. The file is rewritten whenever the post's proposals, stage, resurfacing record or prompts change, so edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
 
 = Can visitors open these files? =
 
@@ -102,6 +154,6 @@ Each message sends Discord the titles of both posts, the suggested sentence, whi
 * A post in a cluster of three or more, with accepted links both to and from it, now becomes Budding on the monthly cycle. Evergreen also needs a hub post linking to it, and hubs come with reader mode, so for now a post reaches Evergreen only when you pin it.
 * On the Posts screen, a published post now has a Compost link, and a composting post a Return to garden link. Both are bulk actions too. Composting posts are marked Composting and have their own view. They are left out of Posts > Link suggestions: no suggestion to or from one is listed, and the Growth stages tab does not list them.
 * Settings > Undergrowth has a second key, for Anthropic, which will let Claude write you an occasional question about your own writing. The page says what is sent: one post's title, sentences quoted from it and, for a question from a reader, that comment's text. Nothing is sent until you save a key, and nothing written by Claude is ever shown to your readers.
-* With an Anthropic key saved, Undergrowth looks once a month for a reader's question in an approved comment and asks Claude to turn it into one question for you. The reader's words are sent as data, never as instructions. A reply is kept only if it is a single question that quotes nobody but you; anything else is thrown away. Questions aren't shown anywhere yet.
+* With an Anthropic key saved, Undergrowth looks once a month for a reader's question in an approved comment and asks Claude to turn it into one question for you. The reader's words are sent as data, never as instructions. A reply is kept only if it is a single question that quotes nobody but you; anything else is thrown away.
 * New Dashboard widget shows the one question waiting for you, with the post it came from. Choose Ask me next month to see it again at the next monthly cycle, or Dismiss for good so that question never comes back. Nothing new appears until the next cycle, and there is never a list to clear. Every question, dismissal and snooze is written in the post's file.
 * Each post's file now has a resurfacing section, ready to list each time an old composting post is shown as close to what you are writing now, and each time you dismiss that. The plugin can also read a post's file back, on this site or another, and restore the post's stage, pin and history, so a composting post stays composting. There is no import screen yet.
