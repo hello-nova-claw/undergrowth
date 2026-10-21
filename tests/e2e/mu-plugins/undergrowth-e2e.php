@@ -93,6 +93,46 @@ add_filter(
 	3
 );
 
+// Discord is never called from a test site either. A message gets a made-up
+// ID back, as if it had been posted.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		if ( 0 !== strpos( (string) $url, 'https://discord.com/' ) ) {
+			return $preempt;
+		}
+
+		return array(
+			'headers'  => array(),
+			'body'     => '{"id":"100000000000000001"}',
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+			'filename' => null,
+		);
+	},
+	10,
+	3
+);
+
+// Cron does not run reliably during a test, so a test asks for the monthly
+// clustering pass, and the resurfacing it ends with, by visiting any admin
+// page with this argument. A test site has fewer posts than one batch, so
+// one call is the whole pass. The stage cycle it schedules is left to cron.
+add_action(
+	'admin_init',
+	static function () {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test sites only; it changes nothing an author made.
+		if ( ! isset( $_GET['undergrowth_e2e_cluster'] ) || ! current_user_can( 'manage_options' ) || ! function_exists( 'undergrowth_run_cluster_cycle' ) ) {
+			return;
+		}
+
+		undergrowth_run_cluster_cycle( 0 );
+	}
+);
+
 /**
  * Returns the value of a test cookie when it is one of the allowed values.
  *
@@ -127,7 +167,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'meter-below', 'meter-crossed', 'meter-no-answer' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'meter-below', 'meter-crossed', 'meter-no-answer' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -222,6 +262,18 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				}
 			);
 		}
+		break;
+
+	case 'discord-last-error':
+		add_filter(
+			'pre_option_undergrowth_last_discord_error',
+			static function () {
+				return array(
+					'time'   => 1767225600,
+					'status' => 429,
+				);
+			}
+		);
 		break;
 
 	case 'discord-invalid':

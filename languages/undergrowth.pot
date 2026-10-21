@@ -16,6 +16,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php
 #: src/abilities.php
+#: src/discord-clicks.php
 #: src/settings.php
 msgid "Undergrowth"
 msgstr ""
@@ -121,31 +122,37 @@ msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
@@ -159,6 +166,10 @@ msgstr ""
 
 #: src/admin.php
 msgid "You cannot change this setting."
+msgstr ""
+
+#: src/admin.php
+msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
@@ -189,6 +200,21 @@ msgstr ""
 msgid "Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden."
 msgstr ""
 
+#. translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to.
+#: src/admin.php
+#, php-format
+msgid "Your composting post %1$s is near what you are writing now, in the cluster with %2$s."
+msgstr ""
+
+#: src/admin.php
+#: src/posts-screen.php
+msgid "Return to garden"
+msgstr ""
+
+#: src/admin.php
+msgid "Dismiss"
+msgstr ""
+
 #: src/admin.php
 msgid "Suggest links between my posts"
 msgstr ""
@@ -216,6 +242,7 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
@@ -224,6 +251,7 @@ msgid "Your choice is saved."
 msgstr ""
 
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
@@ -263,6 +291,14 @@ msgid "The stage could not be saved, and the pin marker could not be put back. P
 msgstr ""
 
 #: src/admin.php
+msgid "Dismissed. The post stays composting."
+msgstr ""
+
+#: src/admin.php
+msgid "That post has no signal to dismiss, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
 msgid "See the change"
 msgstr ""
 
@@ -296,6 +332,7 @@ msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Accept"
 msgstr ""
 
@@ -306,6 +343,7 @@ msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/discord-messages.php
 msgid "Veto"
 msgstr ""
 
@@ -366,6 +404,12 @@ msgstr ""
 #. translators: %1$s: title of the post, linked to its editor.
 #: src/dashboard.php
 #, php-format
+msgid "Claude wrote this question from a gap among your posts, next to %1$s. Only you can see it."
+msgstr ""
+
+#. translators: %1$s: title of the post, linked to its editor.
+#: src/dashboard.php
+#, php-format
 msgid "Claude wrote this question from your post %1$s. Only you can see it."
 msgstr ""
 
@@ -391,6 +435,52 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Undergrowth does not know this button, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Discord user ID"
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Lets this Discord user press Accept and Veto on Undergrowth’s Discord messages, with this account’s permissions. Only administrators can see or change this. In Discord, turn on Developer Mode, then right-click the user and choose Copy User ID. Leave it blank to unlink."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "The Discord user ID should be a long number, so it was not saved."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "That Discord user is already linked to another account, so it was not saved."
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/discord-messages.php
+#, php-format
+msgid "Suggested link from “%1$s” to “%2$s”"
+msgstr ""
+
+#. translators: %s: address of the post the link would sit in.
+#: src/discord-messages.php
+#, php-format
+msgid "In: %s"
+msgstr ""
+
+#. translators: %s: address of the post the link would point to.
+#: src/discord-messages.php
+#, php-format
+msgid "To: %s"
+msgstr ""
+
+#: src/discord-messages.php
+msgid "Open in WordPress"
 msgstr ""
 
 #: src/discord-settings.php
@@ -431,6 +521,12 @@ msgstr ""
 
 #: src/discord-settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/discord-settings.php
+#, php-format
+msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
 #. translators: %s: last four characters of the saved bot token.
@@ -515,10 +611,6 @@ msgstr ""
 msgid "Return &#8220;%s&#8221; to the garden"
 msgstr ""
 
-#: src/posts-screen.php
-msgid "Return to garden"
-msgstr ""
-
 #. translators: %s: post title.
 #: src/posts-screen.php
 #, php-format
@@ -582,7 +674,7 @@ msgid "Anthropic API key"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
+msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
 msgstr ""
 
 #: src/settings.php
