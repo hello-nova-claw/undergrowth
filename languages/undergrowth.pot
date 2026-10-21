@@ -205,23 +205,23 @@ msgid "Composting posts rest outside the garden, so they are not listed here. Th
 msgstr ""
 
 #: src/admin.php
-msgid "Clusters are groups of your posts that are close in meaning, found once a month. Posts nearest the middle of each cluster come first."
+msgid "Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first."
 msgstr ""
 
-#. translators: %1$s: number of the cluster on the screen.
+#. translators: %1$s: number of the group on the screen.
 #: src/admin.php
 #, php-format
-msgid "Cluster %1$s, with a gap"
+msgid "Group %1$s, with a gap"
 msgstr ""
 
-#. translators: %1$s: number of the cluster on the screen.
+#. translators: %1$s: number of the group on the screen.
 #: src/admin.php
 #, php-format
-msgid "Cluster %1$s"
+msgid "Group %1$s"
 msgstr ""
 
 #: src/admin.php
-msgid "No post sits at the middle of this cluster. These posts circle something none of them is about yet."
+msgid "No post sits at the middle of this group. These posts circle something none of them is about yet."
 msgstr ""
 
 #. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage.
@@ -230,10 +230,10 @@ msgstr ""
 msgid "%1$s (%2$s)"
 msgstr ""
 
-#. translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to.
+#. translators: 1: title of the composting post, 2: title of the newest post in the group it is close to.
 #: src/admin.php
 #, php-format
-msgid "Your composting post %1$s is near what you are writing now, in the cluster with %2$s."
+msgid "Your composting post %1$s is near what you are writing now, in the group with %2$s."
 msgstr ""
 
 #: src/admin.php
