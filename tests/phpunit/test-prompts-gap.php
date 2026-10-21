@@ -287,4 +287,30 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 
 		$this->assertSame( $key, undergrowth_prompt_candidates()[0]['key'] );
 	}
+
+	public function test_dismissed_gap_stays_dismissed_when_another_post_becomes_nearest() {
+		add_filter(
+			'undergrowth_gap_similarity',
+			static function () {
+				return 0.99;
+			}
+		);
+		list( $oca, $yacon ) = $this->gap();
+		undergrowth_write_prompt();
+		undergrowth_dismiss_prompt( undergrowth_current_prompt()['key'] );
+
+		undergrowth_save_vector(
+			$yacon,
+			array( 0.5, 0.7, 0.5 ),
+			array(
+				'provider'     => 'test-provider',
+				'model'        => 'test-model',
+				'language'     => 'en_US',
+				'content_hash' => 'hash',
+			)
+		);
+
+		$this->assertSame( $yacon, undergrowth_cluster_gaps()[0]['members'][0] );
+		$this->assertSame( array(), undergrowth_prompt_candidates() );
+	}
 }
