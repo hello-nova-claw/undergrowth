@@ -228,7 +228,7 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '/id="undergrowth-index-count"[^>]*>\s*1 of 3 posts indexed\./', $html );
+		$this->assertMatchesRegularExpression( '/id="undergrowth-index-count"[^>]*>\s*1 of 3 posts read\./', $html );
 		$this->assertStringContainsString( 'in the background', $html );
 	}
 
@@ -248,8 +248,27 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '1 of 1 post indexed.', $html );
+		$this->assertStringContainsString( '1 of 1 post read.', $html );
 		$this->assertStringNotContainsString( 'in the background', $html );
+	}
+
+	public function test_page_speaks_of_reading_posts_not_of_vectors_or_indexes() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		update_option(
+			'undergrowth_last_embed_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 500,
+				'time'   => time(),
+			)
+		);
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$text = wp_strip_all_tags( $this->render() );
+
+		$this->assertStringNotContainsStringIgnoringCase( 'vector', $text );
+		$this->assertStringNotContainsStringIgnoringCase( 'index', $text );
+		$this->assertStringContainsString( 'title and text of each published post are sent to OpenAI', $text );
 	}
 
 	public function test_page_shows_no_count_until_a_provider_is_set_up() {
