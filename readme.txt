@@ -35,7 +35,7 @@ Readers come into it later. A future version reads where readers go and what the
 
 1. Upload the plugin through Plugins > Add New > Upload Plugin, or unzip it into `wp-content/plugins/undergrowth/`, and activate it.
 2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. Without a key, or a provider of your own through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
-3. Posts are read when they are saved, so posts published before the key was saved are not read yet. To read them now, select them on Posts > All Posts, choose Edit from Bulk actions, and press Update without changing anything.
+3. Posts you published before saving the key are read in the background, a few at a time, as WP-Cron runs. Settings > Undergrowth shows how many are indexed so far.
 4. Optionally, paste an Anthropic API key on the same page to get the occasional question on your Dashboard.
 5. Optionally, set up Discord. See Setting up Discord below.
 
