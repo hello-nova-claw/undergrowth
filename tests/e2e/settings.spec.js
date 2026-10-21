@@ -273,6 +273,67 @@ test.describe( 'Settings page', () => {
 		} );
 	}
 
+	test.describe( 'with posts', () => {
+		test.beforeEach( async ( { admin, requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			for ( const title of [ 'Oca', 'Yacon' ] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ title } grows here.</p>`,
+					status: 'publish',
+				} );
+			}
+
+			await admin.visitAdminPage(
+				'options-general.php',
+				'page=undergrowth'
+			);
+		} );
+
+		test.afterEach( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+		} );
+
+		test( 'counts the indexed posts', async ( { page } ) => {
+			await expect(
+				page.locator( '#undergrowth-index-count' )
+			).toContainText( /2\D+2/ );
+			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
+		test( 'counts posts not indexed with the current model', async ( {
+			admin,
+			page,
+			context,
+			baseURL,
+		} ) => {
+			await context.addCookies( [
+				{
+					name: 'undergrowth_e2e_fixture',
+					value: 'index-partial',
+					url: baseURL,
+				},
+			] );
+			await page.setViewportSize( { width: 390, height: 800 } );
+			await admin.visitAdminPage(
+				'options-general.php',
+				'page=undergrowth'
+			);
+
+			await expect(
+				page.locator( '#undergrowth-index-count' )
+			).toContainText( /0\D+2/ );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			const width = await page
+				.locator( '.wrap' )
+				.evaluate( ( wrap ) => wrap.scrollWidth );
+
+			expect( width ).toBeLessThanOrEqual( 390 );
+		} );
+	} );
+
 	test( 'fits a phone screen with Discord set up', async ( {
 		admin,
 		page,

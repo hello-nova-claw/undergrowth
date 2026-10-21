@@ -167,7 +167,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial' ) ) ) {
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -283,6 +283,21 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				undergrowth_sanitize_discord_application_id( 'abc' );
 			},
 			20
+		);
+		break;
+
+	// Every vector reads as another model's, as just after the model changed,
+	// so the settings page counts the posts as not indexed yet.
+	case 'index-partial':
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => 'e2e',
+					'model'    => 'word-counts-v2',
+				);
+			},
+			99
 		);
 		break;
 
