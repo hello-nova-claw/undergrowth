@@ -218,7 +218,8 @@ class Test_Discord_Click extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Runs for each unknown button.
+	 * A button ID is the only text read from a click, so anything that is not
+	 * exactly one of ours must be refused before any post is looked up.
 	 *
 	 * @dataProvider data_unknown_buttons
 	 *
