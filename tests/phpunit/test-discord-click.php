@@ -90,6 +90,20 @@ class Test_Discord_Click extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Signs in as an administrator who may edit other users, which on a
+	 * network takes a super admin.
+	 */
+	private function become_administrator(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		if ( is_multisite() ) {
+			grant_super_admin( $admin );
+		}
+
+		wp_set_current_user( $admin );
+	}
+
+	/**
 	 * Asserts a reply is shown only to the person who clicked.
 	 *
 	 * @param WP_REST_Response $response Response.
@@ -325,7 +339,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		undergrowth_render_discord_user_field( $user );
 		$this->assertSame( '', trim( (string) ob_get_clean() ) );
 
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->become_administrator();
 		ob_start();
 		undergrowth_render_discord_user_field( $user );
 		$html = (string) ob_get_clean();
@@ -336,7 +350,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 	public function test_administrator_links_a_discord_user() {
 		$author = self::factory()->user->create( array( 'role' => 'author' ) );
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->become_administrator();
 		$_POST['undergrowth_discord_user_id'] = ' 223344556677889900 ';
 
 		undergrowth_save_discord_user_field( $author );
@@ -345,7 +359,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 	}
 
 	public function test_blank_field_unlinks_the_discord_user() {
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->become_administrator();
 		$_POST['undergrowth_discord_user_id'] = '';
 
 		undergrowth_save_discord_user_field( $this->editor );
@@ -364,7 +378,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 	public function test_invalid_or_taken_discord_user_is_refused_with_an_error() {
 		$author = self::factory()->user->create( array( 'role' => 'author' ) );
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->become_administrator();
 
 		foreach ( array( 'abc', self::DISCORD_USER ) as $value ) {
 			$_POST['undergrowth_discord_user_id'] = $value;
