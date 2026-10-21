@@ -187,6 +187,7 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'Anthropic', $html );
 		$this->assertStringContainsString( 'Whole posts are never sent.', $html );
+		$this->assertStringContainsString( 'up to three of them', $html );
 		$this->assertStringContainsString( 'never to your readers', $html );
 	}
 
