@@ -65,9 +65,10 @@ function undergrowth_filesystem(): ?WP_Filesystem_Base {
 /**
  * Builds the text of a post's file from its stage and the links table.
  *
- * Only the post's title, address and slug, other posts' addresses,
- * sentences already quoted from the post, and the questions Undergrowth
- * asked the author about it are written.
+ * Only the post's title, address and slug, words and sentences from the
+ * post, other posts' addresses, and the questions Undergrowth asked the
+ * author about it are written. Has and lacks come from the same functions
+ * as the abilities, so the file and an agent always read the same answer.
  *
  * @param WP_Post $post Post the file describes.
  * @return string File contents.
@@ -114,7 +115,11 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		undergrowth_memory_stage( $post->ID ),
 		array( '', '## resurfacing' ),
 		undergrowth_memory_resurfacing( $post->ID ),
-		array( '', '## has', '', '## lacks', '', '## scent', '', '## proposed links' ),
+		array( '', '## has' ),
+		undergrowth_memory_has( $post ),
+		array( '', '## lacks' ),
+		undergrowth_memory_lacks( $post ),
+		array( '', '## scent', '', '## proposed links' ),
 		$links['proposed'],
 		array( '', '## accepted links' ),
 		$links['accepted'],
@@ -144,6 +149,41 @@ function undergrowth_memory_stage( int $post_id ): array {
 	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
 		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ];
 		$lines[] = '- ' . wp_date( 'Y-m-d', $change['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
+	}
+
+	return $lines;
+}
+
+/**
+ * Builds the has section of a post's file: its most distinctive words on one
+ * line, then the address of each published post it links to.
+ *
+ * @param WP_Post $post Post the file describes.
+ * @return string[] Lines of the section, without its heading.
+ */
+function undergrowth_memory_has( WP_Post $post ): array {
+	$has   = undergrowth_ability_has( $post );
+	$lines = array() === $has['words'] ? array() : array( 'words: ' . implode( ', ', $has['words'] ) );
+
+	foreach ( $has['links'] as $link ) {
+		$lines[] = '- ' . $link['url'];
+	}
+
+	return $lines;
+}
+
+/**
+ * Builds the lacks section of a post's file: each open suggestion, best
+ * first, with the sentence from the post where it fits.
+ *
+ * @param WP_Post $post Post the file describes.
+ * @return string[] Lines of the section, without its heading.
+ */
+function undergrowth_memory_lacks( WP_Post $post ): array {
+	$lines = array();
+
+	foreach ( undergrowth_ability_lacks( $post )['links'] as $link ) {
+		$lines[] = '- ' . $link['url'] . ' | "' . $link['sentence'] . '"';
 	}
 
 	return $lines;
