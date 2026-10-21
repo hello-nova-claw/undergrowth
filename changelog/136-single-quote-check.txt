@@ -1,0 +1,1 @@
+Writing prompts: a reply that quotes anyone but you in single quotation marks is now thrown away, as one using double quotation marks already was.
