@@ -1,0 +1,1 @@
+Accepting a link now works in posts written in the Classic editor, whose paragraphs get their <p> tags only when shown.

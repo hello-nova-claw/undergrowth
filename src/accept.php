@@ -145,7 +145,7 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
  * Wraps the first safe occurrence of a word inside a sentence in a link.
  *
  * Only paragraphs are searched, and only their plain text: never a tag, an
- * attribute or text already inside a link. The occurrence must fall within
+ * attribute or text already inside a link. See undergrowth_linkable_paragraphs(). The occurrence must fall within
  * the sentence, so the same word earlier in the paragraph is never linked.
  *
  * @param string $content  Post content.
@@ -155,22 +155,13 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
  * @return string|null The content with one word linked, or null when no safe place exists.
  */
 function undergrowth_link_word( string $content, string $sentence, string $term, string $url ): ?string {
-	if ( ! preg_match_all( '#<p\b[^>]*>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
-		return null;
-	}
-
 	// A pair of characters from an unspaced script has no word boundaries.
 	$boundary = preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $term ) ? '' : '(?<![\p{L}\p{N}])';
 	$pattern  = '/' . $boundary . preg_quote( $term, '/' ) . ( '' === $boundary ? '' : '(?![\p{L}\p{N}])' ) . '/iu';
 
-	foreach ( $paragraphs[1] as $paragraph ) {
-		list( $inner, $inner_start ) = $paragraph;
+	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
+		list( $inner, $inner_start, $plain ) = $paragraph;
 
-		if ( undergrowth_inside_others_words( substr( $content, 0, $inner_start ) ) ) {
-			continue;
-		}
-
-		$plain = ltrim( undergrowth_plain_text( $inner ) );
 		$start = mb_strpos( $plain, $sentence );
 
 		if ( false === $start ) {
@@ -232,6 +223,57 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 	}
 
 	return null;
+}
+
+/**
+ * Lists the paragraphs a link may be added to.
+ *
+ * In a block post these are its <p> elements. A post without blocks, as the
+ * Classic editor writes it, keeps most paragraphs as text between blank
+ * lines and gets its <p> tags only when shown, so those stretches count too,
+ * unless they hold block-level markup or a shortcode. A paragraph inside
+ * someone else's words never counts.
+ *
+ * @param string $content Post content.
+ * @return array<int, array{0: string, 1: int, 2: string}> Each paragraph's inner HTML, its byte offset in the content, and its plain text, in order.
+ */
+function undergrowth_linkable_paragraphs( string $content ): array {
+	$found = array();
+
+	if ( preg_match_all( '#<p\b[^>]*>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
+		foreach ( $paragraphs[1] as $paragraph ) {
+			$found[ $paragraph[1] ] = $paragraph[0];
+		}
+	}
+
+	if ( ! has_blocks( $content ) ) {
+		$shortcodes = '/' . get_shortcode_regex() . '/';
+
+		foreach ( (array) preg_split( '/\n\s*\n/', $content, -1, PREG_SPLIT_OFFSET_CAPTURE ) as $chunk ) {
+			list( $text, $offset ) = $chunk;
+
+			$inner = trim( $text );
+
+			// wpautop() leaves block-level markup alone, so only plain stretches become paragraphs.
+			if ( '' === $inner || preg_match( '#</?(?:p|h[1-6]|ul|ol|li|dl|dt|dd|blockquote|pre|table|thead|tbody|tfoot|tr|td|th|caption|div|figure|figcaption|form|fieldset|hr|address|section|article|aside|header|footer|nav|details|summary|iframe|script|style|object|embed|video|audio|select|textarea|math|svg)\b#i', $inner ) || preg_match( $shortcodes, $inner ) ) {
+				continue;
+			}
+
+			$found[ $offset + strpos( $text, $inner ) ] = $inner;
+		}
+	}
+
+	ksort( $found );
+
+	$linkable = array();
+
+	foreach ( $found as $inner_start => $inner ) {
+		if ( ! undergrowth_inside_others_words( substr( $content, 0, $inner_start ) ) ) {
+			$linkable[] = array( $inner, $inner_start, ltrim( undergrowth_plain_text( $inner ) ) );
+		}
+	}
+
+	return $linkable;
 }
 
 /**
