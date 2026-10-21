@@ -117,6 +117,22 @@ add_filter(
 	3
 );
 
+// Cron does not run reliably during a test, so a test asks for the monthly
+// clustering pass, and the resurfacing it ends with, by visiting any admin
+// page with this argument. A test site has fewer posts than one batch, so
+// one call is the whole pass. The stage cycle it schedules is left to cron.
+add_action(
+	'admin_init',
+	static function () {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test sites only; it changes nothing an author made.
+		if ( ! isset( $_GET['undergrowth_e2e_cluster'] ) || ! current_user_can( 'manage_options' ) || ! function_exists( 'undergrowth_run_cluster_cycle' ) ) {
+			return;
+		}
+
+		undergrowth_run_cluster_cycle( 0 );
+	}
+);
+
 /**
  * Returns the value of a test cookie when it is one of the allowed values.
  *

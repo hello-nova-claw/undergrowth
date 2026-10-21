@@ -162,6 +162,10 @@ msgid "You cannot change this setting."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot change this post."
+msgstr ""
+
+#: src/admin.php
 msgid "Link suggestions screen"
 msgstr ""
 
@@ -187,6 +191,21 @@ msgstr ""
 
 #: src/admin.php
 msgid "Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden."
+msgstr ""
+
+#. translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to.
+#: src/admin.php
+#, php-format
+msgid "Your composting post %1$s is near what you are writing now, in the cluster with %2$s."
+msgstr ""
+
+#: src/admin.php
+#: src/posts-screen.php
+msgid "Return to garden"
+msgstr ""
+
+#: src/admin.php
+msgid "Dismiss"
 msgstr ""
 
 #: src/admin.php
@@ -260,6 +279,14 @@ msgstr ""
 #: src/memory.php
 #: src/stages.php
 msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
+msgstr ""
+
+#: src/admin.php
+msgid "Dismissed. The post stays composting."
+msgstr ""
+
+#: src/admin.php
+msgid "That post has no signal to dismiss, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -501,10 +528,6 @@ msgstr ""
 #: src/posts-screen.php
 #, php-format
 msgid "Return &#8220;%s&#8221; to the garden"
-msgstr ""
-
-#: src/posts-screen.php
-msgid "Return to garden"
 msgstr ""
 
 #. translators: %s: post title.
