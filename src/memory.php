@@ -12,6 +12,9 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
+// How distinctive a post's words are depends on every other post, so each
+// file is rewritten once a month even when nothing of its own changed.
+add_action( 'undergrowth_stage_cycled', 'undergrowth_update_memory' );
 add_action( 'undergrowth_resurfacing_logged', 'undergrowth_update_memory' );
 add_action( 'undergrowth_prompt_logged', 'undergrowth_update_memory' );
 add_action( 'post_updated', 'undergrowth_update_memory_around' );

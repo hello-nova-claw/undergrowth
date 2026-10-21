@@ -404,6 +404,13 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 
 	foreach ( $post_ids as $post_id ) {
 		undergrowth_cycle_post( $post_id );
+
+		/**
+		 * Fires after the monthly stage pass has measured a post.
+		 *
+		 * @param int $post_id Post ID.
+		 */
+		do_action( 'undergrowth_stage_cycled', $post_id );
 	}
 
 	if ( count( $post_ids ) === UNDERGROWTH_STAGE_BATCH ) {
