@@ -16,6 +16,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php
 #: src/abilities.php
+#: src/discord-clicks.php
 #: src/settings.php
 msgid "Undergrowth"
 msgstr ""
@@ -121,31 +122,37 @@ msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "One of those posts no longer exists or is no longer published, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That link was already accepted, so it was left as it is."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That suggestion is no longer on the list, so nothing was changed."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/abilities.php
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
@@ -235,6 +242,7 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Done. This link won’t be suggested again."
 msgstr ""
 
@@ -243,6 +251,7 @@ msgid "Your choice is saved."
 msgstr ""
 
 #: src/admin.php
+#: src/discord-clicks.php
 msgid "Linked. One word in your sentence now links to the suggested post."
 msgstr ""
 
@@ -426,6 +435,30 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Undergrowth does not know this button, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Discord user ID"
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "Lets this Discord user press Accept and Veto on Undergrowth’s Discord messages, with this account’s permissions. Only administrators can see or change this. In Discord, turn on Developer Mode, then right-click the user and choose Copy User ID. Leave it blank to unlink."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "The Discord user ID should be a long number, so it was not saved."
+msgstr ""
+
+#: src/discord-clicks.php
+msgid "That Discord user is already linked to another account, so it was not saved."
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.

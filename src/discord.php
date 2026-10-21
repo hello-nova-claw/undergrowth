@@ -16,6 +16,7 @@ const UNDERGROWTH_DISCORD_MAX_AGE = 300;
 
 const UNDERGROWTH_DISCORD_PING            = 1;
 const UNDERGROWTH_DISCORD_PONG            = 1;
+const UNDERGROWTH_DISCORD_COMPONENT       = 3;
 const UNDERGROWTH_DISCORD_CHANNEL_MESSAGE = 4;
 const UNDERGROWTH_DISCORD_FLAG_EPHEMERAL  = 64;
 
@@ -112,6 +113,10 @@ function undergrowth_discord_interaction( WP_REST_Request $request ) {
 
 	if ( UNDERGROWTH_DISCORD_PING === $interaction['type'] ) {
 		return new WP_REST_Response( array( 'type' => UNDERGROWTH_DISCORD_PONG ) );
+	}
+
+	if ( UNDERGROWTH_DISCORD_COMPONENT === $interaction['type'] ) {
+		return undergrowth_discord_click( $interaction );
 	}
 
 	return undergrowth_discord_ephemeral( __( 'Undergrowth only answers its own Accept and Veto buttons.', 'undergrowth' ) );
