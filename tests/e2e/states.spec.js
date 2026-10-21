@@ -17,6 +17,7 @@ const WIDTHS = [ 1280, 390 ];
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
+const DASHBOARD = [ 'index.php' ];
 const POSTS_LIST = [ 'edit.php', '' ];
 const PROFILE = [ 'profile.php', '' ];
 
@@ -43,6 +44,9 @@ const STAGE_NOTICES = [
 	'not_pinned',
 	'stage_not_saved',
 ];
+
+// Notices the Dashboard returns with after a prompt is dismissed or snoozed.
+const PROMPT_NOTICES = [ 'prompt_dismissed', 'prompt_snoozed', 'prompt_gone' ];
 
 const WITHOUT_POSTS = [
 	{ screen: 'settings', state: 'no-key', page: SETTINGS },
@@ -119,6 +123,18 @@ const WITH_POSTS = [
 		notice: true,
 	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
+	{
+		screen: 'dashboard',
+		state: 'prompt',
+		page: DASHBOARD,
+		fixture: 'prompt',
+	},
+	...PROMPT_NOTICES.map( ( notice ) => ( {
+		screen: 'dashboard',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ DASHBOARD[ 0 ], `undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
 	...STAGE_NOTICES.map( ( notice ) => ( {
 		screen: 'stages',
 		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
@@ -178,6 +194,10 @@ function volatile( page ) {
 		page.locator( '#footer-upgrade' ),
 		// Gravatar loads over the network, sometimes after the shot.
 		page.locator( '#wpadminbar .avatar' ),
+		// Core Dashboard widgets show news, dates and checks that change.
+		page.locator(
+			'#dashboard_primary, #dashboard_activity, #dashboard_site_health'
+		),
 	];
 }
 
@@ -300,9 +320,29 @@ test.describe( 'Screenshot catalogue', () => {
 		test.beforeAll( async ( { requestUtils } ) => {
 			await requestUtils.deleteAllPosts();
 
+			const created = [];
+
 			for ( const post of POSTS ) {
-				await requestUtils.createPost( { ...post, status: 'publish' } );
+				created.push(
+					await requestUtils.createPost( {
+						...post,
+						status: 'publish',
+					} )
+				);
 			}
+
+			// A reader's question, for the prompt on the Dashboard.
+			await requestUtils.rest( {
+				method: 'POST',
+				path: '/wp/v2/comments',
+				data: {
+					post: created[ 0 ].id,
+					content: 'How do you keep oca through the winter?',
+					author_name: 'A reader',
+					author_email: 'reader@example.com',
+					status: 'approved',
+				},
+			} );
 		} );
 
 		capture( WITH_POSTS );
