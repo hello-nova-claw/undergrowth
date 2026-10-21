@@ -279,15 +279,16 @@ function undergrowth_render_stages_tab(): void {
 	$counts    = undergrowth_count_stages();
 	$sentences = array();
 
+	// Each sentence is its own element, translated whole.
 	foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $stage ) {
-		$sentences[] = undergrowth_stage_count_sentence( $stage, $counts[ $stage ] );
+		$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
 	}
 
-	echo '<p class="undergrowth-stage-counts">' . esc_html( implode( ' ', $sentences ) ) . '</p>';
+	echo '<p class="undergrowth-stage-counts">' . implode( ' ', $sentences ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each sentence is escaped above.
 
 	if ( $counts['composting'] > 0 ) {
 		printf(
-			'<p class="undergrowth-composting-count">%1$s %2$s</p>',
+			'<p class="undergrowth-composting-count"><span>%1$s</span> <span>%2$s</span></p>',
 			esc_html( undergrowth_stage_count_sentence( 'composting', $counts['composting'] ) ),
 			esc_html__( 'Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden.', 'undergrowth' )
 		);
