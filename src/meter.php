@@ -182,7 +182,7 @@ function undergrowth_add_meter_widget(): void {
 		return;
 	}
 
-	wp_add_dashboard_widget( 'undergrowth_meter', __( 'Readers, last 30 days', 'undergrowth' ), 'undergrowth_render_meter_widget' );
+	wp_add_dashboard_widget( 'undergrowth_meter', __( 'Page views, last 30 days', 'undergrowth' ), 'undergrowth_render_meter_widget' );
 }
 
 /**

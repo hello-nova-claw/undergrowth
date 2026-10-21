@@ -95,6 +95,14 @@ class Test_Meter extends WP_UnitTestCase {
 		return trim( (string) preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) ob_get_clean() ) ) );
 	}
 
+	public function test_widget_is_titled_by_what_it_counts() {
+		global $wp_meta_boxes;
+
+		$this->widgets();
+
+		$this->assertSame( 'Page views, last 30 days', $wp_meta_boxes['dashboard']['normal']['core']['undergrowth_meter']['title'] );
+	}
+
 	public function test_line_is_one_thousand_views() {
 		$this->assertSame( 1000, UNDERGROWTH_METER_LINE );
 		$this->assertSame( 1000, undergrowth_meter_line() );

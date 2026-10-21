@@ -102,6 +102,8 @@ const WITHOUT_POSTS = [
 		fixture: 'no-provider',
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
+	// Where a new owner lands after activating, with the Settings link.
+	{ screen: 'plugins', state: 'row', page: [ 'plugins.php', '' ] },
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
 	// The threshold meter. Without a fixture the site has no Jetpack.

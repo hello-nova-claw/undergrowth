@@ -306,6 +306,13 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<button[^>]*aria-label="[^"]*Oca[^"]*Yacon[^"]*"/', $html );
 	}
 
+	public function test_quoted_sentence_takes_its_direction_from_its_own_text() {
+		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertStringContainsString( '<q dir="auto">Notes about Oca.</q>', $this->render() );
+	}
+
 	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
@@ -344,7 +351,19 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'options-general.php?page=undergrowth', $html );
+		$this->assertStringContainsString( 'need an OpenAI API key', $html );
+		$this->assertStringNotContainsString( 'embedding provider', $html );
 		$this->assertStringNotContainsString( '<table', $html );
+	}
+
+	public function test_screen_leaves_out_the_toggle_when_no_provider_is_set() {
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+	}
+
+	public function test_screen_shows_the_toggle_when_a_provider_is_set() {
+		$this->assertStringContainsString( 'name="undergrowth_suggest_links"', $this->render() );
 	}
 
 	public function test_screen_says_when_suggestions_are_off() {

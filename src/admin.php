@@ -313,7 +313,7 @@ function undergrowth_render_stages_tab(): void {
  * of headings finds it, and said in words that name no post or topic.
  */
 function undergrowth_render_map_tab(): void {
-	echo '<p>' . esc_html__( 'Clusters are groups of your posts that are close in meaning, found once a month. Posts nearest the middle of each cluster come first.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first.', 'undergrowth' ) . '</p>';
 
 	foreach ( undergrowth_cluster_map() as $number => $cluster ) {
 		$id    = 'undergrowth-cluster-' . $cluster['leader'];
@@ -324,17 +324,17 @@ function undergrowth_render_map_tab(): void {
 			esc_attr( $id ),
 			esc_html(
 				$cluster['gap']
-					/* translators: %1$s: number of the cluster on the screen. */
-					? sprintf( __( 'Cluster %1$s, with a gap', 'undergrowth' ), $label )
-					/* translators: %1$s: number of the cluster on the screen. */
-					: sprintf( __( 'Cluster %1$s', 'undergrowth' ), $label )
+					/* translators: %1$s: number of the group on the screen. */
+					? sprintf( __( 'Group %1$s, with a gap', 'undergrowth' ), $label )
+					/* translators: %1$s: number of the group on the screen. */
+					: sprintf( __( 'Group %1$s', 'undergrowth' ), $label )
 			)
 		);
 
 		if ( $cluster['gap'] ) {
 			printf(
 				'<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"></span> %s</p>',
-				esc_html__( 'No post sits at the middle of this cluster. These posts circle something none of them is about yet.', 'undergrowth' )
+				esc_html__( 'No post sits at the middle of this group. These posts circle something none of them is about yet.', 'undergrowth' )
 			);
 		}
 
@@ -403,8 +403,8 @@ function undergrowth_render_resurfacing_signals(): void {
 			'<div class="notice notice-info inline undergrowth-resurfacing"><p id="undergrowth-resurfacing-%3$d">%1$s</p><form method="post" action="%2$s"><input type="hidden" name="action" value="undergrowth_dismiss_resurfacing" /><input type="hidden" name="post" value="%3$d" />',
 			wp_kses(
 				sprintf(
-					/* translators: 1: title of the composting post, 2: title of the newest post in the cluster it is close to. */
-					__( 'Your composting post %1$s is near what you are writing now, in the cluster with %2$s.', 'undergrowth' ),
+					/* translators: 1: title of the composting post, 2: title of the newest post in the group it is close to. */
+					__( 'Your composting post %1$s is near what you are writing now, in the group with %2$s.', 'undergrowth' ),
 					undergrowth_post_link( $post_id ),
 					undergrowth_post_link( $newest )
 				),
@@ -473,6 +473,20 @@ function undergrowth_has_composting_posts(): bool {
 function undergrowth_render_suggestions_tab(): void {
 	$identity = undergrowth_embed_identity();
 	$enabled  = undergrowth_suggestions_enabled();
+
+	// Without a provider the toggle would change nothing the owner can see.
+	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+		echo '<p>' . wp_kses(
+			sprintf(
+				/* translators: %1$s: address of the Undergrowth settings page. */
+				__( 'Link suggestions need an OpenAI API key. <a href="%1$s">Add one in Settings</a> to start.', 'undergrowth' ),
+				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
+			),
+			array( 'a' => array( 'href' => array() ) )
+		) . '</p>';
+
+		return;
+	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="undergrowth_toggle" />
@@ -487,16 +501,7 @@ function undergrowth_render_suggestions_tab(): void {
 	</form>
 
 	<?php
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
-		echo '<p>' . wp_kses(
-			sprintf(
-				/* translators: %s: address of the Undergrowth settings page. */
-				__( 'Link suggestions need an embedding provider. <a href="%s">Add an API key in Settings</a> to start.', 'undergrowth' ),
-				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
-			),
-			array( 'a' => array( 'href' => array() ) )
-		) . '</p>';
-	} elseif ( ! $enabled ) {
+	if ( ! $enabled ) {
 		echo '<p>' . esc_html__( 'Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on.', 'undergrowth' ) . '</p>';
 	} else {
 		undergrowth_load_list_table();

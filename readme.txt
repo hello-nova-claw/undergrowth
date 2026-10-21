@@ -26,7 +26,7 @@ What it does in this version:
 * **A Growth stage block** that shows readers a post's stage as a small line of text your theme styles.
 * **Discord, optionally.** Each new link suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
 * **A readers meter** on your Dashboard: with Jetpack Stats on, one number, your page views in the last 30 days, against a milestone of 1,000. Passing it changes nothing in this version. It marks when the reader features of a later version can start.
-* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read a post's stage and suggestions and to accept or veto a suggestion as the buttons do.
+* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read the stages and suggestions of a post, a cluster or the whole site, and to accept or veto a suggestion as the buttons do.
 
 Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
 
@@ -74,6 +74,10 @@ Undergrowth is free. The services it uses bill your own accounts. Embedding is v
 = Does it need a key to work at all? =
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. When you change the model, give it a new name through `undergrowth_embed_identity`, and every post is embedded again in the background. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
+
+= Can I use a model on my own server instead of OpenAI? =
+
+Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. Each model scores similarity on its own scale, so the example also sets the thresholds for links, clusters and gaps that suit `nomic-embed-text`. You run and look after the model yourself, and the plugin's settings screen does not configure it. Most sites should use an OpenAI key instead.
 
 = Where does Undergrowth keep its notes about each post? =
 

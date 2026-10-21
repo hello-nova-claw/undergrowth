@@ -364,6 +364,61 @@ class Test_Accept extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Publishes Oca and a Yacon post whose words rank "syrup" below its top 20.
+	 *
+	 * Yacon has twenty words of its own, each used three times. Oca shares
+	 * "tuber" and "syrup" with it, so those two are the least distinctive, and
+	 * "syrup", used once, comes last. A proposal stored on an Oca sentence
+	 * holding only "syrup" is what a proposal made against fewer posts, before
+	 * the rest of the site was indexed, looks like now.
+	 *
+	 * @param string $sentence Oca sentence the proposal is stored on.
+	 * @return int[] Oca's ID, then Yacon's.
+	 */
+	private function stale_pair( string $sentence ): array {
+		$own   = array( 'andes', 'leaves', 'sunflower', 'cousin', 'crisp', 'juicy', 'pale', 'brown', 'skin', 'peel', 'grate', 'salad', 'cellar', 'sprout', 'raw', 'fried', 'chips', 'flour', 'tall', 'roots' );
+		$words = array();
+		foreach ( array_merge( $own, array( 'tuber' ) ) as $word ) {
+			$words[] = str_repeat( $word . ' ', 3 );
+		}
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>I keep a tuber here. ' . $sentence . '</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>' . implode( '', $words ) . 'syrup.</p>' ) );
+
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
+		$this->assertArrayNotHasKey( 'syrup', undergrowth_distinctive_terms( $yacon, $corpus ) );
+
+		global $wpdb;
+		$wpdb->replace(
+			undergrowth_links_table(),
+			array(
+				'source_id'      => $oca,
+				'target_id'      => $yacon,
+				'state'          => 'proposed',
+				'score'          => 0.9,
+				'sentence'       => $sentence,
+				'sentence_index' => 1,
+				'created_at'     => current_time( 'mysql', true ),
+				'updated_at'     => current_time( 'mysql', true ),
+			)
+		);
+
+		return array( $oca, $yacon );
+	}
+
+	public function test_word_ranked_below_the_top_twenty_is_still_linked() {
+		list( $oca, $yacon ) = $this->stale_pair( 'I like syrup on pancakes.' );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertStringContainsString( 'I like <a href="' . get_permalink( $yacon ) . '">syrup</a> on pancakes.', get_post( $oca )->post_content );
+	}
+
+	public function test_sentence_sharing_no_word_with_the_target_still_fails() {
+		list( $oca, $yacon ) = $this->stale_pair( 'I like honey on pancakes.' );
+
+		$this->assertSame( 'no_word', undergrowth_accept_link( $oca, $yacon ) );
+	}
+
 	public function test_missing_post_fails_safely() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		wp_delete_post( $yacon, true );

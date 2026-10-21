@@ -563,6 +563,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		// The cluster is named by its newest post, the one written most recently.
 		$this->assertStringContainsString( 'Oca seed', $html );
 		$this->assertStringContainsString( 'near what you are writing now', $html );
+		$this->assertStringContainsString( 'in the group with', $html );
 		$this->assertStringContainsString( 'value="undergrowth_dismiss_resurfacing"', $html );
 		$this->assertStringContainsString( 'name="post" value="' . $old . '"', $html );
 		$this->assertStringContainsString( 'name="_wpnonce"', $html );

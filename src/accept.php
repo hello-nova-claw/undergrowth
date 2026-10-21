@@ -109,7 +109,11 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target->ID ) ) ) );
 	$linked = null;
 
-	foreach ( array_keys( undergrowth_distinctive_terms( $target->ID, $corpus ) ) as $term ) {
+	// Every word the target uses is tried, most distinctive first. The
+	// sentence was chosen for a word among the target's top few, but which
+	// words make the top few shifts as posts are added, most of all while a
+	// new site is still being indexed.
+	foreach ( array_keys( undergrowth_distinctive_terms( $target->ID, $corpus, 0 ) ) as $term ) {
 		$linked = undergrowth_link_word( $source->post_content, $sentence, (string) $term, (string) get_permalink( $target ) );
 
 		if ( null !== $linked ) {
