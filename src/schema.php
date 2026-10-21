@@ -138,12 +138,16 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_cluster_leaders' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
+	delete_option( 'undergrowth_previous_clusters' );
+	delete_option( 'undergrowth_new_clusters' );
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 	delete_post_meta_by_key( 'undergrowth_cluster' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
 	delete_post_meta_by_key( 'undergrowth_stage_pinned' );
 	delete_post_meta_by_key( 'undergrowth_stage_log' );
+	delete_post_meta_by_key( 'undergrowth_resurfacing' );
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	undergrowth_delete_memory_folder();

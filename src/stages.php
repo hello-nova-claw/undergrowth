@@ -441,9 +441,13 @@ function undergrowth_cycle_post( int $post_id ): void {
 function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 	delete_option( 'undergrowth_cluster_leaders' );
-	// Clusters would be stale by the time the plugin is active again.
+	// Clusters, and the record of the last pass to compare new ones with,
+	// would be stale by the time the plugin is active again.
 	delete_post_meta_by_key( 'undergrowth_cluster' );
+	delete_option( 'undergrowth_previous_clusters' );
+	undergrowth_forget_resurfacing_signals();
 }
 
 /**

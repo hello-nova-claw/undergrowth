@@ -100,7 +100,7 @@ function undergrowth_cluster_members( int $post_id ): array {
  * many exist, a post that matches none of them stays out of every cluster
  * until the next pass, so no batch compares more than its size times the
  * cap. Each batch that fills up schedules the next; the last starts the
- * stage cycle.
+ * stage cycle and looks for composting posts near the new clusters.
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
@@ -113,6 +113,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	if ( 0 === $after_id ) {
 		delete_post_meta_by_key( 'undergrowth_cluster' );
 		update_option( 'undergrowth_cluster_leaders', array(), false );
+		undergrowth_forget_resurfacing_signals();
 	}
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
@@ -173,6 +174,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 
 	delete_option( 'undergrowth_cluster_leaders' );
 	wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 0 ) );
+	undergrowth_start_resurfacing();
 }
 
 /**
