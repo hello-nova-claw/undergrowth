@@ -18,6 +18,8 @@ const UNDERGROWTH_DISCORD_MAX_SENTENCE = 500;
 
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_discord_queue_proposals' );
 add_action( 'undergrowth_discord_post_proposals', 'undergrowth_discord_post_proposals' );
+add_action( 'undergrowth_post_left_index', 'undergrowth_discord_forget_post_failures' );
+add_action( 'deleted_post', 'undergrowth_discord_forget_post_failures' );
 add_action( 'add_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 add_action( 'update_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 
@@ -246,6 +248,29 @@ function undergrowth_discord_forget_failures( int $post_id, array $waiting ): vo
 
 	foreach ( array_keys( $error['pending'] ) as $pair ) {
 		if ( 0 === strpos( (string) $pair, $prefix ) && ! isset( $waiting[ (int) substr( (string) $pair, strlen( $prefix ) ) ] ) ) {
+			undergrowth_discord_record_result( (string) $pair, true );
+		}
+	}
+}
+
+/**
+ * Forgets the failures of every suggestion to or from a post that left the
+ * index or was deleted, since none of them will be sent again.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_discord_forget_post_failures( $post_id ): void {
+	$post_id = (int) $post_id;
+	$error   = get_option( 'undergrowth_last_discord_error' );
+
+	if ( ! is_array( $error ) || ! isset( $error['pending'] ) || ! is_array( $error['pending'] ) ) {
+		return;
+	}
+
+	foreach ( array_keys( $error['pending'] ) as $pair ) {
+		$ids = array_map( 'intval', explode( ':', (string) $pair, 2 ) );
+
+		if ( in_array( $post_id, $ids, true ) ) {
 			undergrowth_discord_record_result( (string) $pair, true );
 		}
 	}
