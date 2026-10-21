@@ -21,6 +21,7 @@ add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
 add_action( 'after_delete_post', 'undergrowth_update_memory_around' );
+add_action( 'init', 'undergrowth_prepare_memory_folder' );
 
 /**
  * Returns the folder that holds the plugin's files for the current site.
@@ -30,7 +31,78 @@ add_action( 'after_delete_post', 'undergrowth_update_memory_around' );
 function undergrowth_memory_root(): string {
 	$uploads = wp_upload_dir( null, false );
 
-	return $uploads['basedir'] . '/undergrowth';
+	return $uploads['basedir'] . '/' . undergrowth_memory_folder();
+}
+
+/**
+ * Returns the name of the site's files folder, making it the first time.
+ *
+ * The name ends in random characters, so the files cannot be found at a
+ * guessable address on a server that ignores .htaccess. Folders from before
+ * the random name are moved into the new one as soon as it is made.
+ *
+ * @return string Folder name, such as undergrowth-0123456789ab.
+ */
+function undergrowth_memory_folder(): string {
+	$folder = get_option( 'undergrowth_memory_folder' );
+
+	if ( is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder ) ) {
+		return $folder;
+	}
+
+	try {
+		$folder = 'undergrowth-' . bin2hex( random_bytes( 6 ) );
+	} catch ( Exception $e ) {
+		$folder = 'undergrowth-' . substr( hash( 'sha256', wp_generate_password( 64, true, true ) ), 0, 12 );
+	}
+
+	$uploads = wp_upload_dir( null, false );
+
+	update_option( 'undergrowth_memory_folder', $folder );
+	undergrowth_move_legacy_memory_folder( $uploads['basedir'] . '/' . $folder );
+
+	return $folder;
+}
+
+/**
+ * Makes the site's files folder name, and so moves any old folder, on the
+ * first request after an update.
+ */
+function undergrowth_prepare_memory_folder(): void {
+	if ( false === get_option( 'undergrowth_memory_folder' ) ) {
+		undergrowth_memory_folder();
+	}
+}
+
+/**
+ * Moves the files folder from its old, guessable address to its new one.
+ *
+ * Rename is a single step, so the files are never in both places. When it
+ * cannot be done, the old folder is removed instead: every file is written
+ * again from the database, at the latest on the monthly cycle, so nothing
+ * is lost that cannot be rebuilt.
+ *
+ * @param string $root New folder, absolute path.
+ */
+function undergrowth_move_legacy_memory_folder( string $root ): void {
+	$uploads = wp_upload_dir( null, false );
+	$legacy  = $uploads['basedir'] . '/undergrowth';
+
+	if ( $legacy === $root || ! is_dir( $legacy ) || is_link( $legacy ) ) {
+		return;
+	}
+
+	// One atomic step, where WP_Filesystem::move() may copy and delete. A
+	// failed rename falls back below, so its warning is silenced.
+	if ( ! file_exists( $root ) && @rename( $legacy, $root ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename, WordPress.PHP.NoSilencedErrors.Discouraged
+		return;
+	}
+
+	$filesystem = undergrowth_filesystem();
+
+	if ( null === $filesystem || ! $filesystem->rmdir( $legacy, true ) ) {
+		undergrowth_record_file_error( 'old_folder_left' );
+	}
 }
 
 /**
@@ -285,8 +357,9 @@ function undergrowth_write_memory( int $post_id ): bool {
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
 	// Without its protection files, the folder is never written to at all.
 	$protection = array(
-		'index.php' => "<?php\n// Silence is golden.\n",
-		'.htaccess' => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+		'index.php'       => "<?php\n// Silence is golden.\n",
+		'posts/index.php' => "<?php\n// Silence is golden.\n",
+		'.htaccess'       => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
 	);
 
 	foreach ( $protection as $name => $contents ) {
@@ -397,14 +470,25 @@ function undergrowth_delete_memory( int $post_id ): void {
 }
 
 /**
- * Removes the plugin's folder and every file in it, for the current site.
+ * Removes the plugin's folder and every file in it, for the current site,
+ * and any folder left at the old address.
+ *
+ * A folder name is never made here, so uninstalling does not make one.
  */
 function undergrowth_delete_memory_folder(): void {
 	$filesystem = undergrowth_filesystem();
-	$root       = undergrowth_memory_root();
+	$uploads    = wp_upload_dir( null, false );
+	$folders    = array( $uploads['basedir'] . '/undergrowth' );
+	$folder     = get_option( 'undergrowth_memory_folder' );
 
-	if ( null !== $filesystem && $filesystem->is_dir( $root ) ) {
-		$filesystem->rmdir( $root, true );
+	if ( is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder ) ) {
+		$folders[] = $uploads['basedir'] . '/' . $folder;
+	}
+
+	foreach ( $folders as $root ) {
+		if ( null !== $filesystem && $filesystem->is_dir( $root ) ) {
+			$filesystem->rmdir( $root, true );
+		}
 	}
 }
 

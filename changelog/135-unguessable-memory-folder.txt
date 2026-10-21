@@ -1,0 +1,1 @@
+Each site's per-post files now sit in a folder whose name ends in random characters, wp-content/uploads/undergrowth-<random>/posts/, so visitors cannot guess their address even on servers that ignore .htaccess. Settings > Undergrowth shows the folder. An existing undergrowth folder is moved there on the first page load after updating.

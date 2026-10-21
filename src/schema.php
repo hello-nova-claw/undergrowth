@@ -169,6 +169,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	undergrowth_delete_memory_folder();
+	delete_option( 'undergrowth_memory_folder' );
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.

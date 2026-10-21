@@ -761,6 +761,14 @@ msgstr ""
 msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
+#: src/settings.php
+msgid "Per-post files"
+msgstr ""
+
+#: src/settings.php
+msgid "Each post’s plain-text record is kept in this folder. Its name ends in random characters, so visitors cannot guess its address."
+msgstr ""
+
 #: src/stages.php
 msgid "Growth stage, measured from the links between posts or chosen by the author."
 msgstr ""
