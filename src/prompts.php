@@ -823,8 +823,11 @@ function undergrowth_validate_prompt( string $reply, array $record ): ?string {
 		return null;
 	}
 
-	// Straight, curly, low-high, guillemet and corner quotes.
-	preg_match_all( '/"([^"]*)"|“([^”]*)”|„([^“”]*)[“”]|«([^»]*)»|「([^」]*)」/u', $question, $spans, PREG_SET_ORDER );
+	// Straight, curly, low-high, guillemet and corner quotes, then single
+	// quotes. A single quote counts only where it opens at the start of a word
+	// and closes at the end of one, so an apostrophe never starts or ends one.
+	$single = "(?<![\\p{L}\\p{N}])‘(.*?)’(?![\\p{L}\\p{N}])|(?<![\\p{L}\\p{N}])'(.*?)'(?![\\p{L}\\p{N}])";
+	preg_match_all( '/"([^"]*)"|“([^”]*)”|„([^“”]*)[“”]|«([^»]*)»|「([^」]*)」|' . $single . '/u', $question, $spans, PREG_SET_ORDER );
 
 	$authors = array_map( 'undergrowth_prompt_normalise', $record['quotes'] );
 
@@ -836,9 +839,10 @@ function undergrowth_validate_prompt( string $reply, array $record ): ?string {
 		}
 	}
 
-	$outside = (string) preg_replace( '/"[^"]*"|“[^”]*”|„[^“”]*[“”]|«[^»]*»|「[^」]*」/u', '', $question );
+	$outside = (string) preg_replace( '/"[^"]*"|“[^”]*”|„[^“”]*[“”]|«[^»]*»|「[^」]*」|' . $single . '/u', '', $question );
 
-	if ( 1 !== preg_match_all( "/[{$marks}]/u", $outside ) || preg_match( '/["“”„«»「」]/u', $outside ) ) {
+	// An apostrophe may stay outside a quote, but an opening single quote may not.
+	if ( 1 !== preg_match_all( "/[{$marks}]/u", $outside ) || preg_match( '/["“”„«»「」‘]|(?<![\p{L}\p{N}])\'/u', $outside ) ) {
 		return null;
 	}
 
