@@ -10,6 +10,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Elements wpautop() treats as blocks, and a few more that hold no prose.
+const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
+
 /**
  * Accepts a proposed link by linking the target's most distinctive word
  * where it appears in the proposal's sentence.
@@ -267,44 +270,139 @@ function undergrowth_linkable_paragraphs( string $content ): array {
  * Finds the paragraphs wpautop() would make from a post without blocks.
  *
  * They are the stretches between blank lines that hold no block-level
- * markup, no shortcode, and do not sit inside a block-level element or a
- * link that spans the blank lines around them. The element names are the
- * ones wpautop() treats as blocks, and a few that hold no prose.
+ * markup and sit outside every block-level element, link and shortcode,
+ * including ones that span the blank lines around them.
  *
  * @param string $content Post content.
  * @return array<int, string> Each paragraph's HTML, keyed by its byte offset in the content.
  */
 function undergrowth_classic_paragraphs( string $content ): array {
-	$blocks     = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
-	$shortcodes = '/' . get_shortcode_regex() . '/';
-	$found      = array();
+	// Tags inside comments are not markup. Blanking them keeps every offset,
+	// and a stretch that a comment runs into or out of is skipped.
+	$comments = array();
+	$scan     = (string) preg_replace_callback(
+		'/<!--.*?(?:-->|$)/s',
+		static function ( $comment ) {
+			return str_repeat( ' ', strlen( $comment[0] ) );
+		},
+		$content
+	);
 
-	// Elements still open where each stretch starts, read once in order.
-	preg_match_all( '#<(/?)(' . $blocks . '|a)\b[^>]*>#i', $content, $tags, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
-	$tag   = 0;
-	$depth = 0;
+	if ( preg_match_all( '/<!--.*?(?:-->|$)/s', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
+		foreach ( $matches[0] as $match ) {
+			$comments[] = array( $match[1], $match[1] + strlen( $match[0] ) );
+		}
+	}
+
+	$skip  = array_merge( undergrowth_element_ranges( $scan ), undergrowth_shortcode_ranges( $scan ) );
+	$found = array();
 
 	foreach ( (array) preg_split( '/\n\s*\n/', $content, -1, PREG_SPLIT_OFFSET_CAPTURE ) as $chunk ) {
 		list( $text, $offset ) = $chunk;
 
-		while ( isset( $tags[ $tag ] ) && $tags[ $tag ][0][1] < $offset ) {
-			// Void elements and self-closed tags never stay open.
-			if ( ! preg_match( '#^(?:hr|col|area|embed)$#i', $tags[ $tag ][2][0] ) && '/>' !== substr( $tags[ $tag ][0][0], -2 ) ) {
-				$depth = max( 0, $depth + ( '' === $tags[ $tag ][1][0] ? 1 : -1 ) );
-			}
-			++$tag;
-		}
-
 		$inner = trim( $text );
+		$start = $offset + (int) strpos( $text, $inner );
 
-		if ( '' === $inner || $depth > 0 || preg_match( '#</?(?:' . $blocks . ')\b#i', $inner ) || preg_match( $shortcodes, $inner ) ) {
-			continue;
+		$end = $start + strlen( $inner );
+
+		if ( '' !== $inner && ! preg_match( '#</?(?:' . UNDERGROWTH_BLOCK_ELEMENTS . ')\b#i', $inner ) && ! undergrowth_overlaps_any( $start, $end, $skip ) && ! undergrowth_crosses_any( $start, $end, $comments ) ) {
+			$found[ $start ] = $inner;
 		}
-
-		$found[ $offset + strpos( $text, $inner ) ] = $inner;
 	}
 
 	return $found;
+}
+
+/**
+ * Finds the stretches of HTML inside block-level elements and links.
+ *
+ * @param string $html HTML with comments blanked out.
+ * @return array<int, array{0: int, 1: int}> Byte offsets where each outermost element starts and ends.
+ */
+function undergrowth_element_ranges( string $html ): array {
+	preg_match_all( '#<(/?)(' . UNDERGROWTH_BLOCK_ELEMENTS . '|a)\b[^>]*>#i', $html, $tags, PREG_SET_ORDER | PREG_OFFSET_CAPTURE );
+
+	$ranges = array();
+	$depth  = 0;
+	$opened = 0;
+
+	foreach ( $tags as $tag ) {
+		// Void elements and self-closed tags never stay open.
+		if ( preg_match( '#^(?:hr|col|area|embed)$#i', $tag[2][0] ) || '/>' === substr( $tag[0][0], -2 ) ) {
+			continue;
+		}
+
+		if ( '' === $tag[1][0] ) {
+			$opened = 0 === $depth ? $tag[0][1] : $opened;
+			++$depth;
+		} elseif ( $depth > 0 && 0 === --$depth ) {
+			$ranges[] = array( $opened, $tag[0][1] + strlen( $tag[0][0] ) );
+		}
+	}
+
+	if ( $depth > 0 ) {
+		$ranges[] = array( $opened, strlen( $html ) );
+	}
+
+	return $ranges;
+}
+
+/**
+ * Finds the stretches of HTML taken up by registered shortcodes.
+ *
+ * @param string $html HTML with comments blanked out.
+ * @return array<int, array{0: int, 1: int}> Byte offsets where each shortcode starts and ends.
+ */
+function undergrowth_shortcode_ranges( string $html ): array {
+	if ( ! preg_match_all( '/' . get_shortcode_regex() . '/', $html, $matches, PREG_OFFSET_CAPTURE ) ) {
+		return array();
+	}
+
+	$ranges = array();
+
+	foreach ( $matches[0] as $match ) {
+		$ranges[] = array( $match[1], $match[1] + strlen( $match[0] ) );
+	}
+
+	return $ranges;
+}
+
+/**
+ * Tells whether any of several stretches runs across a stretch's edge.
+ *
+ * A stretch lying wholly inside the given one does not count.
+ *
+ * @param int                               $start  First byte.
+ * @param int                               $end    Byte after the last.
+ * @param array<int, array{0: int, 1: int}> $ranges Stretches as start and end offsets.
+ * @return bool True when one of them crosses the start or the end.
+ */
+function undergrowth_crosses_any( int $start, int $end, array $ranges ): bool {
+	foreach ( $ranges as $range ) {
+		if ( $range[0] < $end && $start < $range[1] && ( $range[0] < $start || $range[1] > $end ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Tells whether a stretch of bytes overlaps any of several others.
+ *
+ * @param int                               $start  First byte.
+ * @param int                               $end    Byte after the last.
+ * @param array<int, array{0: int, 1: int}> $ranges Stretches as start and end offsets.
+ * @return bool True when one of them overlaps.
+ */
+function undergrowth_overlaps_any( int $start, int $end, array $ranges ): bool {
+	foreach ( $ranges as $range ) {
+		if ( $range[0] < $end && $start < $range[1] ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**

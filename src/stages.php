@@ -32,7 +32,8 @@ register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_deactivate' );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
- * REST API can read it.
+ * REST API can read it. Through REST, only someone who can edit the post
+ * reads it; see undergrowth_hide_stage_from_readers().
  *
  * A stage changes only on the monthly cycle or through an author action, so
  * no client may write it through REST. A post with nothing stored reads as a
@@ -47,6 +48,8 @@ function undergrowth_register_stage_meta(): void {
 			add_post_type_support( $post_type, 'custom-fields' );
 			undergrowth_custom_fields_added( $post_type );
 		}
+
+		add_filter( 'rest_prepare_' . $post_type, 'undergrowth_hide_stage_from_readers', 10, 2 );
 
 		register_post_meta(
 			$post_type,
@@ -78,6 +81,33 @@ function undergrowth_register_stage_meta(): void {
 			)
 		);
 	}
+}
+
+/**
+ * Leaves the stage keys out of a post's REST response for anyone who cannot
+ * edit the post.
+ *
+ * Composting is the author's private choice, which the badge block never
+ * shows. Leaving out only a composting post's stage would still give it
+ * away, so readers get neither key for any post.
+ *
+ * @param WP_REST_Response $response Response.
+ * @param WP_Post          $post     Post.
+ * @return WP_REST_Response The response.
+ */
+function undergrowth_hide_stage_from_readers( $response, $post ) {
+	if ( ! $response instanceof WP_REST_Response || ! $post instanceof WP_Post || current_user_can( 'edit_post', $post->ID ) ) {
+		return $response;
+	}
+
+	$data = $response->get_data();
+
+	if ( is_array( $data ) && isset( $data['meta'] ) && is_array( $data['meta'] ) ) {
+		unset( $data['meta']['undergrowth_stage'], $data['meta']['undergrowth_stage_pinned'] );
+		$response->set_data( $data );
+	}
+
+	return $response;
 }
 
 /**
