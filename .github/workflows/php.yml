@@ -99,6 +99,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           path: wordpress/wp-content/plugins/undergrowth
+          persist-credentials: false
       - uses: shivammathur/setup-php@2.40.0
         with:
           php-version: "8.3"
