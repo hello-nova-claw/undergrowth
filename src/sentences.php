@@ -390,10 +390,23 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 
 	$best       = null;
 	$best_score = 0.0;
-	$paragraphs = array_column( undergrowth_linkable_paragraphs( $source->post_content ), 2 );
+	$linkable   = undergrowth_linkable_sentences( $source->post_content );
+	$next       = 0;
 
 	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
-		if ( $sentence['linked'] || $sentence['quoted'] || ! undergrowth_in_any( $sentence['text'], $paragraphs ) ) {
+		// Sentences come in reading order, and so do the linkable ones, so
+		// each is matched to the next linkable sentence with the same text.
+		// One from a heading or a list never matches, even when its words
+		// recur in a paragraph.
+		$found = array_search( $sentence['text'], array_slice( $linkable, $next, null, true ), true );
+
+		if ( false === $found ) {
+			continue;
+		}
+
+		$next = $found + 1;
+
+		if ( $sentence['linked'] || $sentence['quoted'] ) {
 			continue;
 		}
 
@@ -416,18 +429,19 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 }
 
 /**
- * Tells whether a piece of text appears in any of several texts.
+ * Lists the sentences of the paragraphs a link may be added to.
  *
- * @param string   $needle   Text to find.
- * @param string[] $haystack Texts to search.
- * @return bool True when one of them contains it.
+ * @param string $content Post content.
+ * @return string[] Sentence texts in reading order.
  */
-function undergrowth_in_any( string $needle, array $haystack ): bool {
-	foreach ( $haystack as $text ) {
-		if ( false !== mb_strpos( $text, $needle ) ) {
-			return true;
+function undergrowth_linkable_sentences( string $content ): array {
+	$sentences = array();
+
+	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
+		foreach ( undergrowth_split_sentences( '<p>' . $paragraph[0] . '</p>' ) as $sentence ) {
+			$sentences[] = $sentence['text'];
 		}
 	}
 
-	return false;
+	return $sentences;
 }
