@@ -149,6 +149,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	delete_option( 'undergrowth_backfill_after' );
+	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );

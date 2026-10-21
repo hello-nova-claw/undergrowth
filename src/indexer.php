@@ -339,6 +339,35 @@ function undergrowth_run_backfill(): void {
 		return;
 	}
 
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	// Two runs at once, from a server cron job beside WP-Cron for example,
+	// would share the cursor and send the same posts twice. The lock is taken
+	// atomically, and one left by a run that died expires after ten minutes.
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_backfill', 10 * MINUTE_IN_SECONDS ) ) {
+		return;
+	}
+
+	try {
+		undergrowth_run_backfill_batch( $identity );
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_backfill' );
+	}
+}
+
+/**
+ * Embeds the next batch of the current pass, while holding the backfill lock.
+ *
+ * @param array $identity {
+ *     The current provider and model.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ * }
+ *
+ * @phpstan-param array{provider: string, model: string} $identity
+ */
+function undergrowth_run_backfill_batch( array $identity ): void {
 	$size     = undergrowth_backfill_batch_size();
 	$post_ids = undergrowth_unindexed_post_ids( $identity, (int) get_option( 'undergrowth_backfill_after', 0 ), $size );
 
