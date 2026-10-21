@@ -405,4 +405,26 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_write_prompt() );
 		$this->assertCount( 1, $this->requests );
 	}
+
+	public function test_a_run_with_checks_never_goes_past_three_requests() {
+		$this->composted();
+		$this->composted();
+		$this->composted();
+		$this->check = 'YES';
+
+		$this->assertFalse( undergrowth_write_prompt() );
+		$this->assertLessThanOrEqual( UNDERGROWTH_PROMPT_MAX_CALLS, count( $this->requests ) );
+	}
+
+	public function test_composted_post_left_out_for_lack_of_requests_is_tried_next_run() {
+		$first = $this->composted();
+		$this->composted();
+		$this->check = 'YES';
+
+		undergrowth_write_prompt();
+		$this->check = 'NO';
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertNotSame( $first, undergrowth_current_prompt()['post_id'] );
+	}
 }
