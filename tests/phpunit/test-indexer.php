@@ -321,6 +321,66 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_get_vector( $post_id ) );
 	}
 
+	public function test_updating_a_post_keeps_its_cluster_signal_and_vector() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
+		update_post_meta( $post_id, 'undergrowth_resurfacing', 7 );
+
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => 'Oca keeps better in dry sand.',
+			)
+		);
+
+		$this->assertNotEmpty( wp_get_post_revisions( $post_id ) );
+		$this->assertSame( $post_id, (int) get_post_meta( $post_id, 'undergrowth_cluster', true ) );
+		$this->assertSame( 7, undergrowth_resurfacing_signal( $post_id ) );
+		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
+	}
+
+	public function test_autosave_keeps_the_cluster_of_its_post() {
+		$post_id = $this->publish();
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		wp_create_post_autosave(
+			array(
+				'post_ID'      => $post_id,
+				'post_type'    => 'post',
+				'post_title'   => 'Storing oca',
+				'post_content' => 'A draft of a change.',
+			)
+		);
+
+		$this->assertSame( $post_id, (int) get_post_meta( $post_id, 'undergrowth_cluster', true ) );
+	}
+
+	public function test_saving_a_post_type_that_is_never_indexed_announces_nothing() {
+		$left = array();
+		add_action(
+			'undergrowth_post_left_index',
+			static function ( $post_id ) use ( &$left ) {
+				$left[] = $post_id;
+			}
+		);
+
+		self::factory()->post->create( array( 'post_type' => 'wp_block' ) );
+
+		$this->assertSame( array(), $left );
+	}
+
+	public function test_post_moved_to_a_type_that_is_not_indexed_leaves_the_index() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+
+		set_post_type( $post_id, 'page' );
+		do_action( 'wp_after_insert_post', $post_id, get_post( $post_id ), true, null );
+
+		$this->assertNull( undergrowth_get_vector( $post_id ) );
+	}
+
 	public function test_embed_for_a_missing_post_does_nothing() {
 		undergrowth_embed_post( PHP_INT_MAX );
 
