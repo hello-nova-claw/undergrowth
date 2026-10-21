@@ -116,8 +116,9 @@ function undergrowth_gap_similarity(): float {
  * member reaches undergrowth_gap_similarity() to it, the posts circle
  * something none of them is about.
  *
- * @return array<int, array{leader: int, members: int[], centre: float}> One entry per gap, by
- *         leader ID: the members nearest the centre first, and the nearest one's similarity to it.
+ * @return array<int, array{leader: int, members: int[], cluster: int[], centre: float}> One entry per gap,
+ *         by leader ID: the members measured, nearest the centre first; every member of the cluster,
+ *         lowest first; and the nearest one's similarity to the centre.
  */
 function undergrowth_cluster_gaps(): array {
 	global $wpdb;
@@ -141,21 +142,23 @@ function undergrowth_cluster_gaps(): array {
 	sort( $leaders );
 
 	foreach ( array_slice( $leaders, 0, UNDERGROWTH_MAX_CLUSTERS ) as $leader ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
-		$members = $wpdb->get_col(
-			$wpdb->prepare(
-				'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC LIMIT %d',
-				$wpdb->postmeta,
-				'undergrowth_cluster',
-				(string) $leader,
-				UNDERGROWTH_CLUSTER_BATCH
+		$members = array_map(
+			'intval',
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only the IDs are needed.
+			$wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC',
+					$wpdb->postmeta,
+					'undergrowth_cluster',
+					(string) $leader
+				)
 			)
 		);
 
-		$gap = undergrowth_cluster_gap( $leader, array_map( 'intval', $members ), $threshold );
+		$gap = undergrowth_cluster_gap( $leader, array_slice( $members, 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
 
 		if ( null !== $gap ) {
-			$gaps[] = $gap;
+			$gaps[] = $gap + array( 'cluster' => $members );
 		}
 	}
 

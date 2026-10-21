@@ -519,12 +519,9 @@ function undergrowth_gap_prompt_sources( $records ): array {
 			continue;
 		}
 
-		$members = $gap['members'];
-		sort( $members );
-
 		$records[] = array(
 			'source'  => 'gap',
-			'key'     => 'gap:' . md5( implode( ',', $members ) ),
+			'key'     => 'gap:' . md5( implode( ',', $gap['cluster'] ) ),
 			'post_id' => $gap['members'][0],
 			'quotes'  => $quotes,
 		);
