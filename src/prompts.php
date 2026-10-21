@@ -300,8 +300,10 @@ function undergrowth_write_prompt(): bool {
 	$calls = 0;
 
 	foreach ( undergrowth_prompt_candidates() as $record ) {
-		if ( $calls >= UNDERGROWTH_PROMPT_MAX_CALLS ) {
-			break;
+		// A source that needs a check needs two requests. One that would go
+		// over the limit waits for the next run without anything being sent.
+		if ( $calls + ( empty( $record['rest'] ) ? 1 : 2 ) > UNDERGROWTH_PROMPT_MAX_CALLS ) {
+			continue;
 		}
 
 		$result = undergrowth_write_prompt_from( $record, $calls );
