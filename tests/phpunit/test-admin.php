@@ -344,7 +344,19 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'options-general.php?page=undergrowth', $html );
+		$this->assertStringContainsString( 'need an OpenAI API key', $html );
+		$this->assertStringNotContainsString( 'embedding provider', $html );
 		$this->assertStringNotContainsString( '<table', $html );
+	}
+
+	public function test_screen_leaves_out_the_toggle_when_no_provider_is_set() {
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+	}
+
+	public function test_screen_shows_the_toggle_when_a_provider_is_set() {
+		$this->assertStringContainsString( 'name="undergrowth_suggest_links"', $this->render() );
 	}
 
 	public function test_screen_says_when_suggestions_are_off() {
