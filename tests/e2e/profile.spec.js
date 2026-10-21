@@ -41,6 +41,11 @@ test.describe( 'Discord user field on the profile screen', () => {
 		await page.keyboard.type( '223344556677889900' );
 		await page.keyboard.press( 'Enter' );
 
+		// Core shows this notice only after a save, and the page is then
+		// loaded afresh, so the value read here comes from what was stored
+		// rather than from what was typed.
+		await expect( page.locator( '#message.updated' ) ).toBeVisible();
+		await page.reload();
 		await expect( field ).toHaveValue( '223344556677889900' );
 	} );
 
