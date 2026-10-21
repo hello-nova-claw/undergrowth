@@ -127,6 +127,10 @@ function undergrowth_uninstall_site(): void {
 	// The API keys go first, so a failure further down never leaves one behind.
 	delete_option( 'undergrowth_openai_api_key' );
 	delete_option( 'undergrowth_anthropic_api_key' );
+	delete_option( 'undergrowth_discord_bot_token' );
+	delete_option( 'undergrowth_discord_public_key' );
+	delete_option( 'undergrowth_discord_application_id' );
+	delete_option( 'undergrowth_discord_channel_id' );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_last_prompt_error' );
 	delete_option( 'undergrowth_prompt' );

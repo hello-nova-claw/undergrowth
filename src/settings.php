@@ -198,7 +198,7 @@ function undergrowth_render_settings_page(): void {
 						<input type="password" class="regular-text" id="undergrowth_anthropic_api_key" name="undergrowth_anthropic_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-anthropic-notice" />
 
 						<p class="description" id="undergrowth-anthropic-notice">
-							<?php esc_html_e( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ); ?>
+							<?php esc_html_e( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ); ?>
 						</p>
 
 						<?php if ( '' !== $anthropic_key ) : ?>
@@ -240,6 +240,8 @@ function undergrowth_render_settings_page(): void {
 					</td>
 				</tr>
 			</table>
+
+			<?php do_settings_sections( 'undergrowth' ); ?>
 
 			<?php submit_button(); ?>
 		</form>
