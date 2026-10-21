@@ -18,6 +18,7 @@ const UNDERGROWTH_PROMPT_MAX_CALLS  = 3;
 const UNDERGROWTH_PROMPT_DATA_CHARS = 1000;
 const UNDERGROWTH_PROMPT_COMMENTS   = 50;
 const UNDERGROWTH_PROMPT_COMPOSTED  = 20;
+const UNDERGROWTH_PROMPT_PAGES      = 10;
 const UNDERGROWTH_PROMPT_SENTENCES  = 20;
 
 // Question marks in the scripts WordPress ships translations for, including
@@ -346,7 +347,7 @@ function undergrowth_write_prompt(): bool {
  * Collects the source records a prompt may be written from, leaving out
  * any that has been sent before.
  *
- * @return array<int, array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string}> Records, best first.
+ * @return array<int, array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool}> Records, best first.
  */
 function undergrowth_prompt_candidates(): array {
 	/**
@@ -381,7 +382,7 @@ function undergrowth_prompt_candidates(): array {
  * Checks the shape of a source record from the filter.
  *
  * @param mixed $record Record from the filter.
- * @return array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string}|null The record, or null when it is unusable.
+ * @return array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool}|null The record, or null when it is unusable.
  */
 function undergrowth_clean_prompt_record( $record ): ?array {
 	if ( ! is_array( $record ) || ! is_string( $record['source'] ?? null ) || ! is_string( $record['key'] ?? null ) || '' === $record['key'] ) {
@@ -403,6 +404,7 @@ function undergrowth_clean_prompt_record( $record ): ?array {
 		'title'   => $post->post_title,
 		'quotes'  => $quotes,
 		'data'    => is_string( $record['data'] ?? null ) ? mb_substr( $record['data'], 0, UNDERGROWTH_PROMPT_DATA_CHARS, 'UTF-8' ) : '',
+		'exact'   => ! empty( $record['exact'] ),
 	);
 }
 
@@ -463,29 +465,55 @@ function undergrowth_comment_prompt_sources( $records ): array {
  */
 function undergrowth_compost_prompt_sources( $records ): array {
 	$records = (array) $records;
-	$posts   = get_posts(
-		array(
-			'post_type'        => undergrowth_indexed_post_types(),
-			'post_status'      => 'publish',
-			'has_password'     => false,
-			// Run once a month, for a handful of posts.
-			'meta_key'         => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-			'meta_value'       => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-			'orderby'          => 'date',
-			'order'            => 'ASC',
-			'numberposts'      => UNDERGROWTH_PROMPT_COMPOSTED,
-			'suppress_filters' => false,
-		)
-	);
+	$found   = 0;
 
-	foreach ( $posts as $post ) {
-		$quote     = undergrowth_longest_sentence( $post );
-		$records[] = array(
-			'source'  => 'compost',
-			'key'     => 'compost:' . $post->ID,
-			'post_id' => $post->ID,
-			'quotes'  => null === $quote ? array() : array( $quote ),
+	// Posts already sent stay in the query, so it pages past them until it
+	// has enough new ones, within a fixed number of pages.
+	for ( $page = 1; $page <= UNDERGROWTH_PROMPT_PAGES; $page++ ) {
+		$posts = get_posts(
+			array(
+				'post_type'        => undergrowth_indexed_post_types(),
+				'post_status'      => 'publish',
+				'has_password'     => false,
+				// Run once a month, for a handful of posts.
+				'meta_key'         => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+				'meta_value'       => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+				'orderby'          => array(
+					'date' => 'ASC',
+					'ID'   => 'ASC',
+				),
+				'numberposts'      => UNDERGROWTH_PROMPT_COMPOSTED,
+				'paged'            => $page,
+				'suppress_filters' => false,
+			)
 		);
+
+		foreach ( $posts as $post ) {
+			$key   = 'compost:' . $post->ID;
+			$quote = in_array( $key, get_post_meta( $post->ID, 'undergrowth_prompt_keys', false ), true ) ? null : undergrowth_longest_sentence( $post );
+
+			// The question must rest on the author's own words, so a post
+			// with none of its own is no source.
+			if ( null === $quote ) {
+				continue;
+			}
+
+			$records[] = array(
+				'source'  => 'compost',
+				'key'     => $key,
+				'post_id' => $post->ID,
+				'quotes'  => array( $quote ),
+				'exact'   => true,
+			);
+
+			if ( ++$found >= UNDERGROWTH_PROMPT_COMPOSTED ) {
+				return $records;
+			}
+		}
+
+		if ( count( $posts ) < UNDERGROWTH_PROMPT_COMPOSTED ) {
+			break;
+		}
 	}
 
 	return $records;
@@ -501,10 +529,17 @@ function undergrowth_longest_sentence( WP_Post $post ): ?string {
 	$best = null;
 	$most = 0;
 
-	foreach ( array_slice( undergrowth_split_sentences( $post->post_content ), 0, UNDERGROWTH_PROMPT_SENTENCES ) as $sentence ) {
+	$own = array_filter(
+		undergrowth_split_sentences( $post->post_content ),
+		static function ( $sentence ) {
+			return ! $sentence['quoted'];
+		}
+	);
+
+	foreach ( array_slice( $own, 0, UNDERGROWTH_PROMPT_SENTENCES ) as $sentence ) {
 		$words = count( undergrowth_tokens( $sentence['text'] ) );
 
-		if ( ! $sentence['quoted'] && ( null === $best || $words > $most ) ) {
+		if ( null === $best || $words > $most ) {
 			$most = $words;
 			$best = $sentence['text'];
 		}
@@ -604,7 +639,7 @@ function undergrowth_prompt_system(): string {
  * The record is sent as JSON, so text from a reader stays inside a string
  * and cannot pose as part of the message around it.
  *
- * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string} $record Source record.
+ * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool} $record Source record.
  * @return string The user message.
  */
 function undergrowth_prompt_user( array $record ): string {
@@ -630,8 +665,8 @@ function undergrowth_prompt_user( array $record ): string {
  * Checks a reply from the model and returns it only when it is a single
  * question to the author that quotes nobody but the author.
  *
- * @param string                                                                                          $reply  Text the model returned.
- * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string} $record Source the reply was written from.
+ * @param string                                                                                                        $reply  Text the model returned.
+ * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool} $record Source the reply was written from.
  * @return string|null The question, or null when the reply must be thrown away.
  */
 function undergrowth_validate_prompt( string $reply, array $record ): ?string {
@@ -655,7 +690,7 @@ function undergrowth_validate_prompt( string $reply, array $record ): ?string {
 	foreach ( $spans as $span ) {
 		$quoted = undergrowth_prompt_normalise( (string) implode( '', array_slice( $span, 1 ) ) );
 
-		if ( '' === $quoted || ! undergrowth_prompt_quotes_author( $quoted, $authors ) ) {
+		if ( '' === $quoted || ! undergrowth_prompt_quotes_author( $quoted, $authors, ! empty( $record['exact'] ) ) ) {
 			return null;
 		}
 	}
@@ -670,17 +705,27 @@ function undergrowth_validate_prompt( string $reply, array $record ): ?string {
 }
 
 /**
- * Tells whether quoted words are part of one of the author's sentences.
+ * Tells whether quoted words come from one of the author's sentences.
  *
  * @param string   $quoted  Quoted words, normalised.
  * @param string[] $authors The author's sentences, normalised.
- * @return bool True when one of the sentences holds them.
+ * @param bool     $exact   True when only a whole sentence may be quoted.
+ * @return bool True when one of the sentences holds them, or is them.
  */
-function undergrowth_prompt_quotes_author( string $quoted, array $authors ): bool {
-	// A quote may end on the sentence's own full stop or drop it.
-	$trimmed = rtrim( $quoted, '.,;:!…' );
+function undergrowth_prompt_quotes_author( string $quoted, array $authors, bool $exact = false ): bool {
+	// A quote may end on the sentence's own full stop or drop it. The
+	// pattern works on characters, so a letter in another script is never cut.
+	$trimmed = (string) preg_replace( '/[.,;:!…]+$/u', '', $quoted );
 
 	foreach ( $authors as $sentence ) {
+		if ( $exact ) {
+			if ( $quoted === $sentence || ( '' !== $trimmed && (string) preg_replace( '/[.,;:!?…]+$/u', '', $sentence ) === $trimmed ) ) {
+				return true;
+			}
+
+			continue;
+		}
+
 		if ( false !== mb_strpos( $sentence, $quoted, 0, 'UTF-8' ) || ( '' !== $trimmed && false !== mb_strpos( $sentence, $trimmed, 0, 'UTF-8' ) ) ) {
 			return true;
 		}
