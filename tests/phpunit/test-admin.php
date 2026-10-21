@@ -306,6 +306,13 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<button[^>]*aria-label="[^"]*Oca[^"]*Yacon[^"]*"/', $html );
 	}
 
+	public function test_quoted_sentence_takes_its_direction_from_its_own_text() {
+		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertStringContainsString( '<q dir="auto">Notes about Oca.</q>', $this->render() );
+	}
+
 	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
