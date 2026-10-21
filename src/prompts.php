@@ -397,12 +397,12 @@ function undergrowth_prompt_candidates(): array {
 	 */
 	$records = apply_filters( 'undergrowth_prompt_sources', array() );
 	$clean   = array();
-	$seen    = array();
+	$seen    = undergrowth_sent_prompt_keys();
 
 	foreach ( (array) $records as $record ) {
 		$record = undergrowth_clean_prompt_record( $record );
 
-		if ( null === $record || isset( $seen[ $record['key'] ] ) || in_array( $record['key'], get_post_meta( $record['post_id'], 'undergrowth_prompt_keys', false ), true ) ) {
+		if ( null === $record || isset( $seen[ $record['key'] ] ) ) {
 			continue;
 		}
 
@@ -411,6 +411,24 @@ function undergrowth_prompt_candidates(): array {
 	}
 
 	return $clean;
+}
+
+/**
+ * Returns the key of every source already sent, on any post.
+ *
+ * A key is kept on the post its prompt was about, but a gap's nearest post
+ * can change while the gap stays the same, so keys are looked up across
+ * all posts.
+ *
+ * @return array<string, true> Keys, as array keys.
+ */
+function undergrowth_sent_prompt_keys(): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One query for every key; a few are added each month.
+	$keys = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT meta_value FROM %i WHERE meta_key = %s', $wpdb->postmeta, 'undergrowth_prompt_keys' ) );
+
+	return array_fill_keys( array_map( 'strval', $keys ), true );
 }
 
 /**
@@ -521,7 +539,7 @@ function undergrowth_gap_prompt_sources( $records ): array {
 
 		$records[] = array(
 			'source'  => 'gap',
-			'key'     => 'gap:' . md5( implode( ',', $gap['cluster'] ) ),
+			'key'     => 'gap:' . hash( 'sha256', implode( ',', $gap['cluster'] ) ),
 			'post_id' => $gap['members'][0],
 			'quotes'  => $quotes,
 		);
