@@ -118,4 +118,24 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 
 		$this->assertSame( UNDERGROWTH_GAP_SIMILARITY, undergrowth_gap_similarity() );
 	}
+
+	public function test_gaps_come_in_order_of_their_leaders() {
+		$first = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$this->member( array( 0.0, 1.0, 0.0 ), $first );
+		$this->member( array( 0.0, 0.0, 1.0 ), $first );
+		$second = $this->member( array( -1.0, 0.0, 0.0 ) );
+		$this->member( array( 0.0, -1.0, 0.0 ), $second );
+		$this->member( array( 0.0, 0.0, -1.0 ), $second );
+
+		$this->assertSame( array( $first, $second ), array_column( undergrowth_cluster_gaps(), 'leader' ) );
+	}
+
+	public function test_cluster_whose_vectors_cancel_out_has_no_centre_to_measure() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$this->member( array( -1.0, 0.0, 0.0 ), $a );
+		$this->member( array( 0.0, 1.0, 0.0 ), $a );
+		$this->member( array( 0.0, -1.0, 0.0 ), $a );
+
+		$this->assertSame( array(), undergrowth_cluster_gaps() );
+	}
 }
