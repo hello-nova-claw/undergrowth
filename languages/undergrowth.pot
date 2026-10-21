@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Undergrowth 0.1.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/charming-shtern-d5312d\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/undergrowth\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -678,43 +678,43 @@ msgctxt "growth stage"
 msgid "Composting"
 msgstr ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/stages.php
 #, php-format
-msgid "%s post is a sprout."
-msgid_plural "%s posts are sprouts."
+msgid "%1$s post is a sprout."
+msgid_plural "%1$s posts are sprouts."
 msgstr[0] ""
 msgstr[1] ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/stages.php
 #, php-format
-msgid "%s post is budding."
-msgid_plural "%s posts are budding."
+msgid "%1$s post is budding."
+msgid_plural "%1$s posts are budding."
 msgstr[0] ""
 msgstr[1] ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/stages.php
 #, php-format
-msgid "%s post is evergreen."
-msgid_plural "%s posts are evergreen."
+msgid "%1$s post is evergreen."
+msgid_plural "%1$s posts are evergreen."
 msgstr[0] ""
 msgstr[1] ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/stages.php
 #, php-format
-msgid "%s post is composting."
-msgid_plural "%s posts are composting."
+msgid "%1$s post is composting."
+msgid_plural "%1$s posts are composting."
 msgstr[0] ""
 msgstr[1] ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/stages.php
 #, php-format
-msgid "%s post is a seedling."
-msgid_plural "%s posts are seedlings."
+msgid "%1$s post is a seedling."
+msgid_plural "%1$s posts are seedlings."
 msgstr[0] ""
 msgstr[1] ""
 
