@@ -117,6 +117,8 @@ Fix: show it on the Map tab, and show that tab whenever a notice is waiting.
 
 ### M6. No Help tabs (Medium, #154)
 
+Shots: `stages--table--en_US--1280.png`, `map--clusters--en_US--1280.png` and `settings--no-key--en_US--1280.png` have no Help button. Compare `dashboard--prompt--en_US--1280.png` and `posts--composting--en_US--1280.png`, where Help belongs to core and says nothing about Undergrowth.
+
 A newcomer meets these words with no explanation anywhere:
 
 - Seedling, Sprout, Budding and Evergreen, and what moves a post between them.
@@ -145,12 +147,12 @@ The widget title said "Readers, last 30 days" over a count of page views. It now
 
 ### L1 to L6
 
-- **L1. No Settings link on the Plugins row** (#143, fixed in #163). The catalogue now includes `plugins--row--*`.
+- **L1. No Settings link on the Plugins row** (#143, fixed in #163). The catalogue had no Plugins screen. #163 adds `plugins--row--*`, which shows the link.
 - **L2. Sentence direction** (#144, fixed in #164). In `suggestions--table--he_IL--1280.png`, English sentences showed as ".Oca grows here". The `<q>` now has `dir="auto"`.
 - **L3. Zero counts** (#155). `stages--table--en_US--1280.png` reads "0 posts are sprouts. 0 posts are budding. 0 posts are evergreen.", which looks like a scorecard on a new site. Leave out the stages that have no posts. Today's tests assert the zeros, so this needs a decision.
 - **L4. Notices not dismissible** (#156). `suggestions--notice-*`, `dashboard--notice-*` and `posts--notice-*` have no dismiss button. Core's "Post updated." does. Add `is-dismissible`.
 - **L5. Badge block editor note** (#157). `block-growth-stage--editor-composting--en_US--1280.png` shows the note in the post's own font, so it reads as post content. Use core's Placeholder.
-- **L6. Discord field descriptions** (#158). Each of the four Discord fields points `aria-describedby` at the whole intro of about 90 words. Give each field its own one-line description of where to find the value.
+- **L6. Discord field descriptions** (#158). In `settings--discord-saved--en_US--1280.png`, each of the four Discord fields points `aria-describedby` at the whole intro of about 90 words. Give each field its own one-line description of where to find the value.
 
 ## What holds up
 
