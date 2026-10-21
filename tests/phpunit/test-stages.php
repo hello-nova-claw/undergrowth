@@ -394,6 +394,8 @@ class Test_Stages extends WP_UnitTestCase {
 			)
 		);
 
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
 		$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/recipe/' . $post_id ) );
 		$data     = $response->get_data();
 
@@ -429,6 +431,7 @@ class Test_Stages extends WP_UnitTestCase {
 
 	public function test_stage_can_be_read_through_rest() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		undergrowth_set_stage( $post_id, 'sprout' );
 
@@ -437,6 +440,52 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertSame( 'sprout', $data['meta']['undergrowth_stage'] );
 		$this->assertFalse( $data['meta']['undergrowth_stage_pinned'] );
+	}
+
+	public function test_readers_cannot_tell_a_composting_post_through_rest() {
+		$composting = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$growing    = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $composting, 'undergrowth_stage', 'composting' );
+		update_post_meta( $growing, 'undergrowth_stage', 'sprout' );
+		wp_set_current_user( 0 );
+
+		foreach ( array( $composting, $growing ) as $post_id ) {
+			$response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/posts/' . $post_id ) );
+			$data     = $response->get_data();
+
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertArrayNotHasKey( 'undergrowth_stage', $data['meta'] );
+			$this->assertArrayNotHasKey( 'undergrowth_stage_pinned', $data['meta'] );
+		}
+
+		$list = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/posts' ) );
+
+		$this->assertStringNotContainsString( 'composting', (string) wp_json_encode( $list->get_data() ) );
+	}
+
+	public function test_a_reader_who_cannot_edit_the_post_does_not_see_its_stage() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_status' => 'publish',
+				'post_author' => self::factory()->user->create( array( 'role' => 'author' ) ),
+			)
+		);
+		update_post_meta( $post_id, 'undergrowth_stage', 'composting' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
+
+		$data = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/posts/' . $post_id ) )->get_data();
+
+		$this->assertArrayNotHasKey( 'undergrowth_stage', $data['meta'] );
+	}
+
+	public function test_an_editor_sees_a_composting_stage_through_rest() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $post_id, 'undergrowth_stage', 'composting' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$data = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/posts/' . $post_id ) )->get_data();
+
+		$this->assertSame( 'composting', $data['meta']['undergrowth_stage'] );
 	}
 
 	/**
