@@ -41,6 +41,15 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Returns the saved time as the notices write it.
+	 *
+	 * @return string
+	 */
+	private function when(): string {
+		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 );
+	}
+
+	/**
 	 * Renders the notice for one service's saved error.
 	 *
 	 * @param string $option Option holding the error.
@@ -91,7 +100,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'OpenAI', $text );
 		$this->assertStringContainsString( $words, $text );
 		$this->assertStringContainsString( '(status ' . $status . ')', $text );
-		$this->assertStringContainsString( wp_date( get_option( 'date_format' ), 1767225600 ), $text );
+		$this->assertStringContainsString( $this->when(), $text );
 		$this->assertStringContainsString( 'tried again within the hour', $text );
 	}
 
@@ -109,6 +118,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Anthropic', $text );
 		$this->assertStringContainsString( $words, $text );
 		$this->assertStringContainsString( '(status ' . $status . ')', $text );
+		$this->assertStringContainsString( $this->when(), $text );
 		$this->assertStringContainsString( 'next monthly cycle', $text );
 	}
 
@@ -132,6 +142,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Discord', $text );
 		$this->assertStringContainsString( $words, $text );
 		$this->assertStringContainsString( '(status ' . $status . ')', $text );
+		$this->assertStringContainsString( $this->when(), $text );
 		$this->assertStringContainsString( 'tried again the next time', $text );
 	}
 
