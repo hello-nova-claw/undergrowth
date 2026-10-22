@@ -63,6 +63,13 @@ function undergrowth_queue_config_first_prompt(): void {
 		return;
 	}
 
+	// A snoozed prompt means the author has been asked already, with a key
+	// that was saved before it moved to wp-config.php.
+	if ( array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() ) ) {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+		return;
+	}
+
 	undergrowth_queue_first_prompt();
 
 	// Scheduling can fail, and then the next request tries again.
