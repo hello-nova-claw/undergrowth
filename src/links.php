@@ -114,11 +114,14 @@ function undergrowth_min_link_similarity(): float {
 	 * Different embedding models spread their scores differently, so a site
 	 * using its own provider may need to tune this.
 	 *
-	 * @param float $similarity Cosine similarity. Default 0.4.
+	 * @param float $similarity Cosine similarity. Default 0.4, or the site's
+	 *                          40th percentile of pairwise scores once it is
+	 *                          measured. See undergrowth_derived_threshold().
 	 */
-	$similarity = apply_filters( 'undergrowth_min_link_similarity', UNDERGROWTH_MIN_LINK_SIMILARITY );
+	$default    = undergrowth_derived_threshold( 'link' ) ?? UNDERGROWTH_MIN_LINK_SIMILARITY;
+	$similarity = apply_filters( 'undergrowth_min_link_similarity', $default );
 
-	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : UNDERGROWTH_MIN_LINK_SIMILARITY;
+	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : $default;
 }
 
 /**
