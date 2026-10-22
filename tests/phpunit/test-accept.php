@@ -96,7 +96,7 @@ class Test_Accept extends WP_UnitTestCase {
 	}
 
 	public function test_a_word_from_the_targets_title_is_linked_before_a_rarer_incidental_one() {
-		foreach ( array( 'Shed', 'Path' ) as $title ) {
+		foreach ( array( 'Shed', 'Path', 'Gate' ) as $title ) {
 			$this->plant( $title, array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
 		}
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>I keep yacon plants in the vicinity of frost.</p>' ) );

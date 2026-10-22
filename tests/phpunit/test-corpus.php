@@ -220,10 +220,24 @@ class Test_Corpus extends WP_UnitTestCase {
 				'post_content' => 'The vicinity of water. The vicinity of frost frost frost frost.',
 			)
 		);
-		$others = self::factory()->post->create_many( 2, array( 'post_content' => 'Frost again.' ) );
+		$others = self::factory()->post->create_many( 3, array( 'post_content' => 'Frost again.' ) );
 		$corpus = undergrowth_build_corpus( array_merge( array( $oca, $yacon ), $others ) );
 
 		$this->assertSame( 'yacon', array_key_first( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+	}
+
+	public function test_title_word_used_in_exactly_half_the_posts_gets_no_preference() {
+		$oca    = self::factory()->post->create( array( 'post_content' => 'Yacon and frost frost frost.' ) );
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => 'Frost frost frost.',
+			)
+		);
+		$others = self::factory()->post->create_many( 2, array( 'post_content' => 'Snow.' ) );
+		$corpus = undergrowth_build_corpus( array_merge( array( $oca, $yacon ), $others ) );
+
+		$this->assertSame( array( 'frost', 'yacon' ), array_keys( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
 	}
 
 	public function test_title_word_used_in_half_the_posts_gets_no_preference() {
