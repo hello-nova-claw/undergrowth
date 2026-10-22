@@ -131,6 +131,28 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
+	public function test_first_prompt_is_asked_for_again_when_scheduling_it_failed() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		add_filter( 'pre_schedule_event', '__return_false' );
+
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+
+		remove_filter( 'pre_schedule_event', '__return_false' );
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+		$this->assertNotFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+	}
+
+	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_openai_constant_takes_precedence_over_the_saved_option() {
 		define( 'UNDERGROWTH_OPENAI_API_KEY', self::OPENAI_KEY );
 		update_option( 'undergrowth_openai_api_key', self::SAVED_KEY );
