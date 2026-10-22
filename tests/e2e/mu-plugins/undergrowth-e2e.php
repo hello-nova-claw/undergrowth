@@ -133,15 +133,25 @@ add_action(
 	}
 );
 
-// A test that activates the plugin asks for a fresh first run with this
-// argument, since the real one happens once per site.
+// A test that activates the plugin asks for a fresh first run, since the
+// real one happens once per site. It is a REST route, so it needs the REST
+// nonce as well as an administrator.
 add_action(
-	'admin_init',
+	'rest_api_init',
 	static function () {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test sites only.
-		if ( isset( $_GET['undergrowth_e2e_first_run'] ) && current_user_can( 'manage_options' ) ) {
-			delete_option( 'undergrowth_first_run' );
-		}
+		register_rest_route(
+			'undergrowth-e2e/v1',
+			'/first-run',
+			array(
+				'methods'             => 'DELETE',
+				'permission_callback' => static function () {
+					return current_user_can( 'manage_options' );
+				},
+				'callback'            => static function () {
+					return rest_ensure_response( delete_option( 'undergrowth_first_run' ) );
+				},
+			)
+		);
 	}
 );
 

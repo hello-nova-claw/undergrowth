@@ -77,6 +77,16 @@ test.describe( 'Link suggestions screen', () => {
 
 			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
 			await expect( rows ).toHaveCount( 1 );
+
+			// The result can be dismissed, as core's own notices can.
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				page.locator( '#undergrowth-notice .notice-dismiss' )
+			).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+			await expect( page.locator( '#undergrowth-notice' ) ).toHaveCount(
+				0
+			);
 		} );
 
 		test( 'accepts one by keyboard and links a word in the post', async ( {

@@ -289,9 +289,12 @@ function undergrowth_render_stages_tab(): void {
 	$counts    = undergrowth_count_stages();
 	$sentences = array();
 
-	// Each sentence is its own element, translated whole.
+	// Each sentence is its own element, translated whole. A stage with no
+	// posts is left out: on a new site, a row of zeros reads like a score.
 	foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $stage ) {
-		$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
+		if ( $counts[ $stage ] > 0 ) {
+			$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
+		}
 	}
 
 	echo '<p class="undergrowth-stage-counts">' . implode( ' ', $sentences ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each sentence is escaped above.
@@ -443,6 +446,17 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 }
 
 /**
+ * Prints the script that moves focus to the result notice, so a keyboard or
+ * screen reader user hears the result instead of landing at the top.
+ *
+ * Core moves notices under the page heading once the page is ready, and
+ * moving an element takes focus away from it, so focus waits for load.
+ */
+function undergrowth_print_notice_focus_script(): void {
+	wp_print_inline_script_tag( "window.addEventListener( 'load', function () { var notice = document.getElementById( 'undergrowth-notice' ); if ( notice ) { notice.focus(); } } );" );
+}
+
+/**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
  * @param int $post_id Post ID.
@@ -585,11 +599,11 @@ function undergrowth_render_suggestions_notice(): void {
 	}
 
 	printf(
-		'<div id="undergrowth-notice" class="notice %1$s" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
+		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
 		in_array( $notice, array( 'vetoed', 'saved', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
 		esc_html( $messages[ $notice ] ),
 		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
 	);
 
-	wp_print_inline_script_tag( "document.getElementById( 'undergrowth-notice' ).focus();" );
+	undergrowth_print_notice_focus_script();
 }
