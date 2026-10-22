@@ -25,6 +25,10 @@ const UNDERGROWTH_RECORDED_PERCENTILES = array( 10, 25, 40, 50, 75, 90, 95 );
 // for its percentiles; take it off this list once they are in.
 const UNDERGROWTH_FIXED_THRESHOLD_PROVIDERS = array( 'openai' );
 
+add_action( 'undergrowth_post_left_index', 'undergrowth_forget_scores_below_minimum' );
+// After the deleted post's vector is gone.
+add_action( 'deleted_post', 'undergrowth_forget_scores_below_minimum', 20, 0 );
+
 /**
  * Lists the providers that keep the fixed thresholds whatever their scores.
  *
@@ -73,7 +77,7 @@ function undergrowth_derived_threshold( string $name ): ?float {
  * percentiles the link and cluster thresholds come from.
  *
  * Only vectors from the current provider and model count, and only pairs in
- * one language are scored. A large site is sampled, so the cost stays the
+ * one language and of one length are scored. A large site is sampled, so the cost stays the
  * same however many posts it has.
  */
 function undergrowth_measure_scores(): void {
@@ -108,8 +112,10 @@ function undergrowth_measure_scores(): void {
 			$after  = (int) $row['post_id'];
 			$packed = undergrowth_unit_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
 
+			// Vectors of another length, from a change of model settings,
+			// cannot be compared either.
 			if ( '' !== $packed ) {
-				$groups[ $row['language'] ][] = $packed;
+				$groups[ $row['language'] . "\n" . strlen( $packed ) ][] = $packed;
 			}
 		}
 
@@ -137,6 +143,35 @@ function undergrowth_measure_scores(): void {
 			'gap'         => null,
 		)
 	);
+}
+
+/**
+ * Forgets the measured scores once the site has too few posts to trust them.
+ *
+ * A site with more posts left keeps them until the next cycle measures again.
+ */
+function undergrowth_forget_scores_below_minimum(): void {
+	global $wpdb;
+
+	$scores = get_option( 'undergrowth_scores' );
+
+	if ( ! is_array( $scores ) ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$posts = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE provider = %s AND model = %s',
+			undergrowth_vectors_table(),
+			(string) ( $scores['provider'] ?? '' ),
+			(string) ( $scores['model'] ?? '' )
+		)
+	);
+
+	if ( $posts < UNDERGROWTH_DERIVED_MIN_POSTS ) {
+		delete_option( 'undergrowth_scores' );
+	}
 }
 
 /**
@@ -273,7 +308,7 @@ function undergrowth_measure_gap_threshold(): void {
 	$centres = array();
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
-		$measured = undergrowth_measure_cluster( undergrowth_cluster_members( $leader ) );
+		$measured = undergrowth_measure_cluster( undergrowth_centre_members( $leader ) );
 
 		if ( null !== $measured ) {
 			$centres[] = $measured['centre'];
