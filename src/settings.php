@@ -319,7 +319,9 @@ function undergrowth_render_key_field( array $args ): void {
 }
 
 /**
- * Prints the "Suggest links between my posts" switch.
+ * Prints the "Suggest links between my posts" switch, with a hidden marker
+ * that tells the sanitiser the switch was on the page, so an unticked box
+ * reads as off rather than as a switch left out because there is no provider.
  */
 function undergrowth_render_suggest_links_field(): void {
 	?>
