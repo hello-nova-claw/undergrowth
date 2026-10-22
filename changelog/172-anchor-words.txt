@@ -1,0 +1,1 @@
+Link suggestions now link a word the target post is about, such as a word from its title or one it uses often, rather than a rare word it mentions in passing.
