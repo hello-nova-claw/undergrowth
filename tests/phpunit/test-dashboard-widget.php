@@ -120,7 +120,7 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<h3>A question for you</h3>.*What sits between these posts\?.*<h3>Page views, last 30 days</h3>.*412 of 1,000 views#s', $html );
+		$this->assertMatchesRegularExpression( '#<div class="undergrowth-prompt"><h3>A question for you</h3>.*What sits between these posts\?.*</div><div class="undergrowth-meter"><h3>Page views, last 30 days</h3>.*412 of 1,000 views.*</div>#s', $html );
 	}
 
 	public function test_the_question_alone() {
