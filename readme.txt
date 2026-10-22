@@ -81,7 +81,7 @@ Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github
 
 = Where does Undergrowth keep its notes about each post? =
 
-Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID. The folder is `wp-content/uploads/undergrowth-<random>/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth-<random>/posts/` on each site of a multisite network. `<random>` is 12 random letters and numbers, made once for each site. Settings > Undergrowth shows the exact folder. You can read it with any text editor. It holds only the post's title, address and slug, words and sentences from your own post, the addresses of other posts, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
+Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID. The folder is `wp-content/uploads/undergrowth-<random>/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth-<random>/posts/` on each site of a multisite network. `<random>` is 12 random characters, 0 to 9 and a to f, made once for each site. Settings > Undergrowth shows the exact folder. You can read it with any text editor. It holds only the post's title, address and slug, words and sentences from your own post, the addresses of other posts, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
 
 A file looks like this:
 
@@ -123,7 +123,7 @@ The stage section names the post's growth stage, marked `(pinned)` when you have
 
 On Apache, no: the folder holds an `.htaccess` file that refuses web access. On any server, the folder's name ends in random characters that only Settings > Undergrowth shows, so its address cannot be guessed, and each folder holds an `index.php` so it is never listed. nginx ignores `.htaccess`, so on nginx you can also add a rule like this to your server block, to refuse the files outright:
 
-    location ~ ^/wp-content/uploads/(sites/[0-9]+/)?undergrowth- { deny all; }
+    location ~ "^/wp-content/uploads/(sites/[0-9]+/)?undergrowth(-[0-9a-f]{12})?/" { deny all; }
 
 = Setting up Discord =
 
