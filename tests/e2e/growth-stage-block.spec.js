@@ -42,6 +42,29 @@ test.describe( 'Growth stage block', () => {
 		] );
 	} );
 
+	test( 'explains in a Placeholder, not in post text, why a draft shows no badge', async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
+		// A draft is not in the garden yet, so readers would see no stage.
+		await admin.createNewPost();
+		await editor.insertBlock( { name: 'undergrowth/growth-stage' } );
+
+		const note = editor.canvas.locator(
+			`${ BADGE } .components-placeholder`
+		);
+		await expect( note ).toBeVisible();
+		await expect( editor.canvas.locator( `${ BADGE } > p` ) ).toHaveCount(
+			0
+		);
+
+		await expectNoA11yViolations( page, [
+			'iframe[name="editor-canvas"]',
+			BADGE,
+		] );
+	} );
+
 	test( 'is inserted from the inserter by keyboard', async ( {
 		admin,
 		editor,

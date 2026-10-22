@@ -194,7 +194,7 @@ function undergrowth_handle_dismiss_resurfacing(): void {
 		wp_die( esc_html__( 'You cannot change this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'stages' ) );
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'map' ) );
 	exit;
 }
 
@@ -236,7 +236,9 @@ function undergrowth_render_suggestions_page(): void {
 		'stages' => __( 'Growth stages', 'undergrowth' ),
 	);
 
-	// The map only appears once the monthly pass has made a cluster.
+	// The map appears once the monthly pass has made a cluster. A resurfacing
+	// signal always names a cluster big enough to map, so whenever one is
+	// waiting on the Map tab, the tab is there.
 	if ( undergrowth_has_clusters() ) {
 		$tabs['map'] = __( 'Map', 'undergrowth' );
 	}
@@ -271,6 +273,7 @@ function undergrowth_render_suggestions_page(): void {
 		if ( 'stages' === $tab ) {
 			undergrowth_render_stages_tab();
 		} elseif ( 'map' === $tab ) {
+			undergrowth_render_resurfacing_signals( undergrowth_visible_resurfacing_signals() );
 			undergrowth_render_map_tab();
 		} else {
 			undergrowth_render_suggestions_tab();
@@ -284,7 +287,6 @@ function undergrowth_render_suggestions_page(): void {
  * Prints the growth stages tab.
  */
 function undergrowth_render_stages_tab(): void {
-	undergrowth_render_resurfacing_signals();
 	undergrowth_load_stages_table();
 	$table = new Undergrowth_Stages_List_Table();
 	$table->prepare_items();
@@ -379,17 +381,18 @@ function undergrowth_render_map_tab(): void {
 }
 
 /**
- * Prints one notice for each composting post found near a new cluster this
- * cycle, with a way to return it to the garden or leave it be.
+ * Lists the resurfacing signals the current user can act on: each
+ * composting post found near a new cluster this cycle, with the cluster's
+ * newest post.
  *
- * The cluster is named by its newest post, the one closest to what the
- * author is writing now. Nothing says how long the post has been resting.
+ * @return array<int, int> Newest post ID in the cluster, keyed by the
+ *                         composting post's ID.
  */
-function undergrowth_render_resurfacing_signals(): void {
+function undergrowth_visible_resurfacing_signals(): array {
 	$post_types = undergrowth_indexed_post_types();
 
 	if ( array() === $post_types ) {
-		return;
+		return array();
 	}
 
 	$query = new WP_Query(
@@ -400,8 +403,8 @@ function undergrowth_render_resurfacing_signals(): void {
 			'meta_key'               => 'undergrowth_resurfacing', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only composting posts near a new cluster have the key.
 			'orderby'                => 'ID',
 			'order'                  => 'ASC',
-			// Every signal is listed, since this is the only place it shows. There
-			// is one per post, and only posts the author composted have one.
+			// Every signal is listed, since the Map is the only place it shows.
+			// There is one per post, and only posts the author composted have one.
 			'posts_per_page'         => -1,
 			'no_found_rows'          => true,
 			'fields'                 => 'ids',
@@ -409,15 +412,30 @@ function undergrowth_render_resurfacing_signals(): void {
 		)
 	);
 
+	$signals = array();
+
 	foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
 		$members = undergrowth_cluster_members( undergrowth_resurfacing_signal( $post_id ) );
 
-		if ( array() === $members || 'composting' !== undergrowth_get_stage( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
-			continue;
+		if ( array() !== $members && 'composting' === undergrowth_get_stage( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
+			$signals[ $post_id ] = max( $members );
 		}
+	}
 
-		$newest = max( $members );
+	return $signals;
+}
 
+/**
+ * Prints one notice for each resurfacing signal, with a way to return the
+ * post to the garden or leave it be.
+ *
+ * The cluster is named by its newest post, the one closest to what the
+ * author is writing now. Nothing says how long the post has been resting.
+ *
+ * @param array<int, int> $signals Result of undergrowth_visible_resurfacing_signals().
+ */
+function undergrowth_render_resurfacing_signals( array $signals ): void {
+	foreach ( $signals as $post_id => $newest ) {
 		printf(
 			'<div class="notice notice-info inline undergrowth-resurfacing"><p id="undergrowth-resurfacing-%3$d">%1$s</p><form method="post" action="%2$s"><input type="hidden" name="action" value="undergrowth_dismiss_resurfacing" /><input type="hidden" name="post" value="%3$d" />',
 			wp_kses(

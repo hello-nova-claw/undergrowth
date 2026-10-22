@@ -44,8 +44,6 @@ const STAGE_NOTICES = [
 	'stage_composting',
 	'not_pinned',
 	'stage_not_saved',
-	'resurfacing_dismissed',
-	'resurfacing_gone',
 ];
 
 // Notices the Dashboard returns with after a prompt is dismissed or snoozed.
@@ -204,9 +202,16 @@ const WITH_COMPOST = [
 	{ screen: 'stages', state: 'with-composting', page: STAGES },
 ];
 
-// Shown after a composting post was found near a new cluster.
+// Shown after a composting post was found near a new cluster. The signal
+// and the notices after dismissing it are on the Map tab.
 const WITH_RESURFACING = [
-	{ screen: 'stages', state: 'resurfacing', page: STAGES },
+	{ screen: 'map', state: 'resurfacing', page: MAP },
+	...[ 'resurfacing_dismissed', 'resurfacing_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
 ];
 
 // Shown after a clustering pass made two clusters, one of them a gap.
@@ -568,13 +573,13 @@ test.describe( 'Screenshot catalogue', () => {
 			] );
 			await pass();
 
-			// Without a signal the shot would show the plain table instead.
-			const stages = await requestUtils.request.get(
-				'wp-admin/edit.php?page=undergrowth-links&tab=stages'
+			// Without a signal the shot would show the plain map instead.
+			const map = await requestUtils.request.get(
+				'wp-admin/edit.php?page=undergrowth-links&tab=map'
 			);
 
 			if (
-				! ( await stages.text() ).includes(
+				! ( await map.text() ).includes(
 					'value="undergrowth_dismiss_resurfacing"'
 				)
 			) {
