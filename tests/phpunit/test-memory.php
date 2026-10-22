@@ -121,17 +121,20 @@ class Test_Memory extends WP_UnitTestCase {
 	}
 
 	public function test_old_folder_is_removed_when_it_cannot_be_moved() {
+		// The name is made first, so making it does not move the old folder.
+		$root    = undergrowth_memory_root();
 		$uploads = wp_upload_dir();
 		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $root . '/posts' );
+		file_put_contents( $root . '/posts/8.txt', 'newer' );
 		wp_mkdir_p( $legacy . '/posts' );
 		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
-		wp_mkdir_p( undergrowth_memory_root() . '/posts' );
-		file_put_contents( undergrowth_memory_root() . '/posts/8.txt', 'newer' );
 
-		undergrowth_move_legacy_memory_folder( undergrowth_memory_root() );
+		undergrowth_move_legacy_memory_folder( $root );
 
 		$this->assertDirectoryDoesNotExist( $legacy );
-		$this->assertSame( 'newer', file_get_contents( undergrowth_memory_root() . '/posts/8.txt' ) );
+		$this->assertSame( 'newer', file_get_contents( $root . '/posts/8.txt' ) );
+		$this->assertFileDoesNotExist( $root . '/posts/7.txt' );
 	}
 
 	public function test_preparing_the_folder_again_leaves_it_alone() {
