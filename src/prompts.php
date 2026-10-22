@@ -42,10 +42,17 @@ add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 
 
 /**
  * Schedules the monthly prompt cycle when it is not scheduled yet.
+ *
+ * A key in wp-config.php is never saved, so nothing else asks for the first
+ * prompt; it is asked for when the cycle starts instead.
  */
 function undergrowth_schedule_prompt_cycle(): void {
 	if ( false === wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
 		wp_schedule_event( time() + MONTH_IN_SECONDS, 'undergrowth_monthly', 'undergrowth_prompt_cycle' );
+
+		if ( '' !== undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) ) {
+			undergrowth_queue_first_prompt();
+		}
 	}
 }
 
