@@ -30,9 +30,14 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	/**
 	 * Renders the settings page and returns its HTML.
 	 *
+	 * The page title comes from the admin menu, which a process of its own
+	 * has not built.
+	 *
 	 * @return string
 	 */
 	private function render(): string {
+		$GLOBALS['title'] = 'Undergrowth';
+
 		ob_start();
 		undergrowth_render_settings_page();
 
@@ -65,7 +70,37 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertSame( self::SAVED_KEY, undergrowth_anthropic_key() );
 	}
 
+	public function test_scheduling_the_prompt_cycle_writes_no_first_prompt_for_a_saved_key() {
+		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
+		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+
+		undergrowth_schedule_prompt_cycle();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
 	/**
+	 * A key in wp-config.php is never saved, so nothing else would ask for
+	 * the first prompt before the monthly cycle.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_first_prompt_is_queued_when_the_cycle_starts_with_a_key_in_wp_config() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+
+		undergrowth_schedule_prompt_cycle();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
+	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -79,6 +114,8 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -92,6 +129,8 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -113,6 +152,8 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
