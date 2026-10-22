@@ -194,7 +194,10 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 				'.wrap a[href$="options-general.php?page=undergrowth"]'
 			);
 
-			await back.focus();
+			// Tab reaches it straight after the screen's tabs.
+			await page.locator( '.nav-tab' ).last().focus();
+			await page.keyboard.press( 'Tab' );
+			await expect( back ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
 			await page.waitForURL( /options-general\.php\?page=undergrowth/ );
 			await toggle.focus();
