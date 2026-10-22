@@ -56,6 +56,59 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Ends the sentence after the stop and the mark that closes it.
+	 *
+	 * @dataProvider data_closing_marks
+	 *
+	 * @param string $open  Mark opening a quotation or an aside.
+	 * @param string $close Mark closing it.
+	 */
+	public function test_sentence_ends_after_a_closing_mark( string $open, string $close ) {
+		$this->assertSame(
+			array( "He said, {$open}Stop.{$close}", 'Then he left.' ),
+			$this->sentence_texts( "<p>He said, {$open}Stop.{$close} Then he left.</p>" )
+		);
+	}
+
+	/**
+	 * Marks that can follow a sentence's last stop, with their opening marks.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_closing_marks(): array {
+		return array(
+			'curly double quote' => array( '“', '”' ),
+			'curly single quote' => array( '‘', '’' ),
+			'straight double'    => array( '"', '"' ),
+			'straight single'    => array( "'", "'" ),
+			'guillemet'          => array( '«', '»' ),
+			'parenthesis'        => array( '(', ')' ),
+			'square bracket'     => array( '[', ']' ),
+		);
+	}
+
+	public function test_sentence_ends_after_several_closing_marks_and_any_stop() {
+		$this->assertSame(
+			array( 'He said, “Stop!”)', 'Did he “leave?”', 'Then “wait…”', 'Done.' ),
+			$this->sentence_texts( '<p>He said, “Stop!”) Did he “leave?” Then “wait…” Done.</p>' )
+		);
+	}
+
+	public function test_closing_mark_written_as_a_character_reference_ends_the_sentence() {
+		$this->assertSame(
+			array( 'He said, “Stop.”', 'Then he left.' ),
+			$this->sentence_texts( '<p>He said, &ldquo;Stop.&rdquo; Then he left.</p>' )
+		);
+	}
+
+	public function test_closing_mark_without_a_stop_before_it_ends_nothing() {
+		$this->assertSame(
+			array( 'He read “Walden” and “Nature” twice.' ),
+			$this->sentence_texts( '<p>He read “Walden” and “Nature” twice.</p>' )
+		);
+	}
+
 	public function test_japanese_text_splits_without_spaces() {
 		$this->assertSame(
 			array( 'オカは塊茎です。', '冬に保存します。' ),
@@ -508,6 +561,70 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 'Yacon syrup is a gentle sweetener.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_sentence_holding_the_word_the_target_is_about_is_chosen() {
+		$oca   = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => '<p>Oca grows in the vicinity. Tubers grow beside it.</p>',
+			)
+		);
+		$yacon = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => '<p>' . str_repeat( 'Tubers store well. ', 8 ) . 'The vicinity matters. A vicinity.</p>',
+			)
+		);
+		$ids   = array_merge( array( $oca, $yacon ), self::factory()->post->create_many( 1, array( 'post_content' => 'Tubers again.' ) ), self::factory()->post->create_many( 2, array( 'post_content' => 'Frost.' ) ) );
+
+		$chosen = undergrowth_choose_sentence( $oca, $yacon, undergrowth_build_corpus( $ids ) );
+
+		$this->assertSame( 'Tubers grow beside it.', $chosen['text'] ?? null );
+	}
+
+	public function test_two_targets_get_different_sentences_when_both_fit() {
+		$oca    = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>Yacon tubers and mashua tubers grow together. I keep yacon in pots.</p>' )
+		);
+		$mashua = $this->plant( 'Mashua', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>Mashua tubers are peppery.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon tubers are sweet.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $mashua )['sentence'] );
+		$this->assertSame( 'I keep yacon in pots.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_two_targets_share_a_sentence_when_no_other_fits() {
+		$oca    = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>Yacon tubers and mashua tubers grow together. Frost came early.</p>' )
+		);
+		$mashua = $this->plant( 'Mashua', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>Mashua tubers are peppery.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon tubers are sweet.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $mashua )['sentence'] );
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_sentence_to_avoid_is_still_chosen_when_it_is_the_only_fit() {
+		$oca   = self::factory()->post->create( array( 'post_content' => '<p>I keep yacon. Frost came early.</p>' ) );
+		$yacon = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => '<p>Yacon syrup.</p>',
+			)
+		);
+
+		$chosen = undergrowth_choose_sentence( $oca, $yacon, undergrowth_build_corpus( array( $oca, $yacon ) ), array( 'I keep yacon.' ) );
+
+		$this->assertSame( 'I keep yacon.', $chosen['text'] ?? null );
 	}
 
 	public function test_repeated_common_words_never_outweigh_a_targets_own_words() {

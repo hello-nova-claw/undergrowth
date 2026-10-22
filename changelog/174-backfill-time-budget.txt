@@ -1,0 +1,1 @@
+Indexing a large site in the background is much less likely to time out on hosts that stop a request after 30 seconds: each run embeds at least one post, then starts no further post once 15 seconds have passed (filter: undergrowth_backfill_time_budget). A single post that takes longer than the host allows can still time out.

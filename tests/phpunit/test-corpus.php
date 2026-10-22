@@ -157,6 +157,119 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( $common, $terms['frost'], 1e-12 );
 	}
 
+	public function test_anchor_terms_are_only_words_the_text_uses() {
+		$oca   = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => 'Oca likes frost.',
+			)
+		);
+		$yacon = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => 'Yacon likes frost and sweet syrup.',
+			)
+		);
+
+		$terms = undergrowth_anchor_terms( $yacon, 'Oca likes frost.', undergrowth_build_corpus( array( $oca, $yacon ) ) );
+
+		$this->assertSame( array( 'frost', 'likes' ), array_keys( $terms ) );
+	}
+
+	public function test_anchor_terms_weigh_how_often_the_target_uses_a_word() {
+		$oca    = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => 'Tubers and frost and syrup.',
+			)
+		);
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => 'Tubers tubers tubers. Frost frost. Syrup.',
+			)
+		);
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
+
+		$terms  = undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus );
+		$rarity = log( 3 / 2.5 ) ** 2;
+
+		$this->assertSame( array( 'tubers', 'frost', 'syrup' ), array_keys( $terms ) );
+		$this->assertEqualsWithDelta( 3 * $rarity, $terms['tubers'], 1e-12 );
+		$this->assertEqualsWithDelta( 2 * $rarity, $terms['frost'], 1e-12 );
+		$this->assertEqualsWithDelta( 0.25 * $rarity, $terms['syrup'], 1e-12 );
+	}
+
+	public function test_word_the_target_is_about_outranks_a_rarer_incidental_one() {
+		$oca    = self::factory()->post->create( array( 'post_content' => 'Tubers grow in the vicinity.' ) );
+		$yacon  = self::factory()->post->create( array( 'post_content' => str_repeat( 'Tubers store well. ', 6 ) . 'The vicinity matters.' ) );
+		$other  = self::factory()->post->create( array( 'post_content' => 'Tubers again.' ) );
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon, $other ) );
+
+		$rarest = undergrowth_distinctive_terms( $yacon, $corpus, 0 );
+
+		$this->assertGreaterThan( $rarest['tubers'], $rarest['vicinity'] );
+		$this->assertSame( 'tubers', array_key_first( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+	}
+
+	public function test_title_word_outranks_every_other_word() {
+		$oca    = self::factory()->post->create( array( 'post_content' => 'Yacon grows in the vicinity, and frost frost frost.' ) );
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => 'The vicinity of water. The vicinity of frost frost frost frost.',
+			)
+		);
+		$others = self::factory()->post->create_many( 3, array( 'post_content' => 'Frost again.' ) );
+		$corpus = undergrowth_build_corpus( array_merge( array( $oca, $yacon ), $others ) );
+
+		$this->assertSame( 'yacon', array_key_first( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+	}
+
+	public function test_title_word_used_in_exactly_half_the_posts_gets_no_preference() {
+		$oca    = self::factory()->post->create( array( 'post_content' => 'Yacon and frost frost frost.' ) );
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => 'Frost frost frost.',
+			)
+		);
+		$others = self::factory()->post->create_many( 2, array( 'post_content' => 'Snow.' ) );
+		$corpus = undergrowth_build_corpus( array_merge( array( $oca, $yacon ), $others ) );
+
+		$this->assertSame( array( 'frost', 'yacon' ), array_keys( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+	}
+
+	public function test_title_word_used_in_half_the_posts_gets_no_preference() {
+		$oca    = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca notes',
+				'post_content' => 'Notes on tubers: they like frost.',
+			)
+		);
+		$yacon  = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon notes',
+				'post_content' => 'Tubers tubers tubers like frost.',
+			)
+		);
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
+
+		$this->assertSame( array( 'tubers', 'frost', 'like', 'notes' ), array_keys( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+	}
+
+	public function test_text_sharing_no_word_with_the_target_has_no_anchor_terms() {
+		$oca = self::factory()->post->create( array( 'post_content' => 'Oca likes frost.' ) );
+
+		$this->assertSame( array(), undergrowth_anchor_terms( $oca, 'Yacon syrup.', undergrowth_build_corpus( array( $oca ) ) ) );
+	}
+
+	public function test_post_outside_the_corpus_has_no_anchor_terms() {
+		$oca = self::factory()->post->create( array( 'post_content' => 'Oca likes frost.' ) );
+
+		$this->assertSame( array(), undergrowth_anchor_terms( PHP_INT_MAX, 'Oca likes frost.', undergrowth_build_corpus( array( $oca ) ) ) );
+	}
+
 	public function test_corpus_of_long_posts_stays_compact() {
 		mt_srand( 26 );
 
@@ -220,8 +333,11 @@ class Test_Corpus extends WP_UnitTestCase {
 		);
 
 		$this->assertCount( 33, $rows );
-		// Recorded from the corpus that kept every post's word counts.
-		$this->assertSame( 'bf0d13fc64d8b50e98bb6b02751ebeaf', md5( (string) wp_json_encode( $rows ) ) );
+		// Recorded from the corpus that kept every post's word counts, and
+		// recorded again when anchor words began to follow what the target
+		// is about (#172) and when one post's proposals began to prefer
+		// different sentences (#173).
+		$this->assertSame( '3cde305bdb1854395c0a1c6467eba7fb', md5( (string) wp_json_encode( $rows ) ) );
 	}
 
 	public function test_refresh_reads_only_the_target_posts_it_needs() {

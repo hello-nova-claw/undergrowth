@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
 
 /**
- * Accepts a proposed link by linking the target's most distinctive word
+ * Accepts a proposed link by linking the word the target is most about
  * where it appears in the proposal's sentence.
  *
  * The suggestion is claimed before the post is touched, so two requests
@@ -112,11 +112,11 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target->ID ) ) ) );
 	$linked = null;
 
-	// Every word the target uses is tried, most distinctive first. The
-	// sentence was chosen for a word among the target's top few, but which
+	// Every word the sentence shares with the target is tried, the one the
+	// target is most about first. The sentence was chosen for a word among the top few, but which
 	// words make the top few shifts as posts are added, most of all while a
 	// new site is still being indexed.
-	foreach ( array_keys( undergrowth_distinctive_terms( $target->ID, $corpus, 0 ) ) as $term ) {
+	foreach ( array_keys( undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 ) ) as $term ) {
 		$linked = undergrowth_link_word( $source->post_content, $sentence, (string) $term, (string) get_permalink( $target ) );
 
 		if ( null !== $linked ) {
@@ -175,22 +175,12 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 			continue;
 		}
 
-		$end   = $start + mb_strlen( $sentence );
-		$depth = 0;
+		$end = $start + mb_strlen( $sentence );
 
-		foreach ( (array) preg_split( '/(<[^>]*>)/', $inner, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE ) as $segment ) {
-			list( $text, $offset ) = $segment;
+		foreach ( ( new Undergrowth_HTML_Text( $inner ) )->text_nodes() as $node ) {
+			list( $text, $offset, $in_link ) = $node;
 
-			if ( '<' === substr( $text, 0, 1 ) ) {
-				if ( preg_match( '#^<a\b#i', $text ) ) {
-					++$depth;
-				} elseif ( preg_match( '#^</a\s*>#i', $text ) ) {
-					$depth = max( 0, $depth - 1 );
-				}
-				continue;
-			}
-
-			if ( $depth > 0 ) {
+			if ( $in_link ) {
 				continue;
 			}
 
@@ -247,10 +237,8 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 function undergrowth_linkable_paragraphs( string $content ): array {
 	$found = has_blocks( $content ) ? array() : undergrowth_classic_paragraphs( $content );
 
-	if ( preg_match_all( '#<p\b[^>]*>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
-		foreach ( $paragraphs[1] as $paragraph ) {
-			$found[ $paragraph[1] ] = $paragraph[0];
-		}
+	foreach ( ( new Undergrowth_HTML_Text( $content ) )->paragraphs() as $paragraph ) {
+		$found[ $paragraph[1] ] = $paragraph[0];
 	}
 
 	ksort( $found );
@@ -415,7 +403,7 @@ function undergrowth_overlaps_any( int $start, int $end, array $ranges ): bool {
  * @return string Plain text.
  */
 function undergrowth_plain_text( string $html ): string {
-	$text = html_entity_decode( (string) preg_replace( '/<[^>]*>/', '', $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$text = html_entity_decode( implode( '', array_column( ( new Undergrowth_HTML_Text( $html ) )->text_nodes(), 0 ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	return (string) preg_replace( '/\s+/u', ' ', $text );
 }

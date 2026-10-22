@@ -76,8 +76,9 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
+		// A closing quotation mark or bracket can sit between the stop and the space.
 		$in_quote = false !== strpos( $block, $quoted );
-		$parts    = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
+		$parts    = preg_split( '/[.!?…][”’"\'»)\]]*\K\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
@@ -330,23 +331,16 @@ function undergrowth_forget_reusable_corpus(): void {
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
 function undergrowth_distinctive_terms( int $post_id, array $corpus, int $limit = UNDERGROWTH_DISTINCTIVE_TERMS ): array {
-	global $wpdb;
-
 	if ( ! isset( $corpus['posts'][ $post_id ] ) ) {
 		return array();
 	}
 
-	// Read past the post cache: a refresh can try many targets before one
-	// fits, and none of them should stay in memory afterwards.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Caching every target tried is what this avoids.
-	$row = $wpdb->get_row( $wpdb->prepare( 'SELECT ID, post_title, post_content FROM %i WHERE ID = %d', $wpdb->posts, $post_id ) );
-	$wpdb->flush();
+	$post = undergrowth_uncached_post( $post_id );
 
-	if ( ! is_object( $row ) ) {
+	if ( null === $post ) {
 		return array();
 	}
 
-	$post    = new WP_Post( $row );
 	$weights = array();
 
 	// Repeats count for less and less, and rarity is squared, so a word in
@@ -358,6 +352,68 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus, int $limit 
 		$weights[ (string) $token ] = ( 1 + log( $count ) ) * $rarity * $rarity;
 	}
 
+	return undergrowth_heaviest_terms( $weights, $limit );
+}
+
+/**
+ * Ranks the words of some text a link to a post could sit on, by how much
+ * the post is about each.
+ *
+ * Only words in the text can be linked, so only those are ranked. Rarity
+ * alone favours words the target happens to use once or twice, so it is
+ * weighed against how often the target uses the word, and a word the target
+ * uses only once counts for a quarter. A word in the target's title says
+ * most plainly where the link goes, so it ranks above every other word,
+ * unless half the site's posts use it.
+ *
+ * @param int    $target_id Post the link would point to.
+ * @param string $text      Plain text the link would sit in.
+ * @param array  $corpus    Result of undergrowth_build_corpus().
+ * @param int    $limit     Most words to return, or 0 for every word the text shares with the target.
+ * @return array<string, float> Weight keyed by token, highest first.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ */
+function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, int $limit = UNDERGROWTH_DISTINCTIVE_TERMS ): array {
+	$target = isset( $corpus['posts'][ $target_id ] ) ? undergrowth_uncached_post( $target_id ) : null;
+
+	if ( null === $target ) {
+		return array();
+	}
+
+	$shared  = array_flip( undergrowth_tokens( $text ) );
+	$weights = array();
+
+	foreach ( undergrowth_post_token_counts( $target ) as $token => $count ) {
+		if ( isset( $shared[ $token ] ) ) {
+			$rarity                     = log( ( $corpus['documents'] + 1 ) / ( ( $corpus['frequency'][ $token ] ?? 1 ) + 0.5 ) );
+			$weights[ (string) $token ] = ( $count > 1 ? $count : 0.25 ) * $rarity * $rarity;
+		}
+	}
+
+	if ( array() !== $weights ) {
+		$top = max( $weights );
+
+		foreach ( array_unique( undergrowth_tokens( $target->post_title ) ) as $token ) {
+			if ( isset( $weights[ $token ] ) && 2 * ( $corpus['frequency'][ $token ] ?? 1 ) < $corpus['documents'] ) {
+				$weights[ $token ] += $top;
+			}
+		}
+	}
+
+	return undergrowth_heaviest_terms( $weights, $limit );
+}
+
+/**
+ * Sorts words by weight, heaviest first, and keeps the first few.
+ *
+ * Ties go in alphabetical order, so the same posts always give the same words.
+ *
+ * @param array<string, float> $weights Weight keyed by token.
+ * @param int                  $limit   Most words to keep, or 0 for all.
+ * @return array<string, float>
+ */
+function undergrowth_heaviest_terms( array $weights, int $limit ): array {
 	uksort(
 		$weights,
 		static function ( $a, $b ) use ( $weights ) {
@@ -371,45 +427,83 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus, int $limit 
 }
 
 /**
+ * Reads a post's title and content without adding it to the post cache.
+ *
+ * A refresh can try many targets before one fits, and none of them should
+ * stay in memory afterwards.
+ *
+ * @param int $post_id Post to read.
+ * @return WP_Post|null The post, or null when it no longer exists.
+ */
+function undergrowth_uncached_post( int $post_id ): ?WP_Post {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Caching every target tried is what this avoids.
+	$row = $wpdb->get_row( $wpdb->prepare( 'SELECT ID, post_title, post_content FROM %i WHERE ID = %d', $wpdb->posts, $post_id ) );
+	$wpdb->flush();
+
+	return is_object( $row ) ? new WP_Post( $row ) : null;
+}
+
+/**
  * Picks the sentence in the source post that best fits a link to the target.
  *
- * @param int   $source_id Post the link would sit in.
- * @param int   $target_id Post the link would point to.
- * @param array $corpus    Result of undergrowth_build_corpus().
+ * A sentence already holding another proposal is passed over for the next
+ * best one that fits, so accepting several links never crowds them into one
+ * sentence. It is still chosen when nothing else fits.
+ *
+ * @param int      $source_id Post the link would sit in.
+ * @param int      $target_id Post the link would point to.
+ * @param array    $corpus    Result of undergrowth_build_corpus().
+ * @param string[] $taken     Sentences already holding another of the post's proposals.
  * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
-function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus ): ?array {
+function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus, array $taken = array() ): ?array {
 	$source = get_post( $source_id );
-	$terms  = undergrowth_distinctive_terms( $target_id, $corpus );
 
-	if ( ! $source instanceof WP_Post || array() === $terms ) {
+	if ( ! $source instanceof WP_Post ) {
 		return null;
 	}
 
-	$best       = null;
-	$best_score = 0.0;
-
 	// Only sentences from paragraphs a link may go in are scored, each with
 	// its own paragraph's flags, so a heading or list item is never chosen,
-	// even when it shares a paragraph's words or text.
-	foreach ( undergrowth_linkable_sentences( $source->post_content ) as $sentence ) {
-		if ( $sentence['linked'] ) {
-			continue;
+	// even when it shares a paragraph's words or text. The target's words
+	// are ranked among the ones those sentences hold.
+	$sentences = array_filter(
+		undergrowth_linkable_sentences( $source->post_content ),
+		static function ( $sentence ) {
+			return ! $sentence['linked'];
 		}
+	);
 
+	$terms = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
+	$taken = array_flip( $taken );
+	$best  = array(
+		'free'  => null,
+		'taken' => null,
+	);
+	$top   = array(
+		'free'  => 0.0,
+		'taken' => 0.0,
+	);
+
+	foreach ( $sentences as $sentence ) {
 		$score = 0.0;
+		$kind  = isset( $taken[ $sentence['text'] ] ) ? 'taken' : 'free';
 
 		foreach ( array_unique( undergrowth_tokens( $sentence['text'] ) ) as $token ) {
 			$score += $terms[ $token ] ?? 0.0;
 		}
 
-		if ( $score > $best_score ) {
-			$best_score = $score;
-			$best       = $sentence['text'];
+		if ( $score > $top[ $kind ] ) {
+			$top[ $kind ]  = $score;
+			$best[ $kind ] = $sentence['text'];
 		}
 	}
+
+	$best = $best['free'] ?? $best['taken'];
 
 	if ( null === $best ) {
 		return null;
