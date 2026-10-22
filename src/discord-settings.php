@@ -231,26 +231,37 @@ function undergrowth_render_discord_section(): void {
 }
 
 /**
- * Prints one Discord field.
+ * Prints one Discord field, described by one line saying where to find its
+ * value, rather than by the whole section introduction.
  *
  * @param array $args Field arguments.
  *
  * @phpstan-param array{label_for: string, name: string} $args
  */
 function undergrowth_render_discord_field( array $args ): void {
-	$name  = $args['name'];
-	$value = undergrowth_discord_setting( $name );
+	$name        = $args['name'];
+	$value       = undergrowth_discord_setting( $name );
+	$description = 'undergrowth-discord-' . str_replace( '_', '-', $name ) . '-description';
+	$where       = array(
+		'application_id' => __( 'On your application’s General Information page in the Discord developer portal.', 'undergrowth' ),
+		'public_key'     => __( 'On the same General Information page, under the application ID.', 'undergrowth' ),
+		'bot_token'      => __( 'On your application’s Bot page: copy the token, or reset it only if you no longer have it.', 'undergrowth' ),
+		'channel_id'     => __( 'In Discord, with Developer Mode on, right-click the channel and choose Copy Channel ID.', 'undergrowth' ),
+	);
 
 	if ( 'bot_token' !== $name ) {
 		printf(
-			'<input type="text" class="regular-text code" id="%1$s" name="%1$s" value="%2$s" autocomplete="off" spellcheck="false" dir="ltr" aria-describedby="undergrowth-discord-notice" />',
+			'<input type="text" class="regular-text code" id="%1$s" name="%1$s" value="%2$s" autocomplete="off" spellcheck="false" dir="ltr" aria-describedby="%3$s" />',
 			esc_attr( $args['label_for'] ),
-			esc_attr( $value )
+			esc_attr( $value ),
+			esc_attr( $description )
 		);
+		printf( '<p class="description" id="%1$s">%2$s</p>', esc_attr( $description ), esc_html( $where[ $name ] ) );
 		return;
 	}
 	?>
-	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-discord-notice" />
+	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $description ); ?>" />
+	<p class="description" id="<?php echo esc_attr( $description ); ?>"><?php echo esc_html( $where[ $name ] ); ?></p>
 
 	<?php if ( '' !== $value ) : ?>
 		<p class="description">

@@ -325,7 +325,7 @@ class Test_Settings extends WP_UnitTestCase {
 	public function test_each_section_opens_with_one_sentence() {
 		$html = $this->render();
 
-		// Discord's intro also describes each of its fields.
+		// Discord's intro keeps the id its fields once pointed at.
 		foreach ( array( 'links-intro', 'prompts-intro', 'discord-notice' ) as $id ) {
 			$this->assertSame( 1, preg_match( '#<p id="undergrowth-' . $id . '">(.*?)</p>#s', $html, $intro ), $id );
 			$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', trim( wp_strip_all_tags( $intro[1] ) ) ), $id );
