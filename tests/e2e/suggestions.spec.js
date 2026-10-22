@@ -3,6 +3,21 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids, classes and names, not text, because this spec also
 // runs in Hebrew and in the en_XA pseudo-locale.
+/**
+ * Finds a row's Accept or Veto button by role, by the titles in its name,
+ * which stay as written in every locale, and by its action.
+ *
+ * @param {import('@playwright/test').Locator} row    Table row.
+ * @param {string}                             action 'accept' or 'veto'.
+ * @param {RegExp}                             name   Titles the name holds.
+ * @return {import('@playwright/test').Locator} The button.
+ */
+function actionButton( row, action, name = /Oca|Yacon/ ) {
+	return row
+		.getByRole( 'button', { name } )
+		.and( row.locator( `[form^="undergrowth-${ action }-"]` ) );
+}
+
 test.describe( 'Link suggestions screen', () => {
 	test.beforeEach( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
@@ -67,9 +82,7 @@ test.describe( 'Link suggestions screen', () => {
 			page,
 		} ) => {
 			const rows = page.locator( 'table.undergrowth-links tbody tr' );
-			const veto = rows
-				.first()
-				.locator( 'button[form^="undergrowth-veto-"]' );
+			const veto = actionButton( rows.first(), 'veto' );
 
 			await veto.focus();
 			await expect( veto ).toBeFocused();
@@ -98,7 +111,7 @@ test.describe( 'Link suggestions screen', () => {
 				.filter( {
 					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
 				} );
-			const accept = row.locator( 'button[form^="undergrowth-accept-"]' );
+			const accept = actionButton( row, 'accept', /Oca[\s\S]*Yacon/ );
 			const marked = await row.locator( 'q mark' ).textContent();
 
 			await accept.focus();
@@ -141,14 +154,10 @@ test.describe( 'Link suggestions screen', () => {
 			// Accept and Veto follow the target's title in tab order.
 			await row.locator( '.column-sentence a' ).first().focus();
 			await page.keyboard.press( 'Tab' );
-			await expect(
-				row.locator( 'button[form^="undergrowth-accept-"]' )
-			).toBeFocused();
+			await expect( actionButton( row, 'accept' ) ).toBeFocused();
 			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
 			await page.keyboard.press( 'Tab' );
-			await expect(
-				row.locator( 'button[form^="undergrowth-veto-"]' )
-			).toBeFocused();
+			await expect( actionButton( row, 'veto' ) ).toBeFocused();
 			await expectNoA11yViolations( page, '.wrap' );
 		} );
 

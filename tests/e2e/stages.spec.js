@@ -130,10 +130,11 @@ test.describe( 'Growth stages tab', () => {
 			await expect( select ).toBeFocused();
 
 			await page.keyboard.press( 'Tab' );
-			// Pin is a row action, after the stage choice.
-			const pin = page.locator(
-				`button[form="undergrowth-pin-${ oca.id }"]`
-			);
+			// Pin is a row action, after the stage choice. Its name is
+			// translated, but carries the post's own title in every locale.
+			const pin = page
+				.getByRole( 'button', { name: /Oca/ } )
+				.and( page.locator( `[form="undergrowth-pin-${ oca.id }"]` ) );
 			await expect( pin ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
 
@@ -143,9 +144,11 @@ test.describe( 'Growth stages tab', () => {
 			);
 			await expectNoA11yViolations( page, '.wrap' );
 
-			const unpin = page.locator(
-				`button[form="undergrowth-unpin-${ oca.id }"]`
-			);
+			const unpin = page
+				.getByRole( 'button', { name: /Oca/ } )
+				.and(
+					page.locator( `[form="undergrowth-unpin-${ oca.id }"]` )
+				);
 			await unpin.focus();
 			await expect( unpin ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
