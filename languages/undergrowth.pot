@@ -594,7 +594,7 @@ msgid "On the same General Information page, under the application ID."
 msgstr ""
 
 #: src/discord-settings.php
-msgid "On your application’s Bot page: reset the token, then copy it."
+msgid "On your application’s Bot page: copy the token, or reset it only if you no longer have it."
 msgstr ""
 
 #: src/discord-settings.php

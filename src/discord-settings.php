@@ -252,7 +252,7 @@ function undergrowth_render_discord_field( array $args ): void {
 	$where       = array(
 		'application_id' => __( 'On your application’s General Information page in the Discord developer portal.', 'undergrowth' ),
 		'public_key'     => __( 'On the same General Information page, under the application ID.', 'undergrowth' ),
-		'bot_token'      => __( 'On your application’s Bot page: reset the token, then copy it.', 'undergrowth' ),
+		'bot_token'      => __( 'On your application’s Bot page: copy the token, or reset it only if you no longer have it.', 'undergrowth' ),
 		'channel_id'     => __( 'In Discord, with Developer Mode on, right-click the channel and choose Copy Channel ID.', 'undergrowth' ),
 	);
 
