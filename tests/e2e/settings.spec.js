@@ -98,10 +98,17 @@ test.describe( 'Settings page', () => {
 		await field.focus();
 		await expect( field ).toBeFocused();
 
-		await page.keyboard.press( 'Tab' );
-		await expect(
-			page.locator( '#undergrowth_anthropic_api_key' )
-		).toBeFocused();
+		// Each key field is followed by the link to the provider's key page,
+		// and the OpenAI key by the switch for suggestions.
+		for ( const id of [
+			'undergrowth-openai-get-key',
+			'undergrowth_suggest_links',
+			'undergrowth_anthropic_api_key',
+			'undergrowth-anthropic-get-key',
+		] ) {
+			await page.keyboard.press( 'Tab' );
+			await expect( page.locator( `#${ id }` ) ).toBeFocused();
+		}
 
 		for ( const id of [
 			'undergrowth_discord_application_id',
@@ -182,19 +189,24 @@ test.describe( 'Settings page', () => {
 
 		await expectNoA11yViolations( page, '.wrap' );
 	} );
-	test( 'describes what is sent to Discord alongside its fields', async ( {
+	test( 'describes each Discord field by where to find its value', async ( {
 		page,
 	} ) => {
-		for ( const id of [
-			'undergrowth_discord_application_id',
-			'undergrowth_discord_public_key',
-			'undergrowth_discord_bot_token',
-			'undergrowth_discord_channel_id',
+		for ( const name of [
+			'application_id',
+			'public_key',
+			'bot_token',
+			'channel_id',
 		] ) {
-			await expect( page.locator( `#${ id }` ) ).toHaveAttribute(
-				'aria-describedby',
-				'undergrowth-discord-notice'
-			);
+			const description = `undergrowth-discord-${ name.replaceAll(
+				'_',
+				'-'
+			) }-description`;
+
+			await expect(
+				page.locator( `#undergrowth_discord_${ name }` )
+			).toHaveAttribute( 'aria-describedby', description );
+			await expect( page.locator( `#${ description }` ) ).toBeVisible();
 		}
 		await expect(
 			page.locator( '#undergrowth-discord-notice' )

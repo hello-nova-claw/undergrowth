@@ -28,7 +28,6 @@ if ( ! defined( 'UNDERGROWTH_METER_LINE' ) ) {
 	define( 'UNDERGROWTH_METER_LINE', 1000 );
 }
 
-add_action( 'wp_dashboard_setup', 'undergrowth_add_meter_widget' );
 add_action( 'load-index.php', 'undergrowth_add_meter_dashboard_help' );
 add_action( 'load-settings_page_undergrowth', 'undergrowth_add_meter_help' );
 
@@ -178,18 +177,8 @@ function undergrowth_meter_user_can_see(): bool {
 }
 
 /**
- * Adds the meter widget for users who may see it.
- */
-function undergrowth_add_meter_widget(): void {
-	if ( ! undergrowth_meter_user_can_see() ) {
-		return;
-	}
-
-	wp_add_dashboard_widget( 'undergrowth_meter', __( 'Page views, last 30 days', 'undergrowth' ), 'undergrowth_render_meter_widget' );
-}
-
-/**
- * Prints the meter: one number against the line, and one line more.
+ * Prints the meter part of the Undergrowth widget: one number against the
+ * line, and one line more.
  *
  * Both switch-line rules are in the Help tab, not here.
  */

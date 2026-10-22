@@ -133,6 +133,28 @@ add_action(
 	}
 );
 
+// A test that activates the plugin asks for a fresh first run, since the
+// real one happens once per site. It is a REST route, so it needs the REST
+// nonce as well as an administrator.
+add_action(
+	'rest_api_init',
+	static function () {
+		register_rest_route(
+			'undergrowth-e2e/v1',
+			'/first-run',
+			array(
+				'methods'             => 'DELETE',
+				'permission_callback' => static function () {
+					return current_user_can( 'manage_options' );
+				},
+				'callback'            => static function () {
+					return rest_ensure_response( delete_option( 'undergrowth_first_run' ) );
+				},
+			)
+		);
+	}
+);
+
 /**
  * Returns the value of a test cookie when it is one of the allowed values.
  *
@@ -167,7 +189,17 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+	case 'first-run':
+		// As right after activation on a site with no key.
+		add_filter(
+			'pre_option_undergrowth_first_run',
+			static function () {
+				return 'waiting';
+			}
+		);
+		// Falls through: the notice shows only while there is no provider.
+
 	case 'no-provider':
 		add_filter(
 			'undergrowth_embed_identity',
@@ -178,6 +210,16 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				);
 			},
 			99
+		);
+		break;
+
+	case 'first-key-saved':
+		// As Settings looks right after the first key is saved.
+		add_action(
+			'load-settings_page_undergrowth',
+			static function () {
+				undergrowth_first_key_saved( '', 'not-a-real-key-wxyz' );
+			}
 		);
 		break;
 

@@ -25,7 +25,11 @@ class Test_Settings extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
+		global $wp_settings_sections, $wp_settings_fields;
+
 		unset( $_POST['undergrowth_remove_openai_key'], $_POST['undergrowth_remove_anthropic_key'] );
+		unset( $wp_settings_sections['undergrowth'], $wp_settings_fields['undergrowth'] );
+		set_current_screen( 'front' );
 		wp_dequeue_style( 'undergrowth-settings' );
 		wp_deregister_style( 'undergrowth-settings' );
 
@@ -33,11 +37,18 @@ class Test_Settings extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Renders the settings page and returns its HTML.
+	 * Registers the page's sections and fields as admin_init does, then
+	 * renders the page and returns its HTML.
 	 *
 	 * @return string
 	 */
 	private function render(): string {
+		global $wp_settings_sections, $wp_settings_fields;
+
+		unset( $wp_settings_sections['undergrowth'], $wp_settings_fields['undergrowth'] );
+		undergrowth_register_settings();
+		undergrowth_register_discord_settings();
+
 		ob_start();
 		undergrowth_render_settings_page();
 
@@ -190,9 +201,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'Anthropic', $html );
-		$this->assertStringContainsString( 'Whole posts are never sent.', $html );
-		$this->assertStringContainsString( 'up to three of them', $html );
-		$this->assertStringContainsString( 'never to your readers', $html );
+		$this->assertStringContainsString( 'never a whole post', $html );
 	}
 
 	public function test_anthropic_key_field_is_labelled_and_described() {
@@ -268,7 +277,8 @@ class Test_Settings extends WP_UnitTestCase {
 		);
 		self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
-		$text = wp_strip_all_tags( $this->render() );
+		// The Discord endpoint address is code, not words, and may hold index.php.
+		$text = wp_strip_all_tags( (string) preg_replace( '#<code.*?</code>#s', '', $this->render() ) );
 
 		$this->assertStringNotContainsStringIgnoringCase( 'vector', $text );
 		$this->assertStringNotContainsStringIgnoringCase( 'index', $text );
@@ -293,6 +303,118 @@ class Test_Settings extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( 'tried again within the hour', $this->render() );
+	}
+
+	public function test_page_opens_with_one_sentence_on_what_undergrowth_does() {
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#</h1>\s*<p id="undergrowth-intro">[^<]*OpenAI[^<]*Anthropic[^<]*</p>#', $html );
+		$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', wp_strip_all_tags( (string) preg_replace( '#.*<p id="undergrowth-intro">(.*?)</p>.*#s', '$1', $html ) ) ) );
+	}
+
+	public function test_each_key_field_links_to_the_providers_key_page() {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'href="https://platform.openai.com/api-keys"', $html );
+		$this->assertStringContainsString( 'href="https://platform.claude.com/settings/keys"', $html );
+	}
+
+	public function test_page_has_three_sections_in_order() {
+		$html = $this->render();
+
+		$this->assertSame( 3, preg_match_all( '#<h2[^>]*>([^<]+)</h2>#', $html, $headings ) );
+		$this->assertSame( array( 'Link suggestions', 'Questions on your Dashboard', 'Discord (optional)' ), $headings[1] );
+	}
+
+	public function test_each_section_opens_with_one_sentence() {
+		$html = $this->render();
+
+		// Discord's intro keeps the id its fields once pointed at.
+		foreach ( array( 'links-intro', 'prompts-intro', 'discord-notice' ) as $id ) {
+			$this->assertSame( 1, preg_match( '#<p id="undergrowth-' . $id . '">(.*?)</p>#s', $html, $intro ), $id );
+			$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', trim( wp_strip_all_tags( $intro[1] ) ) ), $id );
+		}
+	}
+
+	public function test_key_fields_are_rows_of_their_sections() {
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<th scope="row"><label for="undergrowth_openai_api_key">OpenAI API key</label></th>.*<h2[^>]*>Questions on your Dashboard</h2>.*<th scope="row"><label for="undergrowth_anthropic_api_key">Anthropic API key</label></th>.*<h2[^>]*>Discord \(optional\)</h2>#s', $html );
+	}
+
+	public function test_key_descriptions_say_in_two_sentences_what_is_sent() {
+		$html = $this->render();
+
+		foreach ( array( 'openai', 'anthropic' ) as $provider ) {
+			$this->assertSame( 1, preg_match( '#<p class="description" id="undergrowth-' . $provider . '-notice">(.*?)<a #s', $html, $notice ), $provider );
+			$this->assertLessThanOrEqual( 2, preg_match_all( '/[.!?](\s|$)/', trim( wp_strip_all_tags( $notice[1] ) ) ), $provider );
+			$this->assertStringContainsString( 'Nothing is sent until you save a key.', $notice[1] );
+		}
+	}
+
+	public function test_help_tabs_keep_the_full_detail_of_what_each_part_sends() {
+		set_current_screen( 'settings_page_undergrowth' );
+		$screen = get_current_screen();
+		$screen->remove_help_tabs();
+		do_action( 'load-settings_page_undergrowth' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
+
+		$text = array();
+
+		foreach ( array( 'undergrowth-links', 'undergrowth-prompts', 'undergrowth-discord' ) as $id ) {
+			$tab = $screen->get_help_tab( $id );
+			$this->assertIsArray( $tab, $id );
+			$text[ $id ] = wp_strip_all_tags( $tab['content'] );
+		}
+
+		$this->assertStringContainsString( 'Undergrowth changes a post only when you accept a link in it.', $text['undergrowth-links'] );
+		$this->assertStringContainsString( 'Whole posts are never sent.', $text['undergrowth-prompts'] );
+		$this->assertStringContainsString( 'up to three of them', $text['undergrowth-prompts'] );
+		$this->assertStringContainsString( 'never to your readers', $text['undergrowth-prompts'] );
+		$this->assertStringContainsString( 'titles of both posts', $text['undergrowth-discord'] );
+		$this->assertStringContainsString( 'Use a private channel', $text['undergrowth-discord'] );
+	}
+
+	public function test_posts_read_is_a_row_only_once_there_is_a_provider() {
+		$this->assertStringNotContainsString( 'Posts read', $this->render() );
+
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+
+		$this->assertMatchesRegularExpression( '#<th scope="row">Posts read</th>#', $this->render() );
+	}
+
+	public function test_the_suggestions_switch_is_in_the_link_suggestions_section() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<input type="checkbox" id="undergrowth_suggest_links" name="undergrowth_suggest_links" value="1" checked=\'checked\' />.*<h2[^>]*>Questions on your Dashboard</h2>#s', $html );
+		$this->assertStringContainsString( 'Suggest links between my posts', $html );
+	}
+
+	public function test_the_switch_is_left_out_until_there_is_a_provider() {
+		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+	}
+
+	public function test_the_switch_setting_saves_on_or_off() {
+		undergrowth_register_settings();
+
+		$setting = get_registered_settings()['undergrowth_suggest_links'];
+		$this->assertFalse( $setting['show_in_rest'] );
+
+		$_POST['undergrowth_suggest_links_shown'] = '1';
+		$this->assertSame( '0', undergrowth_sanitize_suggest_links( null ) );
+		$this->assertSame( '1', undergrowth_sanitize_suggest_links( '1' ) );
+		unset( $_POST['undergrowth_suggest_links_shown'] );
+	}
+
+	public function test_saving_settings_without_the_switch_on_the_page_keeps_it() {
+		update_option( 'undergrowth_suggest_links', '0' );
+
+		$this->assertSame( '0', undergrowth_sanitize_suggest_links( null ) );
+
+		update_option( 'undergrowth_suggest_links', '1' );
+
+		$this->assertSame( '1', undergrowth_sanitize_suggest_links( null ) );
 	}
 
 	public function test_plugins_screen_links_to_settings_before_deactivate() {

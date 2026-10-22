@@ -8,23 +8,44 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
+add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
-add_action( 'admin_post_undergrowth_toggle', 'undergrowth_handle_toggle' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
 
 /**
- * Adds Posts > Link suggestions.
+ * Adds Posts > Undergrowth, with its Suggestions, Growth stages and Map tabs.
+ *
+ * The slug is the one the screen had as Link suggestions, so old addresses,
+ * including links in Discord messages already sent, still open it.
  */
 function undergrowth_add_suggestions_page(): void {
 	add_posts_page(
-		__( 'Link suggestions', 'undergrowth' ),
-		__( 'Link suggestions', 'undergrowth' ),
+		__( 'Undergrowth', 'undergrowth' ),
+		__( 'Undergrowth', 'undergrowth' ),
 		'edit_others_posts',
 		'undergrowth-links',
 		'undergrowth_render_suggestions_page'
+	);
+}
+
+/**
+ * Loads the screen's stylesheet, on that screen only.
+ *
+ * @param string $hook_suffix The current admin page.
+ */
+function undergrowth_enqueue_screen_style( string $hook_suffix ): void {
+	if ( 'posts_page_undergrowth-links' !== $hook_suffix ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'undergrowth-screen',
+		plugins_url( 'assets/screen.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
 	);
 }
 
@@ -124,22 +145,6 @@ function undergrowth_handle_accept(): void {
 }
 
 /**
- * Saves the "Suggest links between my posts" choice, then returns to the screen.
- */
-function undergrowth_handle_toggle(): void {
-	check_admin_referer( 'undergrowth_toggle' );
-
-	if ( ! current_user_can( 'edit_others_posts' ) ) {
-		wp_die( esc_html__( 'You cannot change this setting.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
-
-	update_option( 'undergrowth_suggest_links', empty( $_POST['undergrowth_suggest_links'] ) ? '0' : '1' );
-
-	wp_safe_redirect( undergrowth_suggestions_url( 'saved' ) );
-	exit;
-}
-
-/**
  * Pins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_pin(): void {
@@ -232,7 +237,7 @@ function undergrowth_render_suggestions_page(): void {
 	<div class="wrap">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-		<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Link suggestions screen', 'undergrowth' ); ?>">
+		<nav class="nav-tab-wrapper" aria-label="<?php esc_attr_e( 'Undergrowth screen', 'undergrowth' ); ?>">
 			<?php
 			foreach ( $tabs as $key => $label ) {
 				printf(
@@ -446,6 +451,19 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 }
 
 /**
+ * Returns a post's title, or "(no title)" as core's lists name an untitled
+ * post, so a link or a button's name is never empty.
+ *
+ * @param int $post_id Post ID.
+ * @return string Title, not escaped.
+ */
+function undergrowth_post_title( int $post_id ): string {
+	$title = get_the_title( $post_id );
+
+	return '' === $title ? __( '(no title)', 'undergrowth' ) : $title;
+}
+
+/**
  * Prints the script that moves focus to the result notice, so a keyboard or
  * screen reader user hears the result instead of landing at the top.
  *
@@ -463,7 +481,7 @@ function undergrowth_print_notice_focus_script(): void {
  * @return string Escaped HTML.
  */
 function undergrowth_post_link( int $post_id ): string {
-	$title = esc_html( get_the_title( $post_id ) );
+	$title = esc_html( undergrowth_post_title( $post_id ) );
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
 	return null === $link ? $title : sprintf( '<a href="%1$s">%2$s</a>', esc_url( $link ), $title );
@@ -506,7 +524,6 @@ function undergrowth_render_suggestions_tab(): void {
 	$identity = undergrowth_embed_identity();
 	$enabled  = undergrowth_suggestions_enabled();
 
-	// Without a provider the toggle would change nothing the owner can see.
 	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
 		echo '<p>' . wp_kses(
 			sprintf(
@@ -519,22 +536,23 @@ function undergrowth_render_suggestions_tab(): void {
 
 		return;
 	}
-	?>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-		<input type="hidden" name="action" value="undergrowth_toggle" />
-		<?php wp_nonce_field( 'undergrowth_toggle' ); ?>
-		<p>
-			<label>
-				<input type="checkbox" name="undergrowth_suggest_links" value="1" <?php checked( $enabled ); ?> />
-				<?php esc_html_e( 'Suggest links between my posts', 'undergrowth' ); ?>
-			</label>
-			<?php submit_button( __( 'Save', 'undergrowth' ), 'secondary', 'submit', false ); ?>
-		</p>
-	</form>
 
-	<?php
 	if ( ! $enabled ) {
-		echo '<p>' . esc_html__( 'Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on.', 'undergrowth' ) . '</p>';
+		echo '<p>' . esc_html__( 'Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on.', 'undergrowth' );
+
+		// The switch is on Settings, which only administrators can open.
+		if ( current_user_can( 'manage_options' ) ) {
+			echo ' ' . wp_kses(
+				sprintf(
+					/* translators: %1$s: address of the Undergrowth settings page. */
+					__( '<a href="%1$s">Turn them on in Settings</a>.', 'undergrowth' ),
+					esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
+				),
+				array( 'a' => array( 'href' => array() ) )
+			);
+		}
+
+		echo '</p>';
 	} else {
 		undergrowth_load_list_table();
 		$table = new Undergrowth_Links_List_Table();
@@ -562,7 +580,6 @@ function undergrowth_render_suggestions_notice(): void {
 
 	$messages = array(
 		'vetoed'                => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'saved'                 => __( 'Your choice is saved.', 'undergrowth' ),
 		'unchanged'             => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
 		'gone'                  => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
 		'accepted'              => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
@@ -600,7 +617,7 @@ function undergrowth_render_suggestions_notice(): void {
 
 	printf(
 		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
-		in_array( $notice, array( 'vetoed', 'saved', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
+		in_array( $notice, array( 'vetoed', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
 		esc_html( $messages[ $notice ] ),
 		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
 	);

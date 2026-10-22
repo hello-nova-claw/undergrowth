@@ -106,6 +106,7 @@ function undergrowth_activate(): void {
 	undergrowth_schedule_stage_cycle();
 	undergrowth_schedule_backfill_check();
 	undergrowth_start_backfill();
+	undergrowth_queue_first_run();
 }
 
 /**
@@ -144,6 +145,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_snoozed_prompts' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
+	delete_option( 'undergrowth_first_run' );
 	delete_option( 'undergrowth_schema_version' );
 	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );

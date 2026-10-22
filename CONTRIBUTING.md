@@ -114,7 +114,7 @@ npm run test:e2e
 
 ## Trying a pull request
 
-- Every pull request from this repository gets a **Preview in WordPress Playground** comment. The link opens the pull request's commit in the browser, logged in as admin, on Posts > Link suggestions with a few sample posts. It uses the e2e test provider, which counts fixture words instead of calling an API, so no key is needed and none is ever asked for.
+- Every pull request from this repository gets a **Preview in WordPress Playground** comment. The link opens the pull request's commit in the browser, logged in as admin, on Posts > Undergrowth with a few sample posts. It uses the e2e test provider, which counts fixture words instead of calling an API, so no key is needed and none is ever asked for.
 - `npm run playground` starts the same site locally from `tests/e2e/playground/preview.json`, without Docker, with your working copy mounted as the plugin. Open the address it prints. Changes to PHP files show on the next page load; the sample posts are created afresh each time it starts.
 
 ## Security

@@ -111,13 +111,13 @@ class Test_Meter extends WP_UnitTestCase {
 		return $current;
 	}
 
-	public function test_widget_is_titled_by_what_it_counts() {
+	public function test_widget_is_titled_undergrowth() {
 		global $wp_meta_boxes;
 
 		$this->stats( array( 1 ) );
 		$this->widgets();
 
-		$this->assertSame( 'Page views, last 30 days', $wp_meta_boxes['dashboard']['normal']['core']['undergrowth_meter']['title'] );
+		$this->assertSame( 'Undergrowth', $wp_meta_boxes['dashboard']['normal']['core']['undergrowth']['title'] );
 	}
 
 	public function test_line_is_one_thousand_views() {
@@ -184,7 +184,7 @@ class Test_Meter extends WP_UnitTestCase {
 	}
 
 	public function test_without_jetpack_stats_there_is_no_widget() {
-		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 		$this->assertSame( '', $this->render() );
 	}
 
@@ -346,14 +346,14 @@ class Test_Meter extends WP_UnitTestCase {
 	public function test_widget_shows_for_users_who_can_edit_others_posts() {
 		$this->stats( array( 1 ) );
 
-		$this->assertContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertContains( 'undergrowth', $this->widgets() );
 	}
 
 	public function test_widget_is_hidden_from_authors() {
 		$this->stats( array( 1 ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
 
-		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 		$this->assertSame( '', $this->render() );
 	}
 
@@ -361,7 +361,7 @@ class Test_Meter extends WP_UnitTestCase {
 		$this->stats( array( 412 ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
-		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 		$this->assertSame( '', $this->render() );
 		$this->assertSame( array(), WPCOM_Stats::$requests );
 	}

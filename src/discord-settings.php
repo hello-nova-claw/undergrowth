@@ -91,7 +91,7 @@ function undergrowth_register_discord_settings(): void {
 
 	add_settings_section(
 		'undergrowth_discord',
-		__( 'Discord', 'undergrowth' ),
+		__( 'Discord (optional)', 'undergrowth' ),
 		'undergrowth_render_discord_section',
 		'undergrowth'
 	);
@@ -210,27 +210,19 @@ function undergrowth_sanitize_discord_bot_token( $value ): string {
 }
 
 /**
- * Prints the introduction to the Discord section, which says what is sent.
+ * Prints the one-sentence introduction to the Discord section. What each
+ * message sends is in the Discord Help tab.
  */
 function undergrowth_render_discord_section(): void {
 	$error = get_option( 'undergrowth_last_discord_error' );
 	?>
-	<p class="description" id="undergrowth-discord-notice">
-		<?php esc_html_e( 'Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers.', 'undergrowth' ); ?>
-	</p>
+	<p id="undergrowth-discord-notice"><?php esc_html_e( 'Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in.', 'undergrowth' ); ?></p>
 
 	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
 		<div class="notice notice-warning inline">
 			<p>
 				<?php
-				echo esc_html(
-					sprintf(
-						/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-						__( 'The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ),
-						wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
-						number_format_i18n( (int) ( $error['status'] ?? 0 ) )
-					)
-				);
+				echo esc_html( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ) );
 				?>
 			</p>
 		</div>
@@ -239,34 +231,45 @@ function undergrowth_render_discord_section(): void {
 }
 
 /**
- * Prints one Discord field.
+ * Prints one Discord field, described by one line saying where to find its
+ * value, rather than by the whole section introduction.
  *
  * @param array $args Field arguments.
  *
  * @phpstan-param array{label_for: string, name: string} $args
  */
 function undergrowth_render_discord_field( array $args ): void {
-	$name  = $args['name'];
-	$value = undergrowth_discord_setting( $name );
+	$name        = $args['name'];
+	$value       = undergrowth_discord_setting( $name );
+	$description = 'undergrowth-discord-' . str_replace( '_', '-', $name ) . '-description';
+	$where       = array(
+		'application_id' => __( 'On your application’s General Information page in the Discord developer portal.', 'undergrowth' ),
+		'public_key'     => __( 'On the same General Information page, under the application ID.', 'undergrowth' ),
+		'bot_token'      => __( 'On your application’s Bot page: copy the token, or reset it only if you no longer have it.', 'undergrowth' ),
+		'channel_id'     => __( 'In Discord, with Developer Mode on, right-click the channel and choose Copy Channel ID.', 'undergrowth' ),
+	);
 
 	if ( 'bot_token' !== $name ) {
 		printf(
-			'<input type="text" class="regular-text code" id="%1$s" name="%1$s" value="%2$s" autocomplete="off" spellcheck="false" dir="ltr" aria-describedby="undergrowth-discord-notice" />',
+			'<input type="text" class="regular-text code" id="%1$s" name="%1$s" value="%2$s" autocomplete="off" spellcheck="false" dir="ltr" aria-describedby="%3$s" />',
 			esc_attr( $args['label_for'] ),
-			esc_attr( $value )
+			esc_attr( $value ),
+			esc_attr( $description )
 		);
+		printf( '<p class="description" id="%1$s">%2$s</p>', esc_attr( $description ), esc_html( $where[ $name ] ) );
 		return;
 	}
 	?>
-	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-discord-notice" />
+	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $description ); ?>" />
+	<p class="description" id="<?php echo esc_attr( $description ); ?>"><?php echo esc_html( $where[ $name ] ); ?></p>
 
 	<?php if ( '' !== $value ) : ?>
 		<p class="description">
 			<?php
 			echo esc_html(
 				sprintf(
-					/* translators: %s: last four characters of the saved bot token. */
-					__( 'A token ending in %s is saved. Leave the field blank to keep it.', 'undergrowth' ),
+					/* translators: %1$s: last four characters of the saved bot token. */
+					__( 'A token ending in %1$s is saved. Leave the field blank to keep it.', 'undergrowth' ),
 					substr( $value, -4 )
 				)
 			);

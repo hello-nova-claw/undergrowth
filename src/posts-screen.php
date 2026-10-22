@@ -117,6 +117,66 @@ function undergrowth_add_posts_list_hooks( string $post_type ): void {
 	add_filter( 'handle_bulk_actions-edit-' . $post_type, 'undergrowth_handle_compost_bulk', 10, 3 );
 	add_filter( 'views_edit-' . $post_type, 'undergrowth_composting_view' );
 	add_action( 'admin_notices', 'undergrowth_render_compost_notice' );
+	add_filter( 'manage_' . $post_type . '_posts_columns', 'undergrowth_add_stage_column' );
+	add_action( 'manage_' . $post_type . '_posts_custom_column', 'undergrowth_render_stage_column', 10, 2 );
+}
+
+/**
+ * Adds a Growth stage column after the title, so a post's stage sits with
+ * the post, beside Compost and the Composting view.
+ *
+ * @param array<string, string> $columns Column labels keyed by name.
+ * @return array<string, string> Columns.
+ */
+function undergrowth_add_stage_column( $columns ) {
+	$added = array();
+
+	foreach ( (array) $columns as $name => $label ) {
+		$added[ $name ] = $label;
+
+		if ( 'title' === $name ) {
+			$added['undergrowth_stage'] = __( 'Growth stage', 'undergrowth' );
+		}
+	}
+
+	if ( ! isset( $added['undergrowth_stage'] ) ) {
+		$added['undergrowth_stage'] = __( 'Growth stage', 'undergrowth' );
+	}
+
+	return $added;
+}
+
+/**
+ * Prints a post's stage in the Growth stage column, with the pin marker.
+ *
+ * A post outside the garden, such as a draft, has no stage yet, and gets
+ * core's dash for an empty cell.
+ *
+ * @param string $column  Column being printed.
+ * @param int    $post_id Post ID.
+ */
+function undergrowth_render_stage_column( $column, $post_id ): void {
+	if ( 'undergrowth_stage' !== $column ) {
+		return;
+	}
+
+	$post = get_post( (int) $post_id );
+
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
+		printf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>', esc_html__( 'No growth stage', 'undergrowth' ) );
+		return;
+	}
+
+	$stage = undergrowth_get_stage( $post->ID );
+
+	echo esc_html( undergrowth_stage_label( $stage ) );
+
+	if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $post->ID ) ) {
+		printf(
+			' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
+			esc_attr__( 'Pinned', 'undergrowth' )
+		);
+	}
 }
 
 /**
