@@ -215,6 +215,19 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_sentence_stored_across_a_closing_quote_is_reported_as_edited() {
+		list( $oca, $yacon ) = $this->pair( '<p>He said, “I keep yacon.” Oca grows here.</p>' );
+		$before              = get_post( $oca )->post_content;
+		$this->set_sentence( $oca, $yacon, 'He said, “I keep yacon.” Oca grows here.' );
+
+		$this->assertSame( 'edited', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+	}
+
 	public function test_sentence_outside_a_paragraph_fails_safely() {
 		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul><p>Yacon grows here.</p>' );
 		$before              = get_post( $oca )->post_content;
