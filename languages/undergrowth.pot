@@ -585,6 +585,22 @@ msgstr ""
 msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
+#: src/discord-settings.php
+msgid "On your application’s General Information page in the Discord developer portal."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "On the same General Information page, under the application ID."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "On your application’s Bot page: reset the token, then copy it."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "In Discord, with Developer Mode on, right-click the channel and choose Copy Channel ID."
+msgstr ""
+
 #. translators: %s: last four characters of the saved bot token.
 #: src/discord-settings.php
 #, php-format
