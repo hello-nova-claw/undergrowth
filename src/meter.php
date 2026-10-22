@@ -251,8 +251,8 @@ function undergrowth_add_meter_help(): void {
 
 	$paragraphs = array(
 		__( 'The page views meter counts views of your site in the last 30 days, from Jetpack Stats, once a day. It appears on the Dashboard only when Jetpack is connected to WordPress.com with Stats turned on. Undergrowth asks Jetpack and nothing else.', 'undergrowth' ),
-		/* translators: %s: the switch line, a formatted number of views. */
-		sprintf( __( 'Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %s views in 30 days. Passing it alone never turns a suggestion on.', 'undergrowth' ), $line ),
+		/* translators: %1$s: the switch line, a formatted number of views. */
+		sprintf( __( 'Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %1$s views in 30 days. Passing it alone never turns a suggestion on.', 'undergrowth' ), $line ),
 		__( 'The second rule is checked before each suggestion from reader data is shown: the pages it draws on need enough visits for the suggestion to hold up.', 'undergrowth' ),
 		__( 'Reader features are not part of this version yet, so neither rule changes anything for now.', 'undergrowth' ),
 	);

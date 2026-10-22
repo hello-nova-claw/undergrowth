@@ -649,10 +649,10 @@ msgstr ""
 msgid "The page views meter counts views of your site in the last 30 days, from Jetpack Stats, once a day. It appears on the Dashboard only when Jetpack is connected to WordPress.com with Stats turned on. Undergrowth asks Jetpack and nothing else."
 msgstr ""
 
-#. translators: %s: the switch line, a formatted number of views.
+#. translators: %1$s: the switch line, a formatted number of views.
 #: src/meter.php
 #, php-format
-msgid "Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %s views in 30 days. Passing it alone never turns a suggestion on."
+msgid "Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %1$s views in 30 days. Passing it alone never turns a suggestion on."
 msgstr ""
 
 #: src/meter.php
