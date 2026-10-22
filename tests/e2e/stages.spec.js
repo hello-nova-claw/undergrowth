@@ -127,8 +127,9 @@ test.describe( 'Growth stages tab', () => {
 			await expect( select ).toBeFocused();
 
 			await page.keyboard.press( 'Tab' );
+			// Pin is a row action; core shows it while focus is in the row.
 			const pin = page.locator(
-				'form:has(input[value="undergrowth_pin"]) button'
+				`button[form="undergrowth-pin-${ oca.id }"]`
 			);
 			await expect( pin ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
@@ -140,7 +141,7 @@ test.describe( 'Growth stages tab', () => {
 			await expectNoA11yViolations( page, '.wrap' );
 
 			const unpin = page.locator(
-				'form:has(input[value="undergrowth_unpin"]) button'
+				`button[form="undergrowth-unpin-${ oca.id }"]`
 			);
 			await unpin.focus();
 			await expect( unpin ).toBeFocused();

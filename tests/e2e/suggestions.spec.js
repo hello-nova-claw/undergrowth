@@ -89,9 +89,11 @@ test.describe( 'Link suggestions screen', () => {
 					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
 				} );
 			const accept = row.locator( 'button[form^="undergrowth-accept-"]' );
+			const marked = await row.locator( 'q mark' ).textContent();
 
 			await accept.focus();
 			await expect( accept ).toBeFocused();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
 			await page.keyboard.press( 'Enter' );
 
 			const notice = page.locator( '#undergrowth-notice' );
@@ -107,6 +109,37 @@ test.describe( 'Link suggestions screen', () => {
 			} );
 			expect( post.content.raw ).toContain( '<a href=' );
 			expect( post.content.raw ).toContain( '>yacon</a>' );
+			// The word marked before accepting is the word that was linked.
+			expect( post.content.raw ).toContain( `>${ marked }</a>` );
+		} );
+
+		test( 'at phone width, each row leads with its sentence and target', async ( {
+			page,
+		} ) => {
+			await page.setViewportSize( { width: 390, height: 800 } );
+
+			const row = page
+				.locator( 'table.undergrowth-links tbody tr' )
+				.first();
+
+			await expect( row.locator( 'q mark' ) ).toBeVisible();
+			await expect(
+				row.locator( '.column-sentence a[href*="post.php"]' )
+			).toBeVisible();
+
+			// Tabbing into the row shows Accept and Veto, as on core's
+			// Comments screen; a touch device always shows them.
+			await row.locator( '.column-sentence a' ).first().focus();
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				row.locator( 'button[form^="undergrowth-accept-"]' )
+			).toBeFocused();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				row.locator( 'button[form^="undergrowth-veto-"]' )
+			).toBeFocused();
+			await expectNoA11yViolations( page, '.wrap' );
 		} );
 
 		test( 'can be switched off and on', async ( { page } ) => {
