@@ -287,7 +287,7 @@ function undergrowth_render_discord_field( array $args ): void {
  */
 function undergrowth_render_discord_endpoint(): void {
 	?>
-	<p><code dir="ltr"><?php echo esc_html( undergrowth_discord_endpoint_url() ); ?></code></p>
+	<p><code id="undergrowth-discord-endpoint" dir="ltr"><?php echo esc_html( undergrowth_discord_endpoint_url() ); ?></code></p>
 	<p class="description">
 		<?php esc_html_e( 'Paste this into Interactions Endpoint URL on your application’s General Information page in the Discord developer portal. Discord checks the address when you save it there, so save the public key here first. Your site must be reachable from the internet.', 'undergrowth' ); ?>
 	</p>

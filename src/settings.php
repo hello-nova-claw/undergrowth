@@ -293,7 +293,7 @@ function undergrowth_render_settings_page(): void {
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Per-post files', 'undergrowth' ); ?></th>
 					<td>
-						<p><code dir="ltr"><?php echo esc_html( str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( undergrowth_memory_root() ) ) . '/posts/' ); ?></code></p>
+						<p><code id="undergrowth-memory-folder" dir="ltr"><?php echo esc_html( str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( undergrowth_memory_root() ) ) . '/posts/' ); ?></code></p>
 						<p class="description">
 							<?php esc_html_e( 'Each post’s plain-text record is kept in this folder. Its name ends in random characters, so visitors cannot guess its address.', 'undergrowth' ); ?>
 						</p>
