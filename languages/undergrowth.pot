@@ -750,6 +750,12 @@ msgstr ""
 msgid "Get a key from OpenAI"
 msgstr ""
 
+#. translators: 1: file name, wp-config.php, 2: name of the constant.
+#: src/settings.php
+#, php-format
+msgid "This key is set in %1$s as %2$s, so it is used instead of one saved here. Change or remove it in that file."
+msgstr ""
+
 #. translators: %s: last four characters of the saved API key.
 #: src/settings.php
 #, php-format
