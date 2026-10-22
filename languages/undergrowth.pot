@@ -882,10 +882,6 @@ msgid "This post is not composting."
 msgstr ""
 
 #: build/blocks/growth-stage/index.js
-msgid "Growth stage"
-msgstr ""
-
-#: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Growth stage"
 msgstr ""
