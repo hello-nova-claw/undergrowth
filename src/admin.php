@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
+add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_toggle', 'undergrowth_handle_toggle' );
@@ -25,6 +26,24 @@ function undergrowth_add_suggestions_page(): void {
 		'edit_others_posts',
 		'undergrowth-links',
 		'undergrowth_render_suggestions_page'
+	);
+}
+
+/**
+ * Loads the screen's stylesheet, on that screen only.
+ *
+ * @param string $hook_suffix The current admin page.
+ */
+function undergrowth_enqueue_screen_style( string $hook_suffix ): void {
+	if ( 'posts_page_undergrowth-links' !== $hook_suffix ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'undergrowth-screen',
+		plugins_url( 'assets/screen.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
 	);
 }
 
