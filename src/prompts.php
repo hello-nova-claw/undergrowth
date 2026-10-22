@@ -29,6 +29,7 @@ const UNDERGROWTH_QUESTION_MARKS = '?？؟';
 const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed' );
 
 add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
+add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
 add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
@@ -42,18 +43,28 @@ add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 
 
 /**
  * Schedules the monthly prompt cycle when it is not scheduled yet.
- *
- * A key in wp-config.php is never saved, so nothing else asks for the first
- * prompt; it is asked for when the cycle starts instead.
  */
 function undergrowth_schedule_prompt_cycle(): void {
 	if ( false === wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
 		wp_schedule_event( time() + MONTH_IN_SECONDS, 'undergrowth_monthly', 'undergrowth_prompt_cycle' );
-
-		if ( '' !== undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) ) {
-			undergrowth_queue_first_prompt();
-		}
 	}
+}
+
+/**
+ * Writes a first prompt soon after an Anthropic key appears in wp-config.php.
+ *
+ * Such a key is never saved, so the option hooks that ask for the first
+ * prompt never fire. This asks once, and remembers that it did: a prompt
+ * that is dismissed or snoozed leaves nothing queued, and asking again on
+ * every request would skip the monthly wait.
+ */
+function undergrowth_queue_config_first_prompt(): void {
+	if ( '' === undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) || false !== get_option( 'undergrowth_config_prompt_queued' ) ) {
+		return;
+	}
+
+	update_option( 'undergrowth_config_prompt_queued', 1 );
+	undergrowth_queue_first_prompt();
 }
 
 /**
