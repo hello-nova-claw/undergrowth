@@ -378,6 +378,41 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<th scope="row">Posts read</th>#', $this->render() );
 	}
 
+	public function test_the_suggestions_switch_is_in_the_link_suggestions_section() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<input type="checkbox" id="undergrowth_suggest_links" name="undergrowth_suggest_links" value="1" checked=\'checked\' />.*<h2[^>]*>Questions on your Dashboard</h2>#s', $html );
+		$this->assertStringContainsString( 'Suggest links between my posts', $html );
+	}
+
+	public function test_the_switch_is_left_out_until_there_is_a_provider() {
+		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+	}
+
+	public function test_the_switch_setting_saves_on_or_off() {
+		undergrowth_register_settings();
+
+		$setting = get_registered_settings()['undergrowth_suggest_links'];
+		$this->assertFalse( $setting['show_in_rest'] );
+
+		$_POST['undergrowth_suggest_links_shown'] = '1';
+		$this->assertSame( '0', undergrowth_sanitize_suggest_links( null ) );
+		$this->assertSame( '1', undergrowth_sanitize_suggest_links( '1' ) );
+		unset( $_POST['undergrowth_suggest_links_shown'] );
+	}
+
+	public function test_saving_settings_without_the_switch_on_the_page_keeps_it() {
+		update_option( 'undergrowth_suggest_links', '0' );
+
+		$this->assertSame( '0', undergrowth_sanitize_suggest_links( null ) );
+
+		update_option( 'undergrowth_suggest_links', '1' );
+
+		$this->assertSame( '1', undergrowth_sanitize_suggest_links( null ) );
+	}
+
 	public function test_plugins_screen_links_to_settings_before_deactivate() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 

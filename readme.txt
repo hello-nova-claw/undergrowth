@@ -18,7 +18,7 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 
 What it does in this version:
 
-* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links one word of that sentence to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Link suggestions.
+* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links one word of that sentence to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Undergrowth.
 * **Growth stages.** Each post has a stage, Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never change when you save a post, and the monthly cycle never lowers one. You can pin a stage to keep it as it is.
 * **Composting.** Move a post to compost when you want it to rest. It stays published and keeps its links, but leaves the active garden: no new suggestions, no stage changes, no timer. When a composting post sits close to what you are writing now, Undergrowth tells you once. Return it to the garden whenever you like.
 * **One question at a time.** With an Anthropic key, Claude writes you an occasional question on your Dashboard, drawn from a gap between your own posts, a reader's question in an approved comment, or a post you composted. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. Dismiss it for good or ask to see it next month. There are no streaks and no reminders.
@@ -40,7 +40,7 @@ Readers come into it later. A future version reads where readers go and what the
 4. Optionally, paste an Anthropic API key on the same page to get the occasional question on your Dashboard.
 5. Optionally, set up Discord. See Setting up Discord below.
 
-Suggestions appear on Posts > Link suggestions a few moments after a post is read. Clusters, growth stages and questions follow on the monthly cycle.
+Suggestions appear on Posts > Undergrowth a few moments after a post is read. Clusters, growth stages and questions follow on the monthly cycle.
 
 = Requirements =
 
@@ -136,7 +136,7 @@ On Apache, no: the folder holds an `.htaccess` file that refuses web access. ngi
 
 = Setting up Discord =
 
-Discord is optional. Posts > Link suggestions does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
+Discord is optional. Posts > Undergrowth does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
 
 1. In the Discord developer portal, create a new application just for Undergrowth. Do not reuse an existing bot: once an application has an Interactions Endpoint URL, Discord sends its interactions to that address instead of over the gateway, which can stop an existing bot from working.
 2. Copy the Application ID and the Public Key from its General Information page into Settings > Undergrowth.

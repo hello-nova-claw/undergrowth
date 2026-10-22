@@ -140,7 +140,7 @@ function undergrowth_first_key_saved( $old_value, $value ): void {
 			sprintf(
 				'<a href="%1$s">%2$s</a>',
 				esc_url( admin_url( 'edit.php?page=undergrowth-links' ) ),
-				esc_html__( 'Posts > Link suggestions', 'undergrowth' )
+				esc_html__( 'Posts > Undergrowth', 'undergrowth' )
 			)
 		),
 		'success'
