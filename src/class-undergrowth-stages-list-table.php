@@ -186,8 +186,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 					'unpin' => $this->button(
 						$post_id,
 						'unpin',
-						/* translators: %s: post title. */
-						sprintf( __( 'Unpin the stage of %s', 'undergrowth' ), $title ),
+						/* translators: %1$s: post title. */
+						sprintf( __( 'Unpin the stage of %1$s', 'undergrowth' ), $title ),
 						__( 'Unpin', 'undergrowth' )
 					),
 				),
@@ -205,8 +205,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		$select = sprintf(
 			'<label for="undergrowth-stage-%1$d" class="screen-reader-text">%2$s</label><select id="undergrowth-stage-%1$d" name="stage" form="%3$s">%4$s</select> ',
 			$post_id,
-			/* translators: %s: post title. */
-			esc_html( sprintf( __( 'Stage to pin for %s', 'undergrowth' ), $title ) ),
+			/* translators: %1$s: post title. */
+			esc_html( sprintf( __( 'Stage to pin for %1$s', 'undergrowth' ), $title ) ),
 			esc_attr( $this->form_id( $post_id, 'pin' ) ),
 			$options
 		);
@@ -216,8 +216,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 				'pin' => $select . $this->button(
 					$post_id,
 					'pin',
-					/* translators: %s: post title. */
-					sprintf( __( 'Pin the stage of %s', 'undergrowth' ), $title ),
+					/* translators: %1$s: post title. */
+					sprintf( __( 'Pin the stage of %1$s', 'undergrowth' ), $title ),
 					__( 'Pin', 'undergrowth' )
 				),
 			),

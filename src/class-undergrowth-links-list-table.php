@@ -215,7 +215,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Links a post's title to its editor.
+	 * Links a post's title to its editor, when the user can edit it.
 	 *
 	 * Inside a line of text the title is a core row-title, which sets it
 	 * apart from the words around it by weight, since list tables show
@@ -226,11 +226,20 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Link HTML.
 	 */
 	private function edit_link( int $post_id, string $link_class = '' ): string {
+		$title = esc_html( undergrowth_post_title( $post_id ) );
+		$link  = get_edit_post_link( $post_id, 'raw' );
+
+		// A post the user cannot edit is named, not linked. In a line of
+		// text it keeps the weight a row-title would have given it.
+		if ( null === $link ) {
+			return '' === $link_class ? $title : '<strong>' . $title . '</strong>';
+		}
+
 		return sprintf(
 			'<a%1$s href="%2$s">%3$s</a>',
 			'' === $link_class ? '' : ' class="' . esc_attr( $link_class ) . '"',
-			esc_url( (string) get_edit_post_link( $post_id, 'raw' ) ),
-			esc_html( undergrowth_post_title( $post_id ) )
+			esc_url( $link ),
+			$title
 		);
 	}
 
