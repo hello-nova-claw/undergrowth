@@ -45,9 +45,9 @@ test.describe( 'Prompt on the Dashboard', () => {
 		await admin.visitAdminPage( 'index.php' );
 
 		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
-		await expect( page.locator( `${ WIDGET } strong` ) ).toContainText(
-			'?'
-		);
+		await expect(
+			page.locator( `${ WIDGET } .undergrowth-prompt strong` )
+		).toContainText( '?' );
 		await expectNoA11yViolations( page, WIDGET );
 	} );
 
