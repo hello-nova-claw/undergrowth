@@ -416,26 +416,26 @@ msgstr ""
 msgid "%1$s &mdash; %2$s"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Unpin the stage of %s"
+msgid "Unpin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 msgid "Unpin"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Stage to pin for %s"
+msgid "Stage to pin for %1$s"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Pin the stage of %s"
+msgid "Pin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
