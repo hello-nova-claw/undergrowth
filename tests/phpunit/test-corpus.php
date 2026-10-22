@@ -319,8 +319,10 @@ class Test_Corpus extends WP_UnitTestCase {
 		);
 
 		$this->assertCount( 33, $rows );
-		// Recorded from the corpus that kept every post's word counts.
-		$this->assertSame( 'bf0d13fc64d8b50e98bb6b02751ebeaf', md5( (string) wp_json_encode( $rows ) ) );
+		// Recorded from the corpus that kept every post's word counts, and
+		// recorded again when anchor words began to follow what the target
+		// is about (#172).
+		$this->assertSame( '085b48c6dedf8b9876ff4c410984f7d5', md5( (string) wp_json_encode( $rows ) ) );
 	}
 
 	public function test_refresh_reads_only_the_target_posts_it_needs() {
