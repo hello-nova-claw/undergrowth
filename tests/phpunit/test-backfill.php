@@ -31,12 +31,20 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	private $model = 'test-model-v1';
 
+	/**
+	 * Seconds the test provider takes for each text.
+	 *
+	 * @var float
+	 */
+	private $delay = 0.0;
+
 	public function set_up() {
 		parent::set_up();
 
 		$this->embedded = array();
 		$this->failing  = array();
 		$this->model    = 'test-model-v1';
+		$this->delay    = 0.0;
 
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_backfill' );
@@ -59,6 +67,8 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	public function provider( $vector, $text ) {
 		$this->embedded[] = $text;
+
+		usleep( (int) ( $this->delay * 1000000 ) );
 
 		return in_array( $text, $this->failing, true ) ? array() : array( 0.1, 0.2, 0.3 );
 	}
@@ -138,6 +148,20 @@ class Test_Backfill extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Sets the time budget through its filter.
+	 *
+	 * @param float $seconds Seconds per run.
+	 */
+	private function time_budget( float $seconds ): void {
+		add_filter(
+			'undergrowth_backfill_time_budget',
+			static function () use ( $seconds ) {
+				return $seconds;
+			}
+		);
+	}
+
 	public function test_backfill_embeds_published_posts_without_a_vector() {
 		$ids = $this->archive( 3 );
 
@@ -179,6 +203,59 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->batch_size( 0 );
 
 		$this->assertSame( 1, undergrowth_backfill_batch_size() );
+	}
+
+	public function test_time_budget_defaults_to_fifteen_seconds() {
+		$this->assertSame( 15.0, undergrowth_backfill_time_budget() );
+	}
+
+	public function test_time_budget_below_zero_falls_back_to_zero() {
+		$this->time_budget( -5 );
+
+		$this->assertSame( 0.0, undergrowth_backfill_time_budget() );
+	}
+
+	public function test_zero_budget_embeds_one_post_per_run_and_schedules_the_next() {
+		$this->time_budget( 0 );
+		$ids = $this->archive( 3 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $this->embedded );
+		$this->assertNotNull( undergrowth_get_vector( $ids[0] ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_run_never_starts_a_post_once_its_budget_is_spent() {
+		$this->time_budget( 0.1 );
+		$this->delay = 0.2;
+		$this->archive( 3 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $this->embedded );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_run_within_its_budget_embeds_the_whole_batch() {
+		$this->batch_size( 3 );
+		$this->archive( 5 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 3, $this->embedded );
+	}
+
+	public function test_pass_cut_short_by_the_budget_finishes_on_later_runs() {
+		$this->time_budget( 0 );
+		$ids = $this->archive( 3 );
+
+		undergrowth_start_backfill();
+
+		$this->assertSame( array( 1, 1, 1 ), $this->run_cron() );
+		$this->assertSame( 3, undergrowth_index_counts()['indexed'] );
+		$this->assertNotNull( undergrowth_get_vector( end( $ids ) ) );
+		$this->assertFalse( get_option( 'undergrowth_backfill' ) );
 	}
 
 	public function test_two_hundred_old_posts_reach_openai_over_cron_runs() {
