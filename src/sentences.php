@@ -477,7 +477,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 		}
 	);
 
-	$terms      = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
+	$terms = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
 	$taken = array_flip( $taken );
 	$best  = array(
 		'free'  => null,
