@@ -12,7 +12,7 @@ const { expectNoA11yViolations } = require( './a11y' );
  * @param {RegExp}                             name   Titles the name holds.
  * @return {import('@playwright/test').Locator} The button.
  */
-function actionButton( row, action, name = /Oca|Yacon/ ) {
+function actionButton( row, action, name = /Oca[\s\S]*Yacon|Yacon[\s\S]*Oca/ ) {
 	return row
 		.getByRole( 'button', { name } )
 		.and( row.locator( `[form^="undergrowth-${ action }-"]` ) );
