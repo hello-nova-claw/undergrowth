@@ -3,7 +3,7 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids and values, not text, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
-const WIDGET = '#undergrowth_prompt';
+const WIDGET = '#undergrowth';
 
 test.describe( 'Prompt on the Dashboard', () => {
 	test.beforeEach( async ( { requestUtils, context, baseURL } ) => {

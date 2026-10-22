@@ -3,7 +3,7 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids and digits, not words, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
-const WIDGET = '#undergrowth_meter';
+const WIDGET = '#undergrowth';
 const HELP_TAB = '#tab-link-undergrowth-meter';
 const HELP_PANEL = '#tab-panel-undergrowth-meter';
 
@@ -112,7 +112,8 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		await useFixture( context, baseURL, 'meter-no-answer' );
 		await admin.visitAdminPage( 'index.php' );
 
-		await expect( page.locator( `${ WIDGET } .inside` ) ).not.toHaveText(
+		// The heading names 30 days; the answer itself holds no number.
+		await expect( page.locator( `${ WIDGET } .inside p` ) ).not.toHaveText(
 			/\d/
 		);
 		await expectNoA11yViolations( page, WIDGET );
