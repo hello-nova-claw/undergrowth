@@ -70,7 +70,8 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Is anything suggested that you would never link?
 
 **Accept and Veto**
-- Accept a suggestion. Undergrowth picks the word itself. Open the post: one word of that sentence should now be a plain link, and nothing else should have changed. A revision should be saved too. Does it pick a sensible word?
+- Each suggestion leads with your sentence, with the word Undergrowth would link highlighted, and "Link to" the other post under it, then Accept | Veto. Try it on a phone too: all of that should show without opening the row.
+- Accept a suggestion. Undergrowth picks the word itself. Open the post: the highlighted word, and nothing else, should now be a plain link. A revision should be saved too. Does it pick a sensible word?
 - Veto a suggestion. It should go away and not come back, even after you edit either post.
 
 **Growth stages** (Growth stages tab)
@@ -82,7 +83,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Use **Return to garden**. The post's stage should be measured again from scratch, not restored and not reset.
 - If a composting post sits close to a new cluster, the Growth stages tab may show one notice about it. Check its wording.
 
-**The Dashboard question** (Dashboard, "A question for you")
+**The Dashboard question** (Dashboard, the Undergrowth widget, "A question for you")
 - Is it one question, addressed to you, in your site's language?
 - Does it quote only you? Does it avoid suggesting a title, an outline or a topic?
 - Try **Ask me next month** and **Dismiss for good**. A new question only comes at the next cycle. To get one sooner, run `undergrowth_prompt_cycle` the same way as in step 5.
@@ -90,8 +91,8 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 **The growth stage block**
 - In the editor, add the **Growth stage** block to a post or to a Query Loop. Check how it looks on the front end with your theme. A composting post should show nothing.
 
-**The threshold meter** (Dashboard, "Page views, last 30 days")
-- Without Jetpack, or with Stats off or not connected, there should be no meter widget at all. Settings > Undergrowth > Help > Page views meter says what it needs.
+**The threshold meter** (Dashboard, the Undergrowth widget, "Page views, last 30 days")
+- Without Jetpack, or with Stats off or not connected, the Undergrowth widget should have no meter part, and no widget at all when there is no question either. Settings > Undergrowth > Help > Page views meter says what it needs.
 - With Jetpack connected and Stats on, it shows one number, your page views in the last 30 days against 1,000, and one line more. Help > Page views meter on the Dashboard explains both rules of the switch line. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
 - Past 1,000, it should say plainly that the line is passed and that nothing changes yet.
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.

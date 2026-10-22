@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
+add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
@@ -27,6 +28,24 @@ function undergrowth_add_suggestions_page(): void {
 		'edit_others_posts',
 		'undergrowth-links',
 		'undergrowth_render_suggestions_page'
+	);
+}
+
+/**
+ * Loads the screen's stylesheet, on that screen only.
+ *
+ * @param string $hook_suffix The current admin page.
+ */
+function undergrowth_enqueue_screen_style( string $hook_suffix ): void {
+	if ( 'posts_page_undergrowth-links' !== $hook_suffix ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'undergrowth-screen',
+		plugins_url( 'assets/screen.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
 	);
 }
 
@@ -432,6 +451,19 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 }
 
 /**
+ * Returns a post's title, or "(no title)" as core's lists name an untitled
+ * post, so a link or a button's name is never empty.
+ *
+ * @param int $post_id Post ID.
+ * @return string Title, not escaped.
+ */
+function undergrowth_post_title( int $post_id ): string {
+	$title = get_the_title( $post_id );
+
+	return '' === $title ? __( '(no title)', 'undergrowth' ) : $title;
+}
+
+/**
  * Prints the script that moves focus to the result notice, so a keyboard or
  * screen reader user hears the result instead of landing at the top.
  *
@@ -449,7 +481,7 @@ function undergrowth_print_notice_focus_script(): void {
  * @return string Escaped HTML.
  */
 function undergrowth_post_link( int $post_id ): string {
-	$title = esc_html( get_the_title( $post_id ) );
+	$title = esc_html( undergrowth_post_title( $post_id ) );
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
 	return null === $link ? $title : sprintf( '<a href="%1$s">%2$s</a>', esc_url( $link ), $title );

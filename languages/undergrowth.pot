@@ -17,6 +17,7 @@ msgstr ""
 #: undergrowth.php
 #: src/abilities.php
 #: src/admin.php
+#: src/dashboard.php
 #: src/discord-clicks.php
 #: src/settings.php
 msgid "Undergrowth"
@@ -263,6 +264,10 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
+#: src/admin.php
+msgid "(no title)"
+msgstr ""
+
 #. translators: %1$s: address of the Undergrowth settings page.
 #: src/admin.php
 #, php-format
@@ -351,20 +356,17 @@ msgid "Growth stage: %s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+msgid "Suggestion"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
 msgid "In this post"
 msgstr ""
 
+#. translators: %1$s: title of the post the link would point to, linked to its editor.
 #: src/class-undergrowth-links-list-table.php
-msgid "At this sentence"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-msgid "Link to"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-#: src/class-undergrowth-stages-list-table.php
-msgid "Actions"
+#, php-format
+msgid "Link to %1$s"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
@@ -394,34 +396,36 @@ msgid "Post"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
-msgid "Stage"
-msgstr ""
-
-#: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
 msgid "Pinned"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: 1: post title, 2: its growth stage.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Unpin the stage of %s"
+msgid "%1$s &mdash; %2$s"
+msgstr ""
+
+#. translators: %1$s: post title.
+#: src/class-undergrowth-stages-list-table.php
+#, php-format
+msgid "Unpin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 msgid "Unpin"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Stage to pin for %s"
+msgid "Stage to pin for %1$s"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Pin the stage of %s"
+msgid "Pin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
@@ -430,6 +434,10 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "A question for you"
+msgstr ""
+
+#: src/dashboard.php
+msgid "Page views, last 30 days"
 msgstr ""
 
 #. translators: %1$s: title of the post, linked to its editor.
@@ -627,10 +635,6 @@ msgstr ""
 
 #: src/memory.php
 msgid "The stage was imported, but some of its history could not be saved."
-msgstr ""
-
-#: src/meter.php
-msgid "Page views, last 30 days"
 msgstr ""
 
 #: src/meter.php

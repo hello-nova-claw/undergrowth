@@ -105,6 +105,119 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-pinned', $html );
 	}
 
+	public function test_the_stage_sits_beside_the_title_as_a_post_state() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		undergrowth_set_stage( $oca, 'sprout' );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+">Oca</a> &mdash; <span class="post-state">Sprout</span></strong>#', $html );
+		$this->assertStringNotContainsString( 'column-stage', $html );
+		$this->assertStringNotContainsString( 'column-actions', $html );
+	}
+
+	public function test_pin_is_a_row_action_with_its_stage_choice() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'pin\'><label for="undergrowth-stage-' . $oca . '" class="screen-reader-text">Stage to pin for Oca</label><select id="undergrowth-stage-' . $oca . '" name="stage" form="undergrowth-pin-' . $oca . '">.*?</select> <button type="submit" form="undergrowth-pin-' . $oca . '" class="button-link" aria-label="Pin the stage of Oca">Pin</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<form method="post" action="[^"]+" id="undergrowth-pin-' . $oca . '">#', $html );
+	}
+
+	public function test_an_untitled_post_is_named_as_core_names_it() {
+		self::factory()->post->create(
+			array(
+				'post_title'  => '',
+				'post_status' => 'publish',
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<a class="row-title" href="[^"]+">\(no title\)</a>#', $html );
+		$this->assertStringContainsString( 'aria-label="Pin the stage of (no title)"', $html );
+	}
+
+	public function test_translators_can_put_the_stage_before_the_title() {
+		self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		add_filter(
+			'gettext_undergrowth',
+			static function ( $translation, $text ) {
+				return '%1$s &mdash; %2$s' === $text ? '%2$s: %1$s' : $translation;
+			},
+			10,
+			2
+		);
+
+		$this->assertMatchesRegularExpression( '#<strong><span class="post-state">Seedling</span>: <a class="row-title" href="[^"]+">Oca</a></strong>#', $this->render() );
+	}
+
+	public function test_unpin_is_a_row_action() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		undergrowth_pin_stage( $oca, 'evergreen' );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'unpin\'><button type="submit" form="undergrowth-unpin-' . $oca . '" class="button-link" aria-label="Unpin the stage of Oca">Unpin</button></span></div>#', $html );
+		$this->assertStringNotContainsString( 'class="button"', $html );
+	}
+
+	public function test_a_post_the_user_cannot_edit_has_a_plain_title_and_no_row_actions() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap, $user_id, $args ) use ( $oca ) {
+				return 'edit_post' === $cap && isset( $args[0] ) && $oca === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			4
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<strong>Oca &mdash; <span class="post-state">Seedling</span></strong>', $html );
+		$this->assertStringNotContainsString( 'form="undergrowth-pin-' . $oca . '"', $html );
+		$this->assertStringNotContainsString( 'form="undergrowth-unpin-' . $oca . '"', $html );
+	}
+
+	public function test_screen_stylesheet_loads_on_the_suggestions_screen_only() {
+		undergrowth_enqueue_screen_style( 'index.php' );
+		$this->assertFalse( wp_style_is( 'undergrowth-screen', 'enqueued' ) );
+
+		undergrowth_enqueue_screen_style( 'posts_page_undergrowth-links' );
+		$this->assertTrue( wp_style_is( 'undergrowth-screen', 'enqueued' ) );
+		$this->assertStringStartsWith( plugins_url( 'assets/', UNDERGROWTH_FILE ), wp_styles()->registered['undergrowth-screen']->src );
+
+		wp_dequeue_style( 'undergrowth-screen' );
+		wp_deregister_style( 'undergrowth-screen' );
+	}
+
 	public function test_stages_tab_explains_when_there_are_no_posts() {
 		$html = $this->render();
 

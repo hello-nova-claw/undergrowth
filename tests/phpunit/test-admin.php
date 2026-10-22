@@ -286,16 +286,127 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'Notes about Oca.', $html );
+		$this->assertStringContainsString( 'Notes about Oca.', wp_strip_all_tags( $html ) );
 		$this->assertStringContainsString( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), $html );
 		$this->assertMatchesRegularExpression( '/<button[^>]*aria-label="[^"]*Oca[^"]*Yacon[^"]*"/', $html );
+	}
+
+	/**
+	 * Plants two posts whose proposals each quote a sentence with a word
+	 * from the other post.
+	 *
+	 * @return int[] Oca's ID, then Yacon's.
+	 */
+	private function sharing_pair(): array {
+		return array(
+			$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows here. I keep yacon nearby.</p>' ) ),
+			$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon syrup is sweet. Yacon roots store well beside oca.</p>' ) ),
+		);
+	}
+
+	public function test_the_quote_is_the_primary_column_as_on_the_comments_screen() {
+		$this->sharing_pair();
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/<th scope="col" id=.sentence. class=.manage-column column-sentence column-primary./', $html );
+		$this->assertMatchesRegularExpression( '/<t[hd] class=.sentence column-sentence has-row-actions column-primary. data-colname="[^"]+"[^>]*><q dir="auto">/', $html );
+		$this->assertStringNotContainsString( 'column-actions', $html );
+	}
+
+	public function test_link_to_sits_under_the_quote_and_both_titles_open_the_editor() {
+		list( $oca, $yacon ) = $this->sharing_pair();
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '">Yacon</a></p>#', $html );
+		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '">Oca</a>#', $html );
+		$this->assertStringNotContainsString( 'href="' . esc_url( (string) get_permalink( $yacon ) ) . '"', $html );
+	}
+
+	public function test_accept_and_veto_are_row_actions_with_one_primary_action_per_screen() {
+		$this->sharing_pair();
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'accept\'><button type="submit" form="undergrowth-accept-\d+-\d+" class="button-link" aria-label="Accept the link from Oca to Yacon">Accept</button> \| </span><span class=\'veto\'><button type="submit" form="undergrowth-veto-\d+-\d+" class="button-link" aria-label="Veto the link from Oca to Yacon">Veto</button></span></div>#', $html );
+		$this->assertStringNotContainsString( 'button-primary', $html );
+	}
+
+	public function test_an_untitled_post_is_named_as_core_names_it() {
+		list( , $yacon ) = $this->sharing_pair();
+		global $wpdb;
+
+		// The title is cleared behind the plugin's back, so the post is not
+		// read again and its suggestion stays.
+		$wpdb->update( $wpdb->posts, array( 'post_title' => '' ), array( 'ID' => $yacon ) );
+		clean_post_cache( $yacon );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p>Link to <a class="row-title" href="', $html );
+		$this->assertStringContainsString( '">(no title)</a></p>', $html );
+		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
+	}
+
+	public function test_a_target_the_user_cannot_edit_is_named_without_a_link() {
+		list( , $yacon ) = $this->sharing_pair();
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap, $user_id, $args ) use ( $yacon ) {
+				return 'edit_post' === $cap && isset( $args[0] ) && $yacon === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			4
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p>Link to <strong>Yacon</strong></p>', $html );
+		$this->assertStringNotContainsString( 'href=""', $html );
+	}
+
+	public function test_the_word_accept_will_link_is_marked_in_the_quote() {
+		$this->sharing_pair();
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<q dir="auto">I keep <mark>yacon</mark> nearby.</q>', $html );
+	}
+
+	public function test_a_quote_with_no_word_to_link_is_shown_without_a_mark() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Frost came early. I keep yacon nearby.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon syrup is sweet. Yacon roots store well.</p>' ) );
+		global $wpdb;
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'sentence' => 'Frost came early.' ),
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<q dir="auto">Frost came early.</q>', $html );
+	}
+
+	public function test_the_mark_escapes_the_authors_words_around_it() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Oca grows here. I keep &lt;b&gt; yacon &amp; more.</p>' ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon syrup is sweet. Yacon roots store well.</p>' ) );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '&lt;b&gt; <mark>yacon</mark> &amp; more.</q>', $html );
+		$this->assertNotSame( 0, $oca );
 	}
 
 	public function test_quoted_sentence_takes_its_direction_from_its_own_text() {
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 
-		$this->assertStringContainsString( '<q dir="auto">Notes about Oca.</q>', $this->render() );
+		$this->assertMatchesRegularExpression( '#<q dir="auto">Notes (<mark>)?about(</mark>)? Oca\.</q>#', $this->render() );
 	}
 
 	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {

@@ -139,7 +139,7 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 		require_once ABSPATH . 'wp-admin/includes/dashboard.php';
 		set_current_screen( 'dashboard' );
 		$wp_meta_boxes = array();
-		undergrowth_add_prompt_widget();
+		undergrowth_add_dashboard_widget();
 
 		$ids = array();
 
@@ -202,20 +202,20 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 	}
 
 	public function test_no_widget_without_a_prompt() {
-		$this->assertNotContains( 'undergrowth_prompt', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 	}
 
 	public function test_widget_shows_for_the_posts_author() {
 		undergrowth_write_prompt();
 
-		$this->assertContains( 'undergrowth_prompt', $this->widgets() );
+		$this->assertContains( 'undergrowth', $this->widgets() );
 	}
 
 	public function test_widget_is_hidden_from_users_who_cannot_edit_the_post() {
 		undergrowth_write_prompt();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
 
-		$this->assertNotContains( 'undergrowth_prompt', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 		$this->assertSame( '', $this->render() );
 	}
 
@@ -224,7 +224,7 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 		update_option( 'undergrowth_anthropic_api_key', '' );
 
 		$this->assertNull( undergrowth_current_prompt() );
-		$this->assertNotContains( 'undergrowth_prompt', $this->widgets() );
+		$this->assertNotContains( 'undergrowth', $this->widgets() );
 	}
 
 	public function test_widget_shows_the_question_the_post_and_both_choices() {
