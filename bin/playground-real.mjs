@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Starts WordPress Playground on this computer with the owner's own API keys,
- * for testing Undergrowth against the real OpenAI and Anthropic APIs.
+ * Starts WordPress Playground on this computer for testing Undergrowth with
+ * real embeddings: free ones from Ollama on this computer, or OpenAI's with
+ * the owner's own key. An Anthropic key, also optional, turns on questions.
  *
  * The keys come from .env.local, which git ignores, and reach WordPress as
  * wp-config.php constants. They never go into a URL, a file in the
  * repository or the terminal. The e2e test provider is not mounted, so every
- * request goes to the real API.
+ * request goes to a real model.
  *
  * Usage: npm run playground:real
  */
@@ -26,6 +27,8 @@ import { parseEnv } from 'node:util';
 const root = resolve( import.meta.dirname, '..' );
 const envFile = join( root, '.env.local' );
 const host = '127.0.0.1';
+const ollama = 'http://127.0.0.1:11434';
+const ollamaModel = 'nomic-embed-text';
 
 // WP-Cron starts itself with a request back to the site, which Playground's
 // automatic login answers with a redirect, so it never runs. Instead, as on
@@ -43,29 +46,55 @@ function fail( message ) {
 	process.exit( 1 );
 }
 
-if ( ! existsSync( envFile ) ) {
-	fail(
-		'No .env.local found. Copy .env.local.example to .env.local, put your OpenAI key in it, and run this again.'
-	);
-}
-
-const env = parseEnv( readFileSync( envFile, 'utf8' ) );
+const env = existsSync( envFile )
+	? parseEnv( readFileSync( envFile, 'utf8' ) )
+	: {};
 const openaiKey = ( env.OPENAI_API_KEY ?? '' ).trim();
 const anthropicKey = ( env.ANTHROPIC_API_KEY ?? '' ).trim();
 const wxr = ( env.WXR ?? '' ).trim();
+const embeddings = ( env.UNDERGROWTH_EMBEDDINGS ?? '' ).trim();
 
-if ( '' === openaiKey ) {
-	fail( 'OPENAI_API_KEY is empty in .env.local.' );
+if ( ! [ '', 'ollama', 'openai' ].includes( embeddings ) ) {
+	fail( 'UNDERGROWTH_EMBEDDINGS in .env.local must be ollama or openai.' );
+}
+
+if ( 'openai' === embeddings && '' === openaiKey ) {
+	fail( 'UNDERGROWTH_EMBEDDINGS is openai, but OPENAI_API_KEY is empty.' );
+}
+
+const local = 'ollama' === embeddings || '' === openaiKey;
+
+if ( local ) {
+	let models;
+
+	try {
+		const response = await fetch( new URL( '/api/tags', ollama ), {
+			signal: AbortSignal.timeout( 3000 ),
+		} );
+		models = ( await response.json() ).models ?? [];
+	} catch {
+		fail(
+			`Ollama is not running on ${ ollama }. Start it with \`brew services start ollama\` or \`ollama serve\`, then run \`ollama pull ${ ollamaModel }\`.`
+		);
+	}
+
+	if ( ! models.some( ( model ) => model.name.startsWith( ollamaModel ) ) ) {
+		fail(
+			`Ollama is running but has no ${ ollamaModel }. Run \`ollama pull ${ ollamaModel }\`.`
+		);
+	}
 }
 
 if ( '' !== wxr && ! existsSync( resolve( root, wxr ) ) ) {
 	fail( 'The WXR file named in .env.local does not exist.' );
 }
 
-const consts = {
-	UNDERGROWTH_OPENAI_API_KEY: openaiKey,
-	DISABLE_WP_CRON: true,
-};
+const consts = { DISABLE_WP_CRON: true };
+
+// In local mode an OpenAI key is left out, so nothing is sent to OpenAI.
+if ( ! local ) {
+	consts.UNDERGROWTH_OPENAI_API_KEY = openaiKey;
+}
 
 if ( '' !== anthropicKey ) {
 	consts.UNDERGROWTH_ANTHROPIC_API_KEY = anthropicKey;
@@ -130,6 +159,14 @@ http.Server.prototype.listen = function ( port, ...rest ) {
 const mount = [
 	{ hostPath: root, vfsPath: '/wordpress/wp-content/plugins/undergrowth' },
 ];
+
+if ( local ) {
+	mount.push( {
+		hostPath: join( root, 'docs/examples/local-embeddings.php' ),
+		vfsPath:
+			'/wordpress/wp-content/mu-plugins/undergrowth-local-embeddings.php',
+	} );
+}
 
 if ( '' !== wxr ) {
 	mount.push( {
@@ -200,7 +237,13 @@ stop = async () => {
 process.stdout.write(
 	[
 		'',
-		`Undergrowth is running at ${ siteUrl } with your own keys.`,
+		`Undergrowth is running at ${ siteUrl }.`,
+		local
+			? `Posts are read by ${ ollamaModel } in Ollama, on this computer. Nothing is sent to OpenAI.`
+			: 'Posts are read by OpenAI, with your key.',
+		'' !== anthropicKey
+			? 'Questions are written by Claude, with your Anthropic key.'
+			: 'No Anthropic key, so no questions on the Dashboard.',
 		'Posts are read in the background, a few at a time; Settings > Undergrowth counts them.',
 		'Stop with Ctrl+C. It prints the score percentiles, then deletes the site and the temporary blueprint.',
 		'',
