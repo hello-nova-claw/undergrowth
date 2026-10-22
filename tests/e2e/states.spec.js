@@ -116,6 +116,19 @@ const WITHOUT_POSTS = [
 			fixture: state,
 		} )
 	),
+	{
+		screen: 'dashboard',
+		state: 'help-meter',
+		page: DASHBOARD,
+		fixture: 'meter-below',
+		help: 'undergrowth-meter',
+	},
+	{
+		screen: 'settings',
+		state: 'help-meter',
+		page: SETTINGS,
+		help: 'undergrowth-meter',
+	},
 ];
 
 const WITH_POSTS = [
@@ -336,12 +349,30 @@ function capture( states ) {
 					await admin.visitAdminPage( ...entry.page );
 				}
 
-				// A build without this notice would only show the plain table.
-				// The marker lets the comment list it, rather than drop it.
+				// Opens core's Help panel on the tab this state is about.
+				const helpTab = entry.help
+					? page.locator( `#tab-link-${ entry.help } a` )
+					: null;
+
+				if ( helpTab && ( await helpTab.count() ) > 0 ) {
+					await page.locator( '#contextual-help-link' ).click();
+					await helpTab.click();
+					await page
+						.locator( `#tab-panel-${ entry.help }` )
+						.waitFor();
+					// Opening the tab scrolls it into view, under the admin bar.
+					await page.evaluate( () => window.scrollTo( 0, 0 ) );
+				}
+
+				// A build without this notice or Help tab would only show the
+				// plain screen. The marker lets the comment list it, rather
+				// than drop it.
 				if (
-					entry.notice &&
-					( await page.locator( '#undergrowth-notice' ).count() ) ===
-						0
+					( entry.notice &&
+						( await page
+							.locator( '#undergrowth-notice' )
+							.count() ) === 0 ) ||
+					( helpTab && ( await helpTab.count() ) === 0 )
 				) {
 					fs.mkdirSync( OUTPUT, { recursive: true } );
 

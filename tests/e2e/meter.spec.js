@@ -4,6 +4,8 @@ const { expectNoA11yViolations } = require( './a11y' );
 // Selectors use ids and digits, not words, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
 const WIDGET = '#undergrowth_meter';
+const HELP_TAB = '#tab-link-undergrowth-meter';
+const HELP_PANEL = '#tab-panel-undergrowth-meter';
 
 /**
  * Sets the fixture cookie that makes the test site's stand-in for Jetpack
@@ -20,17 +22,25 @@ async function useFixture( context, baseURL, name ) {
 }
 
 test.describe( 'Threshold meter on the Dashboard', () => {
-	test( 'without Jetpack shows no number and no WCAG 2.2 AA violations', async ( {
+	test( 'without Jetpack shows no widget and no Help tab', async ( {
 		admin,
 		page,
 	} ) => {
 		await admin.visitAdminPage( 'index.php' );
 
-		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
-		await expect( page.locator( `${ WIDGET } .inside` ) ).not.toHaveText(
-			/\d/
-		);
-		await expectNoA11yViolations( page, WIDGET );
+		await expect( page.locator( '#dashboard-widgets' ) ).toBeVisible();
+		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
+		await expect( page.locator( HELP_TAB ) ).toHaveCount( 0 );
+	} );
+
+	test( 'Settings says in a Help tab what the meter needs', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		await expect( page.locator( HELP_TAB ) ).toHaveCount( 1 );
+		await expect( page.locator( HELP_PANEL ) ).toContainText( 'Jetpack' );
 	} );
 
 	test( 'below the line shows the count against the line', async ( {
@@ -46,7 +56,36 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 
 		await expect( status ).toContainText( '420' );
 		await expect( status ).toContainText( /1.000/ );
+		await expect( page.locator( `${ WIDGET } .inside p` ) ).toHaveCount(
+			2
+		);
 		await expectNoA11yViolations( page, WIDGET );
+	} );
+
+	test( 'by keyboard, the Help tab explains both rules of the line', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await useFixture( context, baseURL, 'meter-below' );
+		await admin.visitAdminPage( 'index.php' );
+
+		const help = page.locator( '#contextual-help-link' );
+
+		await help.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( help ).toHaveAttribute( 'aria-expanded', 'true' );
+
+		// Core's Help tabs are links: Tab moves through them, Enter opens one.
+		const link = page.locator( `${ HELP_TAB } a` );
+
+		await link.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( page.locator( HELP_PANEL ) ).toBeVisible();
+		await expect( page.locator( HELP_PANEL ) ).toContainText( /1.000/ );
+		await expect( page.locator( `${ HELP_PANEL } p` ) ).toHaveCount( 4 );
+		await expectNoA11yViolations( page, '#contextual-help-wrap' );
 	} );
 
 	test( 'over the line shows the count', async ( {
@@ -82,7 +121,10 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 	test( 'by keyboard, only core handle buttons take focus and the toggle opens and closes it', async ( {
 		admin,
 		page,
+		context,
+		baseURL,
 	} ) => {
+		await useFixture( context, baseURL, 'meter-below' );
 		await admin.visitAdminPage( 'index.php' );
 
 		const widget = page.locator( WIDGET );
