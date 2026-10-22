@@ -105,6 +105,73 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-pinned', $html );
 	}
 
+	public function test_the_stage_sits_beside_the_title_as_a_post_state() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		undergrowth_set_stage( $oca, 'sprout' );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+">Oca</a> &mdash; <span class="post-state">Sprout</span></strong>#', $html );
+		$this->assertStringNotContainsString( 'column-stage', $html );
+		$this->assertStringNotContainsString( 'column-actions', $html );
+	}
+
+	public function test_pin_is_a_row_action_with_its_stage_choice() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="row-actions"><span class=\'pin\'><label for="undergrowth-stage-' . $oca . '" class="screen-reader-text">Stage to pin for Oca</label><select id="undergrowth-stage-' . $oca . '" name="stage" form="undergrowth-pin-' . $oca . '">.*?</select> <button type="submit" form="undergrowth-pin-' . $oca . '" class="button-link" aria-label="Pin the stage of Oca">Pin</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<form method="post" action="[^"]+" id="undergrowth-pin-' . $oca . '">#', $html );
+	}
+
+	public function test_unpin_is_a_row_action() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		undergrowth_pin_stage( $oca, 'evergreen' );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="row-actions"><span class=\'unpin\'><button type="submit" form="undergrowth-unpin-' . $oca . '" class="button-link" aria-label="Unpin the stage of Oca">Unpin</button></span></div>#', $html );
+		$this->assertStringNotContainsString( 'class="button"', $html );
+	}
+
+	public function test_a_post_the_user_cannot_edit_has_a_plain_title_and_no_row_actions() {
+		$oca = self::factory()->post->create(
+			array(
+				'post_title'  => 'Oca',
+				'post_status' => 'publish',
+			)
+		);
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap, $user_id, $args ) use ( $oca ) {
+				return 'edit_post' === $cap && isset( $args[0] ) && $oca === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			4
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<strong>Oca &mdash; <span class="post-state">Seedling</span></strong>', $html );
+		$this->assertStringNotContainsString( 'row-actions"><span', $html );
+	}
+
 	public function test_stages_tab_explains_when_there_are_no_posts() {
 		$html = $this->render();
 
