@@ -205,15 +205,19 @@ class Test_Accept extends WP_UnitTestCase {
 	}
 
 	public function test_sentence_outside_a_paragraph_fails_safely() {
-		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul>' );
+		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul><p>Yacon grows here.</p>' );
 		$before              = get_post( $oca )->post_content;
+
+		// A proposal stored before list items were skipped can still point there.
+		$this->set_sentence( $oca, $yacon, 'I keep yacon plants nearby for their syrup.' );
 
 		$this->assertSame( 'no_word', undergrowth_accept_link( $oca, $yacon ) );
 		$this->assertSame( $before, get_post( $oca )->post_content );
 	}
 
 	public function test_a_failed_accept_leaves_the_suggestion_proposed() {
-		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul>' );
+		list( $oca, $yacon ) = $this->pair( '<ul><li>I keep yacon plants nearby for their syrup.</li></ul><p>Yacon grows here.</p>' );
+		$this->set_sentence( $oca, $yacon, 'I keep yacon plants nearby for their syrup.' );
 
 		undergrowth_accept_link( $oca, $yacon );
 
