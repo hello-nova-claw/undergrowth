@@ -142,12 +142,12 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_page_says_what_is_sent_to_discord() {
+	public function test_page_says_in_one_sentence_what_discord_is_for() {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'id="undergrowth-discord-notice"', $html );
-		$this->assertStringContainsString( 'titles of both posts', $html );
-		$this->assertStringContainsString( 'Use a private channel', $html );
+		$this->assertStringContainsString( 'Accept and Veto buttons', $html );
+		$this->assertStringContainsString( 'private channel', $html );
 	}
 
 	public function test_page_shows_the_interactions_endpoint_url() {
