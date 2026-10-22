@@ -131,7 +131,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<div class="row-actions"><span class=\'pin\'><label for="undergrowth-stage-' . $oca . '" class="screen-reader-text">Stage to pin for Oca</label><select id="undergrowth-stage-' . $oca . '" name="stage" form="undergrowth-pin-' . $oca . '">.*?</select> <button type="submit" form="undergrowth-pin-' . $oca . '" class="button-link" aria-label="Pin the stage of Oca">Pin</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'pin\'><label for="undergrowth-stage-' . $oca . '" class="screen-reader-text">Stage to pin for Oca</label><select id="undergrowth-stage-' . $oca . '" name="stage" form="undergrowth-pin-' . $oca . '">.*?</select> <button type="submit" form="undergrowth-pin-' . $oca . '" class="button-link" aria-label="Pin the stage of Oca">Pin</button></span></div>#', $html );
 		$this->assertMatchesRegularExpression( '#<form method="post" action="[^"]+" id="undergrowth-pin-' . $oca . '">#', $html );
 	}
 
@@ -146,7 +146,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<div class="row-actions"><span class=\'unpin\'><button type="submit" form="undergrowth-unpin-' . $oca . '" class="button-link" aria-label="Unpin the stage of Oca">Unpin</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'unpin\'><button type="submit" form="undergrowth-unpin-' . $oca . '" class="button-link" aria-label="Unpin the stage of Oca">Unpin</button></span></div>#', $html );
 		$this->assertStringNotContainsString( 'class="button"', $html );
 	}
 
@@ -170,6 +170,18 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '<strong>Oca &mdash; <span class="post-state">Seedling</span></strong>', $html );
 		$this->assertStringNotContainsString( 'row-actions"><span', $html );
+	}
+
+	public function test_screen_stylesheet_loads_on_the_suggestions_screen_only() {
+		undergrowth_enqueue_screen_style( 'index.php' );
+		$this->assertFalse( wp_style_is( 'undergrowth-screen', 'enqueued' ) );
+
+		undergrowth_enqueue_screen_style( 'posts_page_undergrowth-links' );
+		$this->assertTrue( wp_style_is( 'undergrowth-screen', 'enqueued' ) );
+		$this->assertStringStartsWith( plugins_url( 'assets/', UNDERGROWTH_FILE ), wp_styles()->registered['undergrowth-screen']->src );
+
+		wp_dequeue_style( 'undergrowth-screen' );
+		wp_deregister_style( 'undergrowth-screen' );
 	}
 
 	public function test_stages_tab_explains_when_there_are_no_posts() {
