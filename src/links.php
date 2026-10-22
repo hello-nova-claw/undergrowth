@@ -183,6 +183,36 @@ function undergrowth_comparable_vectors( int $post_id ): array {
 }
 
 /**
+ * Lists the posts whose vectors can be compared with a post's vector,
+ * without reading the vectors.
+ *
+ * @param int $post_id Post whose vector sets the provider, model and language.
+ * @return int[] Post IDs, in order, including the post's own.
+ */
+function undergrowth_comparable_post_ids( int $post_id ): array {
+	global $wpdb;
+
+	$source = undergrowth_get_vector( $post_id );
+
+	if ( null === $source ) {
+		return array();
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT post_id FROM %i WHERE provider = %s AND model = %s AND language = %s ORDER BY post_id',
+			undergrowth_vectors_table(),
+			$source['provider'],
+			$source['model'],
+			$source['language']
+		)
+	);
+
+	return array_map( 'intval', (array) $ids );
+}
+
+/**
  * Lists the posts a post already links to.
  *
  * @param WP_Post $post Post to read.

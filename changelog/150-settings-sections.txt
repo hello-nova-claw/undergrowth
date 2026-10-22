@@ -1,0 +1,1 @@
+Settings > Undergrowth now has three sections, Link suggestions, Questions on your Dashboard and Discord (optional), each opening with a sentence on what it is for. Each key field says in two sentences what is sent, and the full detail is in a Help tab for each section.

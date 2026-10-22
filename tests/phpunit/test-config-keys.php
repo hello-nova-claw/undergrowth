@@ -36,7 +36,11 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	 * @return string
 	 */
 	private function render(): string {
+		global $wp_settings_sections, $wp_settings_fields;
+
 		$GLOBALS['title'] = 'Undergrowth';
+		unset( $wp_settings_sections['undergrowth'], $wp_settings_fields['undergrowth'] );
+		undergrowth_register_settings();
 
 		ob_start();
 		undergrowth_render_settings_page();
