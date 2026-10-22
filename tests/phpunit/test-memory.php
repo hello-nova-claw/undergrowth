@@ -145,6 +145,7 @@ class Test_Memory extends WP_UnitTestCase {
 		$uploads = wp_upload_dir();
 		$legacy  = $uploads['basedir'] . '/undergrowth';
 		wp_mkdir_p( $legacy . '/posts' );
+		$before = scandir( $uploads['basedir'] );
 		add_filter(
 			'query',
 			static function ( $query ) {
@@ -156,7 +157,7 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_write_memory( $oca ) );
 		$this->assertSame( 'no_folder', get_option( 'undergrowth_last_file_error' )['code'] );
 		$this->assertDirectoryExists( $legacy . '/posts' );
-		$this->assertSame( array( 'undergrowth' ), array_values( preg_grep( '/^undergrowth/', (array) scandir( $uploads['basedir'] ) ) ) );
+		$this->assertSame( $before, scandir( $uploads['basedir'] ) );
 		$this->assertSame( '', undergrowth_memory_path( $oca ) );
 	}
 
