@@ -10,6 +10,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const UNDERGROWTH_MEMORY_INDEX = "<?php\n// Silence is golden.\n";
+
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 // How distinctive a post's words are depends on every other post, so each
@@ -126,10 +128,20 @@ function undergrowth_claim_memory_folder( string $folder ): string {
 /**
  * Makes the site's files folder name, and so moves any old folder, on the
  * first request after an update.
+ *
+ * An old folder that could not be moved or removed then is tried again on
+ * every later request, until it is gone.
  */
 function undergrowth_prepare_memory_folder(): void {
 	if ( ! undergrowth_is_memory_folder( get_option( 'undergrowth_memory_folder' ) ) ) {
 		undergrowth_memory_folder();
+		return;
+	}
+
+	$uploads = wp_upload_dir( null, false );
+
+	if ( is_dir( $uploads['basedir'] . '/undergrowth' ) ) {
+		undergrowth_move_legacy_memory_folder( undergrowth_memory_root() );
 	}
 }
 
@@ -153,11 +165,17 @@ function undergrowth_move_legacy_memory_folder( string $root ): void {
 
 	// One atomic step, where WP_Filesystem::move() may copy and delete. A
 	// failed rename falls back below, so its warning is silenced.
-	if ( ! file_exists( $root ) && @rename( $legacy, $root ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename, WordPress.PHP.NoSilencedErrors.Discouraged
+	$moved      = ! file_exists( $root ) && @rename( $legacy, $root ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename, WordPress.PHP.NoSilencedErrors.Discouraged
+	$filesystem = undergrowth_filesystem();
+
+	// A folder from before posts/ had its own index file gets one now, not
+	// only at the next write.
+	if ( $moved ) {
+		if ( null !== $filesystem && $filesystem->is_dir( $root . '/posts' ) ) {
+			undergrowth_write_protection_file( $filesystem, $root . '/posts/index.php', UNDERGROWTH_MEMORY_INDEX );
+		}
 		return;
 	}
-
-	$filesystem = undergrowth_filesystem();
 
 	if ( null === $filesystem || ! $filesystem->rmdir( $legacy, true ) ) {
 		undergrowth_record_file_error( 'old_folder_left' );
@@ -418,8 +436,8 @@ function undergrowth_write_memory( int $post_id ): bool {
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
 	// Without its protection files, the folder is never written to at all.
 	$protection = array(
-		'index.php'       => "<?php\n// Silence is golden.\n",
-		'posts/index.php' => "<?php\n// Silence is golden.\n",
+		'index.php'       => UNDERGROWTH_MEMORY_INDEX,
+		'posts/index.php' => UNDERGROWTH_MEMORY_INDEX,
 		'.htaccess'       => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
 	);
 
