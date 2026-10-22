@@ -56,6 +56,59 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Ends the sentence after the stop and the mark that closes it.
+	 *
+	 * @dataProvider data_closing_marks
+	 *
+	 * @param string $open  Mark opening a quotation or an aside.
+	 * @param string $close Mark closing it.
+	 */
+	public function test_sentence_ends_after_a_closing_mark( string $open, string $close ) {
+		$this->assertSame(
+			array( "He said, {$open}Stop.{$close}", 'Then he left.' ),
+			$this->sentence_texts( "<p>He said, {$open}Stop.{$close} Then he left.</p>" )
+		);
+	}
+
+	/**
+	 * Marks that can follow a sentence's last stop, with their opening marks.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_closing_marks(): array {
+		return array(
+			'curly double quote' => array( '“', '”' ),
+			'curly single quote' => array( '‘', '’' ),
+			'straight double'    => array( '"', '"' ),
+			'straight single'    => array( "'", "'" ),
+			'guillemet'          => array( '«', '»' ),
+			'parenthesis'        => array( '(', ')' ),
+			'square bracket'     => array( '[', ']' ),
+		);
+	}
+
+	public function test_sentence_ends_after_several_closing_marks_and_any_stop() {
+		$this->assertSame(
+			array( 'He said, “Stop!”)', 'Did he “leave?”', 'Then “wait…”', 'Done.' ),
+			$this->sentence_texts( '<p>He said, “Stop!”) Did he “leave?” Then “wait…” Done.</p>' )
+		);
+	}
+
+	public function test_closing_mark_written_as_a_character_reference_ends_the_sentence() {
+		$this->assertSame(
+			array( 'He said, “Stop.”', 'Then he left.' ),
+			$this->sentence_texts( '<p>He said, &ldquo;Stop.&rdquo; Then he left.</p>' )
+		);
+	}
+
+	public function test_closing_mark_without_a_stop_before_it_ends_nothing() {
+		$this->assertSame(
+			array( 'He read “Walden” and “Nature” twice.' ),
+			$this->sentence_texts( '<p>He read “Walden” and “Nature” twice.</p>' )
+		);
+	}
+
 	public function test_japanese_text_splits_without_spaces() {
 		$this->assertSame(
 			array( 'オカは塊茎です。', '冬に保存します。' ),
