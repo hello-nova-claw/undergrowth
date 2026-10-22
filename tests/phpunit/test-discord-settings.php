@@ -138,16 +138,31 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 
 		foreach ( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ) as $field ) {
 			$this->assertMatchesRegularExpression( '/<label for="undergrowth_discord_' . $field . '">/', $html );
-			$this->assertMatchesRegularExpression( '/id="undergrowth_discord_' . $field . '"[^>]*aria-describedby="undergrowth-discord-notice"/', $html );
 		}
 	}
 
-	public function test_page_says_what_is_sent_to_discord() {
+	public function test_page_says_in_one_sentence_what_discord_is_for() {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'id="undergrowth-discord-notice"', $html );
-		$this->assertStringContainsString( 'titles of both posts', $html );
-		$this->assertStringContainsString( 'Use a private channel', $html );
+		$this->assertStringContainsString( 'Accept and Veto buttons', $html );
+		$this->assertStringContainsString( 'private channel', $html );
+	}
+
+	public function test_each_field_is_described_by_its_own_line() {
+		$html = $this->render();
+
+		foreach ( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ) as $field ) {
+			$id = 'undergrowth-discord-' . str_replace( '_', '-', $field ) . '-description';
+
+			$this->assertMatchesRegularExpression( '/id="undergrowth_discord_' . $field . '"[^>]*aria-describedby="' . $id . '"/', $html, $field );
+			$this->assertSame( 1, preg_match( '#<p class="description" id="' . $id . '">(.*?)</p>#s', $html, $line ), $field );
+			$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', trim( wp_strip_all_tags( $line[1] ) ) ), $field );
+		}
+
+		$this->assertStringNotContainsString( 'aria-describedby="undergrowth-discord-notice"', $html );
+		$this->assertStringContainsString( 'General Information', $html );
+		$this->assertStringContainsString( 'Copy Channel ID', $html );
 	}
 
 	public function test_page_shows_the_interactions_endpoint_url() {

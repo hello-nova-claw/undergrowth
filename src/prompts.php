@@ -63,8 +63,12 @@ function undergrowth_queue_config_first_prompt(): void {
 		return;
 	}
 
-	update_option( 'undergrowth_config_prompt_queued', 1 );
 	undergrowth_queue_first_prompt();
+
+	// Scheduling can fail, and then the next request tries again.
+	if ( false !== wp_next_scheduled( 'undergrowth_write_prompt' ) || null !== undergrowth_current_prompt() ) {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+	}
 }
 
 /**

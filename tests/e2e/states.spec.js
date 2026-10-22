@@ -141,6 +141,13 @@ const WITHOUT_POSTS = [
 		page: SETTINGS,
 		help: 'undergrowth-meter',
 	},
+	// The full detail of what each part sends, kept out of the fields.
+	...[ 'links', 'prompts', 'discord' ].map( ( part ) => ( {
+		screen: 'settings',
+		state: `help-${ part }`,
+		page: SETTINGS,
+		help: `undergrowth-${ part }`,
+	} ) ),
 ];
 
 const WITH_POSTS = [

@@ -36,7 +36,11 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	 * @return string
 	 */
 	private function render(): string {
+		global $wp_settings_sections, $wp_settings_fields;
+
 		$GLOBALS['title'] = 'Undergrowth';
+		unset( $wp_settings_sections['undergrowth'], $wp_settings_fields['undergrowth'] );
+		undergrowth_register_settings();
 
 		ob_start();
 		undergrowth_render_settings_page();
@@ -123,6 +127,28 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		undergrowth_queue_config_first_prompt();
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
+	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_first_prompt_is_asked_for_again_when_scheduling_it_failed() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		add_filter( 'pre_schedule_event', '__return_false' );
+
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+
+		remove_filter( 'pre_schedule_event', '__return_false' );
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+		$this->assertNotFalse( get_option( 'undergrowth_config_prompt_queued' ) );
 	}
 
 	/**

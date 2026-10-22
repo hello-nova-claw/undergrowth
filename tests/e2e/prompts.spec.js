@@ -3,7 +3,7 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids and values, not text, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
-const WIDGET = '#undergrowth_prompt';
+const WIDGET = '#undergrowth';
 
 test.describe( 'Prompt on the Dashboard', () => {
 	test.beforeEach( async ( { requestUtils, context, baseURL } ) => {
@@ -45,9 +45,9 @@ test.describe( 'Prompt on the Dashboard', () => {
 		await admin.visitAdminPage( 'index.php' );
 
 		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
-		await expect( page.locator( `${ WIDGET } strong` ) ).toContainText(
-			'?'
-		);
+		await expect(
+			page.locator( `${ WIDGET } .undergrowth-prompt strong` )
+		).toContainText( '?' );
 		await expectNoA11yViolations( page, WIDGET );
 	} );
 
