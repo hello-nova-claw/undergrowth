@@ -335,8 +335,9 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertCount( 33, $rows );
 		// Recorded from the corpus that kept every post's word counts, and
 		// recorded again when anchor words began to follow what the target
-		// is about (#172).
-		$this->assertSame( '085b48c6dedf8b9876ff4c410984f7d5', md5( (string) wp_json_encode( $rows ) ) );
+		// is about (#172) and when one post's proposals began to prefer
+		// different sentences (#173).
+		$this->assertSame( '3cde305bdb1854395c0a1c6467eba7fb', md5( (string) wp_json_encode( $rows ) ) );
 	}
 
 	public function test_refresh_reads_only_the_target_posts_it_needs() {

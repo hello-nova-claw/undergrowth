@@ -583,6 +583,50 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'Tubers grow beside it.', $chosen['text'] ?? null );
 	}
 
+	public function test_two_targets_get_different_sentences_when_both_fit() {
+		$oca    = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>Yacon tubers and mashua tubers grow together. I keep yacon in pots.</p>' )
+		);
+		$mashua = $this->plant( 'Mashua', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>Mashua tubers are peppery.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon tubers are sweet.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $mashua )['sentence'] );
+		$this->assertSame( 'I keep yacon in pots.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_two_targets_share_a_sentence_when_no_other_fits() {
+		$oca    = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<p>Yacon tubers and mashua tubers grow together. Frost came early.</p>' )
+		);
+		$mashua = $this->plant( 'Mashua', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>Mashua tubers are peppery.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon tubers are sweet.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $mashua )['sentence'] );
+		$this->assertSame( 'Yacon tubers and mashua tubers grow together.', $this->stored_sentence( $oca, $yacon )['sentence'] );
+	}
+
+	public function test_sentence_to_avoid_is_still_chosen_when_it_is_the_only_fit() {
+		$oca   = self::factory()->post->create( array( 'post_content' => '<p>I keep yacon. Frost came early.</p>' ) );
+		$yacon = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => '<p>Yacon syrup.</p>',
+			)
+		);
+
+		$chosen = undergrowth_choose_sentence( $oca, $yacon, undergrowth_build_corpus( array( $oca, $yacon ) ), array( 'I keep yacon.' ) );
+
+		$this->assertSame( 'I keep yacon.', $chosen['text'] ?? null );
+	}
+
 	public function test_repeated_common_words_never_outweigh_a_targets_own_words() {
 		$filler = str_repeat( 'The garden and the shed with that path. ', 25 );
 		foreach ( array( 'Shed', 'Path', 'Gate' ) as $i => $title ) {
