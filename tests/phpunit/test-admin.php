@@ -386,6 +386,18 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'id="undergrowth-notice"', $html );
 	}
 
+	public function test_the_notice_takes_focus_once_core_has_moved_it() {
+		$_GET['undergrowth_notice'] = 'vetoed';
+
+		$html = $this->render();
+		unset( $_GET['undergrowth_notice'] );
+
+		// Core moves notices under the heading when the page is ready, which
+		// takes focus away from one focused earlier, so focus waits for load.
+		$this->assertStringContainsString( "window.addEventListener( 'load'", $html );
+		$this->assertStringContainsString( "document.getElementById( 'undergrowth-notice' )", $html );
+	}
+
 	public function test_result_notices_can_be_dismissed_as_cores_are() {
 		foreach ( array( 'vetoed', 'gone' ) as $notice ) {
 			$_GET['undergrowth_notice'] = $notice;
