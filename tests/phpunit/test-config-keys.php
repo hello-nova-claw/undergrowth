@@ -129,6 +129,32 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
+	public function test_deactivation_keeps_the_record_of_a_first_prompt_already_written() {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+
+		undergrowth_unschedule_prompts();
+
+		$this->assertNotFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+	}
+
+	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_first_prompt_still_waiting_at_deactivation_is_asked_for_again() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		undergrowth_queue_config_first_prompt();
+
+		undergrowth_unschedule_prompts();
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
 	/**
 	 * Runs alone, since the constant stays defined once it is.
 	 *
