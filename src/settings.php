@@ -80,6 +80,17 @@ function undergrowth_register_settings(): void {
 		'undergrowth_anthropic_api_key' => 'undergrowth_sanitize_anthropic_key',
 	);
 
+	register_setting(
+		'undergrowth',
+		'undergrowth_suggest_links',
+		array(
+			'type'              => 'string',
+			'default'           => '1',
+			'show_in_rest'      => false,
+			'sanitize_callback' => 'undergrowth_sanitize_suggest_links',
+		)
+	);
+
 	foreach ( $keys as $option => $sanitize_callback ) {
 		register_setting(
 			'undergrowth',
@@ -108,9 +119,11 @@ function undergrowth_register_settings(): void {
 		)
 	);
 
-	// Without a provider there is nothing to read with, so no count.
+	// Without a provider there is nothing to read with, so no count, and a
+	// switch that could not do anything yet.
 	if ( undergrowth_has_embed_provider() ) {
 		add_settings_field( 'undergrowth_posts_read', __( 'Posts read', 'undergrowth' ), 'undergrowth_render_posts_read_field', 'undergrowth', 'undergrowth_links' );
+		add_settings_field( 'undergrowth_suggest_links', __( 'Suggestions', 'undergrowth' ), 'undergrowth_render_suggest_links_field', 'undergrowth', 'undergrowth_links' );
 	}
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
@@ -135,6 +148,26 @@ function undergrowth_register_settings(): void {
  */
 function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_api_key' ): void {
 	wp_set_option_autoload( $option, false );
+}
+
+/**
+ * Cleans the submitted "Suggest links between my posts" choice.
+ *
+ * An unticked box sends nothing, which reads as off. The switch is only on
+ * the page once there is a provider, so a save without it keeps the saved
+ * choice rather than turning suggestions off.
+ *
+ * @param mixed $value Submitted value.
+ * @return string '1' for on, '0' for off.
+ */
+function undergrowth_sanitize_suggest_links( $value ): string {
+	// options.php has already checked the nonce and capability for this form.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( empty( $_POST['undergrowth_suggest_links_shown'] ) ) {
+		return undergrowth_suggestions_enabled() ? '1' : '0';
+	}
+
+	return '1' === $value ? '1' : '0';
 }
 
 /**
@@ -292,6 +325,20 @@ function undergrowth_render_key_field( array $args ): void {
 			</p>
 		</div>
 	<?php endif; ?>
+	<?php
+}
+
+/**
+ * Prints the "Suggest links between my posts" switch.
+ */
+function undergrowth_render_suggest_links_field(): void {
+	?>
+	<input type="hidden" name="undergrowth_suggest_links_shown" value="1" />
+	<label for="undergrowth_suggest_links">
+		<input type="checkbox" id="undergrowth_suggest_links" name="undergrowth_suggest_links" value="1"<?php checked( undergrowth_suggestions_enabled() ); ?> />
+		<?php esc_html_e( 'Suggest links between my posts', 'undergrowth' ); ?>
+	</label>
+	<p class="description"><?php esc_html_e( 'Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on.', 'undergrowth' ); ?></p>
 	<?php
 }
 
