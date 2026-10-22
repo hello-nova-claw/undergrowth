@@ -237,10 +237,8 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 function undergrowth_linkable_paragraphs( string $content ): array {
 	$found = has_blocks( $content ) ? array() : undergrowth_classic_paragraphs( $content );
 
-	if ( preg_match_all( '#<p\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
-		foreach ( $paragraphs[1] as $paragraph ) {
-			$found[ $paragraph[1] ] = $paragraph[0];
-		}
+	foreach ( ( new Undergrowth_HTML_Text( $content ) )->paragraphs() as $paragraph ) {
+		$found[ $paragraph[1] ] = $paragraph[0];
 	}
 
 	ksort( $found );
