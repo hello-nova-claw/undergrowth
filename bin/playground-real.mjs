@@ -110,8 +110,10 @@ function cleanUp() {
 
 process.on( 'exit', cleanUp );
 
+let stop = () => process.exit( 0 );
+
 for ( const signal of [ 'SIGINT', 'SIGTERM', 'SIGHUP' ] ) {
-	process.on( signal, () => process.exit( 0 ) );
+	process.on( signal, () => stop() );
 }
 
 // The CLI has no option for the address it listens on, and listens on every
@@ -168,12 +170,39 @@ async function runCron() {
 
 runCron();
 
+/**
+ * Prints what `wp undergrowth scores` prints, which Playground has no WP-CLI
+ * for: score percentiles and thresholds, never any post text.
+ */
+async function printScores() {
+	const response = await server.playground.run( {
+		code: "<?php require '/wordpress/wp-load.php'; echo implode( PHP_EOL, undergrowth_scores_report() );",
+	} );
+
+	process.stdout.write(
+		`\nScores for the feedback issue:\n${ response.text }\n\n`
+	);
+}
+
+stop = async () => {
+	stop = () => {};
+
+	try {
+		await printScores();
+	} catch {
+		process.stderr.write( 'Could not read the scores.\n' );
+	}
+
+	await server[ Symbol.asyncDispose ]();
+	process.exit( 0 );
+};
+
 process.stdout.write(
 	[
 		'',
 		`Undergrowth is running at ${ siteUrl } with your own keys.`,
 		'Posts are read in the background, a few at a time; Settings > Undergrowth counts them.',
-		'Stop with Ctrl+C. The site and the temporary blueprint are deleted.',
+		'Stop with Ctrl+C. It prints the score percentiles, then deletes the site and the temporary blueprint.',
 		'',
 	].join( '\n' )
 );
