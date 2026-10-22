@@ -133,5 +133,5 @@ function undergrowth_render_prompt_notice(): void {
 		esc_html( $messages[ $notice ] )
 	);
 
-	wp_print_inline_script_tag( "document.getElementById( 'undergrowth-notice' ).focus();" );
+	undergrowth_print_notice_focus_script();
 }

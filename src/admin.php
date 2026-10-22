@@ -425,6 +425,17 @@ function undergrowth_render_resurfacing_signals(): void {
 }
 
 /**
+ * Prints the script that moves focus to the result notice, so a keyboard or
+ * screen reader user hears the result instead of landing at the top.
+ *
+ * Core moves notices under the page heading once the page is ready, and
+ * moving an element takes focus away from it, so focus waits for load.
+ */
+function undergrowth_print_notice_focus_script(): void {
+	wp_print_inline_script_tag( "window.addEventListener( 'load', function () { var notice = document.getElementById( 'undergrowth-notice' ); if ( notice ) { notice.focus(); } } );" );
+}
+
+/**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
  * @param int $post_id Post ID.
@@ -573,5 +584,5 @@ function undergrowth_render_suggestions_notice(): void {
 		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
 	);
 
-	wp_print_inline_script_tag( "document.getElementById( 'undergrowth-notice' ).focus();" );
+	undergrowth_print_notice_focus_script();
 }
