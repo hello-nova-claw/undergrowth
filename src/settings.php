@@ -269,16 +269,14 @@ function undergrowth_render_key_field( array $args ): void {
 		$notice = __( 'With a key saved, the title and text of each published post without a password are sent to OpenAI. Nothing is sent until you save a key.', 'undergrowth' );
 		$link   = array( 'https://platform.openai.com/api-keys', __( 'Get a key from OpenAI', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending posts to OpenAI', 'undergrowth' );
-		/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-		$failed = __( 'The last request to OpenAI failed on %1$s (status %2$s). Posts that were not read are tried again within the hour.', 'undergrowth' );
+		$retry  = __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
 		$key    = undergrowth_anthropic_key();
 		$error  = get_option( 'undergrowth_last_prompt_error' );
 		$notice = __( 'With a key saved, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent until you save a key.', 'undergrowth' );
 		$link   = array( 'https://platform.claude.com/settings/keys', __( 'Get a key from Anthropic', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending anything to Anthropic', 'undergrowth' );
-		/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-		$failed = __( 'The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle.', 'undergrowth' );
+		$retry  = __( 'Undergrowth tries again at its next monthly cycle.', 'undergrowth' );
 	}
 
 	$provider = $args['provider'];
@@ -313,15 +311,7 @@ function undergrowth_render_key_field( array $args ): void {
 	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
 		<div class="notice notice-warning inline">
 			<p>
-				<?php
-				echo esc_html(
-					sprintf(
-						$failed,
-						wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
-						number_format_i18n( (int) ( $error['status'] ?? 0 ) )
-					)
-				);
-				?>
+				<?php echo esc_html( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) ); ?>
 			</p>
 		</div>
 	<?php endif; ?>
@@ -340,6 +330,52 @@ function undergrowth_render_suggest_links_field(): void {
 	</label>
 	<p class="description"><?php esc_html_e( 'Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on.', 'undergrowth' ); ?></p>
 	<?php
+}
+
+/**
+ * Says in plain words why the last request to a service failed, when, with
+ * the status code in brackets, and when it is tried again.
+ *
+ * @param string $service Service name, such as "OpenAI".
+ * @param array  $error   Saved error, with 'time' and 'status'.
+ * @param string $retry   Sentence saying when it is tried again.
+ * @param string $secret  'key', or 'token' for Discord's bot token.
+ * @return string Plain text.
+ *
+ * @phpstan-param array<string, mixed> $error
+ */
+function undergrowth_failure_text( string $service, array $error, string $retry, string $secret = 'key' ): string {
+	$status = (int) ( $error['status'] ?? 0 );
+
+	if ( 401 === $status || 403 === $status ) {
+		$cause = 'token' === $secret
+			/* translators: %1$s: service name, such as Discord. */
+			? __( '%1$s did not accept the bot token. Check that it is pasted in full and still current.', 'undergrowth' )
+			/* translators: %1$s: service name, such as OpenAI. */
+			: __( '%1$s did not accept the key. Check that it is pasted in full and still active.', 'undergrowth' );
+	} elseif ( 429 === $status ) {
+		$cause = 'token' === $secret
+			/* translators: %1$s: service name, such as Discord. */
+			? __( '%1$s turned the message away because messages came too fast.', 'undergrowth' )
+			/* translators: %1$s: service name, such as OpenAI. */
+			: __( '%1$s turned the request away: requests came too fast, or the account is out of credit.', 'undergrowth' );
+	} elseif ( 0 === $status ) {
+		/* translators: %1$s: service name, such as OpenAI. */
+		$cause = __( '%1$s could not be reached. Your site may be offline, or blocked from connecting to it.', 'undergrowth' );
+	} else {
+		/* translators: %1$s: service name, such as OpenAI. */
+		$cause = __( '%1$s had a problem on its side.', 'undergrowth' );
+	}
+
+	$when = sprintf(
+		/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
+		__( 'That was on %1$s (status %2$s).', 'undergrowth' ),
+		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) ),
+		number_format_i18n( $status )
+	);
+
+	// Each part is a whole sentence, translated on its own.
+	return sprintf( $cause, $service ) . ' ' . $when . ' ' . $retry;
 }
 
 /**
