@@ -178,6 +178,22 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs alone, since the constants stay defined once they are.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_saved_options_are_used_when_the_constants_are_empty_or_not_strings() {
+		define( 'UNDERGROWTH_OPENAI_API_KEY', '  ' );
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', array( 'not-a-key' ) );
+		update_option( 'undergrowth_openai_api_key', self::SAVED_KEY );
+		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
+
+		$this->assertSame( self::SAVED_KEY, undergrowth_openai_key() );
+		$this->assertSame( self::SAVED_KEY, undergrowth_anthropic_key() );
+	}
+
+	/**
 	 * Runs alone, since the constant stays defined once it is.
 	 *
 	 * @runInSeparateProcess
