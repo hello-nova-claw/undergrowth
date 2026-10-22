@@ -115,7 +115,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Stages look plausible after running the cycle
 - [ ] Pin and unpin behave as expected
 - [ ] Compost and Return to garden behave as expected
-- [ ] Resurfacing notice (if it appeared) reads well
+- [ ] Resurfacing notice on the Map tab (if it appeared) reads well
 - [ ] Dashboard question is one question, quoting only me
 - [ ] Ask me next month and Dismiss for good work
 - [ ] Growth stage block looks right in my theme

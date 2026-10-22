@@ -1,6 +1,25 @@
 import { useBlockProps } from '@wordpress/block-editor';
+import { Placeholder } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import ServerSideRender from '@wordpress/server-side-render';
+
+/**
+ * Shows a note from the block in core's Placeholder, so it never reads as
+ * part of the post's own text.
+ *
+ * @param {Object} props      Component props.
+ * @param {string} props.note What the author should know.
+ * @return {Element} Placeholder.
+ */
+function Note( { note } ) {
+	return (
+		<Placeholder
+			icon="awards"
+			label={ __( 'Growth stage', 'undergrowth' ) }
+			instructions={ note }
+		/>
+	);
+}
 
 /**
  * Says why readers will see no badge, in place of the empty render.
@@ -9,12 +28,12 @@ import ServerSideRender from '@wordpress/server-side-render';
  */
 function NoBadge() {
 	return (
-		<p>
-			{ __(
+		<Note
+			note={ __(
 				'Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none.',
 				'undergrowth'
 			) }
-		</p>
+		/>
 	);
 }
 
@@ -33,12 +52,12 @@ export default function Edit( { context: { postId } } ) {
 	if ( ! postId ) {
 		return (
 			<div { ...blockProps }>
-				<p>
-					{ __(
+				<Note
+					note={ __(
 						'Shows the growth stage of the post it is placed in.',
 						'undergrowth'
 					) }
-				</p>
+				/>
 			</div>
 		);
 	}

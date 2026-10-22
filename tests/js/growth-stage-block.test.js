@@ -39,6 +39,13 @@ function renderEdit( context ) {
 
 describe( 'Growth stage block', () => {
 	beforeAll( () => {
+		// Core's Placeholder sizes itself with ResizeObserver, which jsdom lacks.
+		global.ResizeObserver ??= class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		};
+
 		// Answers the block renderer as WordPress would, so no server is needed.
 		apiFetch.use( ( options ) => {
 			requests.push( options );
@@ -87,6 +94,15 @@ describe( 'Growth stage block', () => {
 		expect( container.textContent ).toContain(
 			'Readers see no growth stage here.'
 		);
+		// A note from the block, in core's Placeholder, not text in the post.
+		expect(
+			container.querySelector( '.components-placeholder' ).textContent
+		).toContain( 'Readers see no growth stage here.' );
+		expect(
+			container.querySelector( '.components-placeholder__label' )
+				.textContent
+		).toContain( 'Growth stage' );
+		expect( container.querySelector( 'p:not([class])' ) ).toBeNull();
 	} );
 
 	test( 'asks the server for nothing outside a post', async () => {
@@ -98,5 +114,8 @@ describe( 'Growth stage block', () => {
 		expect( container.textContent ).toContain(
 			'Shows the growth stage of the post it is placed in.'
 		);
+		expect(
+			container.querySelector( '.components-placeholder' ).textContent
+		).toContain( 'Shows the growth stage of the post it is placed in.' );
 	} );
 } );

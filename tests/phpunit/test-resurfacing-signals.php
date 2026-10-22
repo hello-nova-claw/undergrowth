@@ -158,12 +158,13 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Renders the screen's stages tab and returns its HTML.
+	 * Renders one tab of the screen and returns its HTML.
 	 *
+	 * @param string $tab Tab to render, the Map by default.
 	 * @return string
 	 */
-	private function render(): string {
-		$_GET['tab'] = 'stages';
+	private function render( string $tab = 'map' ): string {
+		$_GET['tab'] = $tab;
 		set_current_screen( 'posts_page_undergrowth-links' );
 		ob_start();
 		undergrowth_render_suggestions_page();
@@ -551,7 +552,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertTrue( is_protected_meta( 'undergrowth_resurfacing', 'post' ) );
 	}
 
-	public function test_stages_tab_names_the_composting_post_and_the_new_cluster() {
+	public function test_map_tab_names_the_composting_post_and_the_new_cluster() {
 		$old = $this->garden_with_compost();
 		$this->new_cluster_near_compost();
 		$this->cycle();
@@ -571,6 +572,48 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		// Each control is named by its visible text and described by the sentence.
 		$this->assertSame( 2, substr_count( $html, 'aria-describedby="undergrowth-resurfacing-' . $old . '"' ) );
 		$this->assertStringContainsString( '<p id="undergrowth-resurfacing-' . $old . '">', $html );
+	}
+
+	public function test_the_signal_is_on_the_map_not_on_growth_stages() {
+		$this->garden_with_compost();
+		$this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->assertStringContainsString( 'undergrowth-resurfacing', $this->render( 'map' ) );
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render( 'stages' ) );
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render( '' ) );
+	}
+
+	public function test_the_signal_comes_before_the_groups() {
+		$this->garden_with_compost();
+		$this->new_cluster_near_compost();
+		$this->cycle();
+
+		$html   = $this->render();
+		$signal = strpos( $html, 'undergrowth-resurfacing' );
+
+		$this->assertNotFalse( $signal );
+		$this->assertLessThan( strpos( $html, '<h2 id="undergrowth-cluster-' ), $signal );
+	}
+
+	public function test_a_signal_whose_group_is_too_small_to_map_is_not_shown() {
+		$old = $this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		$this->cycle();
+
+		delete_post_meta_by_key( 'undergrowth_cluster' );
+		add_post_meta( $new[0], 'undergrowth_cluster', $new[0] );
+
+		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
+		$this->assertFalse( undergrowth_has_clusters() );
+		$this->assertSame( array(), undergrowth_visible_resurfacing_signals() );
+	}
+
+	public function test_without_a_signal_or_a_group_there_is_no_map_tab() {
+		$this->garden_with_compost();
+		delete_post_meta_by_key( 'undergrowth_cluster' );
+
+		$this->assertStringNotContainsString( 'tab=map', $this->render( 'stages' ) );
 	}
 
 	public function test_signal_mentions_no_time_spent_composting() {
@@ -595,7 +638,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		return wp_strip_all_tags( implode( ' ', $matches[1] ) );
 	}
 
-	public function test_stages_tab_shows_no_signal_when_no_post_type_is_read() {
+	public function test_map_tab_shows_no_signal_when_no_post_type_is_read() {
 		$this->garden_with_compost();
 		$this->new_cluster_near_compost();
 		$this->cycle();
@@ -607,13 +650,13 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $html );
 	}
 
-	public function test_stages_tab_shows_no_signal_without_one() {
+	public function test_map_tab_shows_no_signal_without_one() {
 		$this->garden_with_compost();
 
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render() );
 	}
 
-	public function test_stages_tab_hides_signal_from_a_user_who_cannot_edit_the_post() {
+	public function test_map_tab_hides_signal_from_a_user_who_cannot_edit_the_post() {
 		$old = $this->garden_with_compost();
 		$this->new_cluster_near_compost();
 		$this->cycle();
@@ -631,7 +674,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $html );
 	}
 
-	public function test_stages_tab_shows_every_signal() {
+	public function test_map_tab_shows_every_signal() {
 		$this->garden_with_compost();
 		$new = $this->new_cluster_near_compost();
 		$this->cycle();
@@ -645,7 +688,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_CLUSTER_BATCH + 1, substr_count( $this->render(), 'class="notice notice-info inline undergrowth-resurfacing"' ) );
 	}
 
-	public function test_stages_tab_skips_signal_whose_cluster_is_gone() {
+	public function test_map_tab_skips_signal_whose_cluster_is_gone() {
 		$old = $this->garden_with_compost();
 		$new = $this->new_cluster_near_compost();
 		$this->cycle();
@@ -658,14 +701,14 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render() );
 	}
 
-	public function test_dismiss_form_removes_the_signal_and_returns_to_the_stages_tab() {
+	public function test_dismiss_form_removes_the_signal_and_returns_to_the_map_tab() {
 		$old = $this->garden_with_compost();
 		$this->new_cluster_near_compost();
 		$this->cycle();
 
 		$location = $this->dismiss( $old );
 
-		$this->assertStringContainsString( 'tab=stages', $location );
+		$this->assertStringContainsString( 'tab=map', $location );
 		$this->assertStringContainsString( 'undergrowth_notice=resurfacing_dismissed', $location );
 		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
 		$this->assertSame( array( 'shown', 'dismissed' ), $this->events( $old ) );
@@ -715,7 +758,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-warning"/', $this->render() );
 	}
 
-	public function test_stages_tab_confirms_a_post_returned_from_its_signal() {
+	public function test_map_tab_confirms_a_post_returned_from_its_signal() {
 		$_GET['undergrowth_returned'] = '1';
 
 		$this->assertStringContainsString( 'post returned to the garden', $this->render() );
