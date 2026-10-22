@@ -6,7 +6,7 @@
  */
 
 /**
- * Link suggestions screen, veto and toggle.
+ * The Undergrowth screen, Accept and Veto.
  */
 class Test_Admin extends WP_UnitTestCase {
 
@@ -100,6 +100,17 @@ class Test_Admin extends WP_UnitTestCase {
 		do_action( 'admin_menu' );
 
 		$this->assertStringContainsString( 'edit.php?page=undergrowth-links', menu_page_url( 'undergrowth-links', false ) );
+	}
+
+	public function test_screen_is_named_undergrowth_in_the_menu_and_its_heading() {
+		global $submenu;
+
+		do_action( 'admin_menu' );
+
+		$names = wp_list_pluck( $submenu['edit.php'], 0, 2 );
+
+		$this->assertSame( 'Undergrowth', $names['undergrowth-links'] );
+		$this->assertStringContainsString( 'aria-label="Undergrowth screen"', $this->render() );
 	}
 
 	public function test_screen_is_not_offered_to_authors() {
@@ -267,32 +278,6 @@ class Test_Admin extends WP_UnitTestCase {
 		} catch ( WPDieException $e ) {
 			$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 		}
-	}
-
-	public function test_toggle_form_saves_the_choice() {
-		$nonce                = wp_create_nonce( 'undergrowth_toggle' );
-		$_POST['_wpnonce']    = $nonce;
-		$_REQUEST['_wpnonce'] = $nonce;
-
-		$location = $this->submit( 'undergrowth_handle_toggle' );
-
-		$this->assertFalse( undergrowth_suggestions_enabled() );
-		$this->assertStringContainsString( 'undergrowth_notice=saved', $location );
-
-		$_POST['undergrowth_suggest_links'] = '1';
-		$this->submit( 'undergrowth_handle_toggle' );
-
-		$this->assertTrue( undergrowth_suggestions_enabled() );
-	}
-
-	public function test_toggle_form_is_refused_for_authors() {
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
-		$nonce                = wp_create_nonce( 'undergrowth_toggle' );
-		$_POST['_wpnonce']    = $nonce;
-		$_REQUEST['_wpnonce'] = $nonce;
-
-		$this->expectException( WPDieException::class );
-		$this->submit( 'undergrowth_handle_toggle' );
 	}
 
 	public function test_screen_lists_each_proposal_with_its_sentence_and_a_labelled_veto() {
@@ -467,20 +452,31 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<table', $html );
 	}
 
-	public function test_screen_leaves_out_the_toggle_when_no_provider_is_set() {
-		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+	public function test_screen_has_no_settings_form() {
+		$html = $this->render();
 
-		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+		$this->assertStringNotContainsString( 'name="undergrowth_suggest_links"', $html );
+		$this->assertStringNotContainsString( 'undergrowth_toggle', $html );
+		$this->assertFalse( has_action( 'admin_post_undergrowth_toggle' ) );
 	}
 
-	public function test_screen_shows_the_toggle_when_a_provider_is_set() {
-		$this->assertStringContainsString( 'name="undergrowth_suggest_links"', $this->render() );
+	public function test_screen_says_when_suggestions_are_off_and_where_to_turn_them_on() {
+		update_option( 'undergrowth_suggest_links', '0' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'Suggestions are off', $html );
+		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'options-general.php?page=undergrowth' ) ) . '"', $html );
 	}
 
-	public function test_screen_says_when_suggestions_are_off() {
+	public function test_editors_are_told_suggestions_are_off_without_a_link_they_cannot_use() {
 		update_option( 'undergrowth_suggest_links', '0' );
 
-		$this->assertStringContainsString( 'Suggestions are off', $this->render() );
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'Suggestions are off', $html );
+		$this->assertStringNotContainsString( 'options-general.php?page=undergrowth', $html );
 	}
 
 	public function test_screen_explains_when_there_are_no_proposals_yet() {

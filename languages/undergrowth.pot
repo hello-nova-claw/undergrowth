@@ -16,6 +16,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php
 #: src/abilities.php
+#: src/admin.php
 #: src/dashboard.php
 #: src/discord-clicks.php
 #: src/settings.php
@@ -182,16 +183,7 @@ msgid "Saving this post would also remove content that only someone allowed to p
 msgstr ""
 
 #: src/admin.php
-#: src/settings.php
-msgid "Link suggestions"
-msgstr ""
-
-#: src/admin.php
 msgid "You cannot change links in this post."
-msgstr ""
-
-#: src/admin.php
-msgid "You cannot change this setting."
 msgstr ""
 
 #: src/admin.php
@@ -199,6 +191,7 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+#: src/settings.php
 msgid "Suggestions"
 msgstr ""
 
@@ -211,7 +204,7 @@ msgid "Map"
 msgstr ""
 
 #: src/admin.php
-msgid "Link suggestions screen"
+msgid "Undergrowth screen"
 msgstr ""
 
 #: src/admin.php
@@ -282,15 +275,13 @@ msgid "Link suggestions need an OpenAI API key. <a href=\"%1$s\">Add one in Sett
 msgstr ""
 
 #: src/admin.php
-msgid "Suggest links between my posts"
-msgstr ""
-
-#: src/admin.php
-msgid "Save"
-msgstr ""
-
-#: src/admin.php
 msgid "Suggestions are off. Existing suggestions and vetoes are kept, and nothing new is suggested until you turn them back on."
+msgstr ""
+
+#. translators: %1$s: address of the Undergrowth settings page.
+#: src/admin.php
+#, php-format
+msgid "<a href=\"%1$s\">Turn them on in Settings</a>."
 msgstr ""
 
 #: src/admin.php
@@ -304,10 +295,6 @@ msgstr ""
 #: src/admin.php
 #: src/discord-clicks.php
 msgid "Done. This link won’t be suggested again."
-msgstr ""
-
-#: src/admin.php
-msgid "Your choice is saved."
 msgstr ""
 
 #: src/admin.php
@@ -409,6 +396,7 @@ msgid "Post"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
 msgid "Pinned"
 msgstr ""
 
@@ -652,7 +640,7 @@ msgid "Settings saved. Undergrowth is now reading your posts, a few at a time. I
 msgstr ""
 
 #: src/first-run.php
-msgid "Posts > Link suggestions"
+msgid "Posts > Undergrowth"
 msgstr ""
 
 #: src/memory.php
@@ -725,6 +713,16 @@ msgstr ""
 msgid "Compost"
 msgstr ""
 
+#: src/posts-screen.php
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Growth stage"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "No growth stage"
+msgstr ""
+
 #. translators: %s: number of posts.
 #: src/posts-screen.php
 #, php-format
@@ -751,6 +749,10 @@ msgstr[1] ""
 
 #: src/settings.php
 msgid "Settings"
+msgstr ""
+
+#: src/settings.php
+msgid "Link suggestions"
 msgstr ""
 
 #: src/settings.php
@@ -817,6 +819,14 @@ msgstr ""
 #: src/settings.php
 #, php-format
 msgid "A key ending in %1$s is saved. Leave the field blank to keep it."
+msgstr ""
+
+#: src/settings.php
+msgid "Suggest links between my posts"
+msgstr ""
+
+#: src/settings.php
+msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
 msgstr ""
 
 #. translators: %1$s: service name, such as Discord.
@@ -890,7 +900,7 @@ msgid "Discord"
 msgstr ""
 
 #: src/settings.php
-msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
 #: src/stages.php
@@ -1000,11 +1010,6 @@ msgstr ""
 
 #: src/stages.php
 msgid "This post is not composting."
-msgstr ""
-
-#: build/blocks/growth-stage/index.js
-#: src/blocks/growth-stage/edit.js
-msgid "Growth stage"
 msgstr ""
 
 #: build/blocks/growth-stage/index.js
