@@ -16,6 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DERIVED_MIN_POSTS    = 20;
 const UNDERGROWTH_SCORE_SAMPLE         = 20000;
+const UNDERGROWTH_SCORE_VECTORS        = 1000;
 const UNDERGROWTH_LINK_PERCENTILE      = 0.4;
 const UNDERGROWTH_CLUSTER_PERCENTILE   = 0.9;
 const UNDERGROWTH_MIN_GAP_CLUSTERS     = 4;
@@ -77,8 +78,9 @@ function undergrowth_derived_threshold( string $name ): ?float {
  * percentiles the link and cluster thresholds come from.
  *
  * Only vectors from the current provider and model count, and only pairs in
- * one language and of one length are scored. A large site is sampled, so the cost stays the
- * same however many posts it has.
+ * one language and of one length are scored. A large site is sampled, both
+ * the vectors kept and the pairs scored, so the cost stays the same however
+ * many posts it has.
  */
 function undergrowth_measure_scores(): void {
 	global $wpdb;
@@ -90,6 +92,7 @@ function undergrowth_measure_scores(): void {
 	}
 
 	$groups = array();
+	$seen   = array();
 	$after  = 0;
 
 	do {
@@ -115,7 +118,11 @@ function undergrowth_measure_scores(): void {
 			// Vectors of another length, from a change of model settings,
 			// cannot be compared either.
 			if ( '' !== $packed ) {
-				$groups[ $row['language'] . "\n" . strlen( $packed ) ][] = $packed;
+				$group            = $row['language'] . "\n" . strlen( $packed );
+				$seen[ $group ]   = ( $seen[ $group ] ?? 0 ) + 1;
+				$groups[ $group ] = $groups[ $group ] ?? array();
+
+				undergrowth_keep_in_reservoir( $groups[ $group ], $packed, $seen[ $group ], UNDERGROWTH_SCORE_VECTORS );
 			}
 		}
 
@@ -135,7 +142,7 @@ function undergrowth_measure_scores(): void {
 		array(
 			'provider'    => $identity['provider'],
 			'model'       => $identity['model'],
-			'posts'       => array_sum( array_map( 'count', $groups ) ),
+			'posts'       => array_sum( $seen ),
 			'pairs'       => count( $scores ),
 			'percentiles' => $percentiles,
 			'link'        => array() === $scores ? null : undergrowth_score_percentile( $scores, UNDERGROWTH_LINK_PERCENTILE ),
@@ -143,6 +150,30 @@ function undergrowth_measure_scores(): void {
 			'gap'         => null,
 		)
 	);
+}
+
+/**
+ * Keeps an even random sample of the items seen so far, at most a limit.
+ *
+ * Each item, once seen, has the same chance of being kept, however many
+ * come after it.
+ *
+ * @param string[] $kept  Items kept so far. Changed in place.
+ * @param string   $item  The item just seen.
+ * @param int      $seen  How many items have been seen, counting this one.
+ * @param int      $limit Most items to keep.
+ */
+function undergrowth_keep_in_reservoir( array &$kept, string $item, int $seen, int $limit ): void {
+	if ( count( $kept ) < $limit ) {
+		$kept[] = $item;
+		return;
+	}
+
+	$slot = wp_rand( 0, $seen - 1 );
+
+	if ( $slot < $limit ) {
+		$kept[ $slot ] = $item;
+	}
 }
 
 /**
@@ -299,12 +330,6 @@ function undergrowth_outlier_floor( array $centres ): ?float {
  * Stores the gap threshold measured from the clusters the cycle just made.
  */
 function undergrowth_measure_gap_threshold(): void {
-	$scores = get_option( 'undergrowth_scores' );
-
-	if ( ! is_array( $scores ) ) {
-		return;
-	}
-
 	$centres = array();
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
@@ -315,9 +340,14 @@ function undergrowth_measure_gap_threshold(): void {
 		}
 	}
 
-	$scores['gap'] = undergrowth_outlier_floor( $centres );
+	// Read only now: the scores may have been forgotten while the clusters
+	// were measured, and must not come back.
+	$scores = get_option( 'undergrowth_scores' );
 
-	update_option( 'undergrowth_scores', $scores );
+	if ( is_array( $scores ) ) {
+		$scores['gap'] = undergrowth_outlier_floor( $centres );
+		update_option( 'undergrowth_scores', $scores );
+	}
 }
 
 /**
