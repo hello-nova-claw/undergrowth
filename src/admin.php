@@ -289,9 +289,12 @@ function undergrowth_render_stages_tab(): void {
 	$counts    = undergrowth_count_stages();
 	$sentences = array();
 
-	// Each sentence is its own element, translated whole.
+	// Each sentence is its own element, translated whole. A stage with no
+	// posts is left out: on a new site, a row of zeros reads like a score.
 	foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $stage ) {
-		$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
+		if ( $counts[ $stage ] > 0 ) {
+			$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
+		}
 	}
 
 	echo '<p class="undergrowth-stage-counts">' . implode( ' ', $sentences ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each sentence is escaped above.

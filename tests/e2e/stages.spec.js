@@ -74,10 +74,13 @@ test.describe( 'Growth stages tab', () => {
 			page,
 			requestUtils,
 		} ) => {
-			// One seedling, then nothing at the other three stages.
+			// One seedling, and no zeros for the other three stages.
+			await expect(
+				page.locator( '.undergrowth-stage-counts span' )
+			).toHaveCount( 1 );
 			await expect(
 				page.locator( '.undergrowth-stage-counts' )
-			).toHaveText( /1\D+0\D+0\D+0\D*$/ );
+			).not.toContainText( '0' );
 			await expect(
 				page.locator( '.undergrowth-composting-count' )
 			).toHaveCount( 0 );
@@ -108,8 +111,8 @@ test.describe( 'Growth stages tab', () => {
 				page.locator( 'table.undergrowth-stages tbody tr' )
 			).toHaveCount( 1 );
 			await expect(
-				page.locator( '.undergrowth-stage-counts' )
-			).toHaveText( /1\D+0\D+0\D+0\D*$/ );
+				page.locator( '.undergrowth-stage-counts span' )
+			).toHaveCount( 1 );
 			await expect(
 				page.locator( '.undergrowth-composting-count' )
 			).toContainText( '1' );
