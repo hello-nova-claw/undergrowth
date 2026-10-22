@@ -156,6 +156,23 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A key moved from the settings page to wp-config.php while a prompt is
+	 * snoozed must not start a second one.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_no_first_prompt_is_queued_while_a_prompt_is_snoozed() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
+
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
+	/**
 	 * Runs alone, since the constant stays defined once it is.
 	 *
 	 * @runInSeparateProcess
