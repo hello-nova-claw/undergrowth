@@ -193,7 +193,7 @@ function undergrowth_cluster_map(): array {
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
 		$shown    = array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) );
-		$measured = undergrowth_measure_cluster( array_slice( $shown, 0, UNDERGROWTH_CLUSTER_BATCH ) );
+		$measured = undergrowth_measure_cluster( undergrowth_centre_members( $leader ) );
 		$shown    = null === $measured ? $shown : array_merge( $measured['members'], array_diff( $shown, $measured['members'] ) );
 
 		if ( array() === $shown ) {
@@ -229,7 +229,7 @@ function undergrowth_cluster_gaps(): array {
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
 		$members = undergrowth_cluster_posts( $leader );
-		$gap     = undergrowth_cluster_gap( $leader, array_slice( array_values( array_filter( $members, 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
+		$gap     = undergrowth_cluster_gap( $leader, undergrowth_centre_members( $leader ), $threshold );
 
 		if ( null !== $gap ) {
 			$gaps[] = $gap + array( 'cluster' => $members );
@@ -244,6 +244,20 @@ function undergrowth_cluster_gaps(): array {
 	);
 
 	return $gaps;
+}
+
+/**
+ * Lists the members a cluster's centre is measured on.
+ *
+ * Composting posts have left the garden, and a very large cluster is
+ * measured on its first batch of members, so measuring stays cheap. The
+ * map, the gaps and the measured gap threshold all use this one selection.
+ *
+ * @param int $leader Leader ID labelling the cluster.
+ * @return int[] Member post IDs, lowest first.
+ */
+function undergrowth_centre_members( int $leader ): array {
+	return array_slice( array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH );
 }
 
 /**
