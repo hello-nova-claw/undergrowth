@@ -91,7 +91,7 @@ function undergrowth_register_discord_settings(): void {
 
 	add_settings_section(
 		'undergrowth_discord',
-		__( 'Discord', 'undergrowth' ),
+		__( 'Discord (optional)', 'undergrowth' ),
 		'undergrowth_render_discord_section',
 		'undergrowth'
 	);
@@ -210,14 +210,13 @@ function undergrowth_sanitize_discord_bot_token( $value ): string {
 }
 
 /**
- * Prints the introduction to the Discord section, which says what is sent.
+ * Prints the one-sentence introduction to the Discord section. What each
+ * message sends is in the Discord Help tab.
  */
 function undergrowth_render_discord_section(): void {
 	$error = get_option( 'undergrowth_last_discord_error' );
 	?>
-	<p class="description" id="undergrowth-discord-notice">
-		<?php esc_html_e( 'Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Link suggestions. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every field below is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers.', 'undergrowth' ); ?>
-	</p>
+	<p id="undergrowth-discord-notice"><?php esc_html_e( 'Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in.', 'undergrowth' ); ?></p>
 
 	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
 		<div class="notice notice-warning inline">
