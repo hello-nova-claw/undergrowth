@@ -95,9 +95,26 @@ class Test_Meter extends WP_UnitTestCase {
 		return trim( (string) preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) ob_get_clean() ) ) );
 	}
 
+	/**
+	 * Builds the help tabs a screen would show, as its load hook does.
+	 *
+	 * @param string $hook   Admin page hook suffix, such as 'index.php'.
+	 * @param string $screen Screen ID.
+	 * @return WP_Screen
+	 */
+	private function help_on( string $hook, string $screen ): WP_Screen {
+		set_current_screen( $screen );
+		$current = get_current_screen();
+		$current->remove_help_tabs();
+		do_action( 'load-' . $hook ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
+
+		return $current;
+	}
+
 	public function test_widget_is_titled_by_what_it_counts() {
 		global $wp_meta_boxes;
 
+		$this->stats( array( 1 ) );
 		$this->widgets();
 
 		$this->assertSame( 'Page views, last 30 days', $wp_meta_boxes['dashboard']['normal']['core']['undergrowth_meter']['title'] );
@@ -166,12 +183,9 @@ class Test_Meter extends WP_UnitTestCase {
 		$this->assertSame( 'below', undergrowth_meter_reading()['state'] );
 	}
 
-	public function test_widget_without_jetpack_says_what_is_needed() {
-		$text = $this->render();
-
-		$this->assertStringContainsString( 'Jetpack', $text );
-		$this->assertStringContainsString( 'Stats', $text );
-		$this->assertDoesNotMatchRegularExpression( '/\d/', $text );
+	public function test_without_jetpack_stats_there_is_no_widget() {
+		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
+		$this->assertSame( '', $this->render() );
 	}
 
 	public function test_asks_jetpack_for_thirty_days_by_day() {
@@ -215,8 +229,21 @@ class Test_Meter extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '412 of 1,000 views in the last 30 days', $text );
 		$this->assertStringContainsString( 'not part of this version', $text );
-		$this->assertStringContainsString( 'enough visits', $text );
-		$this->assertStringContainsString( 'once a day', $text );
+	}
+
+	public function test_widget_is_one_number_line_and_one_more_at_most() {
+		foreach ( array( array( 412 ), array( 1234 ) ) as $daily ) {
+			delete_transient( 'undergrowth_meter' );
+			$this->stats( $daily );
+
+			ob_start();
+			undergrowth_render_meter_widget();
+			$html = (string) ob_get_clean();
+
+			$this->assertLessThanOrEqual( 2, substr_count( $html, '<p' ) );
+			$this->assertSame( 1, substr_count( $html, '<strong>' ) );
+			$this->assertStringNotContainsString( 'enough visits', $html );
+		}
 	}
 
 	public function test_numbers_are_formatted_for_the_locale() {
@@ -245,7 +272,6 @@ class Test_Meter extends WP_UnitTestCase {
 		$this->assertStringContainsString( '1,234 views in the last 30 days', $text );
 		$this->assertStringContainsString( 'passed the line of 1,000', $text );
 		$this->assertStringContainsString( 'nothing changes', $text );
-		$this->assertStringContainsString( 'enough visits', $text );
 	}
 
 	public function test_jetpack_is_asked_at_most_once_a_day() {
@@ -318,10 +344,13 @@ class Test_Meter extends WP_UnitTestCase {
 	}
 
 	public function test_widget_shows_for_users_who_can_edit_others_posts() {
+		$this->stats( array( 1 ) );
+
 		$this->assertContains( 'undergrowth_meter', $this->widgets() );
 	}
 
 	public function test_widget_is_hidden_from_authors() {
+		$this->stats( array( 1 ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
 
 		$this->assertNotContains( 'undergrowth_meter', $this->widgets() );
@@ -337,10 +366,59 @@ class Test_Meter extends WP_UnitTestCase {
 		$this->assertSame( array(), WPCOM_Stats::$requests );
 	}
 
-	public function test_without_jetpack_editors_see_what_is_needed() {
+	public function test_dashboard_help_documents_both_switch_line_rules() {
+		$this->stats( array( 412 ) );
+
+		$tab = $this->help_on( 'index.php', 'dashboard' )->get_help_tab( 'undergrowth-meter' );
+
+		$this->assertIsArray( $tab );
+		$this->assertSame( 'Page views meter', $tab['title'] );
+
+		$text = wp_strip_all_tags( $tab['content'] );
+
+		$this->assertStringContainsString( '1,000 views', $text );
+		$this->assertStringContainsString( 'enough visits', $text );
+		$this->assertStringContainsString( 'once a day', $text );
+		$this->assertStringContainsString( 'Jetpack Stats', $text );
+	}
+
+	public function test_dashboard_help_comes_after_core_overview() {
+		$this->stats( array( 412 ) );
+
+		$screen = $this->help_on( 'index.php', 'dashboard' );
+		$screen->add_help_tab(
+			array(
+				'id'      => 'overview',
+				'title'   => 'Overview',
+				'content' => '',
+			)
+		);
+
+		$this->assertSame( array( 'overview', 'undergrowth-meter' ), array_keys( $screen->get_help_tabs() ) );
+	}
+
+	public function test_without_jetpack_stats_the_dashboard_has_no_meter_help() {
+		$this->assertNull( $this->help_on( 'index.php', 'dashboard' )->get_help_tab( 'undergrowth-meter' ) );
+	}
+
+	public function test_dashboard_help_follows_who_may_see_the_widget() {
+		$this->stats( array( 412 ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
-		$this->assertContains( 'undergrowth_meter', $this->widgets() );
-		$this->assertStringContainsString( 'Jetpack', $this->render() );
+		$this->assertNull( $this->help_on( 'index.php', 'dashboard' )->get_help_tab( 'undergrowth-meter' ) );
+	}
+
+	public function test_settings_help_says_once_that_the_meter_needs_jetpack_stats() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$tab = $this->help_on( 'settings_page_undergrowth', 'settings_page_undergrowth' )->get_help_tab( 'undergrowth-meter' );
+
+		$this->assertIsArray( $tab );
+
+		$text = wp_strip_all_tags( $tab['content'] );
+
+		$this->assertStringContainsString( 'Jetpack', $text );
+		$this->assertStringContainsString( 'enough visits', $text );
+		$this->assertSame( array(), WPCOM_Stats::$requests );
 	}
 }

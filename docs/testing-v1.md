@@ -88,9 +88,9 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 **The growth stage block**
 - In the editor, add the **Growth stage** block to a post or to a Query Loop. Check how it looks on the front end with your theme. A composting post should show nothing.
 
-**The threshold meter** (Dashboard, "Readers, last 30 days")
-- Without Jetpack, or with Stats off or not connected, it should say in one sentence what it needs, with no number.
-- With Jetpack connected and Stats on, it shows one number: your page views in the last 30 days against 1,000. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
+**The threshold meter** (Dashboard, "Page views, last 30 days")
+- Without Jetpack, or with Stats off or not connected, there should be no meter widget at all. Settings > Undergrowth > Help > Page views meter says what it needs.
+- With Jetpack connected and Stats on, it shows one number, your page views in the last 30 days against 1,000, and one line more. Help > Page views meter on the Dashboard explains both rules of the switch line. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
 - Past 1,000, it should say plainly that the line is passed and that nothing changes yet.
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 

@@ -65,7 +65,7 @@ Only if you set Discord up: for each new link suggestion, the titles of both pos
 
 = What does the readers meter read from Jetpack? =
 
-Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen; Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, the meter says what it needs instead.
+Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen; Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, there is no meter on the Dashboard; the Help tab on Settings > Undergrowth says what it needs.
 
 = What does it cost? =
 

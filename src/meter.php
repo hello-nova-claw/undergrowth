@@ -4,8 +4,11 @@
  * against the switch line for reader mode.
  *
  * The meter shows one number and nothing else. Reader mode is not built yet,
- * so crossing the line changes nothing, and the widget says so. Undergrowth
- * only asks Jetpack, which makes its own requests to WordPress.com.
+ * so crossing the line changes nothing, and the widget says so. Without
+ * Jetpack Stats there is no widget at all, so the Dashboard never asks the
+ * owner to install anything; a Help tab on Settings says what it needs.
+ * Undergrowth only asks Jetpack, which makes its own requests to
+ * WordPress.com.
  *
  * @package Undergrowth
  */
@@ -26,6 +29,8 @@ if ( ! defined( 'UNDERGROWTH_METER_LINE' ) ) {
 }
 
 add_action( 'wp_dashboard_setup', 'undergrowth_add_meter_widget' );
+add_action( 'load-index.php', 'undergrowth_add_meter_dashboard_help' );
+add_action( 'load-settings_page_undergrowth', 'undergrowth_add_meter_help' );
 
 /**
  * Returns the number of views in 30 days that marks the switch line.
@@ -160,18 +165,16 @@ function undergrowth_meter_reading(): array {
 /**
  * Tells whether the current user may see the meter.
  *
- * Without Jetpack Stats there is no count, so anyone who can see the Link
- * suggestions screen is told what the meter needs. With Stats on, the count
- * is Stats data, so it follows Jetpack's own setting for who may view it.
+ * Without Jetpack Stats there is no count and so no meter. With Stats on,
+ * the count is Stats data, so it follows Jetpack's own setting for who may
+ * view it.
  *
  * @return bool
  */
 function undergrowth_meter_user_can_see(): bool {
-	if ( ! current_user_can( 'edit_others_posts' ) ) {
-		return false;
-	}
-
-	return ! undergrowth_meter_has_stats() || current_user_can( 'view_stats' );
+	return current_user_can( 'edit_others_posts' )
+		&& undergrowth_meter_has_stats()
+		&& current_user_can( 'view_stats' );
 }
 
 /**
@@ -186,8 +189,9 @@ function undergrowth_add_meter_widget(): void {
 }
 
 /**
- * Prints the meter: one number against the line, or what it needs to show
- * one.
+ * Prints the meter: one number against the line, and one line more.
+ *
+ * Both switch-line rules are in the Help tab, not here.
  */
 function undergrowth_render_meter_widget(): void {
 	if ( ! undergrowth_meter_user_can_see() ) {
@@ -195,15 +199,6 @@ function undergrowth_render_meter_widget(): void {
 	}
 
 	$reading = undergrowth_meter_reading();
-	$views   = number_format_i18n( $reading['views'] );
-	$line    = number_format_i18n( $reading['line'] );
-	$later   = __( 'When they arrive, each suggestion from reader data will also need enough visits on the pages it draws on, checked before it is shown.', 'undergrowth' );
-
-	if ( 'no-stats' === $reading['state'] ) {
-		echo '<p>' . esc_html__( 'This meter counts page views from Jetpack Stats. To see it, install Jetpack, connect it to WordPress.com and turn on Stats.', 'undergrowth' ) . '</p>';
-
-		return;
-	}
 
 	if ( 'no-answer' === $reading['state'] ) {
 		echo '<p>' . esc_html__( 'Jetpack Stats did not answer, so there is no count today. Undergrowth will ask again tomorrow.', 'undergrowth' ) . '</p>';
@@ -211,20 +206,63 @@ function undergrowth_render_meter_widget(): void {
 		return;
 	}
 
+	$views = number_format_i18n( $reading['views'] );
+	$line  = number_format_i18n( $reading['line'] );
+
 	if ( 'crossed' === $reading['state'] ) {
 		/* translators: 1: views in the last 30 days, 2: the switch line. Both are formatted numbers. */
 		$status = sprintf( __( '%1$s views in the last 30 days. Your site has passed the line of %2$s.', 'undergrowth' ), $views, $line );
-		$rules  = __( 'Reader features are not part of this version yet, so nothing changes for now.', 'undergrowth' );
+		$more   = __( 'Reader features are not part of this version yet, so nothing changes for now.', 'undergrowth' );
 	} else {
 		/* translators: 1: views in the last 30 days, 2: the switch line. Both are formatted numbers. */
 		$status = sprintf( __( '%1$s of %2$s views in the last 30 days.', 'undergrowth' ), $views, $line );
-		/* translators: %s: the switch line, a formatted number of views. */
-		$rules = sprintf( __( 'Reader features, which will suggest links from the paths readers take between your posts, wait for %s views in 30 days. They are not part of this version yet.', 'undergrowth' ), $line );
+		$more   = __( 'Reader features wait for this line. They are not part of this version yet.', 'undergrowth' );
 	}
 	?>
 	<p><strong><?php echo esc_html( $status ); ?></strong></p>
-	<p class="description"><?php echo esc_html( $rules ); ?></p>
-	<p class="description"><?php echo esc_html( $later ); ?></p>
-	<p class="description"><?php esc_html_e( 'Counted from Jetpack Stats once a day.', 'undergrowth' ); ?></p>
+	<p class="description"><?php echo esc_html( $more ); ?></p>
 	<?php
+}
+
+/**
+ * Adds the meter's Help tab to the Dashboard, where the widget is.
+ */
+function undergrowth_add_meter_dashboard_help(): void {
+	if ( undergrowth_meter_user_can_see() ) {
+		undergrowth_add_meter_help();
+	}
+}
+
+/**
+ * Adds a Help tab that explains what the meter counts and both rules of the
+ * switch line (handover section 4).
+ *
+ * On the Dashboard it follows core's own tabs, which are added after this
+ * screen's load hook.
+ */
+function undergrowth_add_meter_help(): void {
+	$screen = get_current_screen();
+
+	if ( ! $screen ) {
+		return;
+	}
+
+	$line = number_format_i18n( undergrowth_meter_line() );
+
+	$paragraphs = array(
+		__( 'The page views meter counts views of your site in the last 30 days, from Jetpack Stats, once a day. It appears on the Dashboard only when Jetpack is connected to WordPress.com with Stats turned on. Undergrowth asks Jetpack and nothing else.', 'undergrowth' ),
+		/* translators: %1$s: the switch line, a formatted number of views. */
+		sprintf( __( 'Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %1$s views in 30 days. Passing it alone never turns a suggestion on.', 'undergrowth' ), $line ),
+		__( 'The second rule is checked before each suggestion from reader data is shown: the pages it draws on need enough visits for the suggestion to hold up.', 'undergrowth' ),
+		__( 'Reader features are not part of this version yet, so neither rule changes anything for now.', 'undergrowth' ),
+	);
+
+	$screen->add_help_tab(
+		array(
+			'id'       => 'undergrowth-meter',
+			'title'    => __( 'Page views meter', 'undergrowth' ),
+			'content'  => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
+			'priority' => 20,
+		)
+	);
 }
