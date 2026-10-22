@@ -128,6 +128,27 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( 1.0, min( $mixed ), 1e-6 );
 	}
 
+	public function test_reservoir_keeps_at_most_its_limit_of_what_it_was_given() {
+		$kept = array();
+
+		for ( $seen = 1; $seen <= 100; $seen++ ) {
+			undergrowth_keep_in_reservoir( $kept, "vector {$seen}", $seen, 10 );
+		}
+
+		$this->assertCount( 10, $kept );
+		$this->assertSame( array(), array_diff( $kept, array_map( static fn( $n ) => "vector {$n}", range( 1, 100 ) ) ) );
+	}
+
+	public function test_reservoir_keeps_everything_below_its_limit() {
+		$kept = array();
+
+		for ( $seen = 1; $seen <= 5; $seen++ ) {
+			undergrowth_keep_in_reservoir( $kept, "vector {$seen}", $seen, 10 );
+		}
+
+		$this->assertSame( array( 'vector 1', 'vector 2', 'vector 3', 'vector 4', 'vector 5' ), $kept );
+	}
+
 	public function test_outlier_floor_sits_below_the_lower_quartile() {
 		$floor = undergrowth_outlier_floor( array( 0.962, 0.927, 0.949, 0.951, 0.954, 0.957, 0.962 ) );
 
@@ -320,7 +341,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$centres = array();
 
 		foreach ( undergrowth_cluster_leaders() as $leader ) {
-			$centres[] = undergrowth_measure_cluster( undergrowth_cluster_members( $leader ) )['centre'];
+			$centres[] = undergrowth_measure_cluster( undergrowth_centre_members( $leader ) )['centre'];
 		}
 
 		$this->assertSame( undergrowth_outlier_floor( $centres ), get_option( 'undergrowth_scores' )['gap'] );
