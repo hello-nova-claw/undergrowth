@@ -18,7 +18,7 @@ function actionButton( row, action, name = /Oca[\s\S]*Yacon|Yacon[\s\S]*Oca/ ) {
 		.and( row.locator( `[form^="undergrowth-${ action }-"]` ) );
 }
 
-test.describe( 'Link suggestions screen', () => {
+test.describe( 'Suggestions on Posts > Undergrowth', () => {
 	test.beforeEach( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
 	} );

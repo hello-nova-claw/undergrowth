@@ -6,7 +6,7 @@
  */
 
 /**
- * Link suggestions screen, veto and toggle.
+ * The Undergrowth screen, Accept and Veto.
  */
 class Test_Admin extends WP_UnitTestCase {
 
