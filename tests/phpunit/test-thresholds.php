@@ -193,7 +193,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 	}
 
 	public function test_scores_stay_when_a_larger_site_loses_a_post() {
-		$ids   = $this->plant_groups( 7, 3 );
+		$ids = $this->plant_groups( 7, 3 );
 		undergrowth_measure_scores();
 		$score = get_option( 'undergrowth_scores' );
 
