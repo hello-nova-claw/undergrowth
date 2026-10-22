@@ -291,6 +291,20 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'tried again within the hour', $this->render() );
 	}
 
+	public function test_page_opens_with_one_sentence_on_what_undergrowth_does() {
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#</h1>\s*<p id="undergrowth-intro">[^<]*OpenAI[^<]*Anthropic[^<]*</p>#', $html );
+		$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', wp_strip_all_tags( (string) preg_replace( '#.*<p id="undergrowth-intro">(.*?)</p>.*#s', '$1', $html ) ) ) );
+	}
+
+	public function test_each_key_field_links_to_the_providers_key_page() {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'href="https://platform.openai.com/api-keys"', $html );
+		$this->assertStringContainsString( 'href="https://platform.claude.com/settings/keys"', $html );
+	}
+
 	public function test_plugins_screen_links_to_settings_before_deactivate() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
