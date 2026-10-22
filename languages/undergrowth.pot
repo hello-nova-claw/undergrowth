@@ -363,20 +363,17 @@ msgid "Growth stage: %s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+msgid "Suggestion"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
 msgid "In this post"
 msgstr ""
 
+#. translators: %1$s: title of the post the link would point to, linked to its editor.
 #: src/class-undergrowth-links-list-table.php
-msgid "At this sentence"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-msgid "Link to"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-#: src/class-undergrowth-stages-list-table.php
-msgid "Actions"
+#, php-format
+msgid "Link to %1$s"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
@@ -403,10 +400,6 @@ msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 msgid "Post"
-msgstr ""
-
-#: src/class-undergrowth-stages-list-table.php
-msgid "Stage"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
