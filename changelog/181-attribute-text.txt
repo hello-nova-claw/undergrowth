@@ -1,0 +1,1 @@
+Accepting a link never puts it inside an attribute, such as a title holding a ">" and the same sentence.
