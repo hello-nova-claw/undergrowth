@@ -87,6 +87,12 @@ function undergrowth_queue_first_prompt(): void {
  * Removes the plugin's prompt events.
  */
 function undergrowth_unschedule_prompts(): void {
+	// A first prompt for a key in wp-config.php that was never written is
+	// asked for again once the plugin is active again.
+	if ( false !== wp_next_scheduled( 'undergrowth_write_prompt' ) ) {
+		delete_option( 'undergrowth_config_prompt_queued' );
+	}
+
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 }
