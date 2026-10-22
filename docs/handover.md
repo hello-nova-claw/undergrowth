@@ -133,6 +133,30 @@ Personalised prompts that point the author in a direction. The one feature where
 - Store provider name and model name with every vector. Refuse to compare vectors from different models. If the provider changes, re-embed everything on the next cron run.
 - Future zero-config path: in-PHP ONNX small model, or a hosted endpoint behind the Jetpack connection. Not v1.
 
+### WordPress AI Client: decision (2026-10-22, #119)
+
+**Decision: stay for v1, and partly move in v2 as an opt-in second path.** The direct OpenAI and Anthropic clients stay as they are. The AI Client is added later beside them, never in place of them, until the minimum version reaches the release that has everything.
+
+What the sources say, checked against WordPress trunk, the 7.1.3 tag, `WordPress/php-ai-client` and the `ai-provider-for-*` plugins on 2026-10-22:
+
+- **Embeddings are not in a released WordPress.** `wp_ai_client_embedding()` and `WP_AI_Client_Embedding_Builder` are marked `@since 7.2.0` and are absent from the 7.1.3 tag. 7.2 is in beta this week, with a scheduled release of 2026-12-08. `wp_ai_client_prompt()` (7.0) does text, image, speech and video, not embeddings. The SDK underneath (php-ai-client 1.4+) and the OpenAI provider plugin do support `text-embedding-3-small`.
+- **The model is always named by the caller.** An embedding builder will not choose a model, because vectors from different models cannot be compared. So Undergrowth would pin `usingProviderModel( 'openai', 'text-embedding-3-small' )` and declare that same pair through `undergrowth_embed_identity`, from constants, with no call. Nothing in the identity rule changes. Vectors from the same model through the same API are the same vectors, so switching path would not need a re-embed. One caveat: the model list is fetched from the provider once and then cached, so "is it usable" may cost one request, while "what is the identity" never does.
+- **Writing prompts work on 7.0, with the Anthropic provider plugin.** Core bundles no provider; the owner installs `ai-provider-for-anthropic` from Settings > Connectors. `using_system_instruction()`, `using_max_tokens()` and `using_provider( 'anthropic' )` plus a model cover what `src/prompts.php` sends. The effort setting has no method; the Anthropic provider passes unknown model-config options straight into the request, so `output_config` can travel that way. Untrusted data stays what it is today, delimited text in the user message under a system prompt; the client adds nothing and removes nothing. A reply cut off by the token limit comes back as a `WP_Error` (the provider throws on `max_tokens`), which is the behaviour `undergrowth_anthropic_message()` wants. A refusal comes back as a finish reason, so the check for it has to be kept.
+- **Credentials are site-wide, not per feature.** The owner enters a key once under Settings > Connectors. It is stored in the option `connectors_ai_<provider>_api_key`, or read from an environment variable or PHP constant (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), and is masked in REST responses. Every plugin that calls the AI Client can use that key, and the owner cannot give it to Undergrowth alone. Undergrowth cannot read it and must not.
+- **Plugin Check:** the `AIProvider.DirectIntegration` sniff matches provider host names (`api.openai.com`, `api.anthropic.com`) in strings. It stops firing only when those strings are gone from the plugin. While the 6.9 fallback exists it keeps firing, and the existing `phpcs:ignore` comments stay. Moving does not remove the warning; dropping 6.9 does.
+
+Why not move now: the plugin supports 6.9, embeddings need 7.2, writing needs 7.0 plus a plugin install, and a move that only half works leaves two code paths with no gain. Why move at all later: an owner who already has a provider set up skips pasting keys, which is the biggest hurdle for a non-developer.
+
+Rules for the v2 path, which do not bend:
+
+- **Off until configured.** The AI Client path is chosen by the owner on the settings page. It is never picked because a connector happens to exist on the site, so installing some other AI plugin cannot start sending post text from Undergrowth.
+- **The settings page says what is sent and where.** The notice names the provider and model Undergrowth will use, says the key is the site's and shared with other plugins, and lists the same content as today (post text for vectors; the gap or cluster summary and quoted sentences for prompts).
+- **No vector without an identity.** The path declares provider and model from constants, and a failed or unsupported call stores nothing.
+- **Fallback.** Order is the `undergrowth_embed_provider` filter, then the AI Client when the owner chose it and the function exists, then the direct key. Below 7.2, or without a configured connector, the owner sees the existing key fields.
+- **Raising "Requires at least"** to 7.2 and deleting the direct clients is a separate decision, to be made when 7.2 is out and the AI Client path has been used on real sites. It is what would clear the Plugin Check warning.
+
+Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 7.2 (#189); writing prompts through `wp_ai_client_prompt()` (#190); the settings copy that goes with both (#191).
+
 ### Storage
 - Custom table for vectors.
 - Readable plain-text file per post (has, lacks, scent, stage, every veto). Portable between sites. Owner can read and edit it. This is the "plain-text memory" pattern from OpenClaw/Hermes.
@@ -260,6 +284,7 @@ Everything in sections 4 "Reader mode" is v2.
 - ~~Which embedding API is the default (OpenAI / Voyage / Jina).~~ Decided 2026-10-18: OpenAI `text-embedding-3-small`, others later (section 6).
 - Whether to test the in-PHP ONNX embedding path for a fully non-dev install.
 - WordPress.com embedding endpoint question (parked until Anna is back at work).
+- ~~Whether to use the WordPress AI Client (#119).~~ Decided 2026-10-22: stay for v1, add as an opt-in second path in v2 (section 6).
 
 ---
 
