@@ -154,6 +154,70 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$this->assertSame( undergrowth_score_percentile( $scores, 0.5 ), $stored['percentiles']['50'] );
 	}
 
+	public function test_measurement_pairs_only_posts_in_one_language() {
+		add_filter(
+			'undergrowth_post_language',
+			static function ( $locale, $post ) {
+				return 0 === strpos( $post->post_title, 'Group 0' ) ? 'de_DE' : $locale;
+			},
+			10,
+			2
+		);
+		$this->plant_groups( 2, 3 );
+
+		undergrowth_measure_scores();
+
+		$this->assertSame( 6, get_option( 'undergrowth_scores' )['pairs'] );
+	}
+
+	public function test_measurement_never_compares_vectors_of_different_lengths() {
+		$this->plant( 'Short one', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Short two', array( 0.0, 1.0, 0.0 ) );
+		$this->plant( 'Long one', array( 1.0, 0.0, 0.0, 0.0 ) );
+		$this->plant( 'Long two', array( 0.0, 0.0, 0.0, 1.0 ) );
+
+		undergrowth_measure_scores();
+
+		$this->assertSame( 2, get_option( 'undergrowth_scores' )['pairs'] );
+		$this->assertSame( 0.0, get_option( 'undergrowth_scores' )['percentiles']['95'] );
+	}
+
+	public function test_scores_are_forgotten_when_the_site_falls_below_twenty_posts() {
+		$ids = $this->plant_groups( 5, 4 );
+		undergrowth_measure_scores();
+
+		wp_delete_post( $ids[0], true );
+
+		$this->assertFalse( get_option( 'undergrowth_scores' ) );
+		$this->assertSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
+	}
+
+	public function test_scores_stay_when_a_larger_site_loses_a_post() {
+		$ids   = $this->plant_groups( 7, 3 );
+		undergrowth_measure_scores();
+		$score = get_option( 'undergrowth_scores' );
+
+		wp_delete_post( $ids[0], true );
+
+		$this->assertSame( $score, get_option( 'undergrowth_scores' ) );
+	}
+
+	public function test_centre_is_measured_on_gardened_members_up_to_one_batch() {
+		$ids     = $this->plant_groups( 1, 3 );
+		$members = array_merge( $ids, self::factory()->post->create_many( UNDERGROWTH_CLUSTER_BATCH ) );
+
+		foreach ( $members as $id ) {
+			update_post_meta( $id, 'undergrowth_cluster', $ids[0] );
+		}
+
+		undergrowth_set_stage( $ids[1], 'composting', 'compost' );
+		$measured = undergrowth_centre_members( $ids[0] );
+
+		$this->assertNotContains( $ids[1], $measured );
+		$this->assertCount( UNDERGROWTH_CLUSTER_BATCH, $measured );
+		$this->assertSame( $ids[0], $measured[0] );
+	}
+
 	public function test_measured_thresholds_are_the_defaults_from_twenty_posts() {
 		$this->plant_groups( 5, 4 );
 
