@@ -15,11 +15,13 @@ Use a local or staging copy of your site, not the live one. Undergrowth only cha
 You need WordPress 6.9 or later and PHP 7.4 or later. A local site from Studio, Local or wp-env works, and so does a staging copy.
 
 1. Go to **Plugins > Add New > Upload Plugin**, choose `undergrowth.zip`, then **Install Now** and **Activate**.
-2. Undergrowth does nothing yet. It sends nothing anywhere until you save a key.
+2. Undergrowth does nothing yet. It sends nothing anywhere until you save a key. A notice on the Plugins screen links to Settings > Undergrowth. It should go away for good once you save a key or choose **Dismiss for good**, and never show on any other screen.
 
 ## 3. Add your keys
 
 Go to **Settings > Undergrowth**.
+
+The page should open with one sentence on what Undergrowth does, and each key field should link to the provider's own key page. After you save the first OpenAI key, the "Settings saved" notice should link on to **Posts > Link suggestions**.
 
 - **OpenAI API key** (needed). Paste a key from your own OpenAI account. Undergrowth uses it to turn each published post into a vector, a list of numbers that says what the post is about. It sends each post's title and text, and nothing else. The settings page says the same.
 - **Anthropic API key** (optional). This is for the Dashboard questions. Each request sends one post's title and a few sentences quoted from it. If the question comes from a reader's comment, that comment's text goes too. Whole posts are never sent. **Wait until step 5 before you save this key** (see below).
