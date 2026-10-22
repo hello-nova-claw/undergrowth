@@ -1,6 +1,8 @@
 # Handover: Undergrowth
 
-Status: pre-scaffold. Nothing built. This document is the full record of decisions made on 2026-10-18 and is the input for the first Claude Code session.
+Status (2026-10-23): v1, germination mode, is built: build order steps 1 to 8 and the growth-stage badge block from step 9. It has had security, quality and UX reviews, and is being tested on real posts (docs/testing-v1.md). The related-by-readers block and everything under reader mode wait for v2.
+
+This document is the record of decisions, first made on 2026-10-18 as the input for the first Claude Code session, with later decisions added in place.
 
 **Name: Undergrowth** (locked). Slug `undergrowth` is free on WordPress.org as of 2026-10-18. Ability prefix `undergrowth/`, function prefix `undergrowth_`, table prefix `wp_undergrowth_`. Domain not yet checked.
 
