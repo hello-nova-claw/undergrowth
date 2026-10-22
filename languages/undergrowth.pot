@@ -16,6 +16,7 @@ msgstr ""
 #. Plugin Name of the plugin
 #: undergrowth.php
 #: src/abilities.php
+#: src/dashboard.php
 #: src/discord-clicks.php
 #: src/settings.php
 msgid "Undergrowth"
@@ -443,6 +444,10 @@ msgstr ""
 msgid "A question for you"
 msgstr ""
 
+#: src/dashboard.php
+msgid "Page views, last 30 days"
+msgstr ""
+
 #. translators: %1$s: title of the post, linked to its editor.
 #: src/dashboard.php
 #, php-format
@@ -638,10 +643,6 @@ msgstr ""
 
 #: src/memory.php
 msgid "The stage was imported, but some of its history could not be saved."
-msgstr ""
-
-#: src/meter.php
-msgid "Page views, last 30 days"
 msgstr ""
 
 #: src/meter.php
