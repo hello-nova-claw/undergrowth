@@ -107,7 +107,7 @@ class Test_Settings extends WP_UnitTestCase {
 	}
 
 	public function test_page_shows_where_the_per_post_files_are() {
-		$this->assertStringContainsString( undergrowth_memory_folder() . '/posts/', $this->render() );
+		$this->assertMatchesRegularExpression( '#<code id="undergrowth-memory-folder"[^>]*>[^<]*' . preg_quote( undergrowth_memory_folder(), '#' ) . '/posts/</code>#', $this->render() );
 	}
 
 	public function test_page_says_what_is_sent_to_openai() {
