@@ -207,7 +207,7 @@ function undergrowth_render_settings_page(): void {
 						<input type="password" class="regular-text" id="undergrowth_openai_api_key" name="undergrowth_openai_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-openai-notice<?php echo $key_in_config ? ' undergrowth-openai-config' : ''; ?>"<?php disabled( $key_in_config ); ?> />
 
 						<p class="description" id="undergrowth-openai-notice">
-							<?php esc_html_e( 'With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ); ?>
+							<?php esc_html_e( 'With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ); ?>
 							<a id="undergrowth-openai-get-key" href="https://platform.openai.com/api-keys"><?php esc_html_e( 'Get a key from OpenAI', 'undergrowth' ); ?></a>
 						</p>
 
@@ -294,7 +294,7 @@ function undergrowth_render_settings_page(): void {
 						<input type="password" class="regular-text" id="undergrowth_anthropic_api_key" name="undergrowth_anthropic_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-anthropic-notice<?php echo $anthropic_config ? ' undergrowth-anthropic-config' : ''; ?>"<?php disabled( $anthropic_config ); ?> />
 
 						<p class="description" id="undergrowth-anthropic-notice">
-							<?php esc_html_e( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ); ?>
+							<?php esc_html_e( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ); ?>
 							<a id="undergrowth-anthropic-get-key" href="https://platform.claude.com/settings/keys"><?php esc_html_e( 'Get a key from Anthropic', 'undergrowth' ); ?></a>
 						</p>
 
