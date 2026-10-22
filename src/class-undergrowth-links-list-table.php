@@ -169,8 +169,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			return '';
 		}
 
-		$source = get_the_title( $item['source_id'] );
-		$target = get_the_title( $item['target_id'] );
+		$source = undergrowth_post_title( $item['source_id'] );
+		$target = undergrowth_post_title( $item['target_id'] );
 
 		return $this->row_actions(
 			array(
@@ -230,7 +230,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			'<a%1$s href="%2$s">%3$s</a>',
 			'' === $link_class ? '' : ' class="' . esc_attr( $link_class ) . '"',
 			esc_url( (string) get_edit_post_link( $post_id, 'raw' ) ),
-			esc_html( get_the_title( $post_id ) )
+			esc_html( undergrowth_post_title( $post_id ) )
 		);
 	}
 

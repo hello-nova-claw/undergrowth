@@ -444,13 +444,26 @@ function undergrowth_render_resurfacing_signals(): void {
 }
 
 /**
+ * Returns a post's title, or "(no title)" as core's lists name an untitled
+ * post, so a link or a button's name is never empty.
+ *
+ * @param int $post_id Post ID.
+ * @return string Title, not escaped.
+ */
+function undergrowth_post_title( int $post_id ): string {
+	$title = get_the_title( $post_id );
+
+	return '' === $title ? __( '(no title)', 'undergrowth' ) : $title;
+}
+
+/**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
  * @param int $post_id Post ID.
  * @return string Escaped HTML.
  */
 function undergrowth_post_link( int $post_id ): string {
-	$title = esc_html( get_the_title( $post_id ) );
+	$title = esc_html( undergrowth_post_title( $post_id ) );
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
 	return null === $link ? $title : sprintf( '<a href="%1$s">%2$s</a>', esc_url( $link ), $title );

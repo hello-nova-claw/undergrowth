@@ -129,7 +129,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 */
 	public function column_post( $item ) {
 		$post_id = $item->ID;
-		$title   = esc_html( get_the_title( $post_id ) );
+		$title   = esc_html( undergrowth_post_title( $post_id ) );
 		$link    = get_edit_post_link( $post_id, 'raw' );
 		$stage   = undergrowth_get_stage( $post_id );
 
@@ -146,7 +146,12 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			);
 		}
 
-		$html = '<strong>' . $title . ' &mdash; <span class="post-state">' . $state . '</span></strong>';
+		$html = '<strong>' . sprintf(
+			/* translators: 1: post title, 2: its growth stage. */
+			__( '%1$s &mdash; %2$s', 'undergrowth' ),
+			$title,
+			'<span class="post-state">' . $state . '</span>'
+		) . '</strong>';
 
 		if ( $this->can_pin( $post_id ) ) {
 			$html .= $this->form( $post_id, undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin' );
@@ -173,7 +178,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			return '';
 		}
 
-		$title = get_the_title( $post_id );
+		$title = undergrowth_post_title( $post_id );
 
 		if ( undergrowth_is_stage_pinned( $post_id ) ) {
 			return $this->row_actions(

@@ -152,7 +152,9 @@ function undergrowth_link_word_choice( int $source_id, int $target_id, string $s
 	$source = get_post( $source_id );
 	$target = get_post( $target_id );
 
-	if ( ! $source instanceof WP_Post || ! $target instanceof WP_Post || '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
+	// As in undergrowth_accept_link(), a target that has left the garden
+	// cannot be linked, so no word would be.
+	if ( ! $source instanceof WP_Post || ! $target instanceof WP_Post || ! undergrowth_is_indexable( $target ) || '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
 		return null;
 	}
 
