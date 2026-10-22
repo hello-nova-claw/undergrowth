@@ -447,14 +447,19 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
 /**
  * Picks the sentence in the source post that best fits a link to the target.
  *
- * @param int   $source_id Post the link would sit in.
- * @param int   $target_id Post the link would point to.
- * @param array $corpus    Result of undergrowth_build_corpus().
+ * A sentence already holding another proposal is passed over for the next
+ * best one that fits, so accepting several links never crowds them into one
+ * sentence. It is still chosen when nothing else fits.
+ *
+ * @param int      $source_id Post the link would sit in.
+ * @param int      $target_id Post the link would point to.
+ * @param array    $corpus    Result of undergrowth_build_corpus().
+ * @param string[] $taken     Sentences already holding another of the post's proposals.
  * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
-function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus ): ?array {
+function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus, array $taken = array() ): ?array {
 	$source = get_post( $source_id );
 
 	if ( ! $source instanceof WP_Post ) {
@@ -473,21 +478,31 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 	);
 
 	$terms      = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
-	$best       = null;
-	$best_score = 0.0;
+	$taken = array_flip( $taken );
+	$best  = array(
+		'free'  => null,
+		'taken' => null,
+	);
+	$top   = array(
+		'free'  => 0.0,
+		'taken' => 0.0,
+	);
 
 	foreach ( $sentences as $sentence ) {
 		$score = 0.0;
+		$kind  = isset( $taken[ $sentence['text'] ] ) ? 'taken' : 'free';
 
 		foreach ( array_unique( undergrowth_tokens( $sentence['text'] ) ) as $token ) {
 			$score += $terms[ $token ] ?? 0.0;
 		}
 
-		if ( $score > $best_score ) {
-			$best_score = $score;
-			$best       = $sentence['text'];
+		if ( $score > $top[ $kind ] ) {
+			$top[ $kind ]  = $score;
+			$best[ $kind ] = $sentence['text'];
 		}
 	}
+
+	$best = $best['free'] ?? $best['taken'];
 
 	if ( null === $best ) {
 		return null;
