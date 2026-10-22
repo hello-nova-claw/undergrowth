@@ -130,7 +130,13 @@ function undergrowth_measure_scores(): void {
 		$wpdb->flush();
 	} while ( UNDERGROWTH_VECTOR_CHUNK === $fetched );
 
-	$scores      = undergrowth_sample_scores( array_values( $groups ), UNDERGROWTH_SCORE_SAMPLE );
+	$weights = array();
+
+	foreach ( $seen as $count ) {
+		$weights[] = $count * ( $count - 1 ) / 2;
+	}
+
+	$scores      = undergrowth_sample_scores( array_values( $groups ), UNDERGROWTH_SCORE_SAMPLE, $weights );
 	$percentiles = array();
 
 	foreach ( UNDERGROWTH_RECORDED_PERCENTILES as $percent ) {
@@ -209,11 +215,13 @@ function undergrowth_forget_scores_below_minimum(): void {
  * Scores pairs of vectors, every pair when there are few and a random
  * sample when there are many.
  *
- * @param array<int, string[]> $groups Packed unit vectors, grouped so that only vectors in one group are compared.
- * @param int                  $limit  Most pairs to score.
+ * @param array<int, string[]> $groups  Packed unit vectors, grouped so that only vectors in one group are compared.
+ * @param int                  $limit   Most pairs to score.
+ * @param array<int, float>    $weights Pairs each group stands for, keyed like $groups, when the groups
+ *                                      are themselves samples. Default: the pairs they hold.
  * @return float[] Scores, lowest first.
  */
-function undergrowth_sample_scores( array $groups, int $limit ): array {
+function undergrowth_sample_scores( array $groups, int $limit, array $weights = array() ): array {
 	$sizes = array();
 
 	foreach ( $groups as $index => $group ) {
@@ -238,8 +246,18 @@ function undergrowth_sample_scores( array $groups, int $limit ): array {
 			}
 		}
 	} else {
+		// A group sampled down to its reservoir still counts for all its pairs.
+		$odds = array();
+
+		foreach ( $sizes as $index => $pairs ) {
+			$odds[ $index ] = (float) ( $weights[ $index ] ?? $pairs );
+		}
+
+		$total = array_sum( $odds ) >= 1 ? array_sum( $odds ) : $total;
+		$odds  = array_sum( $odds ) >= 1 ? $odds : $sizes;
+
 		for ( $n = 0; $n < $limit; $n++ ) {
-			$group = array_values( $groups[ undergrowth_pick_group( $sizes, wp_rand( 1, (int) $total ) ) ] );
+			$group = array_values( $groups[ undergrowth_pick_group( $odds, wp_rand( 1, (int) $total ) ) ] );
 			$i     = wp_rand( 0, count( $group ) - 1 );
 			$j     = wp_rand( 0, count( $group ) - 2 );
 			$j    += $j >= $i ? 1 : 0;
