@@ -149,6 +149,16 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$this->assertSame( array( 'vector 1', 'vector 2', 'vector 3', 'vector 4', 'vector 5' ), $kept );
 	}
 
+	public function test_sample_weighs_groups_by_the_pairs_they_stand_for() {
+		$same      = array_fill( 0, 10, undergrowth_unit_vector( array( 1.0, 0.0 ) ) );
+		$different = array( undergrowth_unit_vector( array( 1.0, 0.0 ) ), undergrowth_unit_vector( array( 0.0, 1.0 ) ) );
+
+		$scores = undergrowth_sample_scores( array( $same, $different ), 20, array( 0.0, 1000.0 ) );
+
+		$this->assertCount( 20, $scores );
+		$this->assertEqualsWithDelta( 0.0, max( $scores ), 1e-6 );
+	}
+
 	public function test_outlier_floor_sits_below_the_lower_quartile() {
 		$floor = undergrowth_outlier_floor( array( 0.962, 0.927, 0.949, 0.951, 0.954, 0.957, 0.962 ) );
 
