@@ -391,8 +391,11 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 	$best       = null;
 	$best_score = 0.0;
 
-	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
-		if ( $sentence['linked'] || $sentence['quoted'] ) {
+	// Only sentences from paragraphs a link may go in are scored, each with
+	// its own paragraph's flags, so a heading or list item is never chosen,
+	// even when it shares a paragraph's words or text.
+	foreach ( undergrowth_linkable_sentences( $source->post_content ) as $sentence ) {
+		if ( $sentence['linked'] ) {
 			continue;
 		}
 
@@ -404,12 +407,57 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 
 		if ( $score > $best_score ) {
 			$best_score = $score;
-			$best       = array(
-				'text'  => $sentence['text'],
+			$best       = $sentence['text'];
+		}
+	}
+
+	if ( null === $best ) {
+		return null;
+	}
+
+	// The index is where the sentence sits among all of the post's
+	// sentences: the first unlinked one with the same text.
+	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
+		if ( $best === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
+			return array(
+				'text'  => $best,
 				'index' => $index,
 			);
 		}
 	}
 
-	return $best;
+	return null;
+}
+
+/**
+ * Lists the sentences of the paragraphs a link may be added to.
+ *
+ * @param string $content Post content.
+ * @return array<int, array{text: string, linked: bool, quoted: bool}> Sentences in reading order.
+ */
+function undergrowth_linkable_sentences( string $content ): array {
+	$sentences = array();
+
+	// Comments hold no links, and blanking them keeps every offset.
+	$scan = (string) preg_replace_callback(
+		'/<!--.*?(?:-->|$)/s',
+		static function ( $comment ) {
+			return str_repeat( ' ', strlen( $comment[0] ) );
+		},
+		$content
+	);
+
+	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
+		// A link can wrap a whole paragraph, so one still open where the
+		// paragraph starts marks every sentence in it as linked.
+		$before  = substr( $scan, 0, $paragraph[1] );
+		$wrapped = preg_match_all( '#<a\b#i', $before ) > preg_match_all( '#</a\s*>#i', $before );
+
+		foreach ( undergrowth_split_sentences( '<p>' . $paragraph[0] . '</p>' ) as $sentence ) {
+			$sentence['linked'] = $sentence['linked'] || $wrapped;
+			$sentences[]        = $sentence;
+		}
+	}
+
+	return $sentences;
 }
