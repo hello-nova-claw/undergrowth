@@ -126,7 +126,8 @@ function undergrowth_first_key_saved( $old_value, $value ): void {
 
 	undergrowth_end_first_run();
 
-	if ( is_string( $old_value ) && '' !== $old_value ) {
+	// A key saved outside wp-admin, as from WP-CLI, has no notice to show.
+	if ( ( is_string( $old_value ) && '' !== $old_value ) || ! function_exists( 'add_settings_error' ) ) {
 		return;
 	}
 

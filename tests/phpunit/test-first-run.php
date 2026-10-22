@@ -83,7 +83,7 @@ class Test_First_Run extends WP_UnitTestCase {
 
 		$html = $this->notice_on();
 
-		$this->assertMatchesRegularExpression( '/admin-post\.php\?action=undergrowth_dismiss_first_run&amp;_wpnonce=[0-9a-f]+/', $html );
+		$this->assertMatchesRegularExpression( '/admin-post\.php\?action=undergrowth_dismiss_first_run(&amp;|&#038;)_wpnonce=[0-9a-f]+/', $html );
 		$this->assertStringContainsString( 'Dismiss for good', $html );
 	}
 
