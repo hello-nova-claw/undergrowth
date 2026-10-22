@@ -17,6 +17,7 @@ msgstr ""
 #: undergrowth.php
 #: src/abilities.php
 #: src/admin.php
+#: src/dashboard.php
 #: src/discord-clicks.php
 #: src/settings.php
 msgid "Undergrowth"
@@ -266,6 +267,10 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
+#: src/admin.php
+msgid "(no title)"
+msgstr ""
+
 #. translators: %1$s: address of the Undergrowth settings page.
 #: src/admin.php
 #, php-format
@@ -354,20 +359,17 @@ msgid "Growth stage: %s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+msgid "Suggestion"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
 msgid "In this post"
 msgstr ""
 
+#. translators: %1$s: title of the post the link would point to, linked to its editor.
 #: src/class-undergrowth-links-list-table.php
-msgid "At this sentence"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-msgid "Link to"
-msgstr ""
-
-#: src/class-undergrowth-links-list-table.php
-#: src/class-undergrowth-stages-list-table.php
-msgid "Actions"
+#, php-format
+msgid "Link to %1$s"
 msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
@@ -397,34 +399,36 @@ msgid "Post"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
-msgid "Stage"
-msgstr ""
-
-#: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
 msgid "Pinned"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: 1: post title, 2: its growth stage.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Unpin the stage of %s"
+msgid "%1$s &mdash; %2$s"
+msgstr ""
+
+#. translators: %1$s: post title.
+#: src/class-undergrowth-stages-list-table.php
+#, php-format
+msgid "Unpin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 msgid "Unpin"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Stage to pin for %s"
+msgid "Stage to pin for %1$s"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "Pin the stage of %s"
+msgid "Pin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
@@ -433,6 +437,10 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "A question for you"
+msgstr ""
+
+#: src/dashboard.php
+msgid "Page views, last 30 days"
 msgstr ""
 
 #. translators: %1$s: title of the post, linked to its editor.
@@ -570,10 +578,24 @@ msgstr ""
 msgid "Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in."
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/discord-settings.php
-#, php-format
-msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
+msgid "Suggestions not yet posted are tried again the next time they are refreshed."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "On your application’s General Information page in the Discord developer portal."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "On the same General Information page, under the application ID."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "On your application’s Bot page: copy the token, or reset it only if you no longer have it."
+msgstr ""
+
+#: src/discord-settings.php
+msgid "In Discord, with Developer Mode on, right-click the channel and choose Copy Channel ID."
 msgstr ""
 
 #. translators: %1$s: last four characters of the saved bot token.
@@ -699,10 +721,6 @@ msgstr ""
 
 #: src/memory.php
 msgid "The stage was imported, but some of its history could not be saved."
-msgstr ""
-
-#: src/meter.php
-msgid "Page views, last 30 days"
 msgstr ""
 
 #: src/meter.php
@@ -845,10 +863,8 @@ msgstr ""
 msgid "Remove the saved key and stop sending posts to OpenAI"
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/settings.php
-#, php-format
-msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts that were not read are tried again within the hour."
+msgid "Posts that were not read are tried again within the hour."
 msgstr ""
 
 #: src/settings.php
@@ -863,10 +879,8 @@ msgstr ""
 msgid "Remove the saved key and stop sending anything to Anthropic"
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/settings.php
-#, php-format
-msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
+msgid "Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
 #. translators: %1$s: last four characters of the saved API key.
@@ -881,6 +895,48 @@ msgstr ""
 
 #: src/settings.php
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
+msgstr ""
+
+#. translators: %1$s: service name, such as Discord.
+#: src/settings.php
+#, php-format
+msgid "%1$s did not accept the bot token. Check that it is pasted in full and still current."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s did not accept the key. Check that it is pasted in full and still active."
+msgstr ""
+
+#. translators: %1$s: service name, such as Discord.
+#: src/settings.php
+#, php-format
+msgid "%1$s turned the message away because messages came too fast."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s turned the request away: requests came too fast, or the account is out of credit."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s could not be reached. Your site may be offline, or blocked from connecting to it."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s had a problem on its side."
+msgstr ""
+
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/settings.php
+#, php-format
+msgid "That was on %1$s (status %2$s)."
 msgstr ""
 
 #. translators: 1: number of posts read, 2: number of posts that can be read.

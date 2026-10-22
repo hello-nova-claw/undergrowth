@@ -3,7 +3,9 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids and digits, not words, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
-const WIDGET = '#undergrowth_meter';
+const WIDGET = '#undergrowth';
+// The meter's own part of the widget, apart from any question waiting.
+const METER = `${ WIDGET } .undergrowth-meter`;
 const HELP_TAB = '#tab-link-undergrowth-meter';
 const HELP_PANEL = '#tab-panel-undergrowth-meter';
 
@@ -52,13 +54,11 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		await useFixture( context, baseURL, 'meter-below' );
 		await admin.visitAdminPage( 'index.php' );
 
-		const status = page.locator( `${ WIDGET } strong` );
+		const status = page.locator( `${ METER } strong` );
 
 		await expect( status ).toContainText( '420' );
 		await expect( status ).toContainText( /1.000/ );
-		await expect( page.locator( `${ WIDGET } .inside p` ) ).toHaveCount(
-			2
-		);
+		await expect( page.locator( `${ METER } p` ) ).toHaveCount( 2 );
 		await expectNoA11yViolations( page, WIDGET );
 	} );
 
@@ -97,7 +97,7 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		await useFixture( context, baseURL, 'meter-crossed' );
 		await admin.visitAdminPage( 'index.php' );
 
-		await expect( page.locator( `${ WIDGET } strong` ) ).toContainText(
+		await expect( page.locator( `${ METER } strong` ) ).toContainText(
 			/1.230/
 		);
 		await expectNoA11yViolations( page, WIDGET );
@@ -112,9 +112,8 @@ test.describe( 'Threshold meter on the Dashboard', () => {
 		await useFixture( context, baseURL, 'meter-no-answer' );
 		await admin.visitAdminPage( 'index.php' );
 
-		await expect( page.locator( `${ WIDGET } .inside` ) ).not.toHaveText(
-			/\d/
-		);
+		// The heading names 30 days; the answer itself holds no number.
+		await expect( page.locator( `${ METER } p` ) ).not.toHaveText( /\d/ );
 		await expectNoA11yViolations( page, WIDGET );
 	} );
 

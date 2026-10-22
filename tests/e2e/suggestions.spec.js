@@ -3,7 +3,22 @@ const { expectNoA11yViolations } = require( './a11y' );
 
 // Selectors use ids, classes and names, not text, because this spec also
 // runs in Hebrew and in the en_XA pseudo-locale.
-test.describe( 'Link suggestions screen', () => {
+/**
+ * Finds a row's Accept or Veto button by role, by the titles in its name,
+ * which stay as written in every locale, and by its action.
+ *
+ * @param {import('@playwright/test').Locator} row    Table row.
+ * @param {string}                             action 'accept' or 'veto'.
+ * @param {RegExp}                             name   Titles the name holds.
+ * @return {import('@playwright/test').Locator} The button.
+ */
+function actionButton( row, action, name = /Oca[\s\S]*Yacon|Yacon[\s\S]*Oca/ ) {
+	return row
+		.getByRole( 'button', { name } )
+		.and( row.locator( `[form^="undergrowth-${ action }-"]` ) );
+}
+
+test.describe( 'Suggestions on Posts > Undergrowth', () => {
 	test.beforeEach( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
 	} );
@@ -65,9 +80,7 @@ test.describe( 'Link suggestions screen', () => {
 			page,
 		} ) => {
 			const rows = page.locator( 'table.undergrowth-links tbody tr' );
-			const veto = rows
-				.first()
-				.locator( 'button[form^="undergrowth-veto-"]' );
+			const veto = actionButton( rows.first(), 'veto' );
 
 			await veto.focus();
 			await expect( veto ).toBeFocused();
@@ -96,10 +109,12 @@ test.describe( 'Link suggestions screen', () => {
 				.filter( {
 					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
 				} );
-			const accept = row.locator( 'button[form^="undergrowth-accept-"]' );
+			const accept = actionButton( row, 'accept', /Oca[\s\S]*Yacon/ );
+			const marked = await row.locator( 'q mark' ).textContent();
 
 			await accept.focus();
 			await expect( accept ).toBeFocused();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
 			await page.keyboard.press( 'Enter' );
 
 			const notice = page.locator( '#undergrowth-notice' );
@@ -115,6 +130,33 @@ test.describe( 'Link suggestions screen', () => {
 			} );
 			expect( post.content.raw ).toContain( '<a href=' );
 			expect( post.content.raw ).toContain( '>yacon</a>' );
+			// The word marked before accepting is the word that was linked.
+			expect( post.content.raw ).toContain( `>${ marked }</a>` );
+		} );
+
+		test( 'at phone width, each row leads with its sentence and target', async ( {
+			page,
+		} ) => {
+			await page.setViewportSize( { width: 390, height: 800 } );
+
+			const row = page
+				.locator( 'table.undergrowth-links tbody tr' )
+				.first();
+
+			await expect( row.locator( 'q mark' ) ).toBeVisible();
+			await expect(
+				row.locator( '.column-sentence a[href*="post.php"]' )
+			).toBeVisible();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
+
+			// Accept and Veto follow the target's title in tab order.
+			await row.locator( '.column-sentence a' ).first().focus();
+			await page.keyboard.press( 'Tab' );
+			await expect( actionButton( row, 'accept' ) ).toBeFocused();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
+			await page.keyboard.press( 'Tab' );
+			await expect( actionButton( row, 'veto' ) ).toBeFocused();
+			await expectNoA11yViolations( page, '.wrap' );
 		} );
 
 		test( 'is switched off and on from Settings, by keyboard', async ( {
@@ -152,7 +194,10 @@ test.describe( 'Link suggestions screen', () => {
 				'.wrap a[href$="options-general.php?page=undergrowth"]'
 			);
 
-			await back.focus();
+			// Tab reaches it straight after the screen's tabs.
+			await page.locator( '.nav-tab' ).last().focus();
+			await page.keyboard.press( 'Tab' );
+			await expect( back ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
 			await page.waitForURL( /options-general\.php\?page=undergrowth/ );
 			await toggle.focus();
