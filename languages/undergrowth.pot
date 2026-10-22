@@ -472,6 +472,7 @@ msgid "Ask me next month"
 msgstr ""
 
 #: src/dashboard.php
+#: src/first-run.php
 msgid "Dismiss for good"
 msgstr ""
 
@@ -609,6 +610,28 @@ msgstr ""
 msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
+#: src/first-run.php
+msgid "Add a key in Settings"
+msgstr ""
+
+#: src/first-run.php
+msgid "Undergrowth suggests links between your own posts once it has an OpenAI API key to read them with."
+msgstr ""
+
+#: src/first-run.php
+msgid "You cannot change Undergrowth’s settings."
+msgstr ""
+
+#. translators: %1$s: link to the suggestions screen.
+#: src/first-run.php
+#, php-format
+msgid "Settings saved. Undergrowth is now reading your posts, a few at a time. Its suggestions appear on %1$s as they are found."
+msgstr ""
+
+#: src/first-run.php
+msgid "Posts > Link suggestions"
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
@@ -704,11 +727,19 @@ msgid "Settings"
 msgstr ""
 
 #: src/settings.php
+msgid "Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key."
+msgstr ""
+
+#: src/settings.php
 msgid "OpenAI API key"
 msgstr ""
 
 #: src/settings.php
 msgid "With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it."
+msgstr ""
+
+#: src/settings.php
+msgid "Get a key from OpenAI"
 msgstr ""
 
 #. translators: %s: last four characters of the saved API key.
@@ -749,6 +780,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
+msgstr ""
+
+#: src/settings.php
+msgid "Get a key from Anthropic"
 msgstr ""
 
 #: src/settings.php
