@@ -30,6 +30,7 @@ require_once __DIR__ . '/src/sentences.php';
 require_once __DIR__ . '/src/links.php';
 require_once __DIR__ . '/src/clusters.php';
 require_once __DIR__ . '/src/memory.php';
+require_once __DIR__ . '/src/class-undergrowth-html-text.php';
 require_once __DIR__ . '/src/accept.php';
 require_once __DIR__ . '/src/stages.php';
 require_once __DIR__ . '/src/abilities.php';
