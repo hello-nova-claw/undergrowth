@@ -115,7 +115,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			)
 		);
 
-		$this->items = $post_ids;
+		$this->items = array_values( array_filter( array_map( 'get_post', $post_ids ) ) );
 	}
 
 	/**
@@ -124,13 +124,14 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 * and a marker when the stage is pinned. The forms behind the row
 	 * actions sit here too, holding only hidden fields.
 	 *
-	 * @param int $item Post ID.
+	 * @param WP_Post $item Post.
 	 * @return string Cell HTML.
 	 */
 	public function column_post( $item ) {
-		$title = esc_html( get_the_title( $item ) );
-		$link  = get_edit_post_link( $item, 'raw' );
-		$stage = undergrowth_get_stage( $item );
+		$post_id = $item->ID;
+		$title   = esc_html( get_the_title( $post_id ) );
+		$link    = get_edit_post_link( $post_id, 'raw' );
+		$stage   = undergrowth_get_stage( $post_id );
 
 		if ( null !== $link ) {
 			$title = sprintf( '<a class="row-title" href="%1$s">%2$s</a>', esc_url( $link ), $title );
@@ -138,7 +139,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$state = esc_html( undergrowth_stage_label( $stage ) );
 
-		if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $item ) ) {
+		if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $post_id ) ) {
 			$state .= sprintf(
 				' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
 				esc_attr__( 'Pinned', 'undergrowth' )
@@ -147,8 +148,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$html = '<strong>' . $title . ' &mdash; <span class="post-state">' . $state . '</span></strong>';
 
-		if ( $this->can_pin( $item ) ) {
-			$html .= $this->form( $item, undergrowth_is_stage_pinned( $item ) ? 'unpin' : 'pin' );
+		if ( $this->can_pin( $post_id ) ) {
+			$html .= $this->form( $post_id, undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin' );
 		}
 
 		return $html;
@@ -160,23 +161,25 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 * A composting post has neither: composting is outside the pinning rules.
 	 * They are always shown, since Pin carries its own stage choice.
 	 *
-	 * @param int    $item        Post ID.
-	 * @param string $column_name Column being printed.
-	 * @param string $primary     Primary column name.
+	 * @param WP_Post $item        Post.
+	 * @param string  $column_name Column being printed.
+	 * @param string  $primary     Primary column name.
 	 * @return string Row actions HTML, in the primary column only.
 	 */
 	protected function handle_row_actions( $item, $column_name, $primary ) {
-		if ( $primary !== $column_name || ! $this->can_pin( $item ) ) {
+		$post_id = $item->ID;
+
+		if ( $primary !== $column_name || ! $this->can_pin( $post_id ) ) {
 			return '';
 		}
 
-		$title = get_the_title( $item );
+		$title = get_the_title( $post_id );
 
-		if ( undergrowth_is_stage_pinned( $item ) ) {
+		if ( undergrowth_is_stage_pinned( $post_id ) ) {
 			return $this->row_actions(
 				array(
 					'unpin' => $this->button(
-						$item,
+						$post_id,
 						'unpin',
 						/* translators: %s: post title. */
 						sprintf( __( 'Unpin the stage of %s', 'undergrowth' ), $title ),
@@ -187,7 +190,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			);
 		}
 
-		$stage   = undergrowth_get_stage( $item );
+		$stage   = undergrowth_get_stage( $post_id );
 		$options = '';
 
 		foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $choice ) {
@@ -196,17 +199,17 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$select = sprintf(
 			'<label for="undergrowth-stage-%1$d" class="screen-reader-text">%2$s</label><select id="undergrowth-stage-%1$d" name="stage" form="%3$s">%4$s</select> ',
-			$item,
+			$post_id,
 			/* translators: %s: post title. */
 			esc_html( sprintf( __( 'Stage to pin for %s', 'undergrowth' ), $title ) ),
-			esc_attr( $this->form_id( $item, 'pin' ) ),
+			esc_attr( $this->form_id( $post_id, 'pin' ) ),
 			$options
 		);
 
 		return $this->row_actions(
 			array(
 				'pin' => $select . $this->button(
-					$item,
+					$post_id,
 					'pin',
 					/* translators: %s: post title. */
 					sprintf( __( 'Pin the stage of %s', 'undergrowth' ), $title ),
