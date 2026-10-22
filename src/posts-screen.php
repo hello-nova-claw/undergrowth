@@ -413,5 +413,5 @@ function undergrowth_render_compost_notice(): void {
 		$id = '';
 	}
 
-	wp_print_inline_script_tag( "document.getElementById( 'undergrowth-notice' ).focus();" );
+	undergrowth_print_notice_focus_script();
 }

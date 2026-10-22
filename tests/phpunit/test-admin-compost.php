@@ -435,6 +435,7 @@ class Test_Admin_Compost extends WP_UnitTestCase {
 		$this->assertStringContainsString( '1 post returned to the garden.', $html );
 		$this->assertStringContainsString( 'notice-warning', $html );
 		$this->assertStringContainsString( '1 post was left as it was', $html );
+		$this->assertStringContainsString( "window.addEventListener( 'load'", $html );
 		$this->assertDoesNotMatchRegularExpression( '/\b(days?|weeks?|months?|years?|since|ago|soon)\b/i', wp_strip_all_tags( $html ) );
 	}
 
