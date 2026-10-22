@@ -752,10 +752,10 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 
 	public function test_dismissal_notices_are_shown_on_return() {
 		$_GET['undergrowth_notice'] = 'resurfacing_dismissed';
-		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-success"/', $this->render() );
+		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-success is-dismissible"/', $this->render() );
 
 		$_GET['undergrowth_notice'] = 'resurfacing_gone';
-		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-warning"/', $this->render() );
+		$this->assertMatchesRegularExpression( '/id="undergrowth-notice" class="notice notice-warning is-dismissible"/', $this->render() );
 	}
 
 	public function test_map_tab_confirms_a_post_returned_from_its_signal() {
