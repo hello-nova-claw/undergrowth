@@ -4,6 +4,17 @@ This is a guide to trying Undergrowth 0.1.0 on a site with your real posts. It t
 
 Use a local or staging copy of your site, not the live one. Undergrowth only changes a post's text when you press Accept, but a test is for finding surprises.
 
+## Test locally with your own keys
+
+If you'd rather not install anything on a site, `npm run playground:real` starts a throwaway WordPress on your own computer with your real posts and your own keys. It needs Node 22 and a clone of this repository with `npm install` run once. It runs the plugin from your clone, so you can skip steps 1 to 3.
+
+1. **Make a key just for this test.** In the OpenAI dashboard, create a new project, give it a low monthly budget (a few dollars is plenty), and create an API key in that project. If you want to try the Dashboard questions too, do the same in the Anthropic Console: a separate workspace with a low spend limit, and a key in it.
+2. **Put the key only in `.env.local`.** Copy `.env.local.example` to `.env.local` in the repository folder and paste the key after `OPENAI_API_KEY=` (and the Anthropic one after `ANTHROPIC_API_KEY=`, if you have one). Git ignores `.env.local`. Don't paste the key anywhere else: not in a URL, a terminal command, an issue or a screenshot.
+3. **Export your posts.** On your blog, go to **Tools > Export**, choose **Posts**, and download the file. Put its path after `WXR=` in `.env.local`.
+4. **Run `npm run playground:real`.** It prints an address on `127.0.0.1`, which only your computer can open. You are logged in on Settings > Undergrowth, which should say both keys are set in wp-config.php. Your posts are read in the background while the script runs; reload the page to watch the count go up. Once every post is read, the cycle in step 5 runs by itself.
+5. **Record your scores.** Work through section 7 in the browser. When you are done, stop the script with Ctrl+C. It prints the score percentiles; paste them into the feedback issue (section 8, #176). Then the site and everything in it is deleted.
+6. **Revoke the key.** In the OpenAI dashboard (and the Anthropic Console), revoke the test key, or delete the test project. Then delete `.env.local`.
+
 ## 1. Get the zip
 
 1. Open the repository's **Actions** tab on GitHub and choose the **Build** workflow.
@@ -124,7 +135,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Costs on both provider dashboards match the estimate
 - [ ] Nothing anywhere spoke *for* me
 
-**Scores** (output of `wp undergrowth scores`, if you have WP-CLI):
+**Scores** (output of `wp undergrowth scores`, or what `npm run playground:real` prints when it stops):
 
 **Surprises:**
 
