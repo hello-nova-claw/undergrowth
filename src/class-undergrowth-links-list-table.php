@@ -34,15 +34,26 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	/**
 	 * Names the table's columns.
 	 *
+	 * As on core's Comments screen, the author's own words come first and
+	 * hold the row actions, so a narrow screen still shows the sentence,
+	 * where the link goes, and Accept and Veto.
+	 *
 	 * @return array<string, string> Column labels keyed by column name.
 	 */
 	public function get_columns() {
 		return array(
+			'sentence' => __( 'Suggestion', 'undergrowth' ),
 			'source'   => __( 'In this post', 'undergrowth' ),
-			'sentence' => __( 'At this sentence', 'undergrowth' ),
-			'target'   => __( 'Link to', 'undergrowth' ),
-			'actions'  => __( 'Actions', 'undergrowth' ),
 		);
+	}
+
+	/**
+	 * Names the column that holds the row actions.
+	 *
+	 * @return string
+	 */
+	protected function get_default_primary_column_name() {
+		return 'sentence';
 	}
 
 	/**
@@ -57,7 +68,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	public function prepare_items() {
 		global $wpdb;
 
-		$this->_column_headers = array( $this->get_columns(), array(), array() );
+		$this->_column_headers = array( $this->get_columns(), array(), array(), $this->get_default_primary_column_name() );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
 		$rows = $wpdb->get_results(
@@ -116,65 +127,120 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Cell HTML.
 	 */
 	public function column_source( $item ) {
-		return sprintf(
-			'<a href="%1$s">%2$s</a>',
-			esc_url( (string) get_edit_post_link( $item['source_id'], 'raw' ) ),
-			esc_html( get_the_title( $item['source_id'] ) )
-		);
+		return $this->edit_link( $item['source_id'] );
 	}
 
 	/**
-	 * Prints the sentence the link would sit in.
+	 * Prints the sentence the link would sit in, with the word Accept would
+	 * link marked, and the post the link would point to under it.
 	 *
-	 * It is the author's own text, which may run the other way from the
-	 * admin language, so the browser takes its direction from the text.
+	 * The sentence is the author's own text, which may run the other way
+	 * from the admin language, so the browser takes its direction from the
+	 * text. The forms behind the row actions sit here too, holding only
+	 * hidden fields.
 	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
 	 * @return string Cell HTML.
 	 */
 	public function column_sentence( $item ) {
-		return '<q dir="auto">' . esc_html( $item['sentence'] ) . '</q>';
+		return '<q dir="auto">' . $this->marked_sentence( $item ) . '</q>'
+			. '<p>' . sprintf(
+				/* translators: %1$s: title of the post the link would point to, linked to its editor. */
+				esc_html__( 'Link to %1$s', 'undergrowth' ),
+				$this->edit_link( $item['target_id'], 'row-title' )
+			) . '</p>'
+			. $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
 	}
 
 	/**
-	 * Prints the target post's title, linked to the published post.
+	 * Prints Accept and Veto under the sentence, as core's Comments screen
+	 * prints Approve under a comment.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
-	 * @return string Cell HTML.
+	 * They are this screen's whole purpose, so they are always shown rather
+	 * than waiting for hover or focus.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string} $item        Row.
+	 * @param string                                                  $column_name Column being printed.
+	 * @param string                                                  $primary     Primary column name.
+	 * @return string Row actions HTML, in the primary column only.
 	 */
-	public function column_target( $item ) {
-		return sprintf(
-			'<a href="%1$s">%2$s</a>',
-			esc_url( (string) get_permalink( $item['target_id'] ) ),
-			esc_html( get_the_title( $item['target_id'] ) )
+	protected function handle_row_actions( $item, $column_name, $primary ) {
+		if ( $primary !== $column_name ) {
+			return '';
+		}
+
+		$source = undergrowth_post_title( $item['source_id'] );
+		$target = undergrowth_post_title( $item['target_id'] );
+
+		return $this->row_actions(
+			array(
+				'accept' => $this->action_button(
+					$item,
+					'accept',
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
+					__( 'Accept', 'undergrowth' )
+				),
+				'veto'   => $this->action_button(
+					$item,
+					'veto',
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
+					__( 'Veto', 'undergrowth' )
+				),
+			),
+			true
 		);
 	}
 
 	/**
-	 * Prints the accept and veto buttons for a row.
+	 * Escapes the sentence and marks the word Accept would link in it.
 	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
-	 * @return string Cell HTML.
+	 * @return string HTML.
 	 */
-	public function column_actions( $item ) {
-		$source = get_the_title( $item['source_id'] );
-		$target = get_the_title( $item['target_id'] );
+	private function marked_sentence( array $item ): string {
+		$sentence = $item['sentence'];
+		$choice   = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $sentence );
 
-		return $this->action_button(
-			$item,
-			'accept',
-			/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
-			sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
-			__( 'Accept', 'undergrowth' ),
-			'button-primary'
-		) . ' ' . $this->action_button(
-			$item,
-			'veto',
-			/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
-			sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
-			__( 'Veto', 'undergrowth' ),
-			''
-		) . $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
+		if ( null === $choice || mb_substr( $sentence, $choice['offset'], mb_strlen( $choice['word'] ) ) !== $choice['word'] ) {
+			return esc_html( $sentence );
+		}
+
+		$length = mb_strlen( $choice['word'] );
+
+		return esc_html( mb_substr( $sentence, 0, $choice['offset'] ) )
+			. '<mark>' . esc_html( $choice['word'] ) . '</mark>'
+			. esc_html( mb_substr( $sentence, $choice['offset'] + $length ) );
+	}
+
+	/**
+	 * Links a post's title to its editor, when the user can edit it.
+	 *
+	 * Inside a line of text the title is a core row-title, which sets it
+	 * apart from the words around it by weight, since list tables show
+	 * links without an underline.
+	 *
+	 * @param int    $post_id    Post ID.
+	 * @param string $link_class Class for the link, if any.
+	 * @return string Link HTML.
+	 */
+	private function edit_link( int $post_id, string $link_class = '' ): string {
+		$title = esc_html( undergrowth_post_title( $post_id ) );
+		$link  = get_edit_post_link( $post_id, 'raw' );
+
+		// A post the user cannot edit is named, not linked. In a line of
+		// text it keeps the weight a row-title would have given it.
+		if ( null === $link ) {
+			return '' === $link_class ? $title : '<strong>' . $title . '</strong>';
+		}
+
+		return sprintf(
+			'<a%1$s href="%2$s">%3$s</a>',
+			'' === $link_class ? '' : ' class="' . esc_attr( $link_class ) . '"',
+			esc_url( $link ),
+			$title
+		);
 	}
 
 	/**
@@ -189,23 +255,21 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Builds one action button, tied to its form by the form attribute.
+	 * Builds one row action, a button tied to its form by the form attribute.
 	 *
-	 * The buttons sit outside their forms so they flow side by side like any
-	 * other pair of core buttons, with no styling of the forms.
+	 * The buttons sit outside their forms so they flow in the row actions
+	 * like core's own, which use the same button-link class.
 	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
 	 * @param string                                                  $action Action name.
 	 * @param string                                                  $label  Accessible name.
 	 * @param string                                                  $text   Visible text.
-	 * @param string                                                  $style  Extra button class.
 	 * @return string Button HTML.
 	 */
-	private function action_button( array $item, string $action, string $label, string $text, string $style ): string {
+	private function action_button( array $item, string $action, string $label, string $text ): string {
 		return sprintf(
-			'<button type="submit" form="%1$s" class="button %2$s" aria-label="%3$s">%4$s</button>',
+			'<button type="submit" form="%1$s" class="button-link" aria-label="%2$s">%3$s</button>',
 			esc_attr( $this->form_id( $item, $action ) ),
-			esc_attr( $style ),
 			esc_attr( $label ),
 			esc_html( $text )
 		);

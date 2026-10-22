@@ -68,7 +68,8 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Is anything suggested that you would never link?
 
 **Accept and Veto**
-- Accept a suggestion. Undergrowth picks the word itself. Open the post: one word of that sentence should now be a plain link, and nothing else should have changed. A revision should be saved too. Does it pick a sensible word?
+- Each suggestion leads with your sentence, with the word Undergrowth would link highlighted, and "Link to" the other post under it, then Accept | Veto. Try it on a phone too: all of that should show without opening the row.
+- Accept a suggestion. Undergrowth picks the word itself. Open the post: the highlighted word, and nothing else, should now be a plain link. A revision should be saved too. Does it pick a sensible word?
 - Veto a suggestion. It should go away and not come back, even after you edit either post.
 
 **Growth stages** (Growth stages tab)
