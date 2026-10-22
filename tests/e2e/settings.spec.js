@@ -98,10 +98,15 @@ test.describe( 'Settings page', () => {
 		await field.focus();
 		await expect( field ).toBeFocused();
 
-		await page.keyboard.press( 'Tab' );
-		await expect(
-			page.locator( '#undergrowth_anthropic_api_key' )
-		).toBeFocused();
+		// Each key field is followed by the link to the provider's key page.
+		for ( const id of [
+			'undergrowth-openai-get-key',
+			'undergrowth_anthropic_api_key',
+			'undergrowth-anthropic-get-key',
+		] ) {
+			await page.keyboard.press( 'Tab' );
+			await expect( page.locator( `#${ id }` ) ).toBeFocused();
+		}
 
 		for ( const id of [
 			'undergrowth_discord_application_id',

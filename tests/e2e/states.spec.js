@@ -104,6 +104,20 @@ const WITHOUT_POSTS = [
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	// Where a new owner lands after activating, with the Settings link.
 	{ screen: 'plugins', state: 'row', page: [ 'plugins.php', '' ] },
+	// The first-run notice, right after activating on a site with no key.
+	{
+		screen: 'plugins',
+		state: 'first-run',
+		page: [ 'plugins.php', '' ],
+		fixture: 'first-run',
+	},
+	// Settings right after the first key is saved, linking on to suggestions.
+	{
+		screen: 'settings',
+		state: 'first-key-saved',
+		page: SETTINGS,
+		fixture: 'first-key-saved',
+	},
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
 	// The threshold meter. Without a fixture the site has no Jetpack.
