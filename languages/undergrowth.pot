@@ -587,10 +587,8 @@ msgstr ""
 msgid "Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in."
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/discord-settings.php
-#, php-format
-msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
+msgid "Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
 #. translators: %1$s: last four characters of the saved bot token.
@@ -779,10 +777,8 @@ msgstr ""
 msgid "Remove the saved key and stop sending posts to OpenAI"
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/settings.php
-#, php-format
-msgid "The last request to OpenAI failed on %1$s (status %2$s). Posts that were not read are tried again within the hour."
+msgid "Posts that were not read are tried again within the hour."
 msgstr ""
 
 #: src/settings.php
@@ -797,16 +793,56 @@ msgstr ""
 msgid "Remove the saved key and stop sending anything to Anthropic"
 msgstr ""
 
-#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
 #: src/settings.php
-#, php-format
-msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
+msgid "Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
 #. translators: %1$s: last four characters of the saved API key.
 #: src/settings.php
 #, php-format
 msgid "A key ending in %1$s is saved. Leave the field blank to keep it."
+msgstr ""
+
+#. translators: %1$s: service name, such as Discord.
+#: src/settings.php
+#, php-format
+msgid "%1$s did not accept the bot token. Check that it is pasted in full and still current."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s did not accept the key. Check that it is pasted in full and still active."
+msgstr ""
+
+#. translators: %1$s: service name, such as Discord.
+#: src/settings.php
+#, php-format
+msgid "%1$s turned the message away because messages came too fast."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s turned the request away: requests came too fast, or the account is out of credit."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s could not be reached. Your site may be offline, or blocked from connecting to it."
+msgstr ""
+
+#. translators: %1$s: service name, such as OpenAI.
+#: src/settings.php
+#, php-format
+msgid "%1$s had a problem on its side."
+msgstr ""
+
+#. translators: 1: date and time, 2: HTTP status code, or 0 when there was no response.
+#: src/settings.php
+#, php-format
+msgid "That was on %1$s (status %2$s)."
 msgstr ""
 
 #. translators: 1: number of posts read, 2: number of posts that can be read.

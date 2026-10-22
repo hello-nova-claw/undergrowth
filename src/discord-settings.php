@@ -222,14 +222,7 @@ function undergrowth_render_discord_section(): void {
 		<div class="notice notice-warning inline">
 			<p>
 				<?php
-				echo esc_html(
-					sprintf(
-						/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
-						__( 'The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ),
-						wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] ),
-						number_format_i18n( (int) ( $error['status'] ?? 0 ) )
-					)
-				);
+				echo esc_html( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ) );
 				?>
 			</p>
 		</div>

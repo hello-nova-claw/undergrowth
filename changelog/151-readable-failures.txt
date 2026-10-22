@@ -1,0 +1,1 @@
+When a request to OpenAI, Anthropic or Discord fails, Settings > Undergrowth now says why in plain words, such as a key that was not accepted or an account out of credit, and still shows the date and the status code.
