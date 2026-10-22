@@ -37,7 +37,7 @@ You need WordPress 6.9 or later and PHP 7.4 or later. A local site from Studio, 
 
 Go to **Settings > Undergrowth**.
 
-The page should open with one sentence on what Undergrowth does, and each key field should link to the provider's own key page. After you save the first OpenAI key, the "Settings saved" notice should link on to **Posts > Link suggestions**.
+The page should open with one sentence on what Undergrowth does, and each key field should link to the provider's own key page. After you save the first OpenAI key, the "Settings saved" notice should link on to **Posts > Undergrowth**.
 
 - **OpenAI API key** (needed). Paste a key from your own OpenAI account. Undergrowth uses it to turn each published post into a vector, a list of numbers that says what the post is about. It sends each post's title and text, and nothing else. The settings page says the same.
 - **Anthropic API key** (optional). This is for the Dashboard questions. Each request sends one post's title and a few sentences quoted from it. If the question comes from a reader's comment, that comment's text goes too. Whole posts are never sent. **Wait until step 5 before you save this key** (see below).
@@ -48,7 +48,7 @@ The Discord section is optional, and you can skip it for a first test. If you wa
 
 ## 4. Wait for your existing posts to be read
 
-Once the OpenAI key is saved, Undergrowth reads every published post in the background, twenty at a time, as WP-Cron runs. You don't need to save any post. On a local site, WP-Cron only runs when you load pages, so click around wp-admin for a minute. **Settings > Undergrowth** shows how many posts are indexed so far. Link suggestions start to appear on **Posts > Link suggestions** as posts are read.
+Once the OpenAI key is saved, Undergrowth reads every published post in the background, twenty at a time, as WP-Cron runs. You don't need to save any post. On a local site, WP-Cron only runs when you load pages, so click around wp-admin for a minute. **Settings > Undergrowth** shows how many posts are indexed so far. Link suggestions start to appear on **Posts > Undergrowth** as posts are read.
 
 A post that fails to be read, for example because OpenAI was busy, is tried again within the hour.
 
@@ -78,7 +78,9 @@ To be safe, set a small monthly spending limit on both provider accounts before 
 
 Work through these in any order. Note anything that surprises you, reads oddly, or seems to speak *for* you rather than *to* you.
 
-**Link suggestions** (Posts > Link suggestions, Suggestions tab)
+**Link suggestions** (Posts > Undergrowth, Suggestions tab)
+- The switch "Suggest links between my posts" is on Settings > Undergrowth now, under Link suggestions. Turn it off there and the Suggestions tab should say so, with a link back to Settings.
+- On the Posts list, the Growth stage column should show each published post's stage, with a pin marker when pinned, and a dash for drafts.
 - Does each suggestion connect two posts that really belong together?
 - Is the quoted sentence a sensible place for the link?
 - Is anything suggested that you would never link?

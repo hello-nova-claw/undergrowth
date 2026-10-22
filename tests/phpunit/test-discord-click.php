@@ -6,7 +6,7 @@
  */
 
 /**
- * A click acts like the button on Posts > Link suggestions, and only for a
+ * A click acts like the button on Posts > Undergrowth, and only for a
  * linked Discord user who can edit the post.
  */
 class Test_Discord_Click extends WP_UnitTestCase {

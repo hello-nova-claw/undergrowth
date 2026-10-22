@@ -839,7 +839,7 @@ function undergrowth_ability_veto_link( array $input ) {
 /**
  * Says why accepting or vetoing a link changed nothing.
  *
- * The wording is the Link suggestions screen's, so the author reads the same
+ * The wording is the suggestions screen's, so the author reads the same
  * reason wherever the request came from.
  *
  * @param string $reason 'gone', 'unchanged', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.

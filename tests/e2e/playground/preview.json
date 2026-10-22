@@ -3,7 +3,7 @@
 	"meta": {
 		"title": "Undergrowth preview",
 		"author": "hello-nova-claw",
-		"description": "Undergrowth with the e2e test provider and a few sample posts, opened on Posts > Link suggestions. The test provider counts fixture words instead of calling an API, and the test site answers for Claude, so no key is needed or asked for. The Dashboard shows one prompt, from a sample reader's question."
+		"description": "Undergrowth with the e2e test provider and a few sample posts, opened on Posts > Undergrowth. The test provider counts fixture words instead of calling an API, and the test site answers for Claude, so no key is needed or asked for. The Dashboard shows one prompt, from a sample reader's question."
 	},
 	"preferredVersions": {
 		"php": "8.3",

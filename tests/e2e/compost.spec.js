@@ -48,6 +48,16 @@ test.describe( 'Compost and return', () => {
 
 		await admin.visitAdminPage( 'edit.php' );
 
+		// The post's stage sits with it on the Posts list.
+		const stage = page.locator(
+			`#post-${ oca.id } .column-undergrowth_stage`
+		);
+		await expect( stage ).not.toBeEmpty();
+		await expectNoA11yViolations(
+			page,
+			`#post-${ oca.id } .column-undergrowth_stage`
+		);
+
 		// Core shows row actions when focus moves into the row.
 		const compost = rowAction( page, 'compost', oca.id );
 		await compost.focus();
