@@ -45,6 +45,8 @@ The cycle groups your posts into clusters and then measures every post's stage. 
 
 You can run the cycle as often as you like while testing. Stages only go up on each run, never down.
 
+**Please record your scores.** The cycle also measures how your posts score against each other. With WP-CLI, run `wp undergrowth scores` after the cycle and paste its output into the feedback issue (section 8). It lists percentiles and thresholds, never post text. Undergrowth keeps OpenAI on fixed thresholds (0.4 for links, 0.5 for clusters, 0.8 for gaps) until these numbers show whether OpenAI should follow each site's scores, as other models already do.
+
 ## 6. What it should cost
 
 These are rough figures from the providers' published prices, checked on 2026-10-21.
@@ -119,6 +121,8 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Per-post files hold nothing unexpected
 - [ ] Costs on both provider dashboards match the estimate
 - [ ] Nothing anywhere spoke *for* me
+
+**Scores** (output of `wp undergrowth scores`, if you have WP-CLI):
 
 **Surprises:**
 

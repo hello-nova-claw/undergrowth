@@ -108,6 +108,11 @@ add_filter( 'undergrowth_embed_identity', 'undergrowth_local_embeddings_identity
  * in one cluster. These values come from a test on 60 essays; see
  * docs/quality-report-v1.md. Other models keep the defaults until you add a
  * row for them.
+ *
+ * Undergrowth derives these thresholds from a site's own scores once it has
+ * 20 posts in one model, and on the quality corpus it chose almost the same
+ * values. The table pins them anyway, so a smaller site gets them too. Remove
+ * a row to let the site's own scores decide.
  */
 const UNDERGROWTH_LOCAL_EMBED_THRESHOLDS = array(
 	'nomic-embed-text' => array(
