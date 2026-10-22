@@ -126,6 +126,8 @@ function undergrowth_register_settings(): void {
 		add_settings_field( 'undergrowth_suggest_links', __( 'Suggestions', 'undergrowth' ), 'undergrowth_render_suggest_links_field', 'undergrowth', 'undergrowth_links' );
 	}
 
+	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
+
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
 	add_settings_field(
@@ -407,6 +409,18 @@ function undergrowth_render_posts_read_field(): void {
 }
 
 /**
+ * Prints the folder that holds the per-post files.
+ */
+function undergrowth_render_memory_folder_field(): void {
+	?>
+	<p><code id="undergrowth-memory-folder" dir="ltr"><?php echo esc_html( str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( undergrowth_memory_root() ) ) . '/posts/' ); ?></code></p>
+	<p class="description">
+		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
+	</p>
+	<?php
+}
+
+/**
  * Adds Help tabs with the full detail of what each part of the page sends,
  * which the fields themselves keep to two sentences.
  */
@@ -428,6 +442,12 @@ function undergrowth_add_settings_help(): void {
 			__( 'Questions', 'undergrowth' ),
 			array(
 				__( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ),
+			),
+		),
+		'undergrowth-files'   => array(
+			__( 'Per-post files', 'undergrowth' ),
+			array(
+				__( 'Each post that has been read, or that you were asked a question about, has a plain-text file in the folder shown on this page. It holds the post’s stage, its suggestions, your vetoes and the questions you were asked, and nothing written for your readers. The folder’s name ends in random characters made once for this site, so visitors cannot guess its address.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-discord' => array(

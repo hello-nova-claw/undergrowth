@@ -764,6 +764,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Per-post files"
+msgstr ""
+
+#: src/settings.php
 msgid "Questions on your Dashboard"
 msgstr ""
 
@@ -884,6 +888,10 @@ msgid "The rest are read in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
+msgid "Each post’s plain-text record is kept in this folder."
+msgstr ""
+
+#: src/settings.php
 msgid "With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 
@@ -896,19 +904,15 @@ msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to 
 msgstr ""
 
 #: src/settings.php
+msgid "Each post that has been read, or that you were asked a question about, has a plain-text file in the folder shown on this page. It holds the post’s stage, its suggestions, your vetoes and the questions you were asked, and nothing written for your readers. The folder’s name ends in random characters made once for this site, so visitors cannot guess its address."
+msgstr ""
+
+#: src/settings.php
 msgid "Discord"
 msgstr ""
 
 #: src/settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
-msgstr ""
-
-#: src/settings.php
-msgid "Per-post files"
-msgstr ""
-
-#: src/settings.php
-msgid "Each post’s plain-text record is kept in this folder. Its name ends in random characters, so visitors cannot guess its address."
 msgstr ""
 
 #: src/stages.php
