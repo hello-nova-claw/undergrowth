@@ -573,10 +573,10 @@ msgstr ""
 msgid "The last message to Discord failed on %1$s (status %2$s). Suggestions not yet posted are tried again the next time they are refreshed."
 msgstr ""
 
-#. translators: %s: last four characters of the saved bot token.
+#. translators: %1$s: last four characters of the saved bot token.
 #: src/discord-settings.php
 #, php-format
-msgid "A token ending in %s is saved. Leave the field blank to keep it."
+msgid "A token ending in %1$s is saved. Leave the field blank to keep it."
 msgstr ""
 
 #: src/discord-settings.php
@@ -801,10 +801,10 @@ msgstr ""
 msgid "The last request to Anthropic failed on %1$s (status %2$s). Undergrowth tries again at its next monthly cycle."
 msgstr ""
 
-#. translators: %s: last four characters of the saved API key.
+#. translators: %1$s: last four characters of the saved API key.
 #: src/settings.php
 #, php-format
-msgid "A key ending in %s is saved. Leave the field blank to keep it."
+msgid "A key ending in %1$s is saved. Leave the field blank to keep it."
 msgstr ""
 
 #: src/settings.php
