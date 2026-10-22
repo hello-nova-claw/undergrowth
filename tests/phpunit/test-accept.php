@@ -95,6 +95,17 @@ class Test_Accept extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_a_word_from_the_targets_title_is_linked_before_a_rarer_incidental_one() {
+		foreach ( array( 'Shed', 'Path', 'Gate' ) as $title ) {
+			$this->plant( $title, array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		}
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>I keep yacon plants in the vicinity of frost.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>The vicinity of water helps. The vicinity of frost hurts.</p>' ) );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', get_post( $oca )->post_content );
+	}
+
 	public function test_nothing_but_one_word_changes() {
 		$before              = '<!-- wp:paragraph --><p>Oca grows in the Andes. I keep a few yacon plants nearby for their syrup.</p><!-- /wp:paragraph -->';
 		list( $oca, $yacon ) = $this->pair( $before );
@@ -202,6 +213,19 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( 'edited', undergrowth_accept_link( $oca, $yacon ) );
 		$this->assertSame( '<p>Oca grows here. I have stopped growing anything else.</p>', get_post( $oca )->post_content );
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_sentence_stored_across_a_closing_quote_is_reported_as_edited() {
+		list( $oca, $yacon ) = $this->pair( '<p>He said, “I keep yacon.” Oca grows here.</p>' );
+		$before              = get_post( $oca )->post_content;
+		$this->set_sentence( $oca, $yacon, 'He said, “I keep yacon.” Oca grows here.' );
+
+		$this->assertSame( 'edited', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
 	}
 
 	public function test_sentence_outside_a_paragraph_fails_safely() {
