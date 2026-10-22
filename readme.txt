@@ -82,7 +82,7 @@ Yes. Add them to `wp-config.php` instead of saving them on Settings > Undergrowt
 `define( 'UNDERGROWTH_OPENAI_API_KEY', 'your-openai-key' );`
 `define( 'UNDERGROWTH_ANTHROPIC_API_KEY', 'your-anthropic-key' );`
 
-A key set there is used instead of one saved on the settings page. The page then says the key is in `wp-config.php`, never shows it, and leaves the field disabled; change or remove the key in that file. What is sent, and when, is the same either way. Posts are read within the hour of adding the OpenAI key, or straight away if you activate Undergrowth after adding it.
+A key set there is used instead of one saved on the settings page. The page then says the key is in `wp-config.php`, never shows it, and leaves the field disabled; change or remove the key in that file. What is sent is the same either way. Only the start differs: posts are read within the hour of adding the OpenAI key, or straight away if you activate Undergrowth after adding it, and the first question is asked for on the next page load after adding the Anthropic key.
 
 = Can I use a model on my own server instead of OpenAI? =
 
