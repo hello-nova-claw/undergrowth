@@ -137,6 +137,53 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertFileDoesNotExist( $root . '/posts/7.txt' );
 	}
 
+	public function test_nothing_moves_or_is_written_when_the_folder_name_cannot_be_stored() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_memory_folder();
+		delete_option( 'undergrowth_memory_folder' );
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		add_filter(
+			'query',
+			static function ( $query ) {
+				return false !== strpos( $query, 'undergrowth_memory_folder' ) && 0 === stripos( ltrim( $query ), 'INSERT' ) ? 'SELECT 1' : $query;
+			}
+		);
+
+		$this->assertSame( '', undergrowth_memory_folder() );
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertSame( 'no_folder', get_option( 'undergrowth_last_file_error' )['code'] );
+		$this->assertDirectoryExists( $legacy . '/posts' );
+		$this->assertSame( array( 'undergrowth' ), array_values( preg_grep( '/^undergrowth/', (array) scandir( $uploads['basedir'] ) ) ) );
+		$this->assertSame( '', undergrowth_memory_path( $oca ) );
+	}
+
+	public function test_a_name_stored_first_by_another_request_is_used_and_nothing_is_moved() {
+		global $wpdb;
+
+		delete_option( 'undergrowth_memory_folder' );
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		get_option( 'undergrowth_memory_folder' );
+
+		// Another request stores its name after this one found none.
+		$wpdb->insert(
+			$wpdb->options,
+			array(
+				'option_name'  => 'undergrowth_memory_folder',
+				'option_value' => 'undergrowth-aaaaaaaaaaaa',
+				'autoload'     => 'on',
+			)
+		);
+
+		$this->assertSame( 'undergrowth-aaaaaaaaaaaa', undergrowth_memory_folder() );
+		$this->assertSame( 'undergrowth-aaaaaaaaaaaa', get_option( 'undergrowth_memory_folder' ) );
+		$this->assertDirectoryExists( $legacy . '/posts' );
+	}
+
 	public function test_preparing_the_folder_again_leaves_it_alone() {
 		$folder = undergrowth_memory_folder();
 
