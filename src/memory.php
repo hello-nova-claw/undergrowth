@@ -129,8 +129,8 @@ function undergrowth_claim_memory_folder( string $folder ): string {
  * Makes the site's files folder name, and so moves any old folder, on the
  * first request after an update.
  *
- * An old folder that could not be moved or removed then is tried again on
- * every later request, until it is gone.
+ * An old folder that could not be moved or removed then is tried again,
+ * at most once an hour, until it is gone.
  */
 function undergrowth_prepare_memory_folder(): void {
 	if ( ! undergrowth_is_memory_folder( get_option( 'undergrowth_memory_folder' ) ) ) {
@@ -140,7 +140,7 @@ function undergrowth_prepare_memory_folder(): void {
 
 	$uploads = wp_upload_dir( null, false );
 
-	if ( is_dir( $uploads['basedir'] . '/undergrowth' ) ) {
+	if ( is_dir( $uploads['basedir'] . '/undergrowth' ) && false === get_transient( 'undergrowth_old_folder_retry' ) ) {
 		undergrowth_move_legacy_memory_folder( undergrowth_memory_root() );
 	}
 }
@@ -178,7 +178,14 @@ function undergrowth_move_legacy_memory_folder( string $root ): void {
 	}
 
 	if ( null === $filesystem || ! $filesystem->rmdir( $legacy, true ) ) {
-		undergrowth_record_file_error( 'old_folder_left' );
+		// A folder that cannot be removed now is tried again within the hour,
+		// not on every request, and the same error is not written again.
+		set_transient( 'undergrowth_old_folder_retry', 1, HOUR_IN_SECONDS );
+		$last = get_option( 'undergrowth_last_file_error' );
+
+		if ( ! is_array( $last ) || 'old_folder_left' !== ( $last['code'] ?? '' ) ) {
+			undergrowth_record_file_error( 'old_folder_left' );
+		}
 	}
 }
 
