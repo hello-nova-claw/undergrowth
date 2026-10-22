@@ -411,8 +411,10 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'id="undergrowth-notice"', $html );
 		$this->assertStringContainsString( 'role="status"', $html );
+		$this->assertStringContainsString( 'class="notice notice-success is-dismissible"', $html );
 		$this->assertStringContainsString( 'next month', $html );
 		$this->assertStringContainsString( '.focus()', $html );
+		$this->assertStringContainsString( "window.addEventListener( 'load'", $html );
 	}
 
 	public function test_notice_is_only_shown_on_the_dashboard() {

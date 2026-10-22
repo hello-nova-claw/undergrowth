@@ -153,6 +153,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_scores' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );

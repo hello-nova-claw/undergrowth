@@ -45,6 +45,8 @@ The cycle groups your posts into clusters and then measures every post's stage. 
 
 You can run the cycle as often as you like while testing. Stages only go up on each run, never down.
 
+**Please record your scores.** The cycle also measures how your posts score against each other. With WP-CLI, run `wp undergrowth scores` after the cycle and paste its output into the feedback issue (section 8). It lists percentiles and thresholds, never post text. Undergrowth keeps OpenAI on fixed thresholds (0.4 for links, 0.5 for clusters, 0.8 for gaps) until these numbers show whether OpenAI should follow each site's scores, as other models already do.
+
 ## 6. What it should cost
 
 These are rough figures from the providers' published prices, checked on 2026-10-21.
@@ -84,9 +86,9 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 **The growth stage block**
 - In the editor, add the **Growth stage** block to a post or to a Query Loop. Check how it looks on the front end with your theme. A composting post should show nothing.
 
-**The threshold meter** (Dashboard, "Readers, last 30 days")
-- Without Jetpack, or with Stats off or not connected, it should say in one sentence what it needs, with no number.
-- With Jetpack connected and Stats on, it shows one number: your page views in the last 30 days against 1,000. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
+**The threshold meter** (Dashboard, "Page views, last 30 days")
+- Without Jetpack, or with Stats off or not connected, there should be no meter widget at all. Settings > Undergrowth > Help > Page views meter says what it needs.
+- With Jetpack connected and Stats on, it shows one number, your page views in the last 30 days against 1,000, and one line more. Help > Page views meter on the Dashboard explains both rules of the switch line. Compare it with the 30-day total on Jetpack's own Stats screen. The meter counts once a day, so it can lag behind by up to a day.
 - Past 1,000, it should say plainly that the line is passed and that nothing changes yet.
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 
@@ -111,7 +113,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Stages look plausible after running the cycle
 - [ ] Pin and unpin behave as expected
 - [ ] Compost and Return to garden behave as expected
-- [ ] Resurfacing notice (if it appeared) reads well
+- [ ] Resurfacing notice on the Map tab (if it appeared) reads well
 - [ ] Dashboard question is one question, quoting only me
 - [ ] Ask me next month and Dismiss for good work
 - [ ] Growth stage block looks right in my theme
@@ -119,6 +121,8 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Per-post files hold nothing unexpected
 - [ ] Costs on both provider dashboards match the estimate
 - [ ] Nothing anywhere spoke *for* me
+
+**Scores** (output of `wp undergrowth scores`, if you have WP-CLI):
 
 **Surprises:**
 

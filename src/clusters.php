@@ -16,8 +16,9 @@ const UNDERGROWTH_MIN_CLUSTER_SIZE       = 3;
 const UNDERGROWTH_CLUSTER_BATCH          = 50;
 const UNDERGROWTH_MAX_CLUSTERS           = 100;
 
-// A member this close to its cluster's centre counts as a post there. The
-// default suits text-embedding-3-small; other models may need the filter.
+// A member this close to its cluster's centre counts as a post there. This
+// fixed number applies until the site's own clusters are measured; see
+// src/thresholds.php.
 const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 
 add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
@@ -37,11 +38,14 @@ function undergrowth_min_cluster_similarity(): float {
 	 * Different embedding models spread their scores differently, so a site
 	 * using its own provider may need to tune this.
 	 *
-	 * @param float $similarity Cosine similarity. Default 0.5.
+	 * @param float $similarity Cosine similarity. Default 0.5, or the site's
+	 *                          90th percentile of pairwise scores once it is
+	 *                          measured. See undergrowth_derived_threshold().
 	 */
-	$similarity = apply_filters( 'undergrowth_min_cluster_similarity', UNDERGROWTH_MIN_CLUSTER_SIMILARITY );
+	$default    = undergrowth_derived_threshold( 'cluster' ) ?? UNDERGROWTH_MIN_CLUSTER_SIMILARITY;
+	$similarity = apply_filters( 'undergrowth_min_cluster_similarity', $default );
 
-	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : UNDERGROWTH_MIN_CLUSTER_SIMILARITY;
+	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : $default;
 }
 
 /**
@@ -101,11 +105,15 @@ function undergrowth_gap_similarity(): float {
 	 * Filters how close a post must be to its cluster's centre for the
 	 * cluster to have no gap.
 	 *
-	 * @param float $similarity Cosine similarity. Default 0.8.
+	 * @param float $similarity Cosine similarity. Default 0.8, or, once the
+	 *                          site's clusters are measured, the score below
+	 *                          which a cluster stands out from the rest. See
+	 *                          undergrowth_outlier_floor().
 	 */
-	$similarity = apply_filters( 'undergrowth_gap_similarity', UNDERGROWTH_GAP_SIMILARITY );
+	$default    = undergrowth_derived_threshold( 'gap' ) ?? UNDERGROWTH_GAP_SIMILARITY;
+	$similarity = apply_filters( 'undergrowth_gap_similarity', $default );
 
-	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : UNDERGROWTH_GAP_SIMILARITY;
+	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : $default;
 }
 
 /**
@@ -185,7 +193,7 @@ function undergrowth_cluster_map(): array {
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
 		$shown    = array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) );
-		$measured = undergrowth_measure_cluster( array_slice( $shown, 0, UNDERGROWTH_CLUSTER_BATCH ) );
+		$measured = undergrowth_measure_cluster( undergrowth_centre_members( $leader ) );
 		$shown    = null === $measured ? $shown : array_merge( $measured['members'], array_diff( $shown, $measured['members'] ) );
 
 		if ( array() === $shown ) {
@@ -221,7 +229,7 @@ function undergrowth_cluster_gaps(): array {
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
 		$members = undergrowth_cluster_posts( $leader );
-		$gap     = undergrowth_cluster_gap( $leader, array_slice( array_values( array_filter( $members, 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH ), $threshold );
+		$gap     = undergrowth_cluster_gap( $leader, undergrowth_centre_members( $leader ), $threshold );
 
 		if ( null !== $gap ) {
 			$gaps[] = $gap + array( 'cluster' => $members );
@@ -236,6 +244,20 @@ function undergrowth_cluster_gaps(): array {
 	);
 
 	return $gaps;
+}
+
+/**
+ * Lists the members a cluster's centre is measured on.
+ *
+ * Composting posts have left the garden, and a very large cluster is
+ * measured on its first batch of members, so measuring stays cheap. The
+ * map, the gaps and the measured gap threshold all use this one selection.
+ *
+ * @param int $leader Leader ID labelling the cluster.
+ * @return int[] Member post IDs, lowest first.
+ */
+function undergrowth_centre_members( int $leader ): array {
+	return array_slice( array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH );
 }
 
 /**
@@ -363,7 +385,10 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 
 	$after_id = (int) $after_id;
 
+	// The first batch measures the site's scores, so the whole pass clusters
+	// with the threshold they give.
 	if ( 0 === $after_id ) {
+		undergrowth_measure_scores();
 		delete_post_meta_by_key( 'undergrowth_cluster' );
 		update_option( 'undergrowth_cluster_leaders', array(), false );
 		undergrowth_forget_resurfacing_signals();
@@ -426,6 +451,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	}
 
 	delete_option( 'undergrowth_cluster_leaders' );
+	undergrowth_measure_gap_threshold();
 	wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 0 ) );
 	undergrowth_start_resurfacing();
 }

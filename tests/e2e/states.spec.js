@@ -44,8 +44,6 @@ const STAGE_NOTICES = [
 	'stage_composting',
 	'not_pinned',
 	'stage_not_saved',
-	'resurfacing_dismissed',
-	'resurfacing_gone',
 ];
 
 // Notices the Dashboard returns with after a prompt is dismissed or snoozed.
@@ -116,6 +114,19 @@ const WITHOUT_POSTS = [
 			fixture: state,
 		} )
 	),
+	{
+		screen: 'dashboard',
+		state: 'help-meter',
+		page: DASHBOARD,
+		fixture: 'meter-below',
+		help: 'undergrowth-meter',
+	},
+	{
+		screen: 'settings',
+		state: 'help-meter',
+		page: SETTINGS,
+		help: 'undergrowth-meter',
+	},
 ];
 
 const WITH_POSTS = [
@@ -191,9 +202,16 @@ const WITH_COMPOST = [
 	{ screen: 'stages', state: 'with-composting', page: STAGES },
 ];
 
-// Shown after a composting post was found near a new cluster.
+// Shown after a composting post was found near a new cluster. The signal
+// and the notices after dismissing it are on the Map tab.
 const WITH_RESURFACING = [
-	{ screen: 'stages', state: 'resurfacing', page: STAGES },
+	{ screen: 'map', state: 'resurfacing', page: MAP },
+	...[ 'resurfacing_dismissed', 'resurfacing_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
 ];
 
 // Shown after a clustering pass made two clusters, one of them a gap.
@@ -336,12 +354,30 @@ function capture( states ) {
 					await admin.visitAdminPage( ...entry.page );
 				}
 
-				// A build without this notice would only show the plain table.
-				// The marker lets the comment list it, rather than drop it.
+				// Opens core's Help panel on the tab this state is about.
+				const helpTab = entry.help
+					? page.locator( `#tab-link-${ entry.help } a` )
+					: null;
+
+				if ( helpTab && ( await helpTab.count() ) > 0 ) {
+					await page.locator( '#contextual-help-link' ).click();
+					await helpTab.click();
+					await page
+						.locator( `#tab-panel-${ entry.help }` )
+						.waitFor();
+					// Opening the tab scrolls it into view, under the admin bar.
+					await page.evaluate( () => window.scrollTo( 0, 0 ) );
+				}
+
+				// A build without this notice or Help tab would only show the
+				// plain screen. The marker lets the comment list it, rather
+				// than drop it.
 				if (
-					entry.notice &&
-					( await page.locator( '#undergrowth-notice' ).count() ) ===
-						0
+					( entry.notice &&
+						( await page
+							.locator( '#undergrowth-notice' )
+							.count() ) === 0 ) ||
+					( helpTab && ( await helpTab.count() ) === 0 )
 				) {
 					fs.mkdirSync( OUTPUT, { recursive: true } );
 
@@ -537,13 +573,13 @@ test.describe( 'Screenshot catalogue', () => {
 			] );
 			await pass();
 
-			// Without a signal the shot would show the plain table instead.
-			const stages = await requestUtils.request.get(
-				'wp-admin/edit.php?page=undergrowth-links&tab=stages'
+			// Without a signal the shot would show the plain map instead.
+			const map = await requestUtils.request.get(
+				'wp-admin/edit.php?page=undergrowth-links&tab=map'
 			);
 
 			if (
-				! ( await stages.text() ).includes(
+				! ( await map.text() ).includes(
 					'value="undergrowth_dismiss_resurfacing"'
 				)
 			) {

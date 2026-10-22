@@ -179,6 +179,18 @@ Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 
 - v2 channel: Telegram.
 - Rejected: webhook+polling (clunky), VPS sidecar (fastest for a prototype but not plugin-ready).
 
+### Thresholds follow the site's own scores (decided 2026-10-22)
+- Each embedding model spreads cosine scores differently, so fixed numbers tuned for one model link everything, or put every post in one cluster, with another (#176, docs/quality-report-v1.md).
+- Defaults come from the site's own scores, per provider and model:
+  - **Links:** the 40th percentile of pairwise scores.
+  - **Clusters:** the 90th percentile.
+  - **Gaps:** a cluster whose nearest member to its centre is an outlier among the site's clusters, below Q1 − 1.5 × IQR of their centre scores. This needs at least 4 clusters.
+- The monthly cluster cycle measures them from a sample of at most 20,000 pairs (`src/thresholds.php`), so the cost does not grow with the site. The pairwise percentiles are measured before clustering and the gap threshold after.
+- The fixed 0.4 / 0.5 / 0.8 stay under 20 posts, before the first measurement, and for the providers in `UNDERGROWTH_FIXED_THRESHOLD_PROVIDERS` (filter `undergrowth_fixed_threshold_providers`).
+- That list holds `openai` until the real-posts test (docs/testing-v1.md) records its percentiles.
+- The threshold filters still have the last word. Each receives the derived value as its default.
+- `wp undergrowth scores` prints the measured percentiles and the thresholds in use.
+
 ### Search Console
 - Read tokens from Site Kit by Google if installed. Do not build own OAuth for v1 (Google app verification is a blocker for a public plugin).
 - Limits: 2-3 day lag, 16 months retention, low-volume queries hidden, daily API quotas.

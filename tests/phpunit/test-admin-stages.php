@@ -478,12 +478,14 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<p class="undergrowth-composting-count"><span>2 posts are composting.</span> <span>Composting posts rest outside the garden', $html );
 	}
 
-	public function test_stages_tab_counts_a_stage_with_no_posts_as_none() {
+	public function test_stages_tab_leaves_out_stages_with_no_posts() {
 		self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<span>1 post is a seedling.</span> <span>0 posts are sprouts.</span> <span>0 posts are budding.</span> <span>0 posts are evergreen.</span>', $html );
+		// Zeros on a new site would read like a scorecard.
+		$this->assertStringContainsString( '<p class="undergrowth-stage-counts"><span>1 post is a seedling.</span></p>', $html );
+		$this->assertStringNotContainsString( '0 posts', $html );
 		$this->assertStringNotContainsString( 'undergrowth-composting-count', $html );
 	}
 
