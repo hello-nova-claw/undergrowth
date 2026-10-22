@@ -185,6 +185,30 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertDirectoryExists( $legacy . '/posts' );
 	}
 
+	public function test_a_moved_folder_gets_an_index_file_in_posts_at_once() {
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		delete_option( 'undergrowth_memory_folder' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertFileExists( undergrowth_memory_root() . '/posts/index.php' );
+	}
+
+	public function test_an_old_folder_left_behind_is_removed_on_a_later_request() {
+		$root    = undergrowth_memory_root();
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertDirectoryExists( $root );
+	}
+
 	public function test_preparing_the_folder_again_leaves_it_alone() {
 		$folder = undergrowth_memory_folder();
 
