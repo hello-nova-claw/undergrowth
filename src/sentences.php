@@ -438,9 +438,24 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
 function undergrowth_linkable_sentences( string $content ): array {
 	$sentences = array();
 
+	// Comments hold no links, and blanking them keeps every offset.
+	$scan = (string) preg_replace_callback(
+		'/<!--.*?(?:-->|$)/s',
+		static function ( $comment ) {
+			return str_repeat( ' ', strlen( $comment[0] ) );
+		},
+		$content
+	);
+
 	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
+		// A link can wrap a whole paragraph, so one still open where the
+		// paragraph starts marks every sentence in it as linked.
+		$before  = substr( $scan, 0, $paragraph[1] );
+		$wrapped = preg_match_all( '#<a\b#i', $before ) > preg_match_all( '#</a\s*>#i', $before );
+
 		foreach ( undergrowth_split_sentences( '<p>' . $paragraph[0] . '</p>' ) as $sentence ) {
-			$sentences[] = $sentence;
+			$sentence['linked'] = $sentence['linked'] || $wrapped;
+			$sentences[]        = $sentence;
 		}
 	}
 
