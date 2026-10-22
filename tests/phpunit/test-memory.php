@@ -209,6 +209,35 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertDirectoryExists( $root );
 	}
 
+	public function test_an_old_folder_that_cannot_be_removed_is_not_retried_on_every_request() {
+		$root    = undergrowth_memory_root();
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $root . '/posts' );
+		wp_mkdir_p( $legacy . '/posts' );
+		add_filter(
+			'filesystem_method',
+			static function () {
+				return 'ftpext';
+			}
+		);
+
+		undergrowth_prepare_memory_folder();
+		$this->assertSame( 'old_folder_left', get_option( 'undergrowth_last_file_error' )['code'] );
+
+		update_option(
+			'undergrowth_last_file_error',
+			array(
+				'code' => 'old_folder_left',
+				'time' => 1,
+			)
+		);
+		undergrowth_prepare_memory_folder();
+
+		$this->assertSame( 1, get_option( 'undergrowth_last_file_error' )['time'] );
+		$this->assertDirectoryExists( $legacy );
+	}
+
 	public function test_preparing_the_folder_again_leaves_it_alone() {
 		$folder = undergrowth_memory_folder();
 
