@@ -43,13 +43,15 @@ function undergrowth_add_dashboard_widget(): void {
  */
 function undergrowth_render_dashboard_widget(): void {
 	if ( undergrowth_user_has_prompt() ) {
-		echo '<h3>' . esc_html__( 'A question for you', 'undergrowth' ) . '</h3>';
+		echo '<div class="undergrowth-prompt"><h3>' . esc_html__( 'A question for you', 'undergrowth' ) . '</h3>';
 		undergrowth_render_prompt_widget();
+		echo '</div>';
 	}
 
 	if ( undergrowth_meter_user_can_see() ) {
-		echo '<h3>' . esc_html__( 'Page views, last 30 days', 'undergrowth' ) . '</h3>';
+		echo '<div class="undergrowth-meter"><h3>' . esc_html__( 'Page views, last 30 days', 'undergrowth' ) . '</h3>';
 		undergrowth_render_meter_widget();
+		echo '</div>';
 	}
 }
 
