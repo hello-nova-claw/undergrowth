@@ -262,8 +262,8 @@ function undergrowth_render_key_field( array $args ): void {
 			<?php
 			echo esc_html(
 				sprintf(
-					/* translators: %s: last four characters of the saved API key. */
-					__( 'A key ending in %s is saved. Leave the field blank to keep it.', 'undergrowth' ),
+					/* translators: %1$s: last four characters of the saved API key. */
+					__( 'A key ending in %1$s is saved. Leave the field blank to keep it.', 'undergrowth' ),
 					substr( $key, -4 )
 				)
 			);

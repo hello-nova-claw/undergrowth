@@ -264,8 +264,8 @@ function undergrowth_render_discord_field( array $args ): void {
 			<?php
 			echo esc_html(
 				sprintf(
-					/* translators: %s: last four characters of the saved bot token. */
-					__( 'A token ending in %s is saved. Leave the field blank to keep it.', 'undergrowth' ),
+					/* translators: %1$s: last four characters of the saved bot token. */
+					__( 'A token ending in %1$s is saved. Leave the field blank to keep it.', 'undergrowth' ),
 					substr( $value, -4 )
 				)
 			);
