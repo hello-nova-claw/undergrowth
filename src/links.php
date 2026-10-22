@@ -512,15 +512,18 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$table   = undergrowth_links_table();
 	$now     = current_time( 'mysql', true );
 	$targets = array();
+	$taken   = array();
 
+	// Nearest targets choose first, so the strongest link gets its best sentence.
 	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
-		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus );
+		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus, $taken );
 
 		if ( null === $sentence ) {
 			continue;
 		}
 
 		$targets[ $target_id ] = $score;
+		$taken[]               = $sentence['text'];
 		$state                 = undergrowth_link_state( $post_id, $target_id );
 		$fields                = array(
 			'score'          => $score,

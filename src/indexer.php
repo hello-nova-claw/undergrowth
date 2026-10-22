@@ -7,7 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_BACKFILL_BATCH = 20;
+const UNDERGROWTH_BACKFILL_BATCH   = 20;
+const UNDERGROWTH_BACKFILL_SECONDS = 15;
 
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
@@ -226,6 +227,25 @@ function undergrowth_backfill_batch_size(): int {
 }
 
 /**
+ * Returns how long one backfill run may keep starting new posts.
+ *
+ * @return float Seconds, at least zero.
+ */
+function undergrowth_backfill_time_budget(): float {
+	/**
+	 * Filters how long one backfill run may keep starting new posts.
+	 *
+	 * Each post embedded also refreshes the proposals around it, which takes
+	 * longer as the site grows. WP-Cron often runs inside a visitor's request,
+	 * and many hosts stop a request after 30 seconds, so a run starts no new
+	 * post once this much time has passed. It always embeds at least one.
+	 *
+	 * @param float $seconds Seconds per run. Default 15.
+	 */
+	return max( 0.0, (float) apply_filters( 'undergrowth_backfill_time_budget', UNDERGROWTH_BACKFILL_SECONDS ) );
+}
+
+/**
  * Lists indexable posts that have no vector from the current provider and model.
  *
  * Mirrors undergrowth_is_indexable() in SQL, so posts that must not be sent
@@ -342,9 +362,9 @@ function undergrowth_schedule_backfill_check(): void {
 /**
  * Embeds one batch of indexable posts that have no current vector.
  *
- * A pass walks the posts by ID, and each full batch queues the next run
- * after the last post it tried, so a post whose embed failed does not hold
- * up the rest. The hourly check starts a new pass for the posts left over.
+ * A pass walks the posts by ID, and each full batch, or one cut short by
+ * the time budget, queues the next run after the last post it tried, so a
+ * post whose embed failed does not hold up the rest. The hourly check starts a new pass for the posts left over.
  *
  * Posts whose vector came from another provider or model count as having
  * none, so the same passes re-embed the whole index when the model changes.
@@ -391,14 +411,23 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$pass     = get_option( 'undergrowth_backfill' );
 	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] ? (int) ( $pass['after'] ?? 0 ) : 0;
 	$size     = undergrowth_backfill_batch_size();
+	$budget   = undergrowth_backfill_time_budget();
+	$started  = microtime( true );
 	$post_ids = undergrowth_unindexed_post_ids( $identity, $after, $size );
+	$tried    = array();
 
 	foreach ( $post_ids as $post_id ) {
+		if ( array() !== $tried && microtime( true ) - $started >= $budget ) {
+			break;
+		}
+
 		undergrowth_embed_post( $post_id );
+		$tried[] = $post_id;
 	}
 
-	if ( count( $post_ids ) === $size ) {
-		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => end( $post_ids ) ) ), false );
+	// A batch cut short by the budget left posts behind, like a full batch may.
+	if ( count( $post_ids ) === $size || count( $tried ) < count( $post_ids ) ) {
+		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => end( $tried ) ) ), false );
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		return;
 	}
