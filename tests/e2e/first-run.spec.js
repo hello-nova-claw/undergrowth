@@ -68,10 +68,10 @@ test.describe( 'First run', () => {
 	} ) => {
 		// Without a provider, as on a new site, and with a fresh first run.
 		await useFixture( context, baseURL, 'no-provider' );
-		await admin.visitAdminPage(
-			'index.php',
-			'undergrowth_e2e_first_run=1'
-		);
+		await requestUtils.rest( {
+			method: 'DELETE',
+			path: '/undergrowth-e2e/v1/first-run',
+		} );
 		await requestUtils.deactivatePlugin( 'undergrowth' );
 
 		try {
@@ -136,10 +136,10 @@ test.describe( 'First run', () => {
 		requestUtils,
 	} ) => {
 		await useFixture( context, baseURL, 'no-provider' );
-		await admin.visitAdminPage(
-			'index.php',
-			'undergrowth_e2e_first_run=1'
-		);
+		await requestUtils.rest( {
+			method: 'DELETE',
+			path: '/undergrowth-e2e/v1/first-run',
+		} );
 		await requestUtils.deactivatePlugin( 'undergrowth' );
 
 		try {
