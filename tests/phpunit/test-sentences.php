@@ -510,6 +510,26 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( 'Yacon syrup is a gentle sweetener.', $this->stored_sentence( $oca, $yacon )['sentence'] );
 	}
 
+	public function test_sentence_holding_the_word_the_target_is_about_is_chosen() {
+		$oca   = self::factory()->post->create(
+			array(
+				'post_title'   => 'Oca',
+				'post_content' => '<p>Oca grows in the vicinity. Tubers grow beside it.</p>',
+			)
+		);
+		$yacon = self::factory()->post->create(
+			array(
+				'post_title'   => 'Yacon',
+				'post_content' => '<p>' . str_repeat( 'Tubers store well. ', 8 ) . 'The vicinity matters. A vicinity.</p>',
+			)
+		);
+		$ids   = array_merge( array( $oca, $yacon ), self::factory()->post->create_many( 1, array( 'post_content' => 'Tubers again.' ) ), self::factory()->post->create_many( 2, array( 'post_content' => 'Frost.' ) ) );
+
+		$chosen = undergrowth_choose_sentence( $oca, $yacon, undergrowth_build_corpus( $ids ) );
+
+		$this->assertSame( 'Tubers grow beside it.', $chosen['text'] ?? null );
+	}
+
 	public function test_repeated_common_words_never_outweigh_a_targets_own_words() {
 		$filler = str_repeat( 'The garden and the shed with that path. ', 25 );
 		foreach ( array( 'Shed', 'Path', 'Gate' ) as $i => $title ) {

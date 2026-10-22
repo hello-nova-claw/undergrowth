@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
 
 /**
- * Accepts a proposed link by linking the target's most distinctive word
+ * Accepts a proposed link by linking the word the target is most about
  * where it appears in the proposal's sentence.
  *
  * The suggestion is claimed before the post is touched, so two requests
@@ -112,11 +112,11 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target->ID ) ) ) );
 	$linked = null;
 
-	// Every word the target uses is tried, most distinctive first. The
-	// sentence was chosen for a word among the target's top few, but which
+	// Every word the sentence shares with the target is tried, the one the
+	// target is most about first. The sentence was chosen for a word among the top few, but which
 	// words make the top few shifts as posts are added, most of all while a
 	// new site is still being indexed.
-	foreach ( array_keys( undergrowth_distinctive_terms( $target->ID, $corpus, 0 ) ) as $term ) {
+	foreach ( array_keys( undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 ) ) as $term ) {
 		$linked = undergrowth_link_word( $source->post_content, $sentence, (string) $term, (string) get_permalink( $target ) );
 
 		if ( null !== $linked ) {
