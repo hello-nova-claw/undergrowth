@@ -90,7 +90,7 @@ test.describe( 'Resurfacing', () => {
 	} ) => {
 		await admin.visitAdminPage(
 			'edit.php',
-			'page=undergrowth-links&tab=stages'
+			'page=undergrowth-links&tab=map'
 		);
 
 		const signal = page.locator( '.undergrowth-resurfacing' );
@@ -129,7 +129,7 @@ test.describe( 'Resurfacing', () => {
 	} ) => {
 		await admin.visitAdminPage(
 			'edit.php',
-			'page=undergrowth-links&tab=stages'
+			'page=undergrowth-links&tab=map'
 		);
 
 		const back = page.locator(
@@ -141,13 +141,14 @@ test.describe( 'Resurfacing', () => {
 		await page.keyboard.press( 'Enter' );
 
 		await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+		await expect( page.locator( '.undergrowth-resurfacing' ) ).toHaveCount(
+			0
+		);
 
+		// Back in the garden, it is listed on Growth stages again.
 		await admin.visitAdminPage(
 			'edit.php',
 			'page=undergrowth-links&tab=stages'
-		);
-		await expect( page.locator( '.undergrowth-resurfacing' ) ).toHaveCount(
-			0
 		);
 		await expect(
 			page.locator( `#undergrowth-stage-${ old.id }` )
