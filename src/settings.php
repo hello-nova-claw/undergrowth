@@ -103,13 +103,39 @@ function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_
 }
 
 /**
+ * Returns an API key defined as a constant, usually in wp-config.php, which
+ * keeps it out of the database and its backups.
+ *
+ * @param string $constant Name of the constant.
+ * @return string The key, or an empty string when the constant is not a
+ *                non-empty string.
+ */
+function undergrowth_key_from_config( string $constant ): string {
+	$key = defined( $constant ) ? constant( $constant ) : '';
+
+	return is_string( $key ) ? trim( $key ) : '';
+}
+
+/**
+ * Returns an API key saved on the settings page.
+ *
+ * @param string $option Option name.
+ * @return string The key, or an empty string when none is saved.
+ */
+function undergrowth_saved_key( string $option ): string {
+	$key = get_option( $option, '' );
+
+	return is_string( $key ) ? $key : '';
+}
+
+/**
  * Cleans a submitted OpenAI API key.
  *
  * @param mixed $value Submitted value.
  * @return string The key to save.
  */
 function undergrowth_sanitize_openai_key( $value ): string {
-	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_openai_key', undergrowth_openai_key() );
+	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_openai_key', undergrowth_saved_key( 'undergrowth_openai_api_key' ) );
 }
 
 /**
@@ -119,7 +145,7 @@ function undergrowth_sanitize_openai_key( $value ): string {
  * @return string The key to save.
  */
 function undergrowth_sanitize_anthropic_key( $value ): string {
-	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_anthropic_key', undergrowth_anthropic_key() );
+	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_anthropic_key', undergrowth_saved_key( 'undergrowth_anthropic_api_key' ) );
 }
 
 /**
@@ -127,7 +153,9 @@ function undergrowth_sanitize_anthropic_key( $value ): string {
  *
  * The field is always shown empty so the saved key never reaches the page,
  * which means an empty submission has to keep the saved key rather than
- * clear it. Clearing takes the separate remove checkbox.
+ * clear it. Clearing takes the separate remove checkbox. A field disabled
+ * because its key is in wp-config.php is not submitted at all, and keeps
+ * the saved key the same way.
  *
  * @param mixed  $value  Submitted value.
  * @param string $remove Name of the key's remove checkbox.
@@ -154,12 +182,14 @@ function undergrowth_render_settings_page(): void {
 		return;
 	}
 
-	$key             = undergrowth_openai_key();
-	$error           = get_option( 'undergrowth_last_embed_error' );
-	$anthropic_key   = undergrowth_anthropic_key();
-	$anthropic_error = get_option( 'undergrowth_last_prompt_error' );
-	$identity        = undergrowth_embed_identity();
-	$counts          = '' !== $identity['provider'] && '' !== $identity['model'] ? undergrowth_index_counts() : null;
+	$key              = undergrowth_openai_key();
+	$key_in_config    = '' !== undergrowth_key_from_config( 'UNDERGROWTH_OPENAI_API_KEY' );
+	$error            = get_option( 'undergrowth_last_embed_error' );
+	$anthropic_key    = undergrowth_anthropic_key();
+	$anthropic_config = '' !== undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' );
+	$anthropic_error  = get_option( 'undergrowth_last_prompt_error' );
+	$identity         = undergrowth_embed_identity();
+	$counts           = '' !== $identity['provider'] && '' !== $identity['model'] ? undergrowth_index_counts() : null;
 	?>
 	<div class="wrap undergrowth-settings">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -174,14 +204,27 @@ function undergrowth_render_settings_page(): void {
 						<label for="undergrowth_openai_api_key"><?php esc_html_e( 'OpenAI API key', 'undergrowth' ); ?></label>
 					</th>
 					<td>
-						<input type="password" class="regular-text" id="undergrowth_openai_api_key" name="undergrowth_openai_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-openai-notice" />
+						<input type="password" class="regular-text" id="undergrowth_openai_api_key" name="undergrowth_openai_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-openai-notice<?php echo $key_in_config ? ' undergrowth-openai-config' : ''; ?>"<?php disabled( $key_in_config ); ?> />
 
 						<p class="description" id="undergrowth-openai-notice">
 							<?php esc_html_e( 'With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ); ?>
 							<a id="undergrowth-openai-get-key" href="https://platform.openai.com/api-keys"><?php esc_html_e( 'Get a key from OpenAI', 'undergrowth' ); ?></a>
 						</p>
 
-						<?php if ( '' !== $key ) : ?>
+						<?php if ( $key_in_config ) : ?>
+							<p class="description" id="undergrowth-openai-config">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: file name, wp-config.php, 2: name of the constant. */
+										__( 'This key is set in %1$s as %2$s, so it is used instead of one saved here. Change or remove it in that file.', 'undergrowth' ),
+										'wp-config.php',
+										'UNDERGROWTH_OPENAI_API_KEY'
+									)
+								);
+								?>
+							</p>
+						<?php elseif ( '' !== $key ) : ?>
 							<p class="description">
 								<?php
 								echo esc_html(
@@ -248,14 +291,27 @@ function undergrowth_render_settings_page(): void {
 						<label for="undergrowth_anthropic_api_key"><?php esc_html_e( 'Anthropic API key', 'undergrowth' ); ?></label>
 					</th>
 					<td>
-						<input type="password" class="regular-text" id="undergrowth_anthropic_api_key" name="undergrowth_anthropic_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-anthropic-notice" />
+						<input type="password" class="regular-text" id="undergrowth_anthropic_api_key" name="undergrowth_anthropic_api_key" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-anthropic-notice<?php echo $anthropic_config ? ' undergrowth-anthropic-config' : ''; ?>"<?php disabled( $anthropic_config ); ?> />
 
 						<p class="description" id="undergrowth-anthropic-notice">
 							<?php esc_html_e( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ); ?>
 							<a id="undergrowth-anthropic-get-key" href="https://platform.claude.com/settings/keys"><?php esc_html_e( 'Get a key from Anthropic', 'undergrowth' ); ?></a>
 						</p>
 
-						<?php if ( '' !== $anthropic_key ) : ?>
+						<?php if ( $anthropic_config ) : ?>
+							<p class="description" id="undergrowth-anthropic-config">
+								<?php
+								echo esc_html(
+									sprintf(
+										/* translators: 1: file name, wp-config.php, 2: name of the constant. */
+										__( 'This key is set in %1$s as %2$s, so it is used instead of one saved here. Change or remove it in that file.', 'undergrowth' ),
+										'wp-config.php',
+										'UNDERGROWTH_ANTHROPIC_API_KEY'
+									)
+								);
+								?>
+							</p>
+						<?php elseif ( '' !== $anthropic_key ) : ?>
 							<p class="description">
 								<?php
 								echo esc_html(
