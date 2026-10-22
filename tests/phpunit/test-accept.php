@@ -127,6 +127,18 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_link_word_choice( $oca, $yacon, 'A sentence that is not there.' ) );
 	}
 
+	public function test_no_word_is_chosen_for_a_target_that_left_the_garden() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants.</p>' );
+		wp_update_post(
+			array(
+				'ID'          => $yacon,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertNull( undergrowth_link_word_choice( $oca, $yacon, 'I keep yacon plants.' ) );
+	}
+
 	public function test_no_word_is_chosen_for_posts_that_are_gone() {
 		list( $oca ) = $this->pair( '<p>Oca grows here. I keep yacon plants.</p>' );
 

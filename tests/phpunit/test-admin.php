@@ -348,6 +348,22 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'button-primary', $html );
 	}
 
+	public function test_an_untitled_post_is_named_as_core_names_it() {
+		list( , $yacon ) = $this->sharing_pair();
+		global $wpdb;
+
+		// The title is cleared behind the plugin's back, so the post is not
+		// read again and its suggestion stays.
+		$wpdb->update( $wpdb->posts, array( 'post_title' => '' ), array( 'ID' => $yacon ) );
+		clean_post_cache( $yacon );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p>Link to <a class="row-title" href="', $html );
+		$this->assertStringContainsString( '">(no title)</a></p>', $html );
+		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
+	}
+
 	public function test_the_word_accept_will_link_is_marked_in_the_quote() {
 		$this->sharing_pair();
 
