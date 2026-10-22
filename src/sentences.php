@@ -76,8 +76,9 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
+		// A closing quotation mark or bracket can sit between the stop and the space.
 		$in_quote = false !== strpos( $block, $quoted );
-		$parts    = preg_split( '/(?<=[.!?…])\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
+		$parts    = preg_split( '/[.!?…][”’"\'»)\]]*\K\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
