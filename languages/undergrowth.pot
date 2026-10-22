@@ -615,14 +615,6 @@ msgid "Page views, last 30 days"
 msgstr ""
 
 #: src/meter.php
-msgid "When they arrive, each suggestion from reader data will also need enough visits on the pages it draws on, checked before it is shown."
-msgstr ""
-
-#: src/meter.php
-msgid "This meter counts page views from Jetpack Stats. To see it, install Jetpack, connect it to WordPress.com and turn on Stats."
-msgstr ""
-
-#: src/meter.php
 msgid "Jetpack Stats did not answer, so there is no count today. Undergrowth will ask again tomorrow."
 msgstr ""
 
@@ -642,14 +634,30 @@ msgstr ""
 msgid "%1$s of %2$s views in the last 30 days."
 msgstr ""
 
-#. translators: %s: the switch line, a formatted number of views.
 #: src/meter.php
-#, php-format
-msgid "Reader features, which will suggest links from the paths readers take between your posts, wait for %s views in 30 days. They are not part of this version yet."
+msgid "Reader features wait for this line. They are not part of this version yet."
 msgstr ""
 
 #: src/meter.php
-msgid "Counted from Jetpack Stats once a day."
+msgid "The page views meter counts views of your site in the last 30 days, from Jetpack Stats, once a day. It appears on the Dashboard only when Jetpack is connected to WordPress.com with Stats turned on. Undergrowth asks Jetpack and nothing else."
+msgstr ""
+
+#. translators: %1$s: the switch line, a formatted number of views.
+#: src/meter.php
+#, php-format
+msgid "Reader features, which will suggest links from the paths readers take between your posts, have two rules. The first is the line on the meter: %1$s views in 30 days. Passing it alone never turns a suggestion on."
+msgstr ""
+
+#: src/meter.php
+msgid "The second rule is checked before each suggestion from reader data is shown: the pages it draws on need enough visits for the suggestion to hold up."
+msgstr ""
+
+#: src/meter.php
+msgid "Reader features are not part of this version yet, so neither rule changes anything for now."
+msgstr ""
+
+#: src/meter.php
+msgid "Page views meter"
 msgstr ""
 
 #. translators: %s: post title.
