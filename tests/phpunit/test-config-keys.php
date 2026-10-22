@@ -70,6 +70,14 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertSame( self::SAVED_KEY, undergrowth_anthropic_key() );
 	}
 
+	public function test_settings_page_does_not_say_a_key_must_be_saved_here() {
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'until you save a key', $html );
+		$this->assertStringNotContainsString( 'With a key saved', $html );
+		$this->assertSame( 2, substr_count( $html, 'Nothing is sent while there is no key.' ) );
+	}
+
 	public function test_scheduling_the_prompt_cycle_writes_no_first_prompt_for_a_saved_key() {
 		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
 		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
@@ -81,21 +89,40 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
+	public function test_no_first_prompt_is_queued_for_a_saved_key_on_init() {
+		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+		$this->assertFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+	}
+
 	/**
 	 * A key in wp-config.php is never saved, so nothing else would ask for
-	 * the first prompt before the monthly cycle.
+	 * the first prompt before the monthly cycle, which may be scheduled
+	 * already when the constant is added to a running site.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_first_prompt_is_queued_when_the_cycle_starts_with_a_key_in_wp_config() {
+	public function test_first_prompt_is_queued_once_for_a_key_in_wp_config() {
 		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
-		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
-
 		undergrowth_schedule_prompt_cycle();
 
+		undergrowth_queue_config_first_prompt();
+
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+
+		// The prompt was written and then dismissed or snoozed, which leaves
+		// no current prompt and nothing queued. Later requests must not ask
+		// for another before the monthly cycle.
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
 	/**
