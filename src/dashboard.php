@@ -1,31 +1,56 @@
 <?php
 /**
- * The Dashboard widget that shows the author one prompt at a time.
+ * The one Undergrowth widget on the Dashboard. It holds the question for the
+ * author, one prompt at a time, and, only with Jetpack Stats, the page views
+ * meter line.
  *
- * There is no list of prompts, no count and no empty state: with nothing
- * waiting, there is no widget at all.
+ * There is no list of prompts, no count and no empty state: with nothing to
+ * show, there is no widget at all.
  *
  * @package Undergrowth
  */
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'wp_dashboard_setup', 'undergrowth_add_prompt_widget' );
+add_action( 'wp_dashboard_setup', 'undergrowth_add_dashboard_widget' );
 add_action( 'admin_post_undergrowth_prompt', 'undergrowth_handle_prompt' );
 add_action( 'admin_notices', 'undergrowth_render_prompt_notice' );
 
 /**
- * Adds the prompt widget when a prompt is waiting for someone who can edit
- * its post.
+ * Tells whether a prompt is waiting for someone who can edit its post.
+ *
+ * @return bool
  */
-function undergrowth_add_prompt_widget(): void {
+function undergrowth_user_has_prompt(): bool {
 	$prompt = undergrowth_current_prompt();
 
-	if ( null === $prompt || ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
-		return;
+	return null !== $prompt && current_user_can( 'edit_post', $prompt['post_id'] );
+}
+
+/**
+ * Adds the Undergrowth widget when it has a question or a meter line for the
+ * current user.
+ */
+function undergrowth_add_dashboard_widget(): void {
+	if ( undergrowth_user_has_prompt() || undergrowth_meter_user_can_see() ) {
+		wp_add_dashboard_widget( 'undergrowth', __( 'Undergrowth', 'undergrowth' ), 'undergrowth_render_dashboard_widget' );
+	}
+}
+
+/**
+ * Prints each part of the widget the current user may see, under its own
+ * heading, so the widget never shows an empty part.
+ */
+function undergrowth_render_dashboard_widget(): void {
+	if ( undergrowth_user_has_prompt() ) {
+		echo '<h3>' . esc_html__( 'A question for you', 'undergrowth' ) . '</h3>';
+		undergrowth_render_prompt_widget();
 	}
 
-	wp_add_dashboard_widget( 'undergrowth_prompt', __( 'A question for you', 'undergrowth' ), 'undergrowth_render_prompt_widget' );
+	if ( undergrowth_meter_user_can_see() ) {
+		echo '<h3>' . esc_html__( 'Page views, last 30 days', 'undergrowth' ) . '</h3>';
+		undergrowth_render_meter_widget();
+	}
 }
 
 /**
