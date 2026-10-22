@@ -456,23 +456,27 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
  */
 function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus ): ?array {
 	$source = get_post( $source_id );
-	$terms  = undergrowth_distinctive_terms( $target_id, $corpus );
 
-	if ( ! $source instanceof WP_Post || array() === $terms ) {
+	if ( ! $source instanceof WP_Post ) {
 		return null;
 	}
 
+	// Only sentences from paragraphs a link may go in are scored, each with
+	// its own paragraph's flags, so a heading or list item is never chosen,
+	// even when it shares a paragraph's words or text. The target's words
+	// are ranked among the ones those sentences hold.
+	$sentences = array_filter(
+		undergrowth_linkable_sentences( $source->post_content ),
+		static function ( $sentence ) {
+			return ! $sentence['linked'];
+		}
+	);
+
+	$terms      = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
 	$best       = null;
 	$best_score = 0.0;
 
-	// Only sentences from paragraphs a link may go in are scored, each with
-	// its own paragraph's flags, so a heading or list item is never chosen,
-	// even when it shares a paragraph's words or text.
-	foreach ( undergrowth_linkable_sentences( $source->post_content ) as $sentence ) {
-		if ( $sentence['linked'] ) {
-			continue;
-		}
-
+	foreach ( $sentences as $sentence ) {
 		$score = 0.0;
 
 		foreach ( array_unique( undergrowth_tokens( $sentence['text'] ) ) as $token ) {
