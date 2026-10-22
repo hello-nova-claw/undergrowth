@@ -567,7 +567,7 @@ function undergrowth_render_suggestions_notice(): void {
 	}
 
 	printf(
-		'<div id="undergrowth-notice" class="notice %1$s" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
+		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
 		in_array( $notice, array( 'vetoed', 'saved', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
 		esc_html( $messages[ $notice ] ),
 		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
