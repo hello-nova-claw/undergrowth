@@ -1,1 +1,1 @@
-The Growth stages tab now sums up the garden: how many posts are seedlings, sprouts, budding and evergreen, with composting posts counted on their own line.
+The Growth stages tab now sums up the garden: how many posts are seedlings, sprouts, budding and evergreen, naming only the stages that have posts, with composting posts counted on their own line.
