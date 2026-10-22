@@ -106,6 +106,28 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0.0, min( $scores ) );
 	}
 
+	public function test_groups_are_picked_in_proportion_to_their_pairs() {
+		$sizes = array(
+			0 => 3.0,
+			2 => 6.0,
+		);
+
+		$this->assertSame( 0, undergrowth_pick_group( $sizes, 1 ) );
+		$this->assertSame( 0, undergrowth_pick_group( $sizes, 3 ) );
+		$this->assertSame( 2, undergrowth_pick_group( $sizes, 4 ) );
+		$this->assertSame( 2, undergrowth_pick_group( $sizes, 9 ) );
+		$this->assertSame( 2, undergrowth_pick_group( $sizes, 10 ) );
+	}
+
+	public function test_sample_of_several_groups_scores_only_pairs_within_one() {
+		$ones  = array_fill( 0, 10, undergrowth_unit_vector( array( 1.0, 0.0 ) ) );
+		$twos  = array_fill( 0, 10, undergrowth_unit_vector( array( 0.0, 1.0 ) ) );
+		$mixed = undergrowth_sample_scores( array( $ones, $twos ), 30 );
+
+		$this->assertCount( 30, $mixed );
+		$this->assertEqualsWithDelta( 1.0, min( $mixed ), 1e-6 );
+	}
+
 	public function test_outlier_floor_sits_below_the_lower_quartile() {
 		$floor = undergrowth_outlier_floor( array( 0.962, 0.927, 0.949, 0.951, 0.954, 0.957, 0.962 ) );
 
