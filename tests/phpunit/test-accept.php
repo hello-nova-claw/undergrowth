@@ -250,6 +250,61 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( '<p>It costs &pound;3 a <a href="https://example.test/">pound</a>.</p>', $linked );
 	}
 
+	/**
+	 * Links the visible sentence, never its copy inside an attribute.
+	 *
+	 * @dataProvider data_attributes_holding_a_closing_bracket
+	 *
+	 * @param string $content  Paragraph whose markup holds the sentence in an attribute.
+	 * @param string $expected The same paragraph with the visible word linked.
+	 */
+	public function test_text_inside_an_attribute_is_never_linked( string $content, string $expected ) {
+		$this->assertSame( $expected, undergrowth_link_word( $content, 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' ) );
+	}
+
+	/**
+	 * Paragraphs whose attribute values hold a closing bracket and the sentence.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_attributes_holding_a_closing_bracket(): array {
+		$link = '<a href="https://example.test/">yacon</a>';
+
+		return array(
+			'double quotes'        => array(
+				'<p><span title=">I keep yacon plants nearby.">visible</span> I keep yacon plants nearby.</p>',
+				'<p><span title=">I keep yacon plants nearby.">visible</span> I keep ' . $link . ' plants nearby.</p>',
+			),
+			'single quotes'        => array(
+				"<p><span title='>I keep yacon plants nearby.'>visible</span> I keep yacon plants nearby.</p>",
+				"<p><span title='>I keep yacon plants nearby.'>visible</span> I keep " . $link . ' plants nearby.</p>',
+			),
+			'the paragraph itself' => array(
+				'<p title=">I keep yacon plants nearby.">I keep yacon plants nearby.</p>',
+				'<p title=">I keep yacon plants nearby.">I keep ' . $link . ' plants nearby.</p>',
+			),
+			'a classic paragraph'  => array(
+				"Intro.\n\n<span title=\">I keep yacon plants nearby.\">visible</span> I keep yacon plants nearby.",
+				"Intro.\n\n<span title=\">I keep yacon plants nearby.\">visible</span> I keep " . $link . ' plants nearby.',
+			),
+		);
+	}
+
+	public function test_a_closing_bracket_inside_a_links_attribute_still_marks_the_link() {
+		$this->assertNull(
+			undergrowth_link_word(
+				'<p>Intro. <a title="a > b" href="https://example.test/other">I keep yacon plants nearby.</a></p>',
+				'I keep yacon plants nearby.',
+				'yacon',
+				'https://example.test/'
+			)
+		);
+	}
+
+	public function test_plain_text_never_includes_attribute_values() {
+		$this->assertSame( 'visible and more', undergrowth_plain_text( '<span title=">hidden" data-x=\'>also\'>visible</span> and <em>more</em>' ) );
+	}
+
 	public function test_sentence_inside_a_quote_is_never_linked() {
 		list( $oca, $yacon ) = $this->pair( '<!-- wp:quote --><blockquote class="wp-block-quote"><p>I keep yacon plants nearby for their syrup.</p></blockquote><!-- /wp:quote --><p>Yacon grows here.</p>' );
 		$before              = get_post( $oca )->post_content;
