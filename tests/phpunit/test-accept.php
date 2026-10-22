@@ -85,6 +85,70 @@ class Test_Accept extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Contents where Accept links different words, each with the sentence
+	 * the proposal is pinned to.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function choice_contents(): array {
+		return array(
+			'plain'          => array( '<p>Oca grows in the Andes. I keep a few yacon plants nearby for their syrup.</p>', 'I keep a few yacon plants nearby for their syrup.' ),
+			'own case'       => array( '<p>Oca grows here. Yacon grows tall beside it.</p>', 'Yacon grows tall beside it.' ),
+			'inside markup'  => array( '<p>Oca grows here. Oca &amp; <em>yacon</em> grow together.</p>', 'Oca & yacon grow together.' ),
+			'later sentence' => array( '<p>Yacon is not grown here. Oca grows well. I keep yacon plants for their syrup.</p>', 'I keep yacon plants for their syrup.' ),
+		);
+	}
+
+	/**
+	 * Checks the word chosen beforehand against the word Accept links.
+	 *
+	 * @dataProvider choice_contents
+	 *
+	 * @param string $content  Content of the post the link would sit in.
+	 * @param string $sentence Sentence the proposal is pinned to.
+	 */
+	public function test_the_word_chosen_before_accepting_is_the_word_accept_links( string $content, string $sentence ) {
+		list( $oca, $yacon ) = $this->pair( $content );
+		$this->set_sentence( $oca, $yacon, $sentence );
+
+		$choice = undergrowth_link_word_choice( $oca, $yacon, $sentence );
+
+		$this->assertIsArray( $choice );
+		$this->assertSame( $choice['word'], mb_substr( $sentence, $choice['offset'], mb_strlen( $choice['word'] ) ) );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertStringContainsString( '<a href="' . get_permalink( $yacon ) . '">' . $choice['word'] . '</a>', get_post( $oca )->post_content );
+	}
+
+	public function test_no_word_is_chosen_once_the_sentence_has_gone() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants.</p>' );
+
+		$this->assertNull( undergrowth_link_word_choice( $oca, $yacon, 'A sentence that is not there.' ) );
+	}
+
+	public function test_no_word_is_chosen_for_posts_that_are_gone() {
+		list( $oca ) = $this->pair( '<p>Oca grows here. I keep yacon plants.</p>' );
+
+		$this->assertNull( undergrowth_link_word_choice( $oca, 999999, 'I keep yacon plants.' ) );
+	}
+
+	public function test_the_posts_compared_for_a_word_are_those_with_comparable_vectors() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants.</p>' );
+
+		$ids = undergrowth_comparable_post_ids( $oca );
+		sort( $ids );
+
+		$this->assertSame( array_map( 'intval', array_keys( undergrowth_comparable_vectors( $oca ) ) ), $ids );
+		$this->assertContains( $yacon, $ids );
+	}
+
+	public function test_a_post_without_a_vector_has_nothing_to_compare() {
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		$this->assertSame( array(), undergrowth_comparable_post_ids( $draft ) );
+	}
+
 	public function test_most_distinctive_word_in_the_sentence_is_linked() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows in the Andes. I keep a few yacon plants nearby for their syrup.</p>' );
 
