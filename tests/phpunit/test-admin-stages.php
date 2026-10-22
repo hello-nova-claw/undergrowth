@@ -202,7 +202,8 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<strong>Oca &mdash; <span class="post-state">Seedling</span></strong>', $html );
-		$this->assertStringNotContainsString( 'row-actions"><span', $html );
+		$this->assertStringNotContainsString( 'form="undergrowth-pin-' . $oca . '"', $html );
+		$this->assertStringNotContainsString( 'form="undergrowth-unpin-' . $oca . '"', $html );
 	}
 
 	public function test_screen_stylesheet_loads_on_the_suggestions_screen_only() {

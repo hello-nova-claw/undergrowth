@@ -364,6 +364,23 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
 	}
 
+	public function test_a_target_the_user_cannot_edit_is_named_without_a_link() {
+		list( , $yacon ) = $this->sharing_pair();
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap, $user_id, $args ) use ( $yacon ) {
+				return 'edit_post' === $cap && isset( $args[0] ) && $yacon === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			4
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p>Link to <strong>Yacon</strong></p>', $html );
+		$this->assertStringNotContainsString( 'href=""', $html );
+	}
+
 	public function test_the_word_accept_will_link_is_marked_in_the_quote() {
 		$this->sharing_pair();
 
