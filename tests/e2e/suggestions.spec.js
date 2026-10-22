@@ -126,9 +126,9 @@ test.describe( 'Link suggestions screen', () => {
 			await expect(
 				row.locator( '.column-sentence a[href*="post.php"]' )
 			).toBeVisible();
+			await expect( row.locator( '.row-actions' ) ).toBeInViewport();
 
-			// Tabbing into the row shows Accept and Veto, as on core's
-			// Comments screen; a touch device always shows them.
+			// Accept and Veto follow the target's title in tab order.
 			await row.locator( '.column-sentence a' ).first().focus();
 			await page.keyboard.press( 'Tab' );
 			await expect(

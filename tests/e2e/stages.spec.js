@@ -127,7 +127,7 @@ test.describe( 'Growth stages tab', () => {
 			await expect( select ).toBeFocused();
 
 			await page.keyboard.press( 'Tab' );
-			// Pin is a row action; core shows it while focus is in the row.
+			// Pin is a row action, after the stage choice.
 			const pin = page.locator(
 				`button[form="undergrowth-pin-${ oca.id }"]`
 			);
