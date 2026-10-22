@@ -26,7 +26,6 @@ const PROFILE = [ 'profile.php', '' ];
 // action, which shows exactly what the user sees without changing any data.
 const NOTICES = [
 	'vetoed',
-	'saved',
 	'unchanged',
 	'gone',
 	'accepted',

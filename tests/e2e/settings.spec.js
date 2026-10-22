@@ -98,9 +98,11 @@ test.describe( 'Settings page', () => {
 		await field.focus();
 		await expect( field ).toBeFocused();
 
-		// Each key field is followed by the link to the provider's key page.
+		// Each key field is followed by the link to the provider's key page,
+		// and the OpenAI key by the switch for suggestions.
 		for ( const id of [
 			'undergrowth-openai-get-key',
+			'undergrowth_suggest_links',
 			'undergrowth_anthropic_api_key',
 			'undergrowth-anthropic-get-key',
 		] ) {

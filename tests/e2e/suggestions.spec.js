@@ -10,11 +10,9 @@ test.describe( 'Link suggestions screen', () => {
 
 	// A failed test must never leave suggestions switched off for the next.
 	test.afterEach( async ( { admin, page } ) => {
-		await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
 
-		const toggle = page.locator(
-			'input[name="undergrowth_suggest_links"]'
-		);
+		const toggle = page.locator( '#undergrowth_suggest_links' );
 
 		if ( ! ( await toggle.isChecked() ) ) {
 			await toggle.check();
@@ -119,20 +117,50 @@ test.describe( 'Link suggestions screen', () => {
 			expect( post.content.raw ).toContain( '>yacon</a>' );
 		} );
 
-		test( 'can be switched off and on', async ( { page } ) => {
-			const toggle = page.locator(
-				'input[name="undergrowth_suggest_links"]'
+		test( 'is switched off and on from Settings, by keyboard', async ( {
+			admin,
+			page,
+		} ) => {
+			// The screen itself has no settings form.
+			await expect(
+				page.locator( '.wrap input[name="undergrowth_suggest_links"]' )
+			).toHaveCount( 0 );
+
+			await admin.visitAdminPage(
+				'options-general.php',
+				'page=undergrowth'
 			);
 
-			await toggle.uncheck();
-			await page.locator( '.wrap #submit' ).click();
+			const toggle = page.locator( '#undergrowth_suggest_links' );
 
-			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+			await toggle.focus();
+			await page.keyboard.press( 'Space' );
 			await expect( toggle ).not.toBeChecked();
+			await page.locator( '.wrap #submit' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( /settings-updated=true/ );
+			await expect( toggle ).not.toBeChecked();
+
+			await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
 			await expect(
 				page.locator( 'table.undergrowth-links' )
 			).toHaveCount( 0 );
 			await expectNoA11yViolations( page, '.wrap' );
+
+			// The screen says suggestions are off and links back to Settings.
+			const back = page.locator(
+				'.wrap a[href$="options-general.php?page=undergrowth"]'
+			);
+
+			await back.focus();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( /options-general\.php\?page=undergrowth/ );
+			await toggle.focus();
+			await page.keyboard.press( 'Space' );
+			await page.locator( '.wrap #submit' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( /settings-updated=true/ );
+			await expect( toggle ).toBeChecked();
 		} );
 	} );
 } );
