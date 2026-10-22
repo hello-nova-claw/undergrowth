@@ -158,6 +158,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 * Prints Pin or Unpin under the title, as core prints Edit under a post.
 	 *
 	 * A composting post has neither: composting is outside the pinning rules.
+	 * They are always shown, since Pin carries its own stage choice.
 	 *
 	 * @param int    $item        Post ID.
 	 * @param string $column_name Column being printed.
@@ -181,7 +182,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 						sprintf( __( 'Unpin the stage of %s', 'undergrowth' ), $title ),
 						__( 'Unpin', 'undergrowth' )
 					),
-				)
+				),
+				true
 			);
 		}
 
@@ -210,7 +212,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 					sprintf( __( 'Pin the stage of %s', 'undergrowth' ), $title ),
 					__( 'Pin', 'undergrowth' )
 				),
-			)
+			),
+			true
 		);
 	}
 

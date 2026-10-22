@@ -156,6 +156,9 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * Prints Accept and Veto under the sentence, as core's Comments screen
 	 * prints Approve under a comment.
 	 *
+	 * They are this screen's whole purpose, so they are always shown rather
+	 * than waiting for hover or focus.
+	 *
 	 * @param array{source_id: int, target_id: int, sentence: string} $item        Row.
 	 * @param string                                                  $column_name Column being printed.
 	 * @param string                                                  $primary     Primary column name.
@@ -185,7 +188,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Veto', 'undergrowth' )
 				),
-			)
+			),
+			true
 		);
 	}
 
