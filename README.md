@@ -8,7 +8,7 @@ The rule behind every feature: the AI may speak **to** the author, never **for**
 
 ## Features
 
-- **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence you wrote, with the word to link highlighted. **Accept** links that one word and keeps a revision. **Veto** removes the suggestion for good. They are listed on **Posts › Undergrowth**.
+- **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence you wrote, with the word to link highlighted. **Accept** makes that word a link and saves a revision. **Veto** removes the suggestion for good. They are listed on **Posts › Undergrowth**.
 - **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the groups your posts form. Stages never go down, and you can pin one. A Growth stage column shows them on the Posts list.
 - **Composting.** Move a post to compost to let it rest. It stays published and keeps its links but leaves the active garden. When an old composting post sits close to what you are writing now, Undergrowth tells you once.
 - **The Map.** Posts that are close in meaning are grouped once a month and listed on the Map tab. Groups are numbered, never named. A group with no post at its middle is marked as a gap.
@@ -73,7 +73,7 @@ npm run test:js          # Jest
 npm run test:e2e         # Playwright, with axe
 ```
 
-CI runs all of these on every pull request, plus Plugin Check, a coverage gate, the POT check and the screenshot comparison.
+CI runs all of these on every pull request, plus Plugin Check, a coverage gate and the POT check. Pull requests from this repository, not from forks, also get the screenshot comparison.
 
 ## Documentation
 

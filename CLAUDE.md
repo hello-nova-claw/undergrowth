@@ -16,11 +16,11 @@ Undergrowth is a WordPress 6.9+ plugin (PHP 7.4+) for personal bloggers. Read [C
 
 ## How it fits together
 
-Work happens in WP-Cron, never in the request that saves a post. All of these hooks are prefixed `undergrowth_`:
+Work happens in WP-Cron, never in the request that saves a post:
 
-- **Saving a published post** queues `embed_post`, which fires `post_embedded`. That event refreshes link proposals around the post (`links.php`) and fires `proposals_refreshed`. Both the per-post file (`memory.php`) and Discord listen for it.
-- **Saving the OpenAI key**, or the hourly `backfill_check`, starts `backfill`. It embeds old posts in batches, then queues one `cluster_cycle`.
-- **Monthly**, `cluster_cycle` measures thresholds and clusters in batches. It then queues `stage_cycle` and runs resurfacing for any new clusters. A separate monthly `prompt_cycle` writes at most one question.
+- **Saving a published post** queues `undergrowth_embed_post`, which fires `undergrowth_post_embedded`. That event refreshes link proposals around the post (`links.php`) and fires `undergrowth_proposals_refreshed`. Both the per-post file (`memory.php`) and Discord listen for it.
+- **Saving the OpenAI key**, or the hourly `undergrowth_backfill_check`, starts `undergrowth_backfill`. It embeds old posts in batches, then queues one `undergrowth_cluster_cycle`.
+- **Monthly**, `undergrowth_cluster_cycle` measures thresholds and clusters in batches. It then queues `undergrowth_stage_cycle` and runs resurfacing for any new clusters. A separate monthly `undergrowth_prompt_cycle` writes at most one question.
 
 These rules hold across the code:
 
