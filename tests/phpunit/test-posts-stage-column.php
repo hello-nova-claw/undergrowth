@@ -50,6 +50,20 @@ class Test_Posts_Stage_Column extends WP_UnitTestCase {
 		$this->assertSame( array( 'cb', 'title', 'undergrowth_stage', 'author' ), array_keys( $columns ) );
 	}
 
+	public function test_a_list_without_a_title_column_gets_it_last() {
+		$this->assertSame(
+			array( 'cb', 'author', 'undergrowth_stage' ),
+			array_keys(
+				undergrowth_add_stage_column(
+					array(
+						'cb'     => '',
+						'author' => 'Author',
+					)
+				)
+			)
+		);
+	}
+
 	public function test_lists_outside_the_garden_have_no_column() {
 		undergrowth_add_posts_list_hooks( 'attachment' );
 
