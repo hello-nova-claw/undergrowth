@@ -1,0 +1,1 @@
+One post's link suggestions now use different sentences where they can, so accepting several never crowds the links into one sentence.
