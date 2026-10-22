@@ -290,6 +290,29 @@ class Test_Accept extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_a_paragraph_inside_an_attribute_is_never_linked() {
+		$this->assertSame(
+			'<div data-copy="<p>I keep yacon plants nearby.</p>"><p>I keep <a href="https://example.test/">yacon</a> plants nearby.</p></div>',
+			undergrowth_link_word(
+				'<div data-copy="<p>I keep yacon plants nearby.</p>"><p>I keep yacon plants nearby.</p></div>',
+				'I keep yacon plants nearby.',
+				'yacon',
+				'https://example.test/'
+			)
+		);
+	}
+
+	public function test_a_paragraph_opened_inside_another_ends_the_first() {
+		$this->assertSame(
+			'<p>Intro.<p>I keep <a href="https://example.test/">yacon</a> plants nearby.</p>',
+			undergrowth_link_word( '<p>Intro.<p>I keep yacon plants nearby.</p>', 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' )
+		);
+	}
+
+	public function test_a_paragraph_never_closed_is_never_linked() {
+		$this->assertNull( undergrowth_link_word( '<!-- wp:paragraph --><p>I keep yacon plants nearby.', 'I keep yacon plants nearby.', 'yacon', 'https://example.test/' ) );
+	}
+
 	public function test_a_closing_bracket_inside_a_links_attribute_still_marks_the_link() {
 		$this->assertNull(
 			undergrowth_link_word(
