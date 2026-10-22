@@ -394,7 +394,7 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 		$top = max( $weights );
 
 		foreach ( array_unique( undergrowth_tokens( $target->post_title ) ) as $token ) {
-			if ( isset( $weights[ $token ] ) && 2 * ( $corpus['frequency'][ $token ] ?? 1 ) <= $corpus['documents'] ) {
+			if ( isset( $weights[ $token ] ) && 2 * ( $corpus['frequency'][ $token ] ?? 1 ) < $corpus['documents'] ) {
 				$weights[ $token ] += $top;
 			}
 		}
