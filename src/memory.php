@@ -26,28 +26,52 @@ add_action( 'init', 'undergrowth_prepare_memory_folder' );
 /**
  * Returns the folder that holds the plugin's files for the current site.
  *
- * @return string Absolute path, without a trailing slash.
+ * @return string Absolute path, without a trailing slash, or an empty string
+ *                when the folder has no stored name and so must not be used.
  */
 function undergrowth_memory_root(): string {
+	$folder = undergrowth_memory_folder();
+
+	if ( '' === $folder ) {
+		return '';
+	}
+
 	$uploads = wp_upload_dir( null, false );
 
-	return $uploads['basedir'] . '/' . undergrowth_memory_folder();
+	return $uploads['basedir'] . '/' . $folder;
+}
+
+/**
+ * Tells whether a value is a folder name this plugin makes.
+ *
+ * @param mixed $folder Value to check.
+ * @return bool True for undergrowth- and 12 hexadecimal characters.
+ */
+function undergrowth_is_memory_folder( $folder ): bool {
+	return is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder );
 }
 
 /**
  * Returns the name of the site's files folder, making it the first time.
  *
  * The name ends in random characters, so the files cannot be found at a
- * guessable address on a server that ignores .htaccess. Folders from before
- * the random name are moved into the new one as soon as it is made.
+ * guessable address on a server that ignores .htaccess. Only a name that is
+ * stored is ever used, so no file can land in a folder the plugin would
+ * later lose track of. Folders from before the random name are moved only
+ * by the request whose name was stored.
  *
- * @return string Folder name, such as undergrowth-0123456789ab.
+ * @return string Folder name, such as undergrowth-0123456789ab, or an empty
+ *                string when no name could be stored.
  */
 function undergrowth_memory_folder(): string {
 	$folder = get_option( 'undergrowth_memory_folder' );
 
-	if ( is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder ) ) {
+	if ( undergrowth_is_memory_folder( $folder ) ) {
 		return $folder;
+	}
+
+	if ( false !== $folder ) {
+		delete_option( 'undergrowth_memory_folder' );
 	}
 
 	try {
@@ -56,12 +80,47 @@ function undergrowth_memory_folder(): string {
 		$folder = 'undergrowth-' . substr( hash( 'sha256', wp_generate_password( 64, true, true ) ), 0, 12 );
 	}
 
-	$uploads = wp_upload_dir( null, false );
+	$stored = undergrowth_claim_memory_folder( $folder );
 
-	update_option( 'undergrowth_memory_folder', $folder );
-	undergrowth_move_legacy_memory_folder( $uploads['basedir'] . '/' . $folder );
+	if ( $stored === $folder ) {
+		$uploads = wp_upload_dir( null, false );
+		undergrowth_move_legacy_memory_folder( $uploads['basedir'] . '/' . $folder );
+	}
 
-	return $folder;
+	return $stored;
+}
+
+/**
+ * Stores a folder name unless another request stored one first, and
+ * returns whichever name is stored.
+ *
+ * Calling add_option() would overwrite a row added since it last looked,
+ * so two first requests could each think their name was kept. INSERT
+ * IGNORE lets only one name in, and the row is read back from the
+ * database, not the cache.
+ *
+ * @param string $folder Name this request would like to use.
+ * @return string The stored name, or an empty string when none is stored.
+ */
+function undergrowth_claim_memory_folder( string $folder ): string {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- One row, once per site; add_option() cannot refuse a second writer.
+	$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, 'undergrowth_memory_folder', $folder, 'on' ) );
+
+	$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+	if ( is_array( $notoptions ) && isset( $notoptions['undergrowth_memory_folder'] ) ) {
+		unset( $notoptions['undergrowth_memory_folder'] );
+		wp_cache_set( 'notoptions', $notoptions, 'options' );
+	}
+
+	wp_cache_delete( 'undergrowth_memory_folder', 'options' );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Must see the row as stored, past any cache.
+	$stored = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, 'undergrowth_memory_folder' ) );
+
+	return undergrowth_is_memory_folder( $stored ) ? (string) $stored : '';
 }
 
 /**
@@ -69,7 +128,7 @@ function undergrowth_memory_folder(): string {
  * first request after an update.
  */
 function undergrowth_prepare_memory_folder(): void {
-	if ( false === get_option( 'undergrowth_memory_folder' ) ) {
+	if ( ! undergrowth_is_memory_folder( get_option( 'undergrowth_memory_folder' ) ) ) {
 		undergrowth_memory_folder();
 	}
 }
@@ -109,10 +168,12 @@ function undergrowth_move_legacy_memory_folder( string $root ): void {
  * Returns the path of a post's file.
  *
  * @param int $post_id Post ID.
- * @return string Absolute path.
+ * @return string Absolute path, or an empty string when the folder has no stored name.
  */
 function undergrowth_memory_path( int $post_id ): string {
-	return undergrowth_memory_root() . '/posts/' . $post_id . '.txt';
+	$root = undergrowth_memory_root();
+
+	return '' === $root ? '' : $root . '/posts/' . $post_id . '.txt';
 }
 
 /**
@@ -348,7 +409,7 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	$root = undergrowth_memory_root();
 
-	if ( ! wp_mkdir_p( $root . '/posts' ) ) {
+	if ( '' === $root || ! wp_mkdir_p( $root . '/posts' ) ) {
 		undergrowth_record_file_error( 'no_folder' );
 		return false;
 	}
@@ -464,7 +525,7 @@ function undergrowth_update_memory( int $post_id ): void {
 function undergrowth_delete_memory( int $post_id ): void {
 	$path = undergrowth_memory_path( $post_id );
 
-	if ( file_exists( $path ) ) {
+	if ( '' !== $path && file_exists( $path ) ) {
 		wp_delete_file( $path );
 	}
 }
@@ -481,7 +542,7 @@ function undergrowth_delete_memory_folder(): void {
 	$folders    = array( $uploads['basedir'] . '/undergrowth' );
 	$folder     = get_option( 'undergrowth_memory_folder' );
 
-	if ( is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder ) ) {
+	if ( undergrowth_is_memory_folder( $folder ) ) {
 		$folders[] = $uploads['basedir'] . '/' . $folder;
 	}
 
