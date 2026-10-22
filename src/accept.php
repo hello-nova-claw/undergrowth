@@ -109,24 +109,13 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 		return 'edited';
 	}
 
-	$corpus = undergrowth_build_corpus( array_unique( array_merge( array_keys( undergrowth_comparable_vectors( $source_id ) ), array( $source_id, $target->ID ) ) ) );
-	$linked = null;
+	$choice = undergrowth_choose_link_word( $source, $target, $sentence );
 
-	// Every word the sentence shares with the target is tried, the one the
-	// target is most about first. The sentence was chosen for a word among the top few, but which
-	// words make the top few shifts as posts are added, most of all while a
-	// new site is still being indexed.
-	foreach ( array_keys( undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 ) ) as $term ) {
-		$linked = undergrowth_link_word( $source->post_content, $sentence, (string) $term, (string) get_permalink( $target ) );
-
-		if ( null !== $linked ) {
-			break;
-		}
-	}
-
-	if ( null === $linked ) {
+	if ( null === $choice ) {
 		return 'no_word';
 	}
+
+	$linked = undergrowth_wrap_link_word( $source->post_content, $choice, (string) get_permalink( $target ) );
 
 	// Without unfiltered_html, WordPress runs kses over the whole post on save
 	// and can strip content such as an embed. Accepting one link must never do
@@ -149,6 +138,72 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 }
 
 /**
+ * Tells which word Accept would link in a proposal's sentence, without
+ * changing anything, so the suggestions screen can show it.
+ *
+ * @param int    $source_id Post the link would sit in.
+ * @param int    $target_id Post the link would point to.
+ * @param string $sentence  Sentence as stored with the proposal.
+ * @return array{term: string, word: string, offset: int, position: int}|null
+ *         The word as written, its character offset in the sentence and its
+ *         byte position in the post; null when Accept would link nothing.
+ */
+function undergrowth_link_word_choice( int $source_id, int $target_id, string $sentence ): ?array {
+	$source = get_post( $source_id );
+	$target = get_post( $target_id );
+
+	if ( ! $source instanceof WP_Post || ! $target instanceof WP_Post || '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
+		return null;
+	}
+
+	return undergrowth_choose_link_word( $source, $target, $sentence );
+}
+
+/**
+ * Chooses the word to link in a sentence: the first that can be linked
+ * safely, among every word the sentence shares with the target, the one
+ * the target is most about first.
+ *
+ * The sentence was chosen for a word among the top few, but which words
+ * make the top few shifts as posts are added, most of all while a new site
+ * is still being indexed, so every shared word is tried.
+ *
+ * @param WP_Post $source   Post the link would sit in.
+ * @param WP_Post $target   Post the link would point to.
+ * @param string  $sentence Sentence the link belongs in, as stored.
+ * @return array{term: string, word: string, offset: int, position: int}|null
+ */
+function undergrowth_choose_link_word( WP_Post $source, WP_Post $target, string $sentence ): ?array {
+	$corpus = undergrowth_reusable_corpus( array_merge( undergrowth_comparable_post_ids( $source->ID ), array( $source->ID, $target->ID ) ) );
+
+	foreach ( array_keys( undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 ) ) as $term ) {
+		$found = undergrowth_find_link_word( $source->post_content, $sentence, (string) $term );
+
+		if ( null !== $found ) {
+			return array( 'term' => (string) $term ) + $found;
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Wraps a chosen word in a link.
+ *
+ * @param string $content Post content.
+ * @param array  $found   Result of undergrowth_find_link_word().
+ * @param string $url     Address to link to.
+ * @return string
+ *
+ * @phpstan-param array{word: string, offset: int, position: int} $found
+ */
+function undergrowth_wrap_link_word( string $content, array $found, string $url ): string {
+	return substr( $content, 0, $found['position'] )
+		. '<a href="' . esc_url( $url ) . '">' . $found['word'] . '</a>'
+		. substr( $content, $found['position'] + strlen( $found['word'] ) );
+}
+
+/**
  * Wraps the first safe occurrence of a word inside a sentence in a link.
  *
  * Only paragraphs are searched, and only their plain text: never a tag, an
@@ -162,6 +217,24 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
  * @return string|null The content with one word linked, or null when no safe place exists.
  */
 function undergrowth_link_word( string $content, string $sentence, string $term, string $url ): ?string {
+	$found = undergrowth_find_link_word( $content, $sentence, $term );
+
+	return null === $found ? null : undergrowth_wrap_link_word( $content, $found, $url );
+}
+
+/**
+ * Finds the first safe occurrence of a word inside a sentence.
+ *
+ * See undergrowth_link_word() for where a word may be linked.
+ *
+ * @param string $content  Post content.
+ * @param string $sentence Sentence the link belongs in, as stored.
+ * @param string $term     Lowercase word, or a pair of characters in unspaced scripts.
+ * @return array{word: string, offset: int, position: int}|null The word as
+ *         written, its character offset in the sentence and its byte
+ *         position in the content, or null when no safe place exists.
+ */
+function undergrowth_find_link_word( string $content, string $sentence, string $term ): ?array {
 	// A pair of characters from an unspaced script has no word boundaries.
 	$boundary = preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $term ) ? '' : '(?<![\p{L}\p{N}])';
 	$pattern  = '/' . $boundary . preg_quote( $term, '/' ) . ( '' === $boundary ? '' : '(?![\p{L}\p{N}])' ) . '/iu';
@@ -210,11 +283,11 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 					continue;
 				}
 
-				$position = $inner_start + $offset + $at;
-
-				return substr( $content, 0, $position )
-					. '<a href="' . esc_url( $url ) . '">' . $word . '</a>'
-					. substr( $content, $position + strlen( $word ) );
+				return array(
+					'word'     => $word,
+					'offset'   => $from - $start,
+					'position' => $inner_start + $offset + $at,
+				);
 			}
 		}
 	}
