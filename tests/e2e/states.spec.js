@@ -140,6 +140,21 @@ const WITHOUT_POSTS = [
 		page: SETTINGS,
 		help: 'undergrowth-meter',
 	},
+	// Each tab of Posts > Undergrowth, and Compost on the Posts list.
+	...[ 'overview', 'suggestions', 'stages', 'map', 'compost' ].map(
+		( part ) => ( {
+			screen: 'suggestions',
+			state: `help-${ part }`,
+			page: SUGGESTIONS,
+			help: `undergrowth-${ part }`,
+		} )
+	),
+	{
+		screen: 'posts',
+		state: 'help-compost',
+		page: POSTS_LIST,
+		help: 'undergrowth-compost',
+	},
 	// The full detail of what each part sends, kept out of the fields.
 	...[ 'links', 'prompts', 'discord' ].map( ( part ) => ( {
 		screen: 'settings',
@@ -385,7 +400,11 @@ function capture( states ) {
 					await page
 						.locator( `#tab-panel-${ entry.help }` )
 						.waitFor();
-					// Opening the tab scrolls it into view, under the admin bar.
+					// Core slides the panel open; once it stops, scroll back to
+					// the top, since opening the tab scrolls under the admin bar.
+					await page.waitForFunction(
+						() => ! window.jQuery( ':animated' ).length
+					);
 					await page.evaluate( () => window.scrollTo( 0, 0 ) );
 				}
 
