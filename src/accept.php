@@ -175,22 +175,12 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 			continue;
 		}
 
-		$end   = $start + mb_strlen( $sentence );
-		$depth = 0;
+		$end = $start + mb_strlen( $sentence );
 
-		foreach ( (array) preg_split( '/(<[^>]*>)/', $inner, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE ) as $segment ) {
-			list( $text, $offset ) = $segment;
+		foreach ( ( new Undergrowth_HTML_Text( $inner ) )->text_nodes() as $node ) {
+			list( $text, $offset, $in_link ) = $node;
 
-			if ( '<' === substr( $text, 0, 1 ) ) {
-				if ( preg_match( '#^<a\b#i', $text ) ) {
-					++$depth;
-				} elseif ( preg_match( '#^</a\s*>#i', $text ) ) {
-					$depth = max( 0, $depth - 1 );
-				}
-				continue;
-			}
-
-			if ( $depth > 0 ) {
+			if ( $in_link ) {
 				continue;
 			}
 
@@ -247,7 +237,7 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
 function undergrowth_linkable_paragraphs( string $content ): array {
 	$found = has_blocks( $content ) ? array() : undergrowth_classic_paragraphs( $content );
 
-	if ( preg_match_all( '#<p\b[^>]*>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
+	if ( preg_match_all( '#<p\b(?:[^>"\']++|"[^"]*+"|\'[^\']*+\')*+>(.*?)</p>#is', $content, $paragraphs, PREG_OFFSET_CAPTURE ) ) {
 		foreach ( $paragraphs[1] as $paragraph ) {
 			$found[ $paragraph[1] ] = $paragraph[0];
 		}
@@ -415,7 +405,7 @@ function undergrowth_overlaps_any( int $start, int $end, array $ranges ): bool {
  * @return string Plain text.
  */
 function undergrowth_plain_text( string $html ): string {
-	$text = html_entity_decode( (string) preg_replace( '/<[^>]*>/', '', $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$text = html_entity_decode( implode( '', array_column( ( new Undergrowth_HTML_Text( $html ) )->text_nodes(), 0 ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 	return (string) preg_replace( '/\s+/u', ' ', $text );
 }
