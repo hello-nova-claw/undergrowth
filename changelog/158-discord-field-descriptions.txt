@@ -1,0 +1,1 @@
+Each Discord field on Settings > Undergrowth now says in one line where to find its value, and a screen reader reads only that line at each field.
