@@ -402,6 +402,16 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( '<p>That is <a href="https://example.test/">genius</a>—the rest is noise.</p>', $linked );
 	}
 
+	public function test_a_word_beside_an_en_dash_used_as_punctuation_is_linked() {
+		$linked = undergrowth_link_word( '<p>That is genius–the rest is noise.</p>', 'That is genius–the rest is noise.', 'genius', 'https://example.test/' );
+
+		$this->assertSame( '<p>That is <a href="https://example.test/">genius</a>–the rest is noise.</p>', $linked );
+	}
+
+	public function test_a_pair_from_an_unspaced_script_joined_by_a_hyphen_is_never_linked() {
+		$this->assertNull( undergrowth_link_word( '<p>We flew A-東京 at night.</p>', 'We flew A-東京 at night.', '東京', 'https://example.test/' ) );
+	}
+
 	/**
 	 * Links the visible sentence, never its copy inside an attribute.
 	 *
