@@ -205,15 +205,11 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$sentence = $item['sentence'];
 		$choice   = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $sentence, $item['anchor'], $item['offset'] );
 
-		if ( null === $choice ) {
-			return esc_html( $sentence );
-		}
-
 		// A line break inside the words in the post shows as a space.
-		$words  = (string) preg_replace( '/\s+/u', ' ', $choice['word'] );
+		$words  = null === $choice ? '' : (string) preg_replace( '/\s+/u', ' ', $choice['word'] );
 		$length = mb_strlen( $words );
 
-		if ( mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
+		if ( null === $choice || mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
 			return esc_html( $sentence );
 		}
 
