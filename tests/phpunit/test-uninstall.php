@@ -226,4 +226,27 @@ class Test_Uninstall extends WP_UnitTestCase {
 
 		$this->assertSame( array(), $this->scheduled_events() );
 	}
+
+	/**
+	 * Each site keeps its own cron queue, and network deactivation runs once.
+	 *
+	 * @group ms-required
+	 */
+	public function test_network_deactivation_unschedules_every_event_on_every_site() {
+		$site_ids = array_merge( array( get_current_blog_id() ), self::factory()->blog->create_many( 2 ) );
+
+		foreach ( $site_ids as $site_id ) {
+			switch_to_blog( $site_id );
+			$this->schedule_every_event();
+			restore_current_blog();
+		}
+
+		do_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ), true );
+
+		foreach ( $site_ids as $site_id ) {
+			switch_to_blog( $site_id );
+			$this->assertSame( array(), $this->scheduled_events(), "Site {$site_id}" );
+			restore_current_blog();
+		}
+	}
 }
