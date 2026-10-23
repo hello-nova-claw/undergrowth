@@ -152,6 +152,15 @@ Discord is optional. Posts > Undergrowth does everything Discord does. With Disc
 
 Each message sends Discord the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Only suggestions made after you set the channel are posted.
 
+== Screenshots ==
+
+1. Posts > Undergrowth: each suggested link with the sentence of your own where it would fit, ready to accept or veto.
+2. The Growth stages tab: every post's stage, with a pin to keep one as it is.
+3. The Map tab: your posts in groups that are close in meaning, with a flag on any group that circles something none of them is about yet.
+4. Settings > Undergrowth: the keys, what is sent to each service, and how many of your posts have been read.
+5. The Dashboard widget with the one question waiting for you, to snooze until next month or dismiss for good.
+6. The Growth stage block on a post, showing readers its stage as a line of text your theme styles.
+
 == Changelog ==
 
 = Unreleased =
