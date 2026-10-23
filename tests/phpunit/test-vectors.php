@@ -125,4 +125,30 @@ class Test_Vectors extends WP_UnitTestCase {
 
 		$this->assertNull( undergrowth_get_vector( $post_id ) );
 	}
+
+	public function test_stored_embedding_decodes_to_floats() {
+		$this->assertSame( array( 0.5, 1.0, -2.0 ), undergrowth_decode_embedding( '[0.5,1,-2]' ) );
+	}
+
+	public function test_stored_embedding_that_is_not_a_vector_decodes_to_nothing() {
+		$this->assertSame( array(), undergrowth_decode_embedding( '{"a":1}' ) );
+		$this->assertSame( array(), undergrowth_decode_embedding( '["x"]' ) );
+		$this->assertSame( array(), undergrowth_decode_embedding( 'not json' ) );
+	}
+
+	public function test_vectors_share_a_space_only_with_the_same_provider_model_and_language() {
+		$row = array(
+			'provider' => 'openai',
+			'model'    => 'text-embedding-3-small',
+			'language' => 'en_US',
+		);
+
+		$this->assertSame( undergrowth_vector_space( $row ), undergrowth_vector_space( $row ) );
+
+		foreach ( array( 'provider', 'model', 'language' ) as $field ) {
+			$other           = $row;
+			$other[ $field ] = 'other';
+			$this->assertNotSame( undergrowth_vector_space( $row ), undergrowth_vector_space( $other ), $field );
+		}
+	}
 }

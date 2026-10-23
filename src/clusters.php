@@ -302,7 +302,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
 			continue;
 		}
 
-		$space                        = $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'] . "\n" . strlen( $packed );
+		$space                        = undergrowth_vector_space( $row ) . "\n" . strlen( $packed );
 		$groups[ $space ][ $post_id ] = undergrowth_unpack_vector( $packed );
 	}
 
@@ -418,13 +418,13 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	while ( array() !== $rows ) {
 		$row     = array_shift( $rows );
 		$last_id = (int) $row['post_id'];
-		$vector  = undergrowth_unit_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+		$vector  = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
 		if ( '' === $vector || ! undergrowth_can_cluster( $last_id ) ) {
 			continue;
 		}
 
-		$group = $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'];
+		$group = undergrowth_vector_space( $row );
 
 		if ( ! isset( $pools[ $group ] ) ) {
 			$leaders[ $group ] = $leaders[ $group ] ?? array();
@@ -531,7 +531,7 @@ function undergrowth_leader_vectors( array $leader_ids, array $identity ): array
 		$wpdb->flush();
 
 		foreach ( $rows as $row ) {
-			$vector = undergrowth_unit_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+			$vector = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
 			if ( '' !== $vector ) {
 				$vectors[ (int) $row['post_id'] ] = $vector;
