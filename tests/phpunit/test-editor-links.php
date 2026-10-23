@@ -307,7 +307,7 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->save( $this->paragraph( $content ) );
 
 		$this->assertSame( 'accepted', undergrowth_link_state( $this->source, $this->target ) );
-		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links' ) );
+		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
 	}
 
 	public function test_saving_after_undo_leaves_it_proposed() {
@@ -316,7 +316,7 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->save( $this->paragraph( self::SENTENCE . ' And one more.' ) );
 
 		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
-		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links' ) );
+		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
 	}
 
 	public function test_a_link_added_by_hand_is_not_counted() {
@@ -330,7 +330,7 @@ class Test_Editor_Links extends WP_UnitTestCase {
 
 		_wp_put_post_revision( get_post( $this->source ), true );
 
-		$this->assertSame( array( (string) $this->target ), get_post_meta( $this->source, 'undergrowth_pending_links' ) );
+		$this->assertSame( array( (string) $this->target ), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
 	}
 
 	/**
@@ -347,7 +347,7 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->assertSame( 409, $response->get_status() );
 		$this->assertSame( $code, $response->get_data()['code'] );
 		$this->assertSame( undergrowth_link_result_messages()[ substr( $code, strlen( 'undergrowth_' ) ) ], $response->get_data()['message'] );
-		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links' ) );
+		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
 	}
 
 	/**

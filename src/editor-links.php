@@ -355,7 +355,7 @@ function undergrowth_rest_accept_link( WP_REST_Request $request ) {
 
 		$linked = undergrowth_wrap_link_word( $content, $found, (string) get_permalink( $target ) );
 
-		if ( ! in_array( (string) $target_id, get_post_meta( $source_id, 'undergrowth_pending_links' ), true ) ) {
+		if ( ! in_array( (string) $target_id, get_post_meta( $source_id, 'undergrowth_pending_links', false ), true ) ) {
 			add_post_meta( $source_id, 'undergrowth_pending_links', (string) $target_id );
 		}
 
@@ -432,7 +432,7 @@ function undergrowth_accept_saved_links( $post_id, $post ): void {
 		return;
 	}
 
-	$pending = get_post_meta( $post->ID, 'undergrowth_pending_links' );
+	$pending = get_post_meta( $post->ID, 'undergrowth_pending_links', false );
 
 	if ( array() === $pending ) {
 		return;
@@ -467,7 +467,7 @@ function undergrowth_content_links_to( string $content, string $url ): bool {
 
 	$tags = new WP_HTML_Tag_Processor( $content );
 
-	while ( $tags->next_tag( 'A' ) ) {
+	while ( $tags->next_tag( array( 'tag_name' => 'A' ) ) ) {
 		if ( $tags->get_attribute( 'href' ) === $url ) {
 			return true;
 		}
