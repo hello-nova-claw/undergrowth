@@ -19,8 +19,9 @@ add_action( 'load-posts_page_undergrowth-links', 'undergrowth_add_screen_help' )
  * @param string   $id         Tab ID.
  * @param string   $title      Tab title.
  * @param string[] $paragraphs Plain-text paragraphs.
+ * @param int      $priority   Where the tab sits among the screen's tabs. Core's default is 10.
  */
-function undergrowth_add_help_tab( string $id, string $title, array $paragraphs ): void {
+function undergrowth_add_help_tab( string $id, string $title, array $paragraphs, int $priority = 10 ): void {
 	$screen = get_current_screen();
 
 	if ( ! $screen ) {
@@ -29,9 +30,10 @@ function undergrowth_add_help_tab( string $id, string $title, array $paragraphs 
 
 	$screen->add_help_tab(
 		array(
-			'id'      => $id,
-			'title'   => $title,
-			'content' => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
+			'id'       => $id,
+			'title'    => $title,
+			'content'  => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
+			'priority' => $priority,
 		)
 	);
 }
@@ -76,7 +78,8 @@ function undergrowth_add_screen_help(): void {
 		'undergrowth-map',
 		__( 'Map', 'undergrowth' ),
 		array(
-			__( 'Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model.', 'undergrowth' ),
+			__( 'Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model.', 'undergrowth' ),
+			__( 'A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted.', 'undergrowth' ),
 			__( 'A group marked "with a gap" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you.', 'undergrowth' ),
 			__( 'When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine.', 'undergrowth' ),
 		)

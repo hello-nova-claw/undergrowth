@@ -129,22 +129,10 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 */
 	public function column_post( $item ) {
 		$post_id = $item->ID;
-		$title   = esc_html( undergrowth_post_title( $post_id ) );
-		$link    = get_edit_post_link( $post_id, 'raw' );
+		$title   = undergrowth_post_link( $post_id, 'row-title' );
 		$stage   = undergrowth_get_stage( $post_id );
 
-		if ( null !== $link ) {
-			$title = sprintf( '<a class="row-title" href="%1$s">%2$s</a>', esc_url( $link ), $title );
-		}
-
-		$state = esc_html( undergrowth_stage_label( $stage ) );
-
-		if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $post_id ) ) {
-			$state .= sprintf(
-				' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
-				esc_attr__( 'Pinned', 'undergrowth' )
-			);
-		}
+		$state = esc_html( undergrowth_stage_label( $stage ) ) . undergrowth_pinned_marker( $post_id );
 
 		$html = '<strong>' . sprintf(
 			/* translators: 1: post title, 2: its growth stage. */
@@ -198,7 +186,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		$stage   = undergrowth_get_stage( $post_id );
 		$options = '';
 
-		foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $choice ) {
+		foreach ( UNDERGROWTH_GARDEN_STAGES as $choice ) {
 			$options .= sprintf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $choice ), selected( $choice, $stage, false ), esc_html( undergrowth_stage_label( $choice ) ) );
 		}
 

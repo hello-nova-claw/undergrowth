@@ -1,6 +1,7 @@
 <?php
 /**
- * The plugin's tables: install, upgrade and uninstall.
+ * The plugin's tables and lifecycle: install, upgrade, deactivation and
+ * uninstall.
  *
  * @package Undergrowth
  */
@@ -8,6 +9,39 @@
 defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_SCHEMA_VERSION = 5;
+
+add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
+
+/**
+ * Lists the post meta keys the plugin keeps.
+ *
+ * @return string[] Meta keys.
+ */
+function undergrowth_protected_meta_keys(): array {
+	return array(
+		'undergrowth_cluster',
+		'undergrowth_discord_messages',
+		'undergrowth_prompt_keys',
+		'undergrowth_prompt_log',
+		'undergrowth_resurfacing',
+		'undergrowth_resurfacing_log',
+		'undergrowth_stage',
+		'undergrowth_stage_log',
+		'undergrowth_stage_pinned',
+	);
+}
+
+/**
+ * Keeps the plugin's post meta out of the Custom Fields box, where it could
+ * be edited by hand.
+ *
+ * @param bool   $is_protected Whether the key is protected so far.
+ * @param string $meta_key     Meta key.
+ * @return bool True for the plugin's keys, otherwise unchanged.
+ */
+function undergrowth_protect_meta( $is_protected, $meta_key ) {
+	return in_array( $meta_key, undergrowth_protected_meta_keys(), true ) ? true : (bool) $is_protected;
+}
 
 /**
  * Returns the name of the vectors table for the current site.
@@ -99,7 +133,9 @@ function undergrowth_install_schema(): bool {
 }
 
 /**
- * Installs the schema and schedules the stage cycle on activation.
+ * Installs the schema on activation, schedules the monthly cycle and the
+ * hourly backfill check, starts a backfill when posts are waiting to be
+ * read, and queues the first-run notice.
  *
  * Activation hooks expect no return value, so this wraps the installer
  * rather than registering it directly.
@@ -122,6 +158,63 @@ function undergrowth_maybe_upgrade_schema(): void {
 	if ( UNDERGROWTH_SCHEMA_VERSION !== (int) get_option( 'undergrowth_schema_version' ) ) {
 		undergrowth_install_schema();
 	}
+}
+
+/**
+ * Stops every scheduled event while the plugin is inactive, on every site
+ * when it is deactivated across a network.
+ *
+ * Each site keeps its own cron queue, and network deactivation runs this
+ * once, on the main site.
+ *
+ * @param bool $network_wide Whether the plugin is deactivated across the network.
+ */
+function undergrowth_deactivate( $network_wide = false ): void {
+	if ( ! $network_wide || ! is_multisite() ) {
+		undergrowth_deactivate_site();
+		return;
+	}
+
+	// get_sites() stops at 100 sites unless told otherwise, and reads every
+	// network unless given one. The plugin stays active on other networks.
+	$site_ids = get_sites(
+		array(
+			'fields'     => 'ids',
+			'number'     => 0,
+			'network_id' => get_current_network_id(),
+		)
+	);
+
+	foreach ( $site_ids as $site_id ) {
+		switch_to_blog( (int) $site_id );
+		undergrowth_deactivate_site();
+		restore_current_blog();
+	}
+}
+
+/**
+ * Stops the monthly cycles, the prompt events and every queued embed or
+ * Discord post on the current site, and forgets the clusters and any
+ * clustering pass that was under way.
+ */
+function undergrowth_deactivate_site(): void {
+	undergrowth_unschedule_prompts();
+	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+	wp_unschedule_hook( 'undergrowth_stage_cycle' );
+	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
+	wp_unschedule_hook( 'undergrowth_backfill' );
+	wp_unschedule_hook( 'undergrowth_backfill_check' );
+	wp_unschedule_hook( 'undergrowth_embed_post' );
+	// A suggestion left unposted is posted with the post's next refresh.
+	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
+	delete_option( 'undergrowth_backfill' );
+	delete_option( 'undergrowth_backfill.lock' );
+	delete_option( 'undergrowth_cluster_leaders' );
+	// Clusters, and the record of the last pass to compare new ones with,
+	// would be stale by the time the plugin is active again.
+	delete_post_meta_by_key( 'undergrowth_cluster' );
+	delete_option( 'undergrowth_previous_clusters' );
+	undergrowth_forget_resurfacing_signals();
 }
 
 /**
@@ -159,6 +252,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_labels' );
 	delete_option( 'undergrowth_scores' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );

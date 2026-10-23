@@ -274,8 +274,20 @@ const WITH_COMPOST = [
 		state: 'composting-view',
 		page: [ 'edit.php', 'undergrowth_stage=composting' ],
 	},
+	{
+		screen: 'posts',
+		state: 'filtered-by-stage',
+		page: [ 'edit.php', 'undergrowth_stage=seedling' ],
+	},
+	{
+		screen: 'posts',
+		state: 'sorted-by-stage',
+		page: [ 'edit.php', 'orderby=undergrowth_stage&order=desc' ],
+	},
 	// The notices the Posts screen returns with after a row or bulk action.
 	...[
+		[ 'pinned', 'undergrowth_pinned=2' ],
+		[ 'unpinned', 'undergrowth_unpinned=1' ],
 		[ 'composted', 'undergrowth_composted=1' ],
 		[ 'returned', 'undergrowth_returned=2' ],
 		[ 'skipped', 'undergrowth_composted=1&undergrowth_skipped=1' ],
@@ -301,9 +313,16 @@ const WITH_RESURFACING = [
 	} ) ),
 ];
 
-// Shown after a clustering pass made two clusters, one of them a gap.
+// Shown after a clustering pass made two clusters, one of them a gap, with
+// two posts outside any group: one too far from the rest, one read since.
 const WITH_CLUSTERS = [
 	{ screen: 'map', state: 'clusters', page: MAP, fixture: 'tight-gaps' },
+];
+
+// The same, with so many posts outside a group that their list starts
+// collapsed.
+const WITH_MANY_UNGROUPED = [
+	{ screen: 'map', state: 'ungrouped-collapsed', page: MAP },
 ];
 
 // Filled in once the badge's posts exist, since the shots need their IDs.
@@ -713,6 +732,13 @@ test.describe( 'Screenshot catalogue', () => {
 				} );
 			}
 
+			// Too far from every other post to join a group.
+			await requestUtils.createPost( {
+				title: 'Bread',
+				content: '<p>Sourdough loaves.</p>',
+				status: 'publish',
+			} );
+
 			const response = await requestUtils.request.get(
 				'wp-admin/index.php?undergrowth_e2e_cluster=1'
 			);
@@ -722,9 +748,30 @@ test.describe( 'Screenshot catalogue', () => {
 					`Clustering failed with HTTP ${ response.status() }.`
 				);
 			}
+
+			// Read after the groups were found.
+			await requestUtils.createPost( {
+				title: 'Yacon pickles',
+				content: `<p>${ 'yacon '.repeat( 6 ).trim() }</p>`,
+				status: 'publish',
+			} );
 		} );
 
 		capture( WITH_CLUSTERS );
+
+		test.describe( 'and many posts outside a group', () => {
+			test.beforeAll( async ( { requestUtils } ) => {
+				for ( let i = 1; i <= 10; i++ ) {
+					await requestUtils.createPost( {
+						title: `Note ${ i }`,
+						content: '<p>A short note.</p>',
+						status: 'publish',
+					} );
+				}
+			} );
+
+			capture( WITH_MANY_UNGROUPED );
+		} );
 	} );
 
 	test.describe( 'with a growth-stage badge', () => {

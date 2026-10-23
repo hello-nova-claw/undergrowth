@@ -1,0 +1,76 @@
+name: Deploy to WordPress.org
+
+# Commits a tagged release to the plugin's WordPress.org Subversion repository,
+# and .wordpress-org/ to its assets folder. See docs/release-checklist.md.
+#
+# Off until the directory has approved the plugin and these repository secrets
+# exist (Settings > Secrets and variables > Actions):
+#
+#   SVN_USERNAME  The WordPress.org username with commit access to the plugin.
+#   SVN_PASSWORD  That account's SVN password, set under Account & Security on
+#                 its WordPress.org profile. It is not the login password.
+#
+# Until then it runs only by hand, and as a dry run unless told otherwise. To
+# deploy every tag automatically, uncomment the push trigger below.
+on:
+  # push:
+  #   tags: ['[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Tag to deploy, for example 0.1.0.
+        required: true
+        type: string
+      dry-run:
+        description: Prepare the commit but do not send it to WordPress.org.
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.VERSION }}
+          persist-credentials: false
+      - name: Check the tag matches the plugin's version
+        run: |
+          header=$(sed -n 's/^ \* Version: *//p' undergrowth.php)
+          stable=$(sed -n 's/^Stable tag: *//p' readme.txt)
+          if [ "$header" != "$VERSION" ] || [ "$stable" != "$VERSION" ]; then
+            echo "::error::Tag $VERSION, but undergrowth.php says $header and readme.txt says $stable."
+            exit 1
+          fi
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The same copy the Build and Plugin Check workflows make, so what is
+      # checked is what is deployed. With BUILD_DIR set the action ignores
+      # .distignore, so the copy has to be made here.
+      - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
+      # Newer runner images no longer include Subversion.
+      - run: sudo apt-get update && sudo apt-get install -y subversion
+      - uses: 10up/action-wordpress-plugin-deploy@54bd289b8525fd23a5c365ec369185f2966529c2 # 2.3.0
+        with:
+          dry-run: ${{ inputs.dry-run || false }}
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: undergrowth
+          BUILD_DIR: dist/undergrowth
+          ASSETS_DIR: .wordpress-org

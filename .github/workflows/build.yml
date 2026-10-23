@@ -36,6 +36,10 @@ jobs:
           for dir in src build languages; do
             test -d "dist/undergrowth/$dir" || { echo "::error::dist/undergrowth/$dir/ is missing."; exit 1; }
           done
+          # The directory's assets go to SVN's assets folder, never into the plugin.
+          for path in .wordpress-org CLAUDE.md; do
+            test ! -e "dist/undergrowth/$path" || { echo "::error::dist/undergrowth/$path should not ship."; exit 1; }
+          done
       - run: cd dist && zip -qr undergrowth.zip undergrowth && unzip -l undergrowth.zip
       - uses: actions/upload-artifact@v7.0.2
         with:

@@ -45,7 +45,7 @@ function undergrowth_add_settings_link( $links ) {
 		array(
 			'settings' => sprintf(
 				'<a href="%1$s">%2$s</a>',
-				esc_url( admin_url( 'options-general.php?page=undergrowth' ) ),
+				esc_url( undergrowth_settings_url() ),
 				esc_html__( 'Settings', 'undergrowth' )
 			),
 		),
@@ -383,14 +383,10 @@ function undergrowth_render_key_field( array $args ): void {
 		</p>
 	<?php endif; ?>
 
-	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
-		<div class="notice notice-warning inline">
-			<p>
-				<?php echo esc_html( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) ); ?>
-			</p>
-		</div>
-	<?php endif; ?>
 	<?php
+	if ( is_array( $error ) && isset( $error['time'] ) ) {
+		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) );
+	}
 }
 
 /**
@@ -601,11 +597,22 @@ function undergrowth_render_file_failure_notice(): void {
 	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
 		return;
 	}
-	?>
-	<div class="notice notice-warning inline" id="undergrowth-file-error">
-		<p><?php echo esc_html( undergrowth_file_failure_text( $error ) ); ?></p>
-	</div>
-	<?php
+
+	undergrowth_print_failure_notice( undergrowth_file_failure_text( $error ), 'undergrowth-file-error' );
+}
+
+/**
+ * Prints a failure warning inside a settings field.
+ *
+ * @param string $text Plain text of the warning.
+ * @param string $id   ID for the warning, if any.
+ */
+function undergrowth_print_failure_notice( string $text, string $id = '' ): void {
+	printf(
+		'<div class="notice notice-warning inline"%1$s><p>%2$s</p></div>',
+		'' === $id ? '' : ' id="' . esc_attr( $id ) . '"',
+		esc_html( $text )
+	);
 }
 
 /**
@@ -654,12 +661,6 @@ function undergrowth_file_failure_text( array $error ): string {
  * which the fields themselves keep to two sentences.
  */
 function undergrowth_add_settings_help(): void {
-	$screen = get_current_screen();
-
-	if ( ! $screen ) {
-		return;
-	}
-
 	if ( undergrowth_embed_provider_set_by_code() ) {
 		$identity = undergrowth_embed_identity();
 		$links    = sprintf(
@@ -698,12 +699,6 @@ function undergrowth_add_settings_help(): void {
 	);
 
 	foreach ( $tabs as $id => $tab ) {
-		$screen->add_help_tab(
-			array(
-				'id'      => $id,
-				'title'   => $tab[0],
-				'content' => '<p>' . implode( '</p><p>', array_map( 'esc_html', $tab[1] ) ) . '</p>',
-			)
-		);
+		undergrowth_add_help_tab( $id, $tab[0], $tab[1] );
 	}
 }

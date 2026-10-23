@@ -31,6 +31,7 @@ require_once __DIR__ . '/src/anchor-spans.php';
 require_once __DIR__ . '/src/sentences.php';
 require_once __DIR__ . '/src/links.php';
 require_once __DIR__ . '/src/clusters.php';
+require_once __DIR__ . '/src/map.php';
 require_once __DIR__ . '/src/thresholds.php';
 require_once __DIR__ . '/src/memory.php';
 require_once __DIR__ . '/src/class-undergrowth-html-text.php';
@@ -57,4 +58,5 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 }
 
 register_activation_hook( __FILE__, 'undergrowth_activate' );
+register_deactivation_hook( __FILE__, 'undergrowth_deactivate' );
 add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );

@@ -1,10 +1,11 @@
 <?php
 /**
- * Compost and return actions on the core Posts screen.
+ * Growth stages on the core Posts screen.
  *
  * The Posts screen is where an author already acts on a post as a whole,
- * such as trashing or restoring it, so composting sits there too: a row
- * action, a bulk action, a post state and a view, all core parts.
+ * such as trashing or restoring it, so stages sit there too: a column that
+ * sorts and filters, row and bulk actions, a post state and a view, all
+ * core parts.
  *
  * @package Undergrowth
  */
@@ -17,6 +18,8 @@ add_filter( 'display_post_states', 'undergrowth_compost_post_states', 10, 2 );
 add_filter( 'removable_query_args', 'undergrowth_compost_removable_query_args' );
 add_action( 'load-edit.php', 'undergrowth_load_posts_screen' );
 add_action( 'pre_get_posts', 'undergrowth_filter_composting_view' );
+add_action( 'pre_get_posts', 'undergrowth_filter_posts_by_stage' );
+add_filter( 'posts_clauses', 'undergrowth_order_posts_by_stage', 10, 2 );
 add_action( 'admin_post_undergrowth_compost', 'undergrowth_handle_compost_row' );
 add_action( 'admin_post_undergrowth_return', 'undergrowth_handle_return_row' );
 
@@ -103,8 +106,9 @@ function undergrowth_load_posts_screen(): void {
 }
 
 /**
- * Hooks the bulk actions, the Composting view and the notices into the list
- * of one post type, when that type is in the garden.
+ * Hooks the bulk actions, the Composting view, the notices, and the
+ * column with its sorting and filter into the list of one post type, when
+ * that type is in the garden.
  *
  * @param string $post_type Post type of the list.
  */
@@ -113,12 +117,15 @@ function undergrowth_add_posts_list_hooks( string $post_type ): void {
 		return;
 	}
 
+	undergrowth_forget_shown_results();
 	add_filter( 'bulk_actions-edit-' . $post_type, 'undergrowth_compost_bulk_actions' );
 	add_filter( 'handle_bulk_actions-edit-' . $post_type, 'undergrowth_handle_compost_bulk', 10, 3 );
 	add_filter( 'views_edit-' . $post_type, 'undergrowth_composting_view' );
 	add_action( 'admin_notices', 'undergrowth_render_compost_notice' );
 	add_filter( 'manage_' . $post_type . '_posts_columns', 'undergrowth_add_stage_column' );
 	add_action( 'manage_' . $post_type . '_posts_custom_column', 'undergrowth_render_stage_column', 10, 2 );
+	add_filter( 'manage_edit-' . $post_type . '_sortable_columns', 'undergrowth_sortable_stage_column' );
+	add_action( 'restrict_manage_posts', 'undergrowth_render_stage_filter', 10, 2 );
 	undergrowth_add_compost_help();
 }
 
@@ -170,18 +177,12 @@ function undergrowth_render_stage_column( $column, $post_id ): void {
 
 	$stage = undergrowth_get_stage( $post->ID );
 
-	echo esc_html( undergrowth_stage_label( $stage ) );
-
-	if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $post->ID ) ) {
-		printf(
-			' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
-			esc_attr__( 'Pinned', 'undergrowth' )
-		);
-	}
+	echo esc_html( undergrowth_stage_label( $stage ) ) . undergrowth_pinned_marker( $post->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The marker is escaped where it is built.
 }
 
 /**
- * Adds Compost and Return to garden to the bulk actions menu.
+ * Adds Pin stage, Unpin stage, Compost and Return to garden to the bulk
+ * actions menu.
  *
  * @param array<string, string> $actions Bulk actions.
  * @return array<string, string> Bulk actions.
@@ -195,6 +196,8 @@ function undergrowth_compost_bulk_actions( $actions ) {
 		return $actions;
 	}
 
+	$actions['undergrowth_pin']     = __( 'Pin stage', 'undergrowth' );
+	$actions['undergrowth_unpin']   = __( 'Unpin stage', 'undergrowth' );
 	$actions['undergrowth_compost'] = __( 'Compost', 'undergrowth' );
 	$actions['undergrowth_return']  = __( 'Return to garden', 'undergrowth' );
 
@@ -202,10 +205,12 @@ function undergrowth_compost_bulk_actions( $actions ) {
 }
 
 /**
- * Composts or returns each chosen post, counting what changed.
+ * Pins, unpins, composts or returns each chosen post, counting what changed.
  *
  * Core has checked the bulk nonce already. Each post is checked on its
- * own, so a post that cannot change is counted and left as it was.
+ * own, so a post that cannot change is counted and left as it was. Pin
+ * stage keeps each post at the stage it has now, and leaves a post that is
+ * already pinned as it was, so its record shows no second pin.
  *
  * @param string $redirect  Address to return to.
  * @param string $action    Chosen bulk action.
@@ -213,7 +218,14 @@ function undergrowth_compost_bulk_actions( $actions ) {
  * @return string Address with the counts added.
  */
 function undergrowth_handle_compost_bulk( $redirect, $action, $post_ids ) {
-	if ( 'undergrowth_compost' !== $action && 'undergrowth_return' !== $action ) {
+	$results = array(
+		'undergrowth_pin'     => 'pinned',
+		'undergrowth_unpin'   => 'unpinned',
+		'undergrowth_compost' => 'composted',
+		'undergrowth_return'  => 'returned',
+	);
+
+	if ( ! isset( $results[ $action ] ) ) {
 		return $redirect;
 	}
 
@@ -221,7 +233,19 @@ function undergrowth_handle_compost_bulk( $redirect, $action, $post_ids ) {
 	$skipped = 0;
 
 	foreach ( array_map( 'intval', (array) $post_ids ) as $post_id ) {
-		$result = 'undergrowth_compost' === $action ? undergrowth_compost_post( $post_id ) : undergrowth_return_post( $post_id );
+		switch ( $action ) {
+			case 'undergrowth_pin':
+				$result = undergrowth_is_stage_pinned( $post_id ) ? false : undergrowth_pin_stage( $post_id, undergrowth_get_stage( $post_id ) );
+				break;
+			case 'undergrowth_unpin':
+				$result = undergrowth_unpin_stage( $post_id );
+				break;
+			case 'undergrowth_compost':
+				$result = undergrowth_compost_post( $post_id );
+				break;
+			default:
+				$result = undergrowth_return_post( $post_id );
+		}
 
 		if ( true === $result ) {
 			++$done;
@@ -230,14 +254,14 @@ function undergrowth_handle_compost_bulk( $redirect, $action, $post_ids ) {
 		}
 	}
 
-	return undergrowth_compost_result_url( $redirect, 'undergrowth_compost' === $action ? 'composted' : 'returned', $done, $skipped );
+	return undergrowth_compost_result_url( $redirect, $results[ $action ], $done, $skipped );
 }
 
 /**
- * Builds the address to return to after a compost or return action.
+ * Builds the address to return to after a stage action.
  *
  * @param string $url     Address of the list.
- * @param string $result  'composted' or 'returned'.
+ * @param string $result  'pinned', 'unpinned', 'composted' or 'returned'.
  * @param int    $done    Posts that changed.
  * @param int    $skipped Posts left as they were.
  * @return string Address.
@@ -250,12 +274,26 @@ function undergrowth_compost_result_url( string $url, string $result, int $done,
 }
 
 /**
- * Names the address arguments that carry a compost or return result.
+ * Names the address arguments that carry a stage action's result.
  *
  * @return string[] Argument names.
  */
 function undergrowth_compost_result_args(): array {
-	return array( 'undergrowth_composted', 'undergrowth_returned', 'undergrowth_skipped' );
+	return array( 'undergrowth_pinned', 'undergrowth_unpinned', 'undergrowth_composted', 'undergrowth_returned', 'undergrowth_skipped' );
+}
+
+/**
+ * Takes results already shown out of the address that a list's sort links
+ * are built from, as core's Posts screen does with its own, so sorting
+ * the list does not show the notice again.
+ *
+ * The notice still reads them from the request.
+ */
+function undergrowth_forget_shown_results(): void {
+	if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Only arguments are taken out, and the address stays as core keeps it, as core's edit.php does.
+		$_SERVER['REQUEST_URI'] = remove_query_arg( array_merge( undergrowth_compost_result_args(), array( 'undergrowth_notice' ) ), $_SERVER['REQUEST_URI'] );
+	}
 }
 
 /**
@@ -403,7 +441,197 @@ function undergrowth_filter_composting_view( $query ): void {
 }
 
 /**
- * Prints the result of a compost or return action on the Posts screen.
+ * Makes the Growth stage column sortable.
+ *
+ * It sorts from Seedling up the first time it is chosen, as the stages
+ * are read.
+ *
+ * @param array<string, mixed> $columns Sortable columns.
+ * @return array<string, mixed> Sortable columns.
+ */
+function undergrowth_sortable_stage_column( $columns ) {
+	$columns = (array) $columns;
+
+	$columns['undergrowth_stage'] = array( 'undergrowth_stage', false );
+
+	return $columns;
+}
+
+/**
+ * Prints the Growth stage filter beside core's date and category filters.
+ *
+ * Composting is a view of its own, beside All and Published, so it is not
+ * offered here. On that view a hidden field keeps it when another filter
+ * is applied.
+ *
+ * @param string $post_type Post type of the list.
+ * @param string $which     Which table navigation is being printed.
+ */
+function undergrowth_render_stage_filter( $post_type, $which = 'top' ): void {
+	if ( 'top' !== $which || ! in_array( (string) $post_type, undergrowth_indexed_post_types(), true ) ) {
+		return;
+	}
+
+	if ( undergrowth_is_composting_view() ) {
+		echo '<input type="hidden" name="undergrowth_stage" value="composting" />';
+		return;
+	}
+
+	$current = undergrowth_stage_filter_value();
+	$choices = array( '' => __( 'All stages', 'undergrowth' ) );
+
+	foreach ( UNDERGROWTH_GARDEN_STAGES as $stage ) {
+		$choices[ $stage ] = undergrowth_stage_label( $stage );
+	}
+
+	$choices['pinned'] = __( 'Pinned', 'undergrowth' );
+
+	printf( '<label for="undergrowth-stage-filter" class="screen-reader-text">%s</label>', esc_html__( 'Filter by growth stage', 'undergrowth' ) );
+	echo '<select name="undergrowth_stage" id="undergrowth-stage-filter">';
+
+	foreach ( $choices as $value => $label ) {
+		printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $value ), selected( $value, $current, false ), esc_html( $label ) );
+	}
+
+	echo '</select>';
+}
+
+/**
+ * Reads the Growth stage filter's value from the address.
+ *
+ * @return string A garden stage, 'pinned', or an empty string for none or anything else.
+ */
+function undergrowth_stage_filter_value(): string {
+	// The filter only selects which posts to list; nothing is changed.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$value = isset( $_GET['undergrowth_stage'] ) && is_string( $_GET['undergrowth_stage'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_stage'] ) ) : '';
+	// phpcs:enable
+
+	return in_array( $value, array_merge( UNDERGROWTH_GARDEN_STAGES, array( 'pinned' ) ), true ) ? $value : '';
+}
+
+/**
+ * Tells whether a query lists the posts of a garden post type on the Posts screen.
+ *
+ * @param WP_Query $query Query about to run.
+ * @return bool True for the main query of edit.php for an indexed type.
+ */
+function undergrowth_is_garden_list_query( $query ): bool {
+	global $pagenow;
+
+	if ( ! is_admin() || 'edit.php' !== $pagenow || ! $query instanceof WP_Query || ! $query->is_main_query() ) {
+		return false;
+	}
+
+	$post_type = $query->get( 'post_type' );
+	$post_type = '' === $post_type ? 'post' : $post_type;
+
+	return is_string( $post_type ) && in_array( $post_type, undergrowth_indexed_post_types(), true );
+}
+
+/**
+ * Lists only the posts at the stage chosen in the Growth stage filter.
+ *
+ * Only posts in the garden have a stage, so the filter lists published
+ * posts alone, as the Composting view does. A post with no stage stored
+ * yet, or one Undergrowth does not know, reads as a seedling.
+ *
+ * @param WP_Query $query Query about to run.
+ */
+function undergrowth_filter_posts_by_stage( $query ): void {
+	$filter = undergrowth_stage_filter_value();
+
+	if ( '' === $filter || ! undergrowth_is_garden_list_query( $query ) ) {
+		return;
+	}
+
+	if ( 'pinned' === $filter ) {
+		$clause = array(
+			'key'     => 'undergrowth_stage_pinned',
+			'compare' => 'EXISTS',
+		);
+	} elseif ( 'seedling' === $filter ) {
+		$clause = array(
+			'relation' => 'OR',
+			array(
+				'key'   => 'undergrowth_stage',
+				'value' => 'seedling',
+			),
+			array(
+				'key'     => 'undergrowth_stage',
+				'compare' => 'NOT EXISTS',
+			),
+			array(
+				'key'     => 'undergrowth_stage',
+				'value'   => UNDERGROWTH_STAGES,
+				'compare' => 'NOT IN',
+			),
+		);
+	} else {
+		$clause = array(
+			'key'   => 'undergrowth_stage',
+			'value' => $filter,
+		);
+	}
+
+	$meta_query   = (array) $query->get( 'meta_query' );
+	$meta_query[] = $clause;
+
+	$query->set( 'post_status', 'publish' );
+	$query->set( 'has_password', false );
+	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the filter the author chose.
+}
+
+/**
+ * Orders the Posts list by growth stage when its column is sorted.
+ *
+ * Stages sort by rank, from Seedling to Evergreen with Composting after,
+ * not by name, which would differ in every language. Only a post's first
+ * stage row counts, as undergrowth_get_stage() reads it. Posts outside the
+ * garden have no stage and stay last in either direction.
+ *
+ * @param array<string, string> $clauses Query clauses.
+ * @param WP_Query              $query   Query about to run.
+ * @return array<string, string> Query clauses.
+ */
+function undergrowth_order_posts_by_stage( $clauses, $query ) {
+	global $wpdb;
+
+	if ( ! undergrowth_is_garden_list_query( $query ) || 'undergrowth_stage' !== $query->get( 'orderby' ) ) {
+		return $clauses;
+	}
+
+	$indexable = undergrowth_indexable_sql( "{$wpdb->posts}." );
+
+	if ( null === $indexable ) {
+		return $clauses;
+	}
+
+	$order = 'DESC' === strtoupper( (string) $query->get( 'order' ) ) ? 'DESC' : 'ASC';
+	$ranks = '';
+
+	foreach ( UNDERGROWTH_STAGES as $rank => $stage ) {
+		$ranks .= $wpdb->prepare( ' WHEN %s THEN %d', $stage, $rank );
+	}
+
+	$clauses['join'] .= $wpdb->prepare(
+		' LEFT JOIN %i AS undergrowth_stage_sort ON undergrowth_stage_sort.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = %i.ID AND f.meta_key = %s )',
+		$wpdb->postmeta,
+		$wpdb->postmeta,
+		$wpdb->posts,
+		'undergrowth_stage'
+	);
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The condition's placeholders come with it, and the ranks were prepared above.
+	$clauses['orderby'] = $wpdb->prepare( "CASE WHEN {$indexable[0]} THEN 0 ELSE 1 END ASC, ", ...$indexable[1] )
+		. "CASE undergrowth_stage_sort.meta_value{$ranks} ELSE 0 END {$order}, {$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC";
+	// phpcs:enable
+
+	return $clauses;
+}
+
+/**
+ * Prints the result of a stage action on the Posts screen.
  *
  * Only counts are shown. Nothing says how long a post has rested or
  * suggests returning it. The notice takes focus, as on the link
@@ -420,6 +648,22 @@ function undergrowth_render_compost_notice(): void {
 	// phpcs:enable
 
 	$success = array();
+
+	if ( $counts['undergrowth_pinned'] > 0 ) {
+		$success[] = sprintf(
+			/* translators: %s: number of posts. */
+			_n( '%s post pinned at its stage. The monthly cycle leaves it there until you unpin it.', '%s posts pinned at their stages. The monthly cycle leaves them there until you unpin them.', $counts['undergrowth_pinned'], 'undergrowth' ),
+			number_format_i18n( $counts['undergrowth_pinned'] )
+		);
+	}
+
+	if ( $counts['undergrowth_unpinned'] > 0 ) {
+		$success[] = sprintf(
+			/* translators: %s: number of posts. */
+			_n( '%s post unpinned. Its stage was measured again from the links you have accepted.', '%s posts unpinned. Their stages were measured again from the links you have accepted.', $counts['undergrowth_unpinned'], 'undergrowth' ),
+			number_format_i18n( $counts['undergrowth_unpinned'] )
+		);
+	}
 
 	if ( $counts['undergrowth_composted'] > 0 ) {
 		$success[] = sprintf(
@@ -442,7 +686,7 @@ function undergrowth_render_compost_notice(): void {
 	if ( $counts['undergrowth_skipped'] > 0 ) {
 		$warning = sprintf(
 			/* translators: %s: number of posts. */
-			_n( '%s post was left as it was, because it is not published, is already at that stage, or you cannot edit it.', '%s posts were left as they were, because they are not published, are already at that stage, or you cannot edit them.', $counts['undergrowth_skipped'], 'undergrowth' ),
+			_n( '%s post was left as it was, because it is not published, the action does not apply to it, or you cannot edit it.', '%s posts were left as they were, because they are not published, the action does not apply to them, or you cannot edit them.', $counts['undergrowth_skipped'], 'undergrowth' ),
 			number_format_i18n( $counts['undergrowth_skipped'] )
 		);
 	}
@@ -461,18 +705,5 @@ function undergrowth_render_compost_notice(): void {
 		$notices['notice-warning'] = '<p>' . esc_html( $warning ) . '</p>';
 	}
 
-	$id = ' id="undergrowth-notice" tabindex="-1"';
-
-	// The first notice takes focus; a second one is read after it.
-	foreach ( $notices as $class => $paragraphs ) {
-		printf(
-			'<div%1$s class="notice %2$s is-dismissible" role="status">%3$s</div>',
-			$id, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A fixed string.
-			esc_attr( $class ),
-			wp_kses( $paragraphs, array( 'p' => array() ) )
-		);
-		$id = '';
-	}
-
-	undergrowth_print_notice_focus_script();
+	undergrowth_print_result_notices( $notices );
 }

@@ -29,7 +29,6 @@ foreach ( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ) as 
 	add_action( 'delete_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
 }
 unset( $undergrowth_discord_field );
-add_filter( 'is_protected_meta', 'undergrowth_protect_discord_meta', 10, 2 );
 
 /**
  * Records when the channel was set, so only suggestions made from then on
@@ -55,17 +54,6 @@ function undergrowth_discord_track_setup(): void {
 	} elseif ( '' === (string) get_option( 'undergrowth_discord_since', '' ) ) {
 		undergrowth_discord_start_posting();
 	}
-}
-
-/**
- * Keeps the record of posted messages out of the Custom Fields box.
- *
- * @param bool   $is_protected Whether the key is protected so far.
- * @param string $meta_key     Meta key.
- * @return bool
- */
-function undergrowth_protect_discord_meta( $is_protected, $meta_key ) {
-	return 'undergrowth_discord_messages' === $meta_key ? true : (bool) $is_protected;
 }
 
 /**
