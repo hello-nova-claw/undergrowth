@@ -152,6 +152,25 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'No folder could be made for the per-post files', $html );
 	}
 
+	public function test_page_says_why_the_last_file_failed_when_there_is_no_folder() {
+		delete_option( 'undergrowth_memory_folder' );
+		update_option(
+			'undergrowth_last_file_error',
+			array(
+				'code' => 'no_folder',
+				'time' => 1767225600,
+			)
+		);
+		add_filter(
+			'query',
+			static function ( $query ) {
+				return false !== strpos( $query, 'undergrowth_memory_folder' ) && 0 === stripos( ltrim( $query ), 'INSERT' ) ? 'SELECT 1' : $query;
+			}
+		);
+
+		$this->assertStringContainsString( 'id="undergrowth-file-error"', $this->render() );
+	}
+
 	public function test_page_shows_where_the_per_post_files_are() {
 		$this->assertMatchesRegularExpression( '#<code id="undergrowth-memory-folder"[^>]*>[^<]*' . preg_quote( undergrowth_memory_folder(), '#' ) . '/posts/</code>#', $this->render() );
 	}
