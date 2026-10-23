@@ -1,10 +1,10 @@
 /*
  * A row action right under a title sits closer to it than the 24px target
- * size WCAG 2.2 asks for. Core's own tables leave it there; this screen's
- * row actions are its main controls.
+ * spacing WCAG 2.2 asks for, most of all under a short title. Core's own
+ * tables leave it there; this screen's row actions are its main controls.
  */
 .wp-list-table .row-actions {
-	padding-top: 6px;
+	padding-top: 8px;
 }
 
 /*

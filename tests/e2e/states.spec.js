@@ -243,6 +243,25 @@ const WITH_POSTS = [
 		notice: true,
 	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
+	...[
+		[ 'view-seedling', 'undergrowth_stage=seedling' ],
+		[ 'view-empty', 'undergrowth_stage=evergreen' ],
+		[ 'sorted-by-stage', 'orderby=stage&order=desc' ],
+		[ 'sorted-by-pin', 'orderby=pinned&order=desc' ],
+	].map( ( [ state, query ] ) => ( {
+		screen: 'stages',
+		state,
+		page: [ STAGES[ 0 ], `${ STAGES[ 1 ] }&${ query }` ],
+	} ) ),
+	{
+		screen: 'stages',
+		state: 'notice-bulk-pinned',
+		page: [
+			STAGES[ 0 ],
+			`${ STAGES[ 1 ] }&undergrowth_pinned=2&undergrowth_skipped=1`,
+		],
+		notice: true,
+	},
 	{
 		screen: 'dashboard',
 		state: 'prompt',

@@ -17,6 +17,8 @@ add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_wo
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
+add_action( 'load-posts_page_undergrowth-links', 'undergrowth_handle_stages_bulk' );
+add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' );
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
 
 /**
@@ -317,7 +319,10 @@ function undergrowth_render_stages_tab(): void {
 	$table = new Undergrowth_Stages_List_Table();
 	$table->prepare_items();
 
-	if ( ! $table->has_items() ) {
+	// Only a garden with no posts at all gets the first-run message. A view
+	// with no posts, or a page past the end after a bulk action, still shows
+	// the table, so the author can choose another view or page.
+	if ( 0 === (int) $table->get_pagination_arg( 'total_items' ) && '' === undergrowth_stage_filter_value() ) {
 		if ( undergrowth_has_composting_posts() ) {
 			echo '<p>' . esc_html__( 'Every published post is composting, so none has a growth stage to show here. Composting posts are marked on the Posts screen.', 'undergrowth' ) . '</p>';
 		} else {
@@ -352,7 +357,110 @@ function undergrowth_render_stages_tab(): void {
 		);
 	}
 
+	$table->views();
+
+	// Like the Posts list, the bulk actions go by GET to the screen itself,
+	// keeping the view and the sort.
+	echo '<form method="get" id="undergrowth-stages-form" action="' . esc_url( admin_url( 'edit.php' ) ) . '">';
+
+	foreach ( undergrowth_stages_table_args() as $name => $value ) {
+		printf( '<input type="hidden" name="%1$s" value="%2$s" />', esc_attr( $name ), esc_attr( $value ) );
+	}
+
 	$table->display();
+	echo '</form>';
+	$table->print_row_forms();
+}
+
+/**
+ * Reads the stages table's sort from the address.
+ *
+ * @return array{0: string, 1: string} 'title', 'stage' or 'pinned', then 'ASC' or 'DESC'. Title, A to Z, for anything else.
+ */
+function undergrowth_stages_table_order(): array {
+	// The sort only orders the list; nothing is changed.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$orderby = isset( $_GET['orderby'] ) && is_string( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
+	$order   = isset( $_GET['order'] ) && is_string( $_GET['order'] ) ? strtoupper( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : '';
+	// phpcs:enable
+
+	if ( ! in_array( $orderby, array( 'title', 'stage', 'pinned' ), true ) ) {
+		return array( 'title', 'ASC' );
+	}
+
+	return array( $orderby, 'DESC' === $order ? 'DESC' : 'ASC' );
+}
+
+/**
+ * Names the address arguments that keep the stages tab's view and sort.
+ *
+ * @return array<string, string> Argument values keyed by name, checked against their allowlists.
+ */
+function undergrowth_stages_table_args(): array {
+	$args = array(
+		'page' => 'undergrowth-links',
+		'tab'  => 'stages',
+	);
+
+	$filter = undergrowth_stage_filter_value();
+
+	if ( '' !== $filter ) {
+		$args['undergrowth_stage'] = $filter;
+	}
+
+	// The sort only orders the list; nothing is changed.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( isset( $_GET['orderby'] ) ) {
+		list( $args['orderby'], $order ) = undergrowth_stages_table_order();
+		$args['order']                   = strtolower( $order );
+	}
+
+	return $args;
+}
+
+/**
+ * Carries out a bulk action from the stages table, then returns to it
+ * with the counts.
+ *
+ * It runs as the screen loads, as core's Posts list does, and hands each
+ * post to the Posts list's own bulk handler, so both lists keep the same
+ * rules. Each post is checked on its own there.
+ */
+function undergrowth_handle_stages_bulk(): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reads which tab is open; the nonce is checked below.
+	if ( ! isset( $_GET['tab'] ) || 'stages' !== sanitize_key( wp_unslash( $_GET['tab'] ) ) ) {
+		return;
+	}
+
+	undergrowth_load_stages_table();
+	$table   = new Undergrowth_Stages_List_Table();
+	$action  = $table->current_action();
+	$actions = $table->get_bulk_actions();
+	$url     = add_query_arg( undergrowth_stages_table_args(), admin_url( 'edit.php' ) );
+	$paged   = $table->get_pagenum();
+
+	if ( $paged > 1 ) {
+		$url = add_query_arg( 'paged', $paged, $url );
+	}
+
+	if ( false === $action || ! isset( $actions[ $action ] ) ) {
+		// Apply with no action chosen, or a page number typed in, sends the
+		// whole form. Core's lists then return to a clean address.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nothing is changed.
+		if ( isset( $_GET['_wp_http_referer'] ) ) {
+			wp_safe_redirect( $url );
+			exit;
+		}
+
+		return;
+	}
+
+	check_admin_referer( 'bulk-undergrowth-stages' );
+
+	$post_ids = isset( $_GET['post'] ) ? array_map( 'absint', (array) wp_unslash( $_GET['post'] ) ) : array();
+
+	wp_safe_redirect( undergrowth_handle_compost_bulk( $url, 'undergrowth_' . $action, $post_ids ) );
+	exit;
 }
 
 /**
