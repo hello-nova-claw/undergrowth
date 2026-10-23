@@ -232,8 +232,13 @@ class Test_Indexer extends WP_UnitTestCase {
 		undergrowth_embed_post( $post_id );
 		undergrowth_embed_post( $post_id );
 
-		$this->assertSame( 'en_GB-x-a-very-long-', undergrowth_get_vector( $post_id )['language'] );
+		$this->assertSame( 20, strlen( undergrowth_get_vector( $post_id )['language'] ) );
 		$this->assertCount( 1, $this->embedded );
+	}
+
+	public function test_long_languages_that_start_alike_stay_apart() {
+		$this->assertNotSame( undergrowth_fit_language( 'en_GB-x-a-very-long-variant' ), undergrowth_fit_language( 'en_GB-x-a-very-long-other-one' ) );
+		$this->assertSame( 'en_GB', undergrowth_fit_language( 'en_GB' ) );
 	}
 
 	public function test_changed_language_is_embedded_again() {
