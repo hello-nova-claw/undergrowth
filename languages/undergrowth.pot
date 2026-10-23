@@ -992,7 +992,7 @@ msgid "The old folder for the per-post files, at an address anyone could guess, 
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth tries again within the hour."
+msgid "Undergrowth tries again on the first page load after an hour has passed."
 msgstr ""
 
 #: src/settings.php

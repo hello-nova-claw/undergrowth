@@ -461,6 +461,7 @@ function undergrowth_render_memory_folder_field(): void {
 		?>
 		<p><?php esc_html_e( 'No folder could be made for the per-post files, so none are written. Undergrowth tries again on the next page load.', 'undergrowth' ); ?></p>
 		<?php
+		undergrowth_render_file_failure_notice();
 		return;
 	}
 	?>
@@ -469,15 +470,23 @@ function undergrowth_render_memory_folder_field(): void {
 		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
 	</p>
 	<?php
+	undergrowth_render_file_failure_notice();
+}
+
+/**
+ * Prints why the last per-post file was not written, when one was not.
+ */
+function undergrowth_render_file_failure_notice(): void {
 	$error = get_option( 'undergrowth_last_file_error' );
 
-	if ( is_array( $error ) && isset( $error['time'] ) ) :
-		?>
-		<div class="notice notice-warning inline" id="undergrowth-file-error">
-			<p><?php echo esc_html( undergrowth_file_failure_text( $error ) ); ?></p>
-		</div>
-		<?php
-	endif;
+	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-warning inline" id="undergrowth-file-error">
+		<p><?php echo esc_html( undergrowth_file_failure_text( $error ) ); ?></p>
+	</div>
+	<?php
 }
 
 /**
@@ -506,7 +515,7 @@ function undergrowth_file_failure_text( array $error ): string {
 			__( 'The old folder for the per-post files, at an address anyone could guess, could not be removed. Delete %1$s by hand.', 'undergrowth' ),
 			str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $uploads['basedir'] . '/undergrowth' ) )
 		);
-		$retry = __( 'Undergrowth tries again within the hour.', 'undergrowth' );
+		$retry = __( 'Undergrowth tries again on the first page load after an hour has passed.', 'undergrowth' );
 	} else {
 		$cause = __( 'A post’s file could not be written. Check that the uploads folder can be written to.', 'undergrowth' );
 	}
