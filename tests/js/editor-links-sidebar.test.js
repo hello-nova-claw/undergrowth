@@ -25,6 +25,19 @@ function suggestions( extra = {} ) {
 				url: URL,
 				sentence: SENTENCE,
 				span: { offset: 30, length: 11 },
+				words: [
+					'I',
+					'keep',
+					'yacon',
+					'syrup',
+					'beside',
+					'the',
+					'seed',
+					'ledger',
+				],
+				first: 6,
+				last: 7,
+				version: 'v1',
 			},
 		],
 		incoming: [],
@@ -224,6 +237,89 @@ describe( 'Editor links sidebar', () => {
 		expect( document.activeElement ).toBe(
 			container.querySelector( '.undergrowth-outgoing' )
 		);
+	} );
+
+	test( 'chooses other words of the sentence, as the Suggestions tab does', async () => {
+		replies = [
+			suggestions(),
+			{
+				...suggestions().outgoing[ 0 ],
+				span: { offset: 7, length: 11 },
+				first: 2,
+				last: 3,
+				message: 'Saved.',
+			},
+		];
+
+		const { container } = await renderSidebar();
+
+		button( container, 'Choose words' ).click();
+		await waitFor( () => container.querySelectorAll( 'select' ).length );
+
+		const [ first, last ] = container.querySelectorAll( 'select' );
+
+		// The form opens on the words now marked, and takes focus.
+		expect( first.value ).toBe( '6' );
+		expect( last.value ).toBe( '7' );
+		expect( document.activeElement ).toBe( first );
+		expect( first.options[ 2 ].textContent ).toBe( 'yacon (3 of 8)' );
+
+		const choose = ( select, value ) =>
+			flushSync( () => {
+				Object.getOwnPropertyDescriptor(
+					window.HTMLSelectElement.prototype,
+					'value'
+				).set.call( select, value );
+				select.dispatchEvent(
+					new Event( 'change', { bubbles: true } )
+				);
+			} );
+
+		choose( first, '2' );
+		choose( last, '3' );
+		button( container, 'Save words' ).click();
+		await waitFor( () => ! container.querySelector( 'select' ) );
+
+		expect( requests[ 1 ] ).toMatchObject( {
+			path: '/undergrowth/v1/posts/42/links/7/words',
+			method: 'POST',
+			data: { first: 2, last: 3, shown: 'v1' },
+		} );
+		expect( container.querySelector( 'mark' ).textContent ).toBe(
+			'yacon syrup'
+		);
+		expect( document.activeElement ).toBe(
+			button( container, 'Choose words' )
+		);
+	} );
+
+	test( 'cancels choosing words without asking the server', async () => {
+		replies = [ suggestions() ];
+
+		const { container } = await renderSidebar();
+
+		button( container, 'Choose words' ).click();
+		await waitFor( () => button( container, 'Cancel' ) );
+		button( container, 'Cancel' ).click();
+		await waitFor( () => ! container.querySelector( 'select' ) );
+
+		expect( requests ).toHaveLength( 1 );
+		expect( document.activeElement ).toBe(
+			button( container, 'Choose words' )
+		);
+	} );
+
+	test( 'offers no word choice where the words cannot be told apart', async () => {
+		replies = [
+			suggestions( {
+				outgoing: [ { ...suggestions().outgoing[ 0 ], words: [] } ],
+			} ),
+		];
+
+		const { container } = await renderSidebar();
+
+		expect( button( container, 'Accept' ) ).toBeDefined();
+		expect( button( container, 'Choose words' ) ).toBeUndefined();
 	} );
 
 	test( 'links to the posts that could link here, with no Accept', async () => {
