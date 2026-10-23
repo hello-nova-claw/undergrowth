@@ -114,7 +114,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 
 **The per-post files**
-- On the server, open `wp-content/uploads/undergrowth/posts/`. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. The `has`, `lacks` and `scent` sections stay empty for now (#118).
+- On the server, open the folder that Settings > Undergrowth shows under Per-post files, `wp-content/uploads/undergrowth-<random>/posts/`. Check that `wp-content/uploads/undergrowth/` no longer exists. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. The `has`, `lacks` and `scent` sections stay empty for now (#118).
 - If the site runs on nginx, check that the folder can't be opened in a browser. See the readme FAQ.
 
 ## 8. Feedback checklist

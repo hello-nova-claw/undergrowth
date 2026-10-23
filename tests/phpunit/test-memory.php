@@ -73,10 +73,197 @@ class Test_Memory extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_file_lives_in_the_sites_uploads_folder() {
+	public function test_file_lives_in_a_folder_with_a_random_name_in_the_sites_uploads_folder() {
 		$uploads = wp_upload_dir();
 
-		$this->assertSame( $uploads['basedir'] . '/undergrowth/posts/42.txt', undergrowth_memory_path( 42 ) );
+		$this->assertMatchesRegularExpression( '#^' . preg_quote( $uploads['basedir'], '#' ) . '/undergrowth-[0-9a-f]{12}/posts/42\.txt$#D', undergrowth_memory_path( 42 ) );
+	}
+
+	public function test_folder_name_is_made_once_and_kept() {
+		$folder = undergrowth_memory_folder();
+
+		$this->assertSame( $folder, get_option( 'undergrowth_memory_folder' ) );
+		$this->assertSame( $folder, undergrowth_memory_folder() );
+	}
+
+	public function test_each_site_gets_its_own_folder_name() {
+		$first = undergrowth_memory_folder();
+		delete_option( 'undergrowth_memory_folder' );
+
+		$this->assertNotSame( $first, undergrowth_memory_folder() );
+	}
+
+	public function test_a_stored_folder_name_that_is_not_one_of_ours_is_replaced() {
+		update_option( 'undergrowth_memory_folder', '../../wp-content' );
+
+		$this->assertMatchesRegularExpression( '/^undergrowth-[0-9a-f]{12}$/D', undergrowth_memory_folder() );
+	}
+
+	public function test_posts_folder_has_its_own_index_file() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		$this->assertTrue( undergrowth_write_memory( $oca ) );
+		$this->assertFileExists( undergrowth_memory_root() . '/posts/index.php' );
+	}
+
+	public function test_files_at_the_old_address_move_to_the_new_folder() {
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+		delete_option( 'undergrowth_memory_folder' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertSame( 'notes', file_get_contents( undergrowth_memory_root() . '/posts/7.txt' ) );
+	}
+
+	public function test_old_folder_is_removed_when_it_cannot_be_moved() {
+		// The name is made first, so making it does not move the old folder.
+		$root    = undergrowth_memory_root();
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $root . '/posts' );
+		file_put_contents( $root . '/posts/8.txt', 'newer' );
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+
+		undergrowth_move_legacy_memory_folder( $root );
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertSame( 'newer', file_get_contents( $root . '/posts/8.txt' ) );
+		$this->assertFileDoesNotExist( $root . '/posts/7.txt' );
+	}
+
+	public function test_nothing_moves_or_is_written_when_the_folder_name_cannot_be_stored() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		undergrowth_delete_memory_folder();
+		delete_option( 'undergrowth_memory_folder' );
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		$before = scandir( $uploads['basedir'] );
+		add_filter(
+			'query',
+			static function ( $query ) {
+				return false !== strpos( $query, 'undergrowth_memory_folder' ) && 0 === stripos( ltrim( $query ), 'INSERT' ) ? 'SELECT 1' : $query;
+			}
+		);
+
+		$this->assertSame( '', undergrowth_memory_folder() );
+		$this->assertFalse( undergrowth_write_memory( $oca ) );
+		$this->assertSame( 'no_folder', get_option( 'undergrowth_last_file_error' )['code'] );
+		$this->assertDirectoryExists( $legacy . '/posts' );
+		$this->assertSame( $before, scandir( $uploads['basedir'] ) );
+		$this->assertSame( '', undergrowth_memory_path( $oca ) );
+	}
+
+	public function test_a_name_stored_first_by_another_request_is_used_and_nothing_is_moved() {
+		global $wpdb;
+
+		delete_option( 'undergrowth_memory_folder' );
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		get_option( 'undergrowth_memory_folder' );
+
+		// Another request stores its name after this one found none.
+		$wpdb->insert(
+			$wpdb->options,
+			array(
+				'option_name'  => 'undergrowth_memory_folder',
+				'option_value' => 'undergrowth-aaaaaaaaaaaa',
+				'autoload'     => 'on',
+			)
+		);
+
+		$this->assertSame( 'undergrowth-aaaaaaaaaaaa', undergrowth_memory_folder() );
+		$this->assertSame( 'undergrowth-aaaaaaaaaaaa', get_option( 'undergrowth_memory_folder' ) );
+		$this->assertDirectoryExists( $legacy . '/posts' );
+	}
+
+	public function test_a_moved_folder_gets_an_index_file_in_posts_at_once() {
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		delete_option( 'undergrowth_memory_folder' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertFileExists( undergrowth_memory_root() . '/posts/index.php' );
+	}
+
+	public function test_an_old_folder_left_behind_is_removed_on_a_later_request() {
+		$root    = undergrowth_memory_root();
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $legacy . '/posts' );
+		file_put_contents( $legacy . '/posts/7.txt', 'notes' );
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertDirectoryDoesNotExist( $legacy );
+		$this->assertDirectoryExists( $root );
+	}
+
+	public function test_an_old_folder_that_cannot_be_removed_is_not_retried_on_every_request() {
+		$root    = undergrowth_memory_root();
+		$uploads = wp_upload_dir();
+		$legacy  = $uploads['basedir'] . '/undergrowth';
+		wp_mkdir_p( $root . '/posts' );
+		wp_mkdir_p( $legacy . '/posts' );
+		$checks = 0;
+		$ftp    = static function () use ( &$checks ) {
+			++$checks;
+			return 'ftpext';
+		};
+		add_filter( 'filesystem_method', $ftp );
+
+		undergrowth_prepare_memory_folder();
+		$this->assertSame( 'old_folder_left', get_option( 'undergrowth_last_file_error' )['code'] );
+
+		update_option(
+			'undergrowth_last_file_error',
+			array(
+				'code' => 'old_folder_left',
+				'time' => 1,
+			)
+		);
+		$before = $checks;
+		undergrowth_prepare_memory_folder();
+		$this->assertSame( $before, $checks, 'Within the hour, the filesystem is not even probed.' );
+
+		delete_transient( 'undergrowth_old_folder_retry' );
+		undergrowth_prepare_memory_folder();
+		$this->assertGreaterThan( $before, $checks, 'After the hour, it is tried again.' );
+
+		remove_filter( 'filesystem_method', $ftp );
+
+		$this->assertSame( 1, get_option( 'undergrowth_last_file_error' )['time'], 'The same error is not written again.' );
+		$this->assertDirectoryExists( $legacy );
+	}
+
+	public function test_a_name_stored_by_another_request_in_place_of_a_bad_one_is_kept() {
+		global $wpdb;
+
+		update_option( 'undergrowth_memory_folder', 'not-ours' );
+		get_option( 'undergrowth_memory_folder' );
+
+		// Another request replaced the bad value after this one read it.
+		$wpdb->update( $wpdb->options, array( 'option_value' => 'undergrowth-bbbbbbbbbbbb' ), array( 'option_name' => 'undergrowth_memory_folder' ) );
+
+		$this->assertSame( 'undergrowth-bbbbbbbbbbbb', undergrowth_memory_folder() );
+	}
+
+	public function test_preparing_the_folder_again_leaves_it_alone() {
+		$folder = undergrowth_memory_folder();
+
+		undergrowth_prepare_memory_folder();
+
+		$this->assertSame( $folder, undergrowth_memory_folder() );
 	}
 
 	public function test_file_is_written_when_a_post_gets_proposals() {

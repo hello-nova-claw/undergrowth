@@ -166,7 +166,7 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 	}
 
 	public function test_page_shows_the_interactions_endpoint_url() {
-		$this->assertStringContainsString( esc_html( rest_url( 'undergrowth/v1/discord' ) ), $this->render() );
+		$this->assertStringContainsString( '<code id="undergrowth-discord-endpoint" dir="ltr">' . esc_html( rest_url( 'undergrowth/v1/discord' ) ) . '</code>', $this->render() );
 	}
 
 	public function test_page_never_prints_the_saved_token() {

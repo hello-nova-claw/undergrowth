@@ -171,6 +171,27 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
 	}
 
+	public function test_uninstall_removes_the_files_folder_its_name_and_any_old_folder() {
+		$uploads = wp_upload_dir();
+		$root    = undergrowth_memory_root();
+		wp_mkdir_p( $root . '/posts' );
+		wp_mkdir_p( $uploads['basedir'] . '/undergrowth/posts' );
+
+		undergrowth_uninstall();
+
+		$this->assertDirectoryDoesNotExist( $root );
+		$this->assertDirectoryDoesNotExist( $uploads['basedir'] . '/undergrowth' );
+		$this->assertFalse( get_option( 'undergrowth_memory_folder' ) );
+	}
+
+	public function test_uninstall_makes_no_folder_name() {
+		delete_option( 'undergrowth_memory_folder' );
+
+		undergrowth_uninstall();
+
+		$this->assertFalse( get_option( 'undergrowth_memory_folder' ) );
+	}
+
 	public function test_uninstall_removes_the_meter_reading() {
 		set_transient(
 			'undergrowth_meter',

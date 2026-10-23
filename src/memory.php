@@ -10,6 +10,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const UNDERGROWTH_MEMORY_INDEX = "<?php\n// Silence is golden.\n";
+
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 // How distinctive a post's words are depends on every other post, so each
@@ -21,26 +23,188 @@ add_action( 'post_updated', 'undergrowth_update_memory_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
 add_action( 'after_delete_post', 'undergrowth_update_memory_around' );
+add_action( 'init', 'undergrowth_prepare_memory_folder' );
 
 /**
  * Returns the folder that holds the plugin's files for the current site.
  *
- * @return string Absolute path, without a trailing slash.
+ * @return string Absolute path, without a trailing slash, or an empty string
+ *                when the folder has no stored name and so must not be used.
  */
 function undergrowth_memory_root(): string {
+	$folder = undergrowth_memory_folder();
+
+	if ( '' === $folder ) {
+		return '';
+	}
+
 	$uploads = wp_upload_dir( null, false );
 
-	return $uploads['basedir'] . '/undergrowth';
+	return $uploads['basedir'] . '/' . $folder;
+}
+
+/**
+ * Tells whether a value is a folder name this plugin makes.
+ *
+ * @param mixed $folder Value to check.
+ * @return bool True for undergrowth- and 12 hexadecimal characters.
+ */
+function undergrowth_is_memory_folder( $folder ): bool {
+	return is_string( $folder ) && 1 === preg_match( '/^undergrowth-[0-9a-f]{12}$/D', $folder );
+}
+
+/**
+ * Returns the name of the site's files folder, making it the first time.
+ *
+ * The name ends in random characters, so the files cannot be found at a
+ * guessable address on a server that ignores .htaccess. Only a name that is
+ * stored is ever used, so no file can land in a folder the plugin would
+ * later lose track of. Folders from before the random name are moved only
+ * by the request whose name was stored.
+ *
+ * @return string Folder name, such as undergrowth-0123456789ab, or an empty
+ *                string when no name could be stored.
+ */
+function undergrowth_memory_folder(): string {
+	$folder = get_option( 'undergrowth_memory_folder' );
+
+	if ( undergrowth_is_memory_folder( $folder ) ) {
+		return $folder;
+	}
+
+	// A value that is not one of ours is removed only while it is still
+	// that value, so a good name another request stored meanwhile stays.
+	if ( false !== $folder ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- delete_option() deletes by name alone.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND option_value = %s', $wpdb->options, 'undergrowth_memory_folder', maybe_serialize( $folder ) ) );
+		wp_cache_delete( 'alloptions', 'options' );
+	}
+
+	try {
+		$folder = 'undergrowth-' . bin2hex( random_bytes( 6 ) );
+	} catch ( Exception $e ) {
+		$folder = 'undergrowth-' . substr( hash( 'sha256', wp_generate_password( 64, true, true ) ), 0, 12 );
+	}
+
+	$stored = undergrowth_claim_memory_folder( $folder );
+
+	if ( $stored === $folder ) {
+		$uploads = wp_upload_dir( null, false );
+		undergrowth_move_legacy_memory_folder( $uploads['basedir'] . '/' . $folder );
+	}
+
+	return $stored;
+}
+
+/**
+ * Stores a folder name unless another request stored one first, and
+ * returns whichever name is stored.
+ *
+ * Calling add_option() would overwrite a row added since it last looked,
+ * so two first requests could each think their name was kept. INSERT
+ * IGNORE lets only one name in, and the row is read back from the
+ * database, not the cache.
+ *
+ * @param string $folder Name this request would like to use.
+ * @return string The stored name, or an empty string when none is stored.
+ */
+function undergrowth_claim_memory_folder( string $folder ): string {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- One row, once per site; add_option() cannot refuse a second writer.
+	$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, 'undergrowth_memory_folder', $folder, 'on' ) );
+
+	$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+	if ( is_array( $notoptions ) && isset( $notoptions['undergrowth_memory_folder'] ) ) {
+		unset( $notoptions['undergrowth_memory_folder'] );
+		wp_cache_set( 'notoptions', $notoptions, 'options' );
+	}
+
+	wp_cache_delete( 'undergrowth_memory_folder', 'options' );
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Must see the row as stored, past any cache.
+	$stored = $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, 'undergrowth_memory_folder' ) );
+
+	return undergrowth_is_memory_folder( $stored ) ? (string) $stored : '';
+}
+
+/**
+ * Makes the site's files folder name, and so moves any old folder, on the
+ * first request after an update.
+ *
+ * An old folder that could not be moved or removed then is tried again,
+ * at most once an hour, until it is gone.
+ */
+function undergrowth_prepare_memory_folder(): void {
+	if ( ! undergrowth_is_memory_folder( get_option( 'undergrowth_memory_folder' ) ) ) {
+		undergrowth_memory_folder();
+		return;
+	}
+
+	$uploads = wp_upload_dir( null, false );
+
+	if ( is_dir( $uploads['basedir'] . '/undergrowth' ) && false === get_transient( 'undergrowth_old_folder_retry' ) ) {
+		undergrowth_move_legacy_memory_folder( undergrowth_memory_root() );
+	}
+}
+
+/**
+ * Moves the files folder from its old, guessable address to its new one.
+ *
+ * Rename is a single step, so the files are never in both places. When it
+ * cannot be done, the old folder is removed instead: every file is written
+ * again from the database, at the latest on the monthly cycle, so nothing
+ * is lost that cannot be rebuilt.
+ *
+ * @param string $root New folder, absolute path.
+ */
+function undergrowth_move_legacy_memory_folder( string $root ): void {
+	$uploads = wp_upload_dir( null, false );
+	$legacy  = $uploads['basedir'] . '/undergrowth';
+
+	if ( $legacy === $root || ! is_dir( $legacy ) || is_link( $legacy ) ) {
+		return;
+	}
+
+	// One atomic step, where WP_Filesystem::move() may copy and delete. A
+	// failed rename falls back below, so its warning is silenced.
+	$moved      = ! file_exists( $root ) && @rename( $legacy, $root ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename, WordPress.PHP.NoSilencedErrors.Discouraged
+	$filesystem = undergrowth_filesystem();
+
+	// A folder from before posts/ had its own index file gets one now, not
+	// only at the next write.
+	if ( $moved ) {
+		if ( null !== $filesystem && $filesystem->is_dir( $root . '/posts' ) ) {
+			undergrowth_write_protection_file( $filesystem, $root . '/posts/index.php', UNDERGROWTH_MEMORY_INDEX );
+		}
+		return;
+	}
+
+	if ( null === $filesystem || ! $filesystem->rmdir( $legacy, true ) ) {
+		// A folder that cannot be removed now is tried again within the hour,
+		// not on every request, and the same error is not written again.
+		set_transient( 'undergrowth_old_folder_retry', 1, HOUR_IN_SECONDS );
+		$last = get_option( 'undergrowth_last_file_error' );
+
+		if ( ! is_array( $last ) || 'old_folder_left' !== ( $last['code'] ?? '' ) ) {
+			undergrowth_record_file_error( 'old_folder_left' );
+		}
+	}
 }
 
 /**
  * Returns the path of a post's file.
  *
  * @param int $post_id Post ID.
- * @return string Absolute path.
+ * @return string Absolute path, or an empty string when the folder has no stored name.
  */
 function undergrowth_memory_path( int $post_id ): string {
-	return undergrowth_memory_root() . '/posts/' . $post_id . '.txt';
+	$root = undergrowth_memory_root();
+
+	return '' === $root ? '' : $root . '/posts/' . $post_id . '.txt';
 }
 
 /**
@@ -276,7 +440,7 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	$root = undergrowth_memory_root();
 
-	if ( ! wp_mkdir_p( $root . '/posts' ) ) {
+	if ( '' === $root || ! wp_mkdir_p( $root . '/posts' ) ) {
 		undergrowth_record_file_error( 'no_folder' );
 		return false;
 	}
@@ -285,8 +449,9 @@ function undergrowth_write_memory( int $post_id ): bool {
 	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
 	// Without its protection files, the folder is never written to at all.
 	$protection = array(
-		'index.php' => "<?php\n// Silence is golden.\n",
-		'.htaccess' => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+		'index.php'       => UNDERGROWTH_MEMORY_INDEX,
+		'posts/index.php' => UNDERGROWTH_MEMORY_INDEX,
+		'.htaccess'       => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
 	);
 
 	foreach ( $protection as $name => $contents ) {
@@ -391,20 +556,31 @@ function undergrowth_update_memory( int $post_id ): void {
 function undergrowth_delete_memory( int $post_id ): void {
 	$path = undergrowth_memory_path( $post_id );
 
-	if ( file_exists( $path ) ) {
+	if ( '' !== $path && file_exists( $path ) ) {
 		wp_delete_file( $path );
 	}
 }
 
 /**
- * Removes the plugin's folder and every file in it, for the current site.
+ * Removes the plugin's folder and every file in it, for the current site,
+ * and any folder left at the old address.
+ *
+ * A folder name is never made here, so uninstalling does not make one.
  */
 function undergrowth_delete_memory_folder(): void {
 	$filesystem = undergrowth_filesystem();
-	$root       = undergrowth_memory_root();
+	$uploads    = wp_upload_dir( null, false );
+	$folders    = array( $uploads['basedir'] . '/undergrowth' );
+	$folder     = get_option( 'undergrowth_memory_folder' );
 
-	if ( null !== $filesystem && $filesystem->is_dir( $root ) ) {
-		$filesystem->rmdir( $root, true );
+	if ( undergrowth_is_memory_folder( $folder ) ) {
+		$folders[] = $uploads['basedir'] . '/' . $folder;
+	}
+
+	foreach ( $folders as $root ) {
+		if ( null !== $filesystem && $filesystem->is_dir( $root ) ) {
+			$filesystem->rmdir( $root, true );
+		}
 	}
 }
 

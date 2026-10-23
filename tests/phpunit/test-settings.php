@@ -117,6 +117,45 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'abcd', $html );
 	}
 
+	public function test_per_post_files_row_sits_in_the_link_suggestions_section() {
+		global $wp_settings_fields;
+
+		$this->render();
+
+		$this->assertArrayHasKey( 'undergrowth_memory_folder', $wp_settings_fields['undergrowth']['undergrowth_links'] );
+	}
+
+	public function test_help_tab_explains_the_per_post_files_folder() {
+		set_current_screen( 'settings_page_undergrowth' );
+		$screen = get_current_screen();
+		$screen->remove_help_tabs();
+		do_action( 'load-settings_page_undergrowth' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
+
+		$tab = $screen->get_help_tab( 'undergrowth-files' );
+
+		$this->assertIsArray( $tab );
+		$this->assertStringContainsString( 'random characters', wp_strip_all_tags( $tab['content'] ) );
+	}
+
+	public function test_page_says_so_when_there_is_no_folder_for_the_per_post_files() {
+		delete_option( 'undergrowth_memory_folder' );
+		add_filter(
+			'query',
+			static function ( $query ) {
+				return false !== strpos( $query, 'undergrowth_memory_folder' ) && 0 === stripos( ltrim( $query ), 'INSERT' ) ? 'SELECT 1' : $query;
+			}
+		);
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( 'id="undergrowth-memory-folder"', $html );
+		$this->assertStringContainsString( 'No folder could be made for the per-post files', $html );
+	}
+
+	public function test_page_shows_where_the_per_post_files_are() {
+		$this->assertMatchesRegularExpression( '#<code id="undergrowth-memory-folder"[^>]*>[^<]*' . preg_quote( undergrowth_memory_folder(), '#' ) . '/posts/</code>#', $this->render() );
+	}
+
 	public function test_page_says_what_is_sent_to_openai() {
 		$this->assertStringContainsString( 'sent to OpenAI', $this->render() );
 	}

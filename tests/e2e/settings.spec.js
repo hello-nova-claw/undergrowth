@@ -211,8 +211,16 @@ test.describe( 'Settings page', () => {
 		await expect(
 			page.locator( '#undergrowth-discord-notice' )
 		).toBeVisible();
-		await expect( page.locator( '.wrap code' ) ).toContainText(
-			'undergrowth/v1/discord'
+		await expect(
+			page.locator( '#undergrowth-discord-endpoint' )
+		).toContainText( 'undergrowth/v1/discord' );
+	} );
+
+	test( 'shows the folder that holds the per-post files', async ( {
+		page,
+	} ) => {
+		await expect( page.locator( '#undergrowth-memory-folder' ) ).toHaveText(
+			/undergrowth-[0-9a-f]{12}\/posts\/$/
 		);
 	} );
 

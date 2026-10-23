@@ -832,6 +832,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Per-post files"
+msgstr ""
+
+#: src/settings.php
 msgid "Questions on your Dashboard"
 msgstr ""
 
@@ -958,6 +962,14 @@ msgid "The rest are read in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
+msgid "No folder could be made for the per-post files, so none are written. Undergrowth tries again on the next page load."
+msgstr ""
+
+#: src/settings.php
+msgid "Each post’s plain-text record is kept in this folder."
+msgstr ""
+
+#: src/settings.php
 msgid "With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 
@@ -967,6 +979,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers."
+msgstr ""
+
+#: src/settings.php
+msgid "Each post that has been read, or that you were asked a question about, has a plain-text file in the folder shown on this page. It holds the post’s stage, its suggestions, your vetoes and the questions you were asked, and nothing written for your readers. The folder’s name ends in random characters made once for this site, so visitors cannot guess its address."
 msgstr ""
 
 #: src/settings.php
