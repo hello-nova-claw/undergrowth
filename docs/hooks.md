@@ -1,6 +1,6 @@
 # Hooks reference
 
-Every filter and action Undergrowth offers, in one place. Each one's DocBlock in `src/` is the full contract. This page says where to find it and what it is for. Entries are grouped by what they change.
+Every filter and action Undergrowth offers, in one place. Each one's DocBlock in `src/` has its parameters in full. This page says where to find it and what it is for. Entries are grouped by what they change.
 
 Undergrowth's rules are fixed in code (handover section 2, principle 6). These hooks let a site connect its own embedding provider, tune thresholds to that provider's scores, and react to what Undergrowth does. They are not a way to change what the AI may say or to whom.
 
@@ -19,13 +19,14 @@ Undergrowth's rules are fixed in code (handover section 2, principle 6). These h
 
 ### Thresholds
 
-Each default is measured from the site's own scores once they apply (`src/thresholds.php`), and is the fixed value until then. The fixed value applies:
+The link, cluster and gap thresholds are measured from the site's own scores where that applies (`src/thresholds.php`). The resurfacing threshold follows the cluster threshold. The fixed value applies:
 
 - before anything has been measured;
 - below 20 posts;
 - when the scores were measured with another provider or model than the current one;
 - for a provider listed in `undergrowth_fixed_threshold_providers`;
-- for the gap only, while there are too few clusters to compare.
+- for the gap only, while there are too few clusters to compare;
+- whenever the stored scores hold no number for that threshold.
 
 `wp undergrowth scores` prints the values in use.
 
