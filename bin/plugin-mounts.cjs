@@ -50,12 +50,19 @@ function pluginMounts( dir ) {
  * editor. A build takes a few seconds, so it runs every time, which also
  * picks up block changes since the last one.
  *
- * @param {string}              dir Folder holding the plugin.
- * @param {typeof execFileSync} run Runs a command, as execFileSync does.
+ * On Windows npm is a .cmd file, which only a shell can run.
+ *
+ * @param {string}              dir      Folder holding the plugin.
+ * @param {typeof execFileSync} run      Runs a command, as execFileSync does.
+ * @param {string}              platform Operating system, as process.platform names it.
  */
-function buildPlugin( dir, run = execFileSync ) {
+function buildPlugin( dir, run = execFileSync, platform = process.platform ) {
 	try {
-		run( 'npm', [ 'run', 'build' ], { cwd: dir, stdio: 'ignore' } );
+		run( 'npm', [ 'run', 'build' ], {
+			cwd: dir,
+			stdio: 'ignore',
+			shell: 'win32' === platform,
+		} );
 	} catch {
 		throw new Error(
 			'Could not build the Growth stage block. Run `npm run build` to see why.'
