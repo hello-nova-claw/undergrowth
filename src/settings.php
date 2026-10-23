@@ -107,17 +107,23 @@ function undergrowth_register_settings(): void {
 	// Discord adds the third section, from discord-settings.php, after these.
 	add_settings_section( 'undergrowth_links', __( 'Link suggestions', 'undergrowth' ), 'undergrowth_render_links_section', 'undergrowth' );
 
-	add_settings_field(
-		'undergrowth_openai_api_key',
-		__( 'OpenAI API key', 'undergrowth' ),
-		'undergrowth_render_key_field',
-		'undergrowth',
-		'undergrowth_links',
-		array(
-			'label_for' => 'undergrowth_openai_api_key',
-			'provider'  => 'openai',
-		)
-	);
+	// With a provider set up by code there is no key to enter, so the row
+	// says why instead of offering a field.
+	if ( undergrowth_embed_provider_set_by_code() ) {
+		add_settings_field( 'undergrowth_openai_api_key', __( 'OpenAI API key', 'undergrowth' ), 'undergrowth_render_unused_openai_key_field', 'undergrowth', 'undergrowth_links' );
+	} else {
+		add_settings_field(
+			'undergrowth_openai_api_key',
+			__( 'OpenAI API key', 'undergrowth' ),
+			'undergrowth_render_key_field',
+			'undergrowth',
+			'undergrowth_links',
+			array(
+				'label_for' => 'undergrowth_openai_api_key',
+				'provider'  => 'openai',
+			)
+		);
+	}
 
 	// Without a provider there is nothing to read with, so no count, and a
 	// switch that could not do anything yet.
@@ -254,7 +260,15 @@ function undergrowth_render_settings_page(): void {
 	?>
 	<div class="wrap undergrowth-settings">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-		<p id="undergrowth-intro"><?php esc_html_e( 'Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key.', 'undergrowth' ); ?></p>
+		<p id="undergrowth-intro">
+			<?php
+			if ( undergrowth_embed_provider_set_by_code() ) {
+				esc_html_e( 'Undergrowth suggests links between your own posts, and asks you an occasional question about your writing with an Anthropic key.', 'undergrowth' );
+			} else {
+				esc_html_e( 'Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key.', 'undergrowth' );
+			}
+			?>
+		</p>
 
 		<form action="options.php" method="post">
 			<?php settings_fields( 'undergrowth' ); ?>
@@ -268,10 +282,26 @@ function undergrowth_render_settings_page(): void {
 }
 
 /**
- * Prints the one-sentence introduction to the link suggestions section.
+ * Prints the one-sentence introduction to the link suggestions section and,
+ * when code on the site reads the posts, which model that is and what it is
+ * given.
  */
 function undergrowth_render_links_section(): void {
 	echo '<p id="undergrowth-links-intro">' . esc_html__( 'Undergrowth reads your published posts and suggests links between them, and changes a post only when you accept a link.', 'undergrowth' ) . '</p>';
+
+	if ( ! undergrowth_embed_provider_set_by_code() ) {
+		return;
+	}
+
+	$identity = undergrowth_embed_identity();
+
+	// Model names are code, so they keep left-to-right order in any language.
+	echo '<p id="undergrowth-links-provider">' . sprintf(
+		/* translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama. */
+		esc_html__( 'Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI. That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it.', 'undergrowth' ),
+		'<bdi dir="ltr">' . esc_html( $identity['model'] ) . '</bdi>',
+		'<bdi dir="ltr">' . esc_html( $identity['provider'] ) . '</bdi>'
+	) . '</p>';
 }
 
 /**
@@ -359,6 +389,54 @@ function undergrowth_render_key_field( array $args ): void {
 				<?php echo esc_html( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) ); ?>
 			</p>
 		</div>
+	<?php endif; ?>
+	<?php
+}
+
+/**
+ * Prints the OpenAI key row while code on the site reads the posts: no
+ * field, since the key would not be used, and a saved key said to be
+ * ignored, with its remove checkbox.
+ */
+function undergrowth_render_unused_openai_key_field(): void {
+	$constant  = 'UNDERGROWTH_OPENAI_API_KEY';
+	$saved     = undergrowth_saved_key( 'undergrowth_openai_api_key' );
+	$in_config = '' !== undergrowth_key_from_config( $constant );
+
+	// A key saved before the constant was added can still be removed here.
+	if ( $in_config && '' !== $saved ) {
+		$text = sprintf(
+			/* translators: 1: file name, wp-config.php, 2: name of the constant, 3: last four characters of the saved API key. */
+			__( 'A key is set in %1$s as %2$s, and a key ending in %3$s is saved, but both are ignored while code on this site reads the posts.', 'undergrowth' ),
+			'wp-config.php',
+			$constant,
+			substr( $saved, -4 )
+		);
+	} elseif ( $in_config ) {
+		$text = sprintf(
+			/* translators: 1: file name, wp-config.php, 2: name of the constant. */
+			__( 'A key is set in %1$s as %2$s, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
+			'wp-config.php',
+			$constant
+		);
+	} elseif ( '' !== $saved ) {
+		$text = sprintf(
+			/* translators: %1$s: last four characters of the saved API key. */
+			__( 'A key ending in %1$s is saved, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
+			substr( $saved, -4 )
+		);
+	} else {
+		$text = __( 'Not used. Code on this site reads the posts, so no OpenAI key is needed.', 'undergrowth' );
+	}
+	?>
+	<p id="undergrowth-openai-unused"><?php echo esc_html( $text ); ?></p>
+	<?php if ( '' !== $saved ) : ?>
+		<p>
+			<label>
+				<input type="checkbox" name="undergrowth_remove_openai_key" value="1" />
+				<?php esc_html_e( 'Remove the saved key', 'undergrowth' ); ?>
+			</label>
+		</p>
 	<?php endif; ?>
 	<?php
 }
@@ -582,12 +660,22 @@ function undergrowth_add_settings_help(): void {
 		return;
 	}
 
+	if ( undergrowth_embed_provider_set_by_code() ) {
+		$identity = undergrowth_embed_identity();
+		$links    = sprintf(
+			/* translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama. */
+			__( 'Posts are read by %1$s (%2$s), which code on this site set up instead of OpenAI. Undergrowth gives it the title and text of each published post without a password, so it can tell which of your posts are about similar things and suggest links between them. Where that code sends them depends on how it was set up, so ask whoever added it. Nothing is sent to OpenAI, even if an OpenAI key is saved. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ),
+			$identity['model'],
+			$identity['provider']
+		);
+	} else {
+		$links = __( 'With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' );
+	}
+
 	$tabs = array(
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
-			array(
-				__( 'With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ),
-			),
+			array( $links ),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),

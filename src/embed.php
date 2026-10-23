@@ -35,7 +35,7 @@ function undergrowth_embed( string $text ): array {
 	 */
 	$vector   = undergrowth_sanitize_vector( apply_filters( 'undergrowth_embed_provider', null, $text ) );
 	$identity = undergrowth_embed_identity();
-	$built_in = 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'];
+	$built_in = undergrowth_embed_identity_is_built_in( $identity );
 
 	// A filter vector is used only when its provider has named its own model.
 	// Otherwise it would be stored as an OpenAI vector and compared with them.
@@ -165,4 +165,32 @@ function undergrowth_identity_is_complete( array $identity ): bool {
  */
 function undergrowth_has_embed_provider(): bool {
 	return undergrowth_identity_is_complete( undergrowth_embed_identity() );
+}
+
+/**
+ * Says whether an identity is the built-in OpenAI model.
+ *
+ * @param array $identity Identity from undergrowth_embed_identity().
+ * @return bool True for OpenAI's default model.
+ *
+ * @phpstan-param array{provider: string, model: string} $identity
+ */
+function undergrowth_embed_identity_is_built_in( array $identity ): bool {
+	return 'openai' === $identity['provider'] && UNDERGROWTH_OPENAI_MODEL === $identity['model'];
+}
+
+/**
+ * Says whether code on the site, rather than an OpenAI key, has named the
+ * provider that reads the posts. Undergrowth then never calls OpenAI, even
+ * with a key saved.
+ *
+ * Any OpenAI model counts as OpenAI here, so Settings never says nothing is
+ * sent to OpenAI while code names it as the provider.
+ *
+ * @return bool True when a provider other than OpenAI is named.
+ */
+function undergrowth_embed_provider_set_by_code(): bool {
+	$identity = undergrowth_embed_identity();
+
+	return undergrowth_identity_is_complete( $identity ) && 'openai' !== $identity['provider'];
 }
