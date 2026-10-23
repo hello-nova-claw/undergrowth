@@ -508,6 +508,18 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 		$this->assertSame( 'sprout', undergrowth_get_stage( $oca ) );
 	}
 
+	public function test_sort_links_do_not_carry_a_result_already_shown() {
+		$uri                    = $_SERVER['REQUEST_URI'] ?? '';
+		$_SERVER['REQUEST_URI'] = '/wp-admin/edit.php?page=undergrowth-links&tab=stages&undergrowth_pinned=2&undergrowth_skipped=1&undergrowth_notice=pinned&orderby=stage';
+
+		undergrowth_forget_shown_results();
+		$cleaned                = $_SERVER['REQUEST_URI'];
+		$_SERVER['REQUEST_URI'] = $uri;
+
+		$this->assertSame( '/wp-admin/edit.php?page=undergrowth-links&tab=stages&orderby=stage', $cleaned );
+		$this->assertNotFalse( has_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' ) );
+	}
+
 	public function test_the_bulk_result_shows_on_the_stages_tab() {
 		$this->post_at( 'Oca', 'sprout' );
 		$_GET['undergrowth_pinned'] = '2';

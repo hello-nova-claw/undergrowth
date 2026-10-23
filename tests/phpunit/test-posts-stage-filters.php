@@ -119,6 +119,17 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 		$this->assertSame( '', $this->filter_html( 'post', 'bottom' ) );
 	}
 
+	public function test_the_posts_list_forgets_a_result_already_shown() {
+		$uri                    = $_SERVER['REQUEST_URI'] ?? '';
+		$_SERVER['REQUEST_URI'] = '/wp-admin/edit.php?undergrowth_composted=2&undergrowth_stage=sprout';
+
+		undergrowth_add_posts_list_hooks( 'post' );
+		$cleaned                = $_SERVER['REQUEST_URI'];
+		$_SERVER['REQUEST_URI'] = $uri;
+
+		$this->assertSame( '/wp-admin/edit.php?undergrowth_stage=sprout', $cleaned );
+	}
+
 	public function test_lists_outside_the_garden_have_no_filter() {
 		$this->assertSame( '', $this->filter_html( 'attachment' ) );
 
