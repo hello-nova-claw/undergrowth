@@ -119,6 +119,14 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#^<a href="[^"]+">Oca</a>$#', undergrowth_post_link( $post_id ) );
 	}
 
+	public function test_post_link_is_plain_text_when_the_edit_address_is_empty() {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		add_filter( 'get_edit_post_link', '__return_empty_string' );
+
+		$this->assertSame( 'Oca', undergrowth_post_link( $post_id, 'row-title' ) );
+	}
+
 	public function test_settings_url_opens_settings_undergrowth() {
 		$this->assertSame( admin_url( 'options-general.php?page=undergrowth' ), undergrowth_settings_url() );
 	}
