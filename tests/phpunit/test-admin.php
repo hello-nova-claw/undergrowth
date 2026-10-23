@@ -11,6 +11,7 @@
 class Test_Admin extends WP_UnitTestCase {
 
 	use Plants_Posts;
+	use Stops_Redirects;
 
 	/**
 	 * Editor who can see the screen.
@@ -38,16 +39,6 @@ class Test_Admin extends WP_UnitTestCase {
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**
