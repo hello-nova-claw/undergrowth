@@ -590,7 +590,7 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		undergrowth_start_backfill();
 		$this->run_cron();
-		$this->assertSame( $this->identity(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 		$this->embedded = array();
 
@@ -686,5 +686,69 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->run_cron();
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	/**
+	 * Sets the site locale through core's filter.
+	 *
+	 * @param string $locale Locale such as de_DE.
+	 */
+	private function site_locale( string $locale ): void {
+		add_filter(
+			'locale',
+			static function () use ( $locale ) {
+				return $locale;
+			}
+		);
+	}
+
+	public function test_changed_site_language_reembeds_every_post() {
+		$this->batch_size( 2 );
+		$ids = $this->indexed_archive( 3 );
+
+		$this->site_locale( 'de_DE' );
+		do_action( 'undergrowth_backfill_check' );
+		$runs = $this->run_cron();
+
+		$this->assertSame( array( 2, 1 ), $runs );
+
+		foreach ( $ids as $id ) {
+			$this->assertSame( 'de_DE', undergrowth_get_vector( $id )['language'] );
+		}
+	}
+
+	public function test_changed_site_language_counts_old_vectors_as_unread() {
+		$this->indexed_archive( 2 );
+
+		$this->site_locale( 'de_DE' );
+
+		$this->assertSame( 0, undergrowth_index_counts()['indexed'] );
+	}
+
+	public function test_finished_reembed_in_a_new_site_language_clusters_the_new_vectors() {
+		$this->indexed_archive( 2 );
+
+		$this->site_locale( 'de_DE' );
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_languages_set_per_post_are_left_apart_when_the_site_language_changes() {
+		add_filter(
+			'undergrowth_post_language',
+			static function ( $locale, $post ) {
+				return 0 === $post->ID % 2 ? 'fr_FR' : $locale;
+			},
+			10,
+			2
+		);
+		$this->indexed_archive( 2 );
+
+		$this->site_locale( 'de_DE' );
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( array(), $this->run_cron() );
 	}
 }
