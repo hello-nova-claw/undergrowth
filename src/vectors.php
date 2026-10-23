@@ -105,3 +105,26 @@ function undergrowth_delete_vector( int $post_id ): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 	$wpdb->delete( undergrowth_vectors_table(), array( 'post_id' => $post_id ), array( '%d' ) );
 }
+
+/**
+ * Decodes an embedding as stored in the vectors table.
+ *
+ * @param string $json The stored embedding.
+ * @return float[] The vector, or an empty array when the stored value is not one.
+ */
+function undergrowth_decode_embedding( string $json ): array {
+	return undergrowth_sanitize_vector( json_decode( $json, true ) );
+}
+
+/**
+ * Names the space a vector belongs to. Vectors are only ever compared with
+ * vectors of the same provider, model and language.
+ *
+ * @param array $row Vector row, or a vector read with undergrowth_get_vector().
+ * @return string A key that two vectors share only when they may be compared.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $row
+ */
+function undergrowth_vector_space( array $row ): string {
+	return $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'];
+}

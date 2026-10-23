@@ -282,13 +282,13 @@ function undergrowth_run_resurfacing_cycle( $after_id = 0 ): void {
 			continue;
 		}
 
-		$vector = undergrowth_unit_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+		$vector = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
 		if ( '' === $vector ) {
 			continue;
 		}
 
-		$group = $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'];
+		$group = undergrowth_vector_space( $row );
 
 		if ( ! isset( $pools[ $group ] ) ) {
 			$pools[ $group ] = undergrowth_leader_vectors( $leaders, $row );

@@ -113,7 +113,7 @@ function undergrowth_measure_scores(): void {
 
 		foreach ( $rows as $row ) {
 			$after  = (int) $row['post_id'];
-			$packed = undergrowth_unit_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+			$packed = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
 			// Vectors of another length, from a change of model settings,
 			// cannot be compared either.
