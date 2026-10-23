@@ -235,6 +235,20 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 		$this->assertSame( 'seed ledger', mb_substr( $row['sentence'], (int) $row['anchor_offset'], 11 ) );
 	}
 
+	public function test_a_proposal_with_no_words_safe_to_link_stores_none() {
+		global $wpdb;
+
+		$this->plant( 'Shed', array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>I keep sweet-yacon plants.</p>' ) );
+		$target = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon syrup is sweet. Yacon roots store well.</p>' ) );
+
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND target_id = %d', undergrowth_links_table(), $source, $target ), ARRAY_A );
+
+		$this->assertSame( 'I keep sweet-yacon plants.', $row['sentence'] );
+		$this->assertSame( '', $row['anchor'] );
+		$this->assertSame( '-1', $row['anchor_offset'] );
+	}
+
 	public function test_a_stored_span_is_what_accept_links() {
 		global $wpdb;
 
