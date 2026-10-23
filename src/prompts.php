@@ -13,6 +13,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// The rules ask for under 250 characters, so a question that runs a little
+// over is still kept, not thrown away.
 const UNDERGROWTH_PROMPT_MAX_LENGTH = 300;
 const UNDERGROWTH_PROMPT_MAX_CALLS  = 3;
 const UNDERGROWTH_PROMPT_DATA_CHARS = 1000;

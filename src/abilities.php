@@ -9,7 +9,10 @@
  *
  * The read abilities keep the fractal contract: the same fields answer for one
  * post, one cluster or the whole site, and only posts the current user can
- * edit are ever counted.
+ * edit are ever counted. One post's words are weighed against every post it
+ * can be compared with; a cluster's or the site's against the posts in the
+ * garden the user can edit, so one post can show different words alone than
+ * as part of a set.
  *
  * @package Undergrowth
  */

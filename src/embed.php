@@ -27,8 +27,8 @@ function undergrowth_embed( string $text ): array {
 	 * Return a list of numbers to supply the vector yourself, for example from
 	 * an embedding service running on the same server. A provider hooked here
 	 * must also hook undergrowth_embed_identity to name its model. Without it
-	 * the vector is ignored: it is never stored, or stored as OpenAI's when a
-	 * key is saved.
+	 * the vector is never stored, and while an OpenAI key is saved it is
+	 * thrown away and OpenAI is asked instead.
 	 *
 	 * @param float[]|null $vector Null unless an earlier callback supplied a vector.
 	 * @param string       $text   Text to embed.

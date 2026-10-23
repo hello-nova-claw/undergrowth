@@ -280,7 +280,7 @@ function undergrowth_index_target(): array {
 	return array(
 		'provider' => $identity['provider'],
 		'model'    => $identity['model'],
-		'language' => has_filter( 'undergrowth_post_language' ) ? '' : mb_substr( get_locale(), 0, 20 ),
+		'language' => has_filter( 'undergrowth_post_language' ) ? '' : undergrowth_fit_language( get_locale() ),
 	);
 }
 
