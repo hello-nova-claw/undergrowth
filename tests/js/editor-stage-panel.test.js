@@ -142,7 +142,12 @@ describe( 'Editor stage panel', () => {
 		).toBe( 'Stage to pin' );
 
 		flushSync( () => {
-			choice.value = 'sprout';
+			// Through the prototype's setter, as a browser would, or React
+			// would not see the change.
+			Object.getOwnPropertyDescriptor(
+				window.HTMLSelectElement.prototype,
+				'value'
+			).set.call( choice, 'sprout' );
 			choice.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		} );
 		button( container, 'Pin stage' ).click();
