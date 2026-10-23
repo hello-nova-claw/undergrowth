@@ -96,6 +96,21 @@ class Test_Admin extends WP_UnitTestCase {
 		$_REQUEST['_wpnonce'] = $nonce;
 	}
 
+	public function test_shown_notice_is_removed_from_the_address() {
+		$this->assertContains( 'undergrowth_notice', wp_removable_query_args() );
+	}
+
+	public function test_revision_is_removed_from_the_address_only_on_this_screen() {
+		set_current_screen( 'posts_page_undergrowth-links' );
+		$this->assertContains( 'revision', wp_removable_query_args() );
+
+		// Core's own revisions screen is addressed by it.
+		set_current_screen( 'revision' );
+		$this->assertNotContains( 'revision', wp_removable_query_args() );
+
+		set_current_screen( 'front' );
+	}
+
 	public function test_screen_is_listed_under_posts_for_editors() {
 		do_action( 'admin_menu' );
 
