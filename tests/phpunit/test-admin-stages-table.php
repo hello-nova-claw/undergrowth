@@ -104,6 +104,7 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 	 * @param int[]  $post_ids Ticked posts.
 	 * @param bool   $nonce    Whether to send a valid nonce.
 	 * @return string Redirect location, or an empty string when nothing redirected.
+	 * @throws WPDieException When the handler refuses the request.
 	 */
 	private function bulk( string $action, array $post_ids, bool $nonce = true ): string {
 		$this->request(
@@ -463,6 +464,33 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 		$this->assertSame( '', $this->bulk( '-1', array( $oca ) ) );
 		$this->assertSame( '', $this->bulk( 'trash', array( $oca ) ) );
 		$this->assertSame( 'sprout', undergrowth_get_stage( $oca ) );
+	}
+
+	public function test_a_form_sent_without_an_action_returns_to_a_clean_address() {
+		$this->request(
+			array(
+				'tab'               => 'stages',
+				'action'            => '-1',
+				'paged'             => '2',
+				'undergrowth_stage' => 'sprout',
+				'_wpnonce'          => 'abc',
+				'_wp_http_referer'  => '/wp-admin/edit.php',
+			)
+		);
+		set_current_screen( 'posts_page_undergrowth-links' );
+
+		try {
+			undergrowth_handle_stages_bulk();
+			$location = '';
+		} catch ( Exception $e ) {
+			$location = $e->getMessage();
+		}
+		unset( $_GET['_wp_http_referer'], $_REQUEST['_wp_http_referer'] );
+
+		$this->assertStringContainsString( 'undergrowth_stage=sprout', $location );
+		$this->assertStringContainsString( 'paged=2', $location );
+		$this->assertStringNotContainsString( '_wpnonce', $location );
+		$this->assertStringNotContainsString( '_wp_http_referer', $location );
 	}
 
 	public function test_bulk_actions_on_another_tab_are_ignored() {
