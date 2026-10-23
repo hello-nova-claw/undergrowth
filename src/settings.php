@@ -393,6 +393,24 @@ function undergrowth_render_suggest_links_field(): void {
  */
 function undergrowth_failure_text( string $service, array $error, string $retry, string $secret = 'key' ): string {
 	$status = (int) ( $error['status'] ?? 0 );
+	$code   = (string) ( $error['code'] ?? '' );
+
+	// The request went through and Claude answered without a question. That
+	// source is skipped for good, so nothing failed and nothing is retried.
+	if ( 'refusal' === $code || 'max_tokens' === $code ) {
+		$cause = 'refusal' === $code
+			/* translators: %1$s: service name, such as Anthropic. */
+			? __( '%1$s declined to write a question from one of your posts or comments, so Undergrowth skipped it and went on to the others.', 'undergrowth' )
+			/* translators: %1$s: service name, such as Anthropic. */
+			: __( 'The reply from %1$s about one of your posts or comments was cut off, so Undergrowth skipped it and went on to the others.', 'undergrowth' );
+		$when = sprintf(
+			/* translators: %1$s: date and time. */
+			__( 'That was on %1$s.', 'undergrowth' ),
+			wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) )
+		);
+
+		return sprintf( $cause, $service ) . ' ' . $when;
+	}
 
 	if ( 401 === $status || 403 === $status ) {
 		$cause = 'token' === $secret
