@@ -62,6 +62,19 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 		$this->assertSame( 'yacon', $this->spans( 'I love yacon.', array( 'yacon' ) )[0] );
 	}
 
+	public function test_a_participle_before_the_word_is_left_out() {
+		$this->assertSame( 'affection', $this->spans( 'Any passage betraying affection moves us.', array( 'affection' ) )[0] );
+	}
+
+	public function test_a_common_describing_word_joins_after_an_article() {
+		$this->assertSame( 'true doctrine', $this->spans( 'The true doctrine of omnipresence is old.', array( 'doctrine' ) )[0] );
+	}
+
+	public function test_a_word_that_counts_or_points_is_left_out() {
+		$this->assertSame( 'ponds', $this->spans( 'The opening of the former ponds is late.', array( 'ponds' ) )[0] );
+		$this->assertSame( 'sunny valley', $this->spans( 'They met in a little sunny valley.', array( 'valley' ) )[0] );
+	}
+
 	public function test_a_phrase_after_a_verb_starts_after_it() {
 		$this->assertSame( 'seed ledgers', $this->spans( 'I keep seed ledgers for every bed.', array( 'ledgers' ) )[0] );
 	}
@@ -75,6 +88,8 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Checks a run of words never spans two clauses.
+	 *
 	 * @dataProvider clause_breaks
 	 *
 	 * @param string $sentence Sentence with punctuation between the words.

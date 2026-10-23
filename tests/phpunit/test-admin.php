@@ -389,6 +389,14 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<q dir="auto">I keep <mark>yacon</mark> nearby.</q>', $html );
 	}
 
+	public function test_every_word_accept_will_link_is_inside_one_mark() {
+		$this->plant( 'Shed', array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		$this->plant( 'Spring', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Every spring I copy the seed ledger out again.</p>' ) );
+		$this->plant( 'The Seed Ledger', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>The ledger lists every seed. A ledger needs care.</p>' ) );
+
+		$this->assertStringContainsString( '<q dir="auto">Every spring I copy the <mark>seed ledger</mark> out again.</q>', $this->render() );
+	}
+
 	public function test_a_quote_with_no_word_to_link_is_shown_without_a_mark() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Frost came early. I keep yacon nearby.</p>' ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon syrup is sweet. Yacon roots store well.</p>' ) );
