@@ -96,7 +96,9 @@ function undergrowth_install_schema(): bool {
 }
 
 /**
- * Installs the schema and schedules the stage cycle on activation.
+ * Installs the schema on activation, schedules the monthly cycle and the
+ * hourly backfill check, starts a backfill when posts are waiting to be
+ * read, and queues the first-run notice.
  *
  * Activation hooks expect no return value, so this wraps the installer
  * rather than registering it directly.
