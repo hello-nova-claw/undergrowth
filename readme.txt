@@ -158,7 +158,7 @@ Each message sends Discord the titles of both posts, the suggested sentence, whi
 * Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
 * Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
 * New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
-* Accept a suggestion to link a few of your own words, one to four, in your sentence to the suggested post. A revision is kept, and nothing changes when the words can't be linked safely.
+* Accept a suggestion to link a few of your own words, one to four, in your sentence to the suggested post. Choose words first if you would rather link other words of the same sentence. A revision is kept, and nothing changes when the words can't be linked safely.
 * Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
 * Growth stages are measured once a month from the links you have accepted: a post with two or more becomes a Sprout. Stages never change when you save a post, and the monthly cycle never lowers one.
 * Each post's file now names its growth stage and lists every change to it, with the date and what made it.
