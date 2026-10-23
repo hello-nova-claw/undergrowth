@@ -28,7 +28,6 @@ add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
 add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
-register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_deactivate' );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
@@ -538,63 +537,6 @@ function undergrowth_cycle_post( int $post_id ): void {
 	if ( $order[ $measured ] > $order[ $stage ] || ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
 		undergrowth_set_stage( $post_id, $measured );
 	}
-}
-
-/**
- * Stops every scheduled event while the plugin is inactive, on every site
- * when it is deactivated across a network.
- *
- * Each site keeps its own cron queue, and network deactivation runs this
- * once, on the main site.
- *
- * @param bool $network_wide Whether the plugin is deactivated across the network.
- */
-function undergrowth_deactivate( $network_wide = false ): void {
-	if ( ! $network_wide || ! is_multisite() ) {
-		undergrowth_deactivate_site();
-		return;
-	}
-
-	// get_sites() stops at 100 sites unless told otherwise, and reads every
-	// network unless given one. The plugin stays active on other networks.
-	$site_ids = get_sites(
-		array(
-			'fields'     => 'ids',
-			'number'     => 0,
-			'network_id' => get_current_network_id(),
-		)
-	);
-
-	foreach ( $site_ids as $site_id ) {
-		switch_to_blog( (int) $site_id );
-		undergrowth_deactivate_site();
-		restore_current_blog();
-	}
-}
-
-/**
- * Stops the monthly cycles, the prompt events and every queued embed or
- * Discord post on the current site, and forgets the clusters and any
- * clustering pass that was under way.
- */
-function undergrowth_deactivate_site(): void {
-	undergrowth_unschedule_prompts();
-	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
-	wp_unschedule_hook( 'undergrowth_stage_cycle' );
-	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
-	wp_unschedule_hook( 'undergrowth_backfill' );
-	wp_unschedule_hook( 'undergrowth_backfill_check' );
-	wp_unschedule_hook( 'undergrowth_embed_post' );
-	// A suggestion left unposted is posted with the post's next refresh.
-	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
-	delete_option( 'undergrowth_backfill' );
-	delete_option( 'undergrowth_backfill.lock' );
-	delete_option( 'undergrowth_cluster_leaders' );
-	// Clusters, and the record of the last pass to compare new ones with,
-	// would be stale by the time the plugin is active again.
-	delete_post_meta_by_key( 'undergrowth_cluster' );
-	delete_option( 'undergrowth_previous_clusters' );
-	undergrowth_forget_resurfacing_signals();
 }
 
 /**

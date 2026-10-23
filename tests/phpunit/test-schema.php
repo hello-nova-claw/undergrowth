@@ -86,6 +86,10 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertNotFalse( has_action( 'activate_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_activate' ) );
 	}
 
+	public function test_deactivation_hook_is_registered() {
+		$this->assertNotFalse( has_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_deactivate' ) );
+	}
+
 	public function test_outdated_schema_version_triggers_install() {
 		update_option( 'undergrowth_schema_version', 0 );
 
