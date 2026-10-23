@@ -207,6 +207,9 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
+	// A dev tools job left half done would carry on when reactivated.
+	wp_unschedule_hook( 'undergrowth_dev_job' );
+	delete_option( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_cluster_leaders' );
@@ -254,6 +257,8 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_cluster_leaders' );
 	delete_option( 'undergrowth_cluster_labels' );
 	delete_option( 'undergrowth_scores' );
+	delete_option( 'undergrowth_dev_job' );
+	wp_unschedule_hook( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
