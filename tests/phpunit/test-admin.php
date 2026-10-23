@@ -114,7 +114,9 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$this->assertSame( 1, substr_count( $html, 'id="undergrowth-notice"' ) );
 		$this->assertMatchesRegularExpression( '#<div id="undergrowth-notice" class="notice notice-success is-dismissible" role="status" tabindex="-1"><p>Composted.</p></div>#', $html );
-		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning is-dismissible" role="status"><p>One was skipped.x</p></div>#', $html );
+		// Newer versions of wp_kses() drop the element's text with its tags.
+		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning is-dismissible" role="status"><p>One was skipped\.x?</p></div>#', $html );
+		$this->assertStringNotContainsString( '<script>x', $html );
 		$this->assertSame( 1, substr_count( $html, '.focus()' ) );
 	}
 
