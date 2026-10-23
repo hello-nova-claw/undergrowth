@@ -144,8 +144,9 @@ function undergrowth_embed_identity(): array {
 }
 
 /**
- * Tells whether an identity names both a provider and a model. Without both,
- * nothing is embedded and no vector is stored.
+ * Tells whether an identity names both a provider and a model. A vector is
+ * stored only under a complete identity, so it can never be compared with
+ * one from another model.
  *
  * @param array $identity Provider and model names.
  * @return bool
