@@ -316,9 +316,14 @@ function undergrowth_run_resurfacing_cycle( $after_id = 0 ): void {
 /**
  * Forgets the previous pass's clusters once the index is read with another
  * provider, model or language, so the first pass after it is a baseline.
+ *
+ * Resurfacing still queued from the old index would compare with leaders
+ * that no longer stand for anything, so it stops too.
  */
 function undergrowth_forget_previous_clusters(): void {
 	delete_option( 'undergrowth_previous_clusters' );
+	delete_option( 'undergrowth_new_clusters' );
+	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 }
 
 /**
