@@ -10,6 +10,8 @@
  */
 class Test_Admin_Stages extends WP_UnitTestCase {
 
+	use Stops_Redirects;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -22,16 +24,6 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		unset( $_POST['post'], $_POST['stage'], $_POST['_wpnonce'], $_REQUEST['_wpnonce'], $_GET['undergrowth_notice'], $_GET['tab'] );
 
 		parent::tear_down();
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**

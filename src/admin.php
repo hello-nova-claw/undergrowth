@@ -493,14 +493,34 @@ function undergrowth_print_notice_focus_script(): void {
 /**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
- * @param int $post_id Post ID.
+ * @param int    $post_id    Post ID.
+ * @param string $link_class Class for the link, such as core's row-title, if any.
  * @return string Escaped HTML.
  */
-function undergrowth_post_link( int $post_id ): string {
+function undergrowth_post_link( int $post_id, string $link_class = '' ): string {
 	$title = esc_html( undergrowth_post_title( $post_id ) );
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
-	return null === $link ? $title : sprintf( '<a href="%1$s">%2$s</a>', esc_url( $link ), $title );
+	// Core's own edit_post_link() also gives no link for an empty address.
+	if ( null === $link || '' === $link ) {
+		return $title;
+	}
+
+	return sprintf(
+		'<a%1$s href="%2$s">%3$s</a>',
+		'' === $link_class ? '' : ' class="' . esc_attr( $link_class ) . '"',
+		esc_url( $link ),
+		$title
+	);
+}
+
+/**
+ * Returns the address of Settings › Undergrowth.
+ *
+ * @return string Admin URL.
+ */
+function undergrowth_settings_url(): string {
+	return admin_url( 'options-general.php?page=undergrowth' );
 }
 
 /**
@@ -537,15 +557,14 @@ function undergrowth_has_composting_posts(): bool {
  * Prints the suggestions tab: the toggle and the proposals.
  */
 function undergrowth_render_suggestions_tab(): void {
-	$identity = undergrowth_embed_identity();
-	$enabled  = undergrowth_suggestions_enabled();
+	$enabled = undergrowth_suggestions_enabled();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_has_embed_provider() ) {
 		echo '<p>' . wp_kses(
 			sprintf(
 				/* translators: %1$s: address of the Undergrowth settings page. */
 				__( 'Link suggestions need an OpenAI API key. <a href="%1$s">Add one in Settings</a> to start.', 'undergrowth' ),
-				esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
+				esc_url( undergrowth_settings_url() )
 			),
 			array( 'a' => array( 'href' => array() ) )
 		) . '</p>';
@@ -562,7 +581,7 @@ function undergrowth_render_suggestions_tab(): void {
 				sprintf(
 					/* translators: %1$s: address of the Undergrowth settings page. */
 					__( '<a href="%1$s">Turn them on in Settings</a>.', 'undergrowth' ),
-					esc_url( admin_url( 'options-general.php?page=undergrowth' ) )
+					esc_url( undergrowth_settings_url() )
 				),
 				array( 'a' => array( 'href' => array() ) )
 			);

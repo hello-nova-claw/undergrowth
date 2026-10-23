@@ -15,9 +15,24 @@ if ( function_exists( 'tests_add_filter' ) ) {
 	return;
 }
 
+/**
+ * Says whether this request shows Settings as a site without a provider of
+ * its own sees it, with the OpenAI key field, so the e2e provider stands
+ * aside.
+ *
+ * @return bool
+ */
+function undergrowth_e2e_openai_fixture(): bool {
+	return '' !== undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'key-saved', 'last-error', 'first-key-saved' ) );
+}
+
 add_filter(
 	'undergrowth_embed_provider',
 	static function ( $vector, $text ) {
+		if ( undergrowth_e2e_openai_fixture() ) {
+			return $vector;
+		}
+
 		$text = strtolower( (string) $text );
 
 		// Counting a few fixture words gives posts that share words similar vectors.
@@ -35,7 +50,11 @@ add_filter(
 
 add_filter(
 	'undergrowth_embed_identity',
-	static function () {
+	static function ( $identity ) {
+		if ( undergrowth_e2e_openai_fixture() ) {
+			return $identity;
+		}
+
 		return array(
 			'provider' => 'e2e',
 			'model'    => 'word-counts',
@@ -189,7 +208,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
 	case 'first-run':
 		// As right after activation on a site with no key.
 		add_filter(
@@ -223,7 +242,10 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 		);
 		break;
 
+	// Both save the same key. With key-saved the e2e provider stands aside,
+	// so OpenAI reads the posts; with code-provider-key-saved it keeps them.
 	case 'key-saved':
+	case 'code-provider-key-saved':
 		add_filter(
 			'pre_option_undergrowth_openai_api_key',
 			static function () {

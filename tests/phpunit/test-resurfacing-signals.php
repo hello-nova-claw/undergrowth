@@ -10,6 +10,8 @@
  */
 class Test_Resurfacing_Signals extends WP_UnitTestCase {
 
+	use Stops_Redirects;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -23,16 +25,6 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**

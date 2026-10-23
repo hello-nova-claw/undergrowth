@@ -202,7 +202,7 @@ function undergrowth_discord_post_proposals( int $post_id ): void {
  */
 function undergrowth_discord_record_result( string $pair, bool $posted, int $status = 0 ): void {
 	$error   = get_option( 'undergrowth_last_discord_error' );
-	$pending = is_array( $error ) && isset( $error['pending'] ) && is_array( $error['pending'] ) ? $error['pending'] : array();
+	$pending = array_fill_keys( undergrowth_discord_pending(), true );
 
 	if ( $posted ) {
 		unset( $pending[ $pair ] );
@@ -233,20 +233,26 @@ function undergrowth_discord_record_result( string $pair, bool $posted, int $sta
 }
 
 /**
+ * Lists the suggestions whose last attempt to reach Discord failed.
+ *
+ * @return string[] Source and target post IDs, each as "source:target".
+ */
+function undergrowth_discord_pending(): array {
+	$error = get_option( 'undergrowth_last_discord_error' );
+
+	return is_array( $error ) && isset( $error['pending'] ) && is_array( $error['pending'] ) ? array_map( 'strval', array_keys( $error['pending'] ) ) : array();
+}
+
+/**
  * Forgets the failures of a post's suggestions that will not be sent again.
  *
  * @param int               $post_id Source post ID.
  * @param array<int, mixed> $waiting Target post IDs, as keys, still to be tried.
  */
 function undergrowth_discord_forget_failures( int $post_id, array $waiting ): void {
-	$error  = get_option( 'undergrowth_last_discord_error' );
 	$prefix = $post_id . ':';
 
-	if ( ! is_array( $error ) || ! isset( $error['pending'] ) || ! is_array( $error['pending'] ) ) {
-		return;
-	}
-
-	foreach ( array_keys( $error['pending'] ) as $pair ) {
+	foreach ( undergrowth_discord_pending() as $pair ) {
 		if ( 0 === strpos( (string) $pair, $prefix ) && ! isset( $waiting[ (int) substr( (string) $pair, strlen( $prefix ) ) ] ) ) {
 			undergrowth_discord_record_result( (string) $pair, true );
 		}
@@ -261,13 +267,8 @@ function undergrowth_discord_forget_failures( int $post_id, array $waiting ): vo
  */
 function undergrowth_discord_forget_post_failures( $post_id ): void {
 	$post_id = (int) $post_id;
-	$error   = get_option( 'undergrowth_last_discord_error' );
 
-	if ( ! is_array( $error ) || ! isset( $error['pending'] ) || ! is_array( $error['pending'] ) ) {
-		return;
-	}
-
-	foreach ( array_keys( $error['pending'] ) as $pair ) {
+	foreach ( undergrowth_discord_pending() as $pair ) {
 		$ids = array_map( 'intval', explode( ':', (string) $pair, 2 ) );
 
 		if ( in_array( $post_id, $ids, true ) ) {

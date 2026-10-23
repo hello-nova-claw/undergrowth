@@ -1,6 +1,19 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
 
+/**
+ * Sets the fixture cookie for the test site.
+ *
+ * @param {import('@playwright/test').BrowserContext} context Browser context.
+ * @param {string}                                    baseURL Site address.
+ * @param {string}                                    name    Fixture name.
+ */
+async function useFixture( context, baseURL, name ) {
+	await context.addCookies( [
+		{ name: 'undergrowth_e2e_fixture', value: name, url: baseURL },
+	] );
+}
+
 // Selectors use ids, not text, because this spec also runs in Hebrew and in
 // the en_XA pseudo-locale.
 test.describe( 'Settings page', () => {
@@ -37,9 +50,17 @@ test.describe( 'Settings page', () => {
 		await expectNoA11yViolations( page, '.wrap' );
 	} );
 
+	// The test site's own provider is code, so the OpenAI key field shows
+	// only with a fixture that stands it aside.
 	test( 'describes what is sent alongside the key field', async ( {
+		admin,
 		page,
+		context,
+		baseURL,
 	} ) => {
+		await useFixture( context, baseURL, 'no-provider' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
 		const field = page.locator( '#undergrowth_openai_api_key' );
 
 		await expect( field ).toHaveAttribute(
@@ -93,16 +114,14 @@ test.describe( 'Settings page', () => {
 	test( 'reaches every key field and the save button by keyboard', async ( {
 		page,
 	} ) => {
-		const field = page.locator( '#undergrowth_openai_api_key' );
+		const first = page.locator( '#undergrowth_suggest_links' );
 
-		await field.focus();
-		await expect( field ).toBeFocused();
+		await first.focus();
+		await expect( first ).toBeFocused();
 
-		// Each key field is followed by the link to the provider's key page,
-		// and the OpenAI key by the switch for suggestions.
+		// The test site's provider is code, so there is no OpenAI key field.
+		// Each key field is followed by the link to the provider's key page.
 		for ( const id of [
-			'undergrowth-openai-get-key',
-			'undergrowth_suggest_links',
 			'undergrowth_anthropic_api_key',
 			'undergrowth-anthropic-get-key',
 		] ) {
@@ -124,9 +143,98 @@ test.describe( 'Settings page', () => {
 		await expect( page.locator( '.wrap #submit' ) ).toBeFocused();
 	} );
 
-	test( 'shows the key field empty after saving a key', async ( {
+	test( 'by keyboard, the OpenAI key field leads to its link, its remove checkbox and the switch', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await useFixture( context, baseURL, 'key-saved' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		const field = page.locator( '#undergrowth_openai_api_key' );
+
+		await field.focus();
+		await expect( field ).toBeFocused();
+
+		for ( const selector of [
+			'#undergrowth-openai-get-key',
+			'input[name="undergrowth_remove_openai_key"]',
+			'#undergrowth_suggest_links',
+		] ) {
+			await page.keyboard.press( 'Tab' );
+			await expect( page.locator( selector ) ).toBeFocused();
+		}
+
+		await expectNoA11yViolations( page, '.wrap' );
+	} );
+
+	test( 'names the provider set up by code, with no OpenAI key field', async ( {
 		page,
 	} ) => {
+		const provider = page.locator( '#undergrowth-links-provider' );
+
+		// The names come from the provider's code and are never translated.
+		await expect( provider ).toContainText( 'word-counts' );
+		await expect( provider ).toContainText( 'e2e' );
+		await expect(
+			page.locator( '#undergrowth-openai-unused' )
+		).toBeVisible();
+		await expect(
+			page.locator( '#undergrowth_openai_api_key' )
+		).toHaveCount( 0 );
+		await expect(
+			page.locator( '#undergrowth-openai-get-key' )
+		).toHaveCount( 0 );
+	} );
+
+	test( 'says a saved OpenAI key is ignored while code reads the posts', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await useFixture( context, baseURL, 'code-provider-key-saved' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		await expect(
+			page.locator( '#undergrowth-openai-unused' )
+		).toContainText( 'wxyz' );
+		await expect(
+			page.locator( '#undergrowth_openai_api_key' )
+		).toHaveCount( 0 );
+
+		const remove = page.locator(
+			'input[name="undergrowth_remove_openai_key"]'
+		);
+
+		await remove.focus();
+		await expect( remove ).toBeFocused();
+		await page.keyboard.press( 'Tab' );
+		await expect(
+			page.locator( '#undergrowth_suggest_links' )
+		).toBeFocused();
+
+		await expectNoA11yViolations( page, '.wrap' );
+
+		await page.setViewportSize( { width: 390, height: 800 } );
+
+		const width = await page
+			.locator( '.wrap' )
+			.evaluate( ( wrap ) => wrap.scrollWidth );
+
+		expect( width ).toBeLessThanOrEqual( 390 );
+	} );
+
+	test( 'shows the key field empty after saving a key', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await useFixture( context, baseURL, 'no-provider' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
 		const field = page.locator( '#undergrowth_openai_api_key' );
 
 		await field.fill( 'sk-e2e-0000000000wxyz' );

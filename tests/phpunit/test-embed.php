@@ -52,6 +52,41 @@ class Test_Embed extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * An identity names a provider only with both fields.
+	 *
+	 * @dataProvider data_identities
+	 *
+	 * @param string $provider Provider name.
+	 * @param string $model    Model name.
+	 * @param bool   $complete Whether the identity is complete.
+	 */
+	public function test_identity_is_complete_only_with_provider_and_model( string $provider, string $model, bool $complete ) {
+		$this->assertSame(
+			$complete,
+			undergrowth_identity_is_complete(
+				array(
+					'provider' => $provider,
+					'model'    => $model,
+				)
+			)
+		);
+	}
+
+	/**
+	 * Identities and whether each is complete.
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: bool}>
+	 */
+	public function data_identities(): array {
+		return array(
+			'both'        => array( 'openai', 'text-embedding-3-small', true ),
+			'no model'    => array( 'openai', '', false ),
+			'no provider' => array( '', 'text-embedding-3-small', false ),
+			'neither'     => array( '', '', false ),
+		);
+	}
+
 	public function test_without_provider_returns_empty_vector() {
 		$this->assertSame( array(), undergrowth_embed( 'Oca keeps well over winter.' ) );
 	}
