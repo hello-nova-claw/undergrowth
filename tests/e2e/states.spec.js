@@ -370,6 +370,39 @@ const HIDE_UPDATES = `
 `;
 
 /**
+ * Shows the Undergrowth panel in the editor's Post tab.
+ *
+ * The editor closes its sidebar when the window narrows, so this runs again
+ * at each width. The panel is last in the sidebar, which scrolls on its own,
+ * so it is scrolled into view.
+ *
+ * @param {import('@playwright/test').Page} page Editor page.
+ */
+async function showPanel( page ) {
+	// Through the editor's store, since the toolbar button is named in the
+	// site's language.
+	await page.evaluate( () =>
+		window.wp.data
+			.dispatch( 'core/edit-post' )
+			.openGeneralSidebar( 'edit-post/document' )
+	);
+
+	const panel = page.locator( '.undergrowth-editor-panel' );
+	const toggle = panel.locator( '.components-panel__body-toggle' );
+
+	if ( ( await toggle.getAttribute( 'aria-expanded' ) ) !== 'true' ) {
+		await toggle.click();
+	}
+
+	// The stage comes from the server after the panel opens.
+	await panel
+		.locator( '.undergrowth-stage, .undergrowth-not-in-garden' )
+		.first()
+		.waitFor();
+	await panel.locator( '> :last-child' ).scrollIntoViewIfNeeded();
+}
+
+/**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
  *
  * The comparison pairs before and after shots by file name alone, so the name
@@ -432,26 +465,6 @@ function capture( states ) {
 						.waitFor();
 				} else if ( entry.panel ) {
 					await admin.editPost( entry.panel() );
-
-					const panel = page.locator( '.undergrowth-editor-panel' );
-					const toggle = panel.locator(
-						'.components-panel__body-toggle'
-					);
-
-					if (
-						( await toggle.getAttribute( 'aria-expanded' ) ) !==
-						'true'
-					) {
-						await toggle.click();
-					}
-
-					// The stage comes from the server after the panel opens.
-					await panel
-						.locator(
-							'.undergrowth-stage, .undergrowth-not-in-garden'
-						)
-						.first()
-						.waitFor();
 				} else {
 					await admin.visitAdminPage( ...entry.page );
 				}
@@ -508,6 +521,10 @@ function capture( states ) {
 					fs.rmSync( `${ shot }.skipped`, { force: true } );
 
 					await page.setViewportSize( { width, height: 800 } );
+
+					if ( entry.panel ) {
+						await showPanel( page );
+					}
 					await page.screenshot( {
 						path: shot,
 						fullPage: true,
@@ -777,6 +794,21 @@ test.describe( 'Screenshot catalogue', () => {
 	test.describe( 'with the editor panel', () => {
 		test.beforeAll( async ( { requestUtils } ) => {
 			await requestUtils.deleteAllPosts();
+
+			// Stored before the editor first loads, or it loads them late and
+			// shows its welcome guide over the panel.
+			await requestUtils.rest( {
+				method: 'POST',
+				path: '/wp/v2/users/me',
+				data: {
+					meta: {
+						persisted_preferences: {
+							'core/edit-post': { welcomeGuide: false },
+							_modified: new Date().toISOString(),
+						},
+					},
+				},
+			} );
 
 			for ( const [ state, title, action ] of [
 				[ 'seedling', 'Oca', null ],
