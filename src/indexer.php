@@ -210,6 +210,27 @@ function undergrowth_post_language( WP_Post $post ): string {
 }
 
 /**
+ * Returns the current provider and model, with the site's language when
+ * every post takes its language from the site.
+ *
+ * A change of site language then reads the whole index again, as a change
+ * of model does, so it never splits into two halves that are never
+ * compared. Once a multilingual plugin sets each post's language, posts in
+ * different languages rightly stay apart, so the language is left out.
+ *
+ * @return array{provider: string, model: string, language: string} The language is empty when posts set their own.
+ */
+function undergrowth_index_target(): array {
+	$identity = undergrowth_embed_identity();
+
+	return array(
+		'provider' => $identity['provider'],
+		'model'    => $identity['model'],
+		'language' => has_filter( 'undergrowth_post_language' ) ? '' : mb_substr( get_locale(), 0, 20 ),
+	);
+}
+
+/**
  * Returns how many posts one backfill run embeds.
  *
  * @return int Posts per run, at least one.
@@ -246,22 +267,24 @@ function undergrowth_backfill_time_budget(): float {
 }
 
 /**
- * Lists indexable posts that have no vector from the current provider and model.
+ * Lists indexable posts that have no vector from the current provider and
+ * model, or none in the site language when posts take theirs from the site.
  *
  * Mirrors undergrowth_is_indexable() in SQL, so posts that must not be sent
  * are never picked. undergrowth_embed_post() checks each post again.
  *
  * @param array $identity {
- *     The current provider and model.
+ *     The current provider and model, and the site language when posts take theirs from the site.
  *
  *     @type string $provider Provider name.
  *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
  * }
  * @param int   $after_id Only posts with a higher ID than this.
  * @param int   $limit    Most posts to return.
  * @return int[] Post IDs in ascending order.
  *
- * @phpstan-param array{provider: string, model: string} $identity
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
  */
 function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $limit ): array {
 	global $wpdb;
@@ -278,8 +301,8 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s WHERE v.post_id IS NULL AND p.ID > %d AND p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders}) ORDER BY p.ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $after_id, 'publish', '' ), $post_types, array( $limit ) )
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders}) ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id, 'publish', '' ), $post_types, array( $limit ) )
 		)
 	);
 	// phpcs:enable
@@ -310,15 +333,15 @@ function undergrowth_index_counts(): array {
 		);
 	}
 
-	$identity     = undergrowth_embed_identity();
+	$identity     = undergrowth_index_target();
 	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
 
 	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT COUNT(p.ID) AS total, COUNT(v.post_id) AS indexed FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders})",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], 'publish', '' ), $post_types )
+			"SELECT COUNT(p.ID) AS total, COUNT(v.post_id) AS indexed FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders})",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], 'publish', '' ), $post_types )
 		),
 		ARRAY_A
 	);
@@ -339,7 +362,7 @@ function undergrowth_index_counts(): array {
  * is queued adds nothing.
  */
 function undergrowth_start_backfill(): void {
-	$identity = undergrowth_embed_identity();
+	$identity = undergrowth_index_target();
 
 	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
 		return;
@@ -366,14 +389,16 @@ function undergrowth_schedule_backfill_check(): void {
  * the time budget, queues the next run after the last post it tried, so a
  * post whose embed failed does not hold up the rest. The hourly check starts a new pass for the posts left over.
  *
- * Posts whose vector came from another provider or model count as having
- * none, so the same passes re-embed the whole index when the model changes.
- * A pass that was under way for another model starts again from the first
- * post. The first pass to finish with a provider and model clusters the new
- * index, which would otherwise wait a month for the next cycle.
+ * Posts whose vector came from another provider or model, or in another
+ * site language, count as having none, so the same passes re-embed the
+ * whole index when the model or the site's language changes. A pass that
+ * was under way for another model or language starts again from the first
+ * post. The first pass to finish with a provider, model and language
+ * clusters the new index, which would otherwise wait a month for the next
+ * cycle.
  */
 function undergrowth_run_backfill(): void {
-	$identity = undergrowth_embed_identity();
+	$identity = undergrowth_index_target();
 
 	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
 		return;
@@ -399,17 +424,18 @@ function undergrowth_run_backfill(): void {
  * Embeds the next batch of the current pass, while holding the backfill lock.
  *
  * @param array $identity {
- *     The current provider and model.
+ *     The current provider and model, and the site language when posts take theirs from the site.
  *
  *     @type string $provider Provider name.
  *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
  * }
  *
- * @phpstan-param array{provider: string, model: string} $identity
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
  */
 function undergrowth_run_backfill_batch( array $identity ): void {
 	$pass     = get_option( 'undergrowth_backfill' );
-	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] ? (int) ( $pass['after'] ?? 0 ) : 0;
+	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] && ( $pass['language'] ?? '' ) === $identity['language'] ? (int) ( $pass['after'] ?? 0 ) : 0;
 	$size     = undergrowth_backfill_batch_size();
 	$budget   = undergrowth_backfill_time_budget();
 	$started  = microtime( true );

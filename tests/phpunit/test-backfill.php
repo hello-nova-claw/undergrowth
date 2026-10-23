@@ -590,7 +590,7 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		undergrowth_start_backfill();
 		$this->run_cron();
-		$this->assertSame( $this->identity(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 		$this->embedded = array();
 
