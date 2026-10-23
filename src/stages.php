@@ -561,11 +561,13 @@ function undergrowth_deactivate( $network_wide = false ): void {
 		return;
 	}
 
-	// get_sites() stops at 100 sites unless told otherwise.
+	// get_sites() stops at 100 sites unless told otherwise, and reads every
+	// network unless given one. The plugin stays active on other networks.
 	$site_ids = get_sites(
 		array(
-			'fields' => 'ids',
-			'number' => 0,
+			'fields'     => 'ids',
+			'number'     => 0,
+			'network_id' => get_current_network_id(),
 		)
 	);
 
