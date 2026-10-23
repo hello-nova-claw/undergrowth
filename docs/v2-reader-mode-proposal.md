@@ -98,7 +98,12 @@ These four need a script on the page, because the server cannot see them, or can
   - a scroll-depth bucket, from `IntersectionObserver` sentinels in the post content at 25/50/75/100%, so there is no scroll handler;
   - the next same-site post, if the view ended on a click to one, with `via` set to `content` or `nav`;
   - the in-content links to the site's own posts that entered the viewport, at most 20, as **exposures** for the prune list's absence check (5C).
-- Every target post ID in a beacon, for a next click or an exposure, must be a link the source post really has, or a navigation link. The server checks against a cached list per post, rebuilt on save. Anything else is dropped before any write, so forged targets cannot add path rows. The unit of an exposure is one target post per view: the server de-duplicates target IDs within a beacon, so a link that appears twice, or a forged beacon that repeats an ID, counts once.
+- Every target post ID in a beacon, for a next click or an exposure, must be a link the source post really has, or a navigation link. The server checks against cached lists that are rebuilt whenever what they mirror changes:
+  - a post's own links, when that post is saved;
+  - the navigation links, on `wp_update_nav_menu` and when a `wp_navigation` post or a template part is saved;
+  - the published IDs, on `transition_post_status`.
+  
+  Every list also expires after a day, so a missed hook costs at most a day of dropped beacons, never a wrong count. Anything else is dropped before any write, so forged targets cannot add path rows. The unit of an exposure is one target post per view: the server de-duplicates target IDs within a beacon, so a link that appears twice, or a forged beacon that repeats an ID, counts once.
 - Exit position is not a separate signal: it is the depth bucket of views with no next click.
 - No cookie, no `localStorage`, no visitor or session ID, no timestamps finer than a week, and no IP or user agent stored. The server turns each beacon into counter increments (section 4) and forgets the request.
 - Consent: when the WP Consent API is active [S9], the script sends only once `wp_has_consent( 'statistics-anonymous' )` is true, and listens for `wp_listen_for_consent_change`. The plugin declares itself through `wp_consent_api_registered_{plugin}`. Without the Consent API, the owner picks one of two modes on the settings page:
@@ -129,7 +134,11 @@ These four need a script on the page, because the server cannot see them, or can
 - The endpoint is a POST, which page caches and CDNs don't cache.
 - No nonce, because a nonce baked into cached HTML goes stale after 12 to 24 hours. The endpoint is public and write-only.
 - It accepts only enumerated buckets for a published, indexed post, checked against a cached list of published IDs, so a bad request costs no post query.
-- Before any write it checks two caps, and drops everything over them: 1,200 beacons a minute site-wide and 600 an hour per post. Both are constants with filters. The counters are kept apart from the weekly tables. They live in the object cache where there is a persistent one, and otherwise in transients keyed by the minute (`undergrowth_beacon_m_<minute>`) and by post and hour (`undergrowth_beacon_h_<post>_<hour>`), which expire after two minutes and two hours. With a persistent object cache, each cap is an atomic `wp_cache_incr()` checked after the increment, and the site-wide reservation is decremented again if the per-post one fails. The transient fallback has no atomic increment, so there the caps are best-effort: concurrent requests can pass a few beacons over the line. That is acceptable for counts that only feed proposals the author reviews, and the Help tab says so.
+- Before any write it checks two caps, and drops everything over them: 1,200 beacons a minute site-wide and 600 an hour per post. Both are constants with filters. The counters are kept apart from the weekly tables. They live in the object cache where there is a persistent one, and otherwise in transients keyed by the minute (`undergrowth_beacon_m_<minute>`) and by post and hour (`undergrowth_beacon_h_<post>_<hour>`), which expire after two minutes and two hours. With a persistent object cache, each cap is an atomic `wp_cache_incr()` checked after the increment, and the site-wide reservation is decremented again if the per-post one fails. The transient fallback has no atomic increment, so there the caps are best-effort: concurrent requests can pass a few beacons over the line. The counts feed two things:
+  - proposals, which the author reviews;
+  - measured stages. Wilting waits for the author (6.3B). A move up follows the same measured rules as every v1 stage.
+  
+  A few extra beacons a minute cannot pass the check's thresholds (section 5) by themselves, so the overrun can't change a stage or a list on its own. The Help tab says the caps are best-effort.
 - It drops requests from bot user agents (read, never stored). That is a filter for honest bots only, because a user agent is the sender's choice.
 - None of this stops a flood before PHP starts. Only the web server or CDN can, so the Help tab tells busy sites to rate-limit `/wp-json/undergrowth/v1/scent` there.
 - Optionally, beacon views per post are capped at a multiple of Jetpack's views for the same post.
