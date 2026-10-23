@@ -560,14 +560,10 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
 	$target = get_post( $target_id );
 	$choice = $source instanceof WP_Post && $target instanceof WP_Post ? undergrowth_choose_link_span( $source, $target, $sentence, $corpus ) : null;
 
-	if ( null === $choice ) {
-		return array(
-			'anchor' => '',
-			'offset' => -1,
-		);
-	}
-
-	return array(
+	return null === $choice ? array(
+		'anchor' => '',
+		'offset' => -1,
+	) : array(
 		'anchor' => (string) preg_replace( '/\s+/u', ' ', $choice['word'] ),
 		'offset' => $choice['offset'],
 	);
