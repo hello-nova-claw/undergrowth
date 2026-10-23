@@ -196,6 +196,27 @@ class Test_Map extends WP_UnitTestCase {
 		$this->assertContains( 'Oca', undergrowth_cluster_terms( $posts['Oca'] ) );
 	}
 
+	public function test_stage_cycle_is_scheduled_before_the_words_are_counted() {
+		$this->plant_oca();
+		$scheduled = array();
+
+		// Counting reads the stop-word lists, so a slow or failed count
+		// comes after the stage cycle is already queued.
+		add_filter(
+			'undergrowth_anchor_stopwords',
+			static function ( $lists ) use ( &$scheduled ) {
+				$scheduled[] = false !== wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) );
+
+				return $lists;
+			}
+		);
+
+		undergrowth_run_cluster_cycle( 0 );
+
+		$this->assertNotEmpty( $scheduled );
+		$this->assertNotContains( false, $scheduled );
+	}
+
 	public function test_composted_post_lends_no_words() {
 		$posts = $this->plant_oca();
 		$extra = $this->post( 'Oca leaves', '<p>Oca leaves taste of sorrel. Sorrel soup.</p>', array( 1.0, 0.0, 0.0 ), $posts['Oca'] );

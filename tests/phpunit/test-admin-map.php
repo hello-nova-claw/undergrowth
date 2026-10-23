@@ -293,6 +293,42 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->assertSame( 11, preg_match_all( '/\(Not read yet\)<\/li>/', $html ) );
 	}
 
+	public function test_posts_not_in_a_group_are_read_in_one_query_however_many() {
+		$this->plant_clusters();
+		$few  = $this->count_render_queries( 2 );
+		$many = $this->count_render_queries( 12 );
+
+		$this->assertLessThan( 5, $many - $few );
+	}
+
+	/**
+	 * Adds posts outside any group, empties the caches, and counts the
+	 * queries the Map makes.
+	 *
+	 * @param int $extra Number of posts to add.
+	 * @return int Number of queries.
+	 */
+	private function count_render_queries( int $extra ): int {
+		global $wpdb;
+
+		foreach ( self::factory()->post->create_many( $extra, array( 'post_status' => 'publish' ) ) as $post_id ) {
+			clean_post_cache( $post_id );
+		}
+
+		wp_cache_flush();
+		$before = $wpdb->num_queries;
+		$this->render();
+		$queries = $wpdb->num_queries - $before;
+
+		foreach ( undergrowth_garden_posts() as $post_id => $read ) {
+			if ( '' === $read ) {
+				wp_delete_post( $post_id, true );
+			}
+		}
+
+		return $queries;
+	}
+
 	public function test_no_section_when_every_post_is_in_a_group() {
 		$this->plant_clusters();
 
