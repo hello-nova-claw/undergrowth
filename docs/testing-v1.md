@@ -6,7 +6,7 @@ Use a local or staging copy of your site, not the live one. Undergrowth only cha
 
 ## Test locally with your own keys
 
-If you'd rather not install anything on a site, `npm run playground:real` starts a throwaway WordPress on your own computer with your real posts. It needs Node 22 and a clone of this repository with `npm install` run once. It runs the plugin from your clone, so you can skip steps 1 to 3. It runs one of two ways:
+If you'd rather not install anything on a site, `npm run playground:real` starts a throwaway WordPress on your own computer with your real posts. It needs Node 22 and a clone of this repository with `npm install` run once. It runs the plugin from your clone, so you can skip sections 1 to 3 below. It runs one of two ways:
 
 - **Free, on your computer (try this first).** Ollama reads your posts with the `nomic-embed-text` model. Nothing is sent to OpenAI and nothing costs money. Install Ollama, then run `brew services start ollama` (or `ollama serve`) and `ollama pull nomic-embed-text`.
 - **OpenAI.** Your posts are sent to OpenAI with your own key, as on a real site. Try this once the free run looks right.
@@ -17,8 +17,23 @@ An Anthropic key is optional either way. It turns on the questions on the Dashbo
 2. **Put keys only in `.env.local`.** Copy `.env.local.example` to `.env.local` in the repository folder. For the free run, leave `UNDERGROWTH_EMBEDDINGS=ollama`. For OpenAI, set it to `openai` and paste your key after `OPENAI_API_KEY=`. Paste an Anthropic key after `ANTHROPIC_API_KEY=` if you have one. Git ignores `.env.local`. Don't paste a key anywhere else: not in a URL, a terminal command, an issue or a screenshot.
 3. **Export your posts.** On your blog, go to **Tools > Export**, choose **Posts**, and download the file. Put its path after `WXR=` in `.env.local`.
 4. **Run `npm run playground:real`.** It says which way it is reading posts and prints an address on `127.0.0.1`, which only your computer can open. You are logged in on Settings > Undergrowth. Your posts are read in the background while the script runs; reload the page to watch the count go up. Once every post is read, the cycle in step 5 runs by itself.
-5. **Record your scores.** Work through section 7 in the browser. When you are done, stop the script with Ctrl+C. It prints the score percentiles; paste them into the feedback issue (section 8, #176), and say whether they came from Ollama or OpenAI. Then the site and everything in it is deleted.
+5. **Record your scores.** Work through section 7 in the browser. When you are done, stop the script with Ctrl+C. It prints the score percentiles; paste them into the feedback issue (section 8), and say whether they came from Ollama or OpenAI. Then the site and everything in it is deleted.
 6. **Revoke the keys.** In the OpenAI dashboard and the Anthropic Console, revoke the test keys, or delete the test project and workspace. Then delete `.env.local`. To stop Ollama, run `brew services stop ollama`.
+
+On a test export of 60 posts in the free mode, the site was ready 24 seconds after the command, suggestions began to show within two minutes, and every post was read within four. Reading takes about four seconds a post, so allow seven minutes or so for each hundred posts, more on a slower computer.
+
+### What's different in Playground
+
+Most of section 7 works the same. These parts don't:
+
+- **Settings > Undergrowth still talks about the OpenAI key.** That is the wording a real site needs. In the free mode nothing is sent to OpenAI; the terminal says so when the script starts.
+- **Running the cycle again.** Playground has no WP-CLI. Go to **Plugins > Add New Plugin**, search for WP Crontrol, then install and activate it. Then follow "Without WP-CLI" in section 5. WP Crontrol warns that `DISABLE_WP_CRON` is set: that is expected, because the script runs WP-Cron itself every 10 seconds. A cycle runs in batches, so give it a minute before you look at the stages.
+- **The Dashboard widget.** With no Anthropic key, and Jetpack not connected, the Dashboard has no Undergrowth widget at all. That is correct. The question and the meter checks need a key and a connected Jetpack, so leave them for a real site.
+- **The per-post files** aren't on your disk. Open them in the browser instead: take the folder Settings > Undergrowth shows under Per-post files, add the post's ID and `.txt`, for example `http://127.0.0.1:9400/wp-content/uploads/undergrowth-<random>/posts/123.txt`. The post's ID is the number after `post=` in its edit address. The nginx check doesn't apply.
+- **Discord** can't reach a site on `127.0.0.1`, so skip it.
+- **The post count** on Settings > Undergrowth is one more than your published posts: the new site's own Hello world post is counted too. Drafts, private posts, pages and posts behind a password are left out, as on a real site.
+- **While posts are still being read,** suggestions come and go and change order as each new post is compared. Judge them once the count is complete.
+- The WordPress export doesn't bring your theme, so the growth stage block shows in the default theme.
 
 ## 1. Get the zip
 
@@ -57,7 +72,7 @@ A post that fails to be read, for example because OpenAI was busy, is tried agai
 Clusters, growth stages and new questions come on a monthly cycle. The one exception is the first question, which is written when you save the Anthropic key. The first cycle ran when you activated the plugin, before any post had been read, so it found nothing. Once every post has been read, Undergrowth runs the cycle once more by itself, so clusters and stages appear a few page loads after the count on the settings page reaches the total. To run it again by hand:
 
 - **With WP-CLI:** `wp cron event run undergrowth_cluster_cycle`, then `wp cron event run --due-now` two or three times, so the batches it queues get to run.
-- **Without WP-CLI:** install the WP Crontrol plugin. Go to **Tools > Cron Events**, find `undergrowth_cluster_cycle` and choose **Run now**, then load a few admin pages.
+- **Without WP-CLI:** install the WP Crontrol plugin. Go to **Cron** in the admin menu (**Tools > Cron Events** in older versions), find `undergrowth_cluster_cycle` and choose **Run now**, then load a few admin pages.
 
 The cycle groups your posts into clusters and then measures every post's stage. Now save the Anthropic key, if you are using one. Undergrowth writes its first question as soon as the key is saved, and a question about a gap between your posts needs clusters to exist first.
 
@@ -97,12 +112,13 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 **Composting** (Posts > All Posts)
 - Use the **Compost** link under a post's title. The post should stay published and keep its links, but drop out of Link suggestions and the Growth stages tab.
 - Use **Return to garden**. The post's stage should be measured again from scratch, not restored and not reset.
-- If a composting post sits close to a new cluster, the Growth stages tab may show one notice about it. Check its wording.
+- If a composting post sits close to a new cluster, the Map tab may show one notice about it. Check its wording.
 
 **The Dashboard question** (Dashboard, the Undergrowth widget, "A question for you")
+- There is no question without an Anthropic key. The Undergrowth widget then shows only the meter, or nothing at all.
 - Is it one question, addressed to you, in your site's language?
 - Does it quote only you? Does it avoid suggesting a title, an outline or a topic?
-- Try **Ask me next month** and **Dismiss for good**. A new question only comes at the next cycle. To get one sooner, run `undergrowth_prompt_cycle` the same way as in step 5.
+- Try **Ask me next month** and **Dismiss for good**. A new question only comes at the next cycle. To get one sooner, run `undergrowth_prompt_cycle` the same way as in section 5.
 
 **The growth stage block**
 - In the editor, add the **Growth stage** block to a post or to a Query Loop. Check how it looks on the front end with your theme. A composting post should show nothing.
@@ -114,7 +130,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 
 **The per-post files**
-- On the server, open the folder that Settings > Undergrowth shows under Per-post files, `wp-content/uploads/undergrowth-<random>/posts/`. Check that `wp-content/uploads/undergrowth/` no longer exists. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. The `has`, `lacks` and `scent` sections stay empty for now (#118).
+- On the server, open the folder that Settings > Undergrowth shows under Per-post files, `wp-content/uploads/undergrowth-<random>/posts/`. Check that `wp-content/uploads/undergrowth/` no longer exists. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. `has` lists the post's most distinctive words and the posts it links to, and `lacks` its open link suggestions. `scent` stays empty in this version.
 - If the site runs on nginx, check that the folder can't be opened in a browser. See the readme FAQ.
 
 ## 8. Feedback checklist
