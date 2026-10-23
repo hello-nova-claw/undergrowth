@@ -180,6 +180,41 @@ test.describe( 'Editor links sidebar', () => {
 		).not.toContain( yacon.id );
 	} );
 
+	test( 'chooses other words by keyboard, as the Suggestions tab does', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.editPost( oca.id );
+		await openSidebar( page );
+
+		const suggestion = page
+			.locator( `${ SIDEBAR } .undergrowth-suggestion` )
+			.filter( { has: page.locator( `a[href="${ yacon.link }"]` ) } );
+		const choose = suggestion.locator( '.undergrowth-choose' );
+
+		await choose.focus();
+		await page.keyboard.press( 'Enter' );
+
+		const [ first, last ] = [
+			suggestion.locator( 'select' ).first(),
+			suggestion.locator( 'select' ).last(),
+		];
+
+		// The form opens on the first word's choice.
+		await expect( first ).toBeFocused();
+		await expectNoA11yViolations( page, SIDEBAR );
+
+		// "I keep yacon nearby." Choose "keep yacon": words 2 to 3.
+		await first.selectOption( '1' );
+		await last.selectOption( '2' );
+		await page.keyboard.press( 'Tab' );
+		await page.keyboard.press( 'Tab' );
+		await page.keyboard.press( 'Enter' );
+
+		await expect( suggestion.locator( 'mark' ) ).toHaveText( 'keep yacon' );
+		await expect( choose ).toBeFocused();
+	} );
+
 	test( 'offers nothing once the sentence has changed', async ( {
 		admin,
 		editor,
