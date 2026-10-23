@@ -406,6 +406,26 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->requests );
 	}
 
+	public function test_a_reply_cut_off_at_the_token_limit_is_skipped_for_good() {
+		$posts = array( $this->post(), $this->post() );
+		$this->comment( $posts[0] );
+		$this->comment( $posts[1] );
+		$this->replies = array( $this->reply( 'What do you', 'max_tokens' ), $this->reply( 'What do you actually do with oca over winter?' ) );
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertCount( 2, $this->requests );
+
+		// The source that was cut off is recorded as sent, beside the one written.
+		$this->assertCount( 1, get_post_meta( $posts[0], 'undergrowth_prompt_keys', false ) );
+		$this->assertCount( 1, get_post_meta( $posts[1], 'undergrowth_prompt_keys', false ) );
+	}
+
+	public function test_a_rest_check_cut_off_at_the_token_limit_keeps_no_question() {
+		$this->replies = array( $this->reply( 'N', 'max_tokens' ) );
+
+		$this->assertFalse( undergrowth_prompt_rests( 'What is in the ledger now?' ) );
+	}
+
 	public function test_a_failed_request_ends_the_run_and_the_source_is_tried_again() {
 		$this->comment( $this->post() );
 		$this->comment( $this->post() );
