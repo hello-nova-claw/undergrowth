@@ -407,17 +407,18 @@ class Test_Prompts extends WP_UnitTestCase {
 	}
 
 	public function test_a_reply_cut_off_at_the_token_limit_is_skipped_for_good() {
-		$posts = array( $this->post(), $this->post() );
-		$this->comment( $posts[0] );
-		$this->comment( $posts[1] );
+		// Comments are tried newest first.
+		$cut_off = $this->post();
+		$written = $this->post();
+		$first   = $this->comment( $cut_off, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-02 00:00:00' ) );
+		$second  = $this->comment( $written, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-01 00:00:00' ) );
 		$this->replies = array( $this->reply( 'What do you', 'max_tokens' ), $this->reply( 'What do you actually do with oca over winter?' ) );
 
 		$this->assertTrue( undergrowth_write_prompt() );
 		$this->assertCount( 2, $this->requests );
-
-		// The source that was cut off is recorded as sent, beside the one written.
-		$this->assertCount( 1, get_post_meta( $posts[0], 'undergrowth_prompt_keys', false ) );
-		$this->assertCount( 1, get_post_meta( $posts[1], 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( array( 'comment:' . $first ), get_post_meta( $cut_off, 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( array( 'comment:' . $second ), get_post_meta( $written, 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( 'comment:' . $second, undergrowth_current_prompt()['key'] );
 	}
 
 	public function test_a_rest_check_cut_off_at_the_token_limit_keeps_no_question() {
