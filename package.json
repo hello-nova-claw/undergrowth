@@ -39,7 +39,7 @@
 		"@wordpress/element": "^9.0.0",
 		"@wordpress/env": "^11.17.0",
 		"@wordpress/i18n": "^6.30.0",
-		"@wordpress/scripts": "^36.1.0",
+		"@wordpress/scripts": "^37.0.0",
 		"@wordpress/server-side-render": "^6.33.0",
 		"@wp-playground/cli": "^3.1.58",
 		"jest": "^30.5.2",
