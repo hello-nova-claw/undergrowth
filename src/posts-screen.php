@@ -19,7 +19,6 @@ add_filter( 'removable_query_args', 'undergrowth_compost_removable_query_args' )
 add_action( 'load-edit.php', 'undergrowth_load_posts_screen' );
 add_action( 'pre_get_posts', 'undergrowth_filter_composting_view' );
 add_action( 'pre_get_posts', 'undergrowth_filter_posts_by_stage' );
-add_filter( 'posts_clauses', 'undergrowth_order_posts_by_stage', 10, 2 );
 add_action( 'admin_post_undergrowth_compost', 'undergrowth_handle_compost_row' );
 add_action( 'admin_post_undergrowth_return', 'undergrowth_handle_return_row' );
 
@@ -478,13 +477,7 @@ function undergrowth_render_stage_filter( $post_type, $which = 'top' ): void {
 	}
 
 	$current = undergrowth_stage_filter_value();
-	$choices = array( '' => __( 'All stages', 'undergrowth' ) );
-
-	foreach ( UNDERGROWTH_GARDEN_STAGES as $stage ) {
-		$choices[ $stage ] = undergrowth_stage_label( $stage );
-	}
-
-	$choices['pinned'] = __( 'Pinned', 'undergrowth' );
+	$choices = array( '' => __( 'All stages', 'undergrowth' ) ) + undergrowth_stage_filters();
 
 	printf( '<label for="undergrowth-stage-filter" class="screen-reader-text">%s</label>', esc_html__( 'Filter by growth stage', 'undergrowth' ) );
 	echo '<select name="undergrowth_stage" id="undergrowth-stage-filter">';
@@ -494,20 +487,6 @@ function undergrowth_render_stage_filter( $post_type, $which = 'top' ): void {
 	}
 
 	echo '</select>';
-}
-
-/**
- * Reads the Growth stage filter's value from the address.
- *
- * @return string A garden stage, 'pinned', or an empty string for none or anything else.
- */
-function undergrowth_stage_filter_value(): string {
-	// The filter only selects which posts to list; nothing is changed.
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended
-	$value = isset( $_GET['undergrowth_stage'] ) && is_string( $_GET['undergrowth_stage'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_stage'] ) ) : '';
-	// phpcs:enable
-
-	return in_array( $value, array_merge( UNDERGROWTH_GARDEN_STAGES, array( 'pinned' ) ), true ) ? $value : '';
 }
 
 /**
@@ -530,104 +509,43 @@ function undergrowth_is_garden_list_query( $query ): bool {
 }
 
 /**
- * Lists only the posts at the stage chosen in the Growth stage filter.
+ * Lists only the posts the Growth stage filter chose, and sorts by stage
+ * when the column is sorted.
  *
  * Only posts in the garden have a stage, so the filter lists published
- * posts alone, as the Composting view does. A post with no stage stored
- * yet, or one Undergrowth does not know, reads as a seedling.
+ * posts alone, as the Composting view does. Sorted by stage, posts at the
+ * same stage stay newest first.
  *
  * @param WP_Query $query Query about to run.
  */
 function undergrowth_filter_posts_by_stage( $query ): void {
-	$filter = undergrowth_stage_filter_value();
-
-	if ( '' === $filter || ! undergrowth_is_garden_list_query( $query ) ) {
+	if ( ! undergrowth_is_garden_list_query( $query ) ) {
 		return;
 	}
 
-	if ( 'pinned' === $filter ) {
-		$clause = array(
-			'key'     => 'undergrowth_stage_pinned',
-			'compare' => 'EXISTS',
-		);
-	} elseif ( 'seedling' === $filter ) {
-		$clause = array(
-			'relation' => 'OR',
+	if ( 'undergrowth_stage' === $query->get( 'orderby' ) ) {
+		$query->set( 'undergrowth_orderby', 'stage' );
+		$query->set(
+			'orderby',
 			array(
-				'key'   => 'undergrowth_stage',
-				'value' => 'seedling',
-			),
-			array(
-				'key'     => 'undergrowth_stage',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => 'undergrowth_stage',
-				'value'   => UNDERGROWTH_STAGES,
-				'compare' => 'NOT IN',
-			),
-		);
-	} else {
-		$clause = array(
-			'key'   => 'undergrowth_stage',
-			'value' => $filter,
+				'date' => 'DESC',
+				'ID'   => 'DESC',
+			)
 		);
 	}
 
+	$filter = undergrowth_stage_filter_value();
+
+	if ( '' === $filter ) {
+		return;
+	}
+
 	$meta_query   = (array) $query->get( 'meta_query' );
-	$meta_query[] = $clause;
+	$meta_query[] = undergrowth_stage_filter_meta_query( $filter );
 
 	$query->set( 'post_status', 'publish' );
 	$query->set( 'has_password', false );
 	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the filter the author chose.
-}
-
-/**
- * Orders the Posts list by growth stage when its column is sorted.
- *
- * Stages sort by rank, from Seedling to Evergreen with Composting after,
- * not by name, which would differ in every language. Only a post's first
- * stage row counts, as undergrowth_get_stage() reads it. Posts outside the
- * garden have no stage and stay last in either direction.
- *
- * @param array<string, string> $clauses Query clauses.
- * @param WP_Query              $query   Query about to run.
- * @return array<string, string> Query clauses.
- */
-function undergrowth_order_posts_by_stage( $clauses, $query ) {
-	global $wpdb;
-
-	if ( ! undergrowth_is_garden_list_query( $query ) || 'undergrowth_stage' !== $query->get( 'orderby' ) ) {
-		return $clauses;
-	}
-
-	$indexable = undergrowth_indexable_sql( "{$wpdb->posts}." );
-
-	if ( null === $indexable ) {
-		return $clauses;
-	}
-
-	$order = 'DESC' === strtoupper( (string) $query->get( 'order' ) ) ? 'DESC' : 'ASC';
-	$ranks = '';
-
-	foreach ( UNDERGROWTH_STAGES as $rank => $stage ) {
-		$ranks .= $wpdb->prepare( ' WHEN %s THEN %d', $stage, $rank );
-	}
-
-	$clauses['join'] .= $wpdb->prepare(
-		' LEFT JOIN %i AS undergrowth_stage_sort ON undergrowth_stage_sort.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = %i.ID AND f.meta_key = %s )',
-		$wpdb->postmeta,
-		$wpdb->postmeta,
-		$wpdb->posts,
-		'undergrowth_stage'
-	);
-
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The condition's placeholders come with it, and the ranks were prepared above.
-	$clauses['orderby'] = $wpdb->prepare( "CASE WHEN {$indexable[0]} THEN 0 ELSE 1 END ASC, ", ...$indexable[1] )
-		. "CASE undergrowth_stage_sort.meta_value{$ranks} ELSE 0 END {$order}, {$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC";
-	// phpcs:enable
-
-	return $clauses;
 }
 
 /**

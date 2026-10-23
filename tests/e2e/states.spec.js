@@ -34,6 +34,9 @@ const NOTICES = [
 	'no_word',
 	'not_proposed',
 	'needs_admin',
+	'words_saved',
+	'words_invalid',
+	'words_unsafe',
 ];
 
 // Notices the growth stages tab returns with after a pin or unpin.
@@ -208,6 +211,23 @@ const WITH_POSTS = [
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
 	{
 		screen: 'suggestions',
+		state: 'choose-words',
+		page: SUGGESTIONS,
+		open: async ( page ) => {
+			const choose = page.locator( '.row-actions .choose a' ).first();
+
+			if ( ( await choose.count() ) === 0 ) {
+				return false;
+			}
+
+			await choose.click();
+			await page.locator( 'form.undergrowth-choose-words' ).waitFor();
+
+			return true;
+		},
+	},
+	{
+		screen: 'suggestions',
 		state: 'off',
 		page: SUGGESTIONS,
 		fixture: 'suggestions-off',
@@ -224,6 +244,25 @@ const WITH_POSTS = [
 		notice: true,
 	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
+	...[
+		[ 'view-seedling', 'undergrowth_stage=seedling' ],
+		[ 'view-empty', 'undergrowth_stage=evergreen' ],
+		[ 'sorted-by-stage', 'orderby=stage&order=desc' ],
+		[ 'sorted-by-pin', 'orderby=pinned&order=desc' ],
+	].map( ( [ state, query ] ) => ( {
+		screen: 'stages',
+		state,
+		page: [ STAGES[ 0 ], `${ STAGES[ 1 ] }&${ query }` ],
+	} ) ),
+	{
+		screen: 'stages',
+		state: 'notice-bulk-pinned',
+		page: [
+			STAGES[ 0 ],
+			`${ STAGES[ 1 ] }&undergrowth_pinned=2&undergrowth_skipped=1`,
+		],
+		notice: true,
+	},
 	{
 		screen: 'dashboard',
 		state: 'prompt',
@@ -489,6 +528,10 @@ function capture( states ) {
 					await admin.visitAdminPage( ...entry.page );
 				}
 
+				// Opens what this state is about, such as a row's form. A build
+				// without it is listed as skipped, as a missing notice is.
+				const opened = entry.open ? await entry.open( page ) : true;
+
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help
 					? page.locator( `#tab-link-${ entry.help } a` )
@@ -512,6 +555,7 @@ function capture( states ) {
 				// plain screen. The marker lets the comment list it, rather
 				// than drop it.
 				if (
+					! opened ||
 					( entry.notice &&
 						( await page
 							.locator( '#undergrowth-notice' )
