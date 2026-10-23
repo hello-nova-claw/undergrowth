@@ -19,8 +19,9 @@ add_action( 'load-posts_page_undergrowth-links', 'undergrowth_add_screen_help' )
  * @param string   $id         Tab ID.
  * @param string   $title      Tab title.
  * @param string[] $paragraphs Plain-text paragraphs.
+ * @param int      $priority   Where the tab sits among the screen's tabs. Core's default is 10.
  */
-function undergrowth_add_help_tab( string $id, string $title, array $paragraphs ): void {
+function undergrowth_add_help_tab( string $id, string $title, array $paragraphs, int $priority = 10 ): void {
 	$screen = get_current_screen();
 
 	if ( ! $screen ) {
@@ -29,9 +30,10 @@ function undergrowth_add_help_tab( string $id, string $title, array $paragraphs 
 
 	$screen->add_help_tab(
 		array(
-			'id'      => $id,
-			'title'   => $title,
-			'content' => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
+			'id'       => $id,
+			'title'    => $title,
+			'content'  => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
+			'priority' => $priority,
 		)
 	);
 }

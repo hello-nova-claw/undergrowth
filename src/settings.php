@@ -654,12 +654,6 @@ function undergrowth_file_failure_text( array $error ): string {
  * which the fields themselves keep to two sentences.
  */
 function undergrowth_add_settings_help(): void {
-	$screen = get_current_screen();
-
-	if ( ! $screen ) {
-		return;
-	}
-
 	if ( undergrowth_embed_provider_set_by_code() ) {
 		$identity = undergrowth_embed_identity();
 		$links    = sprintf(
@@ -698,12 +692,6 @@ function undergrowth_add_settings_help(): void {
 	);
 
 	foreach ( $tabs as $id => $tab ) {
-		$screen->add_help_tab(
-			array(
-				'id'      => $id,
-				'title'   => $tab[0],
-				'content' => '<p>' . implode( '</p><p>', array_map( 'esc_html', $tab[1] ) ) . '</p>',
-			)
-		);
+		undergrowth_add_help_tab( $id, $tab[0], $tab[1] );
 	}
 }
