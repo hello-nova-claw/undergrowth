@@ -176,6 +176,28 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 		$this->assertStringContainsString( '">' . $anchor . '</a>', get_post( $source )->post_content );
 	}
 
+	public function test_text_without_words_has_no_spans() {
+		$this->assertSame( array(), undergrowth_anchor_words( '— … !' ) );
+		$this->assertSame( array(), $this->spans( '— … !', array( 'ledger' ) ) );
+	}
+
+	public function test_an_empty_or_misplaced_span_is_never_found() {
+		$content = '<p>I copy the seed ledger out.</p>';
+
+		$this->assertNull( undergrowth_find_link_span( $content, 'I copy the seed ledger out.', 11, 0 ) );
+		$this->assertNull( undergrowth_find_link_span( $content, 'I copy the seed ledger out.', -1, 4 ) );
+		$this->assertNull( undergrowth_find_link_span( $content, 'I copy the seed ledger out.', 25, 9 ) );
+		$this->assertNull( undergrowth_find_link_span( $content, 'I copy the seed ledger out.', 6, 1 ) );
+	}
+
+	public function test_a_pair_of_characters_inside_a_link_is_never_chosen() {
+		$this->plant( 'Shed', array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		$source = $this->plant( 'Trip', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>明日は<a href="https://example.test/">東京</a>へ行く。</p>' ) );
+		$target = $this->plant( '東京', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>東京は大きい。東京の夜は長い。</p>' ) );
+
+		$this->assertNull( undergrowth_choose_link_span( get_post( $source ), get_post( $target ), '明日は東京へ行く。' ) );
+	}
+
 	public function test_a_phrase_across_a_character_reference_is_never_linked() {
 		$this->assertNull( undergrowth_find_link_span( '<p>Salt &amp; pepper mills.</p>', 'Salt & pepper mills.', 0, 13 ) );
 	}
