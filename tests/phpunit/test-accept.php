@@ -350,6 +350,23 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( '<p>It costs &pound;3 a <a href="https://example.test/">pound</a>.</p>', $linked );
 	}
 
+	public function test_a_word_inside_a_hyphenated_compound_is_never_linked() {
+		$this->assertNull( undergrowth_link_word( '<p>Self-reliance is its aversion.</p>', 'Self-reliance is its aversion.', 'reliance', 'https://example.test/' ) );
+		$this->assertNull( undergrowth_link_word( '<p>We ate home-made bread.</p>', 'We ate home-made bread.', 'home', 'https://example.test/' ) );
+	}
+
+	public function test_the_word_on_its_own_is_linked_after_its_hyphenated_use() {
+		$linked = undergrowth_link_word( '<p>Self-reliance is rare, and reliance on others common.</p>', 'Self-reliance is rare, and reliance on others common.', 'reliance', 'https://example.test/' );
+
+		$this->assertSame( '<p>Self-reliance is rare, and <a href="https://example.test/">reliance</a> on others common.</p>', $linked );
+	}
+
+	public function test_a_word_beside_a_dash_used_as_punctuation_is_linked() {
+		$linked = undergrowth_link_word( '<p>That is genius—the rest is noise.</p>', 'That is genius—the rest is noise.', 'genius', 'https://example.test/' );
+
+		$this->assertSame( '<p>That is <a href="https://example.test/">genius</a>—the rest is noise.</p>', $linked );
+	}
+
 	/**
 	 * Links the visible sentence, never its copy inside an attribute.
 	 *
