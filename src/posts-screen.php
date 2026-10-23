@@ -176,14 +176,7 @@ function undergrowth_render_stage_column( $column, $post_id ): void {
 
 	$stage = undergrowth_get_stage( $post->ID );
 
-	echo esc_html( undergrowth_stage_label( $stage ) );
-
-	if ( 'composting' !== $stage && undergrowth_is_stage_pinned( $post->ID ) ) {
-		printf(
-			' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
-			esc_attr__( 'Pinned', 'undergrowth' )
-		);
-	}
+	echo esc_html( undergrowth_stage_label( $stage ) ) . undergrowth_pinned_marker( $post->ID ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The marker is escaped where it is built.
 }
 
 /**

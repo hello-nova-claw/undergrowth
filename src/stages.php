@@ -7,8 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_STAGES      = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
-const UNDERGROWTH_STAGE_BATCH = 100;
+const UNDERGROWTH_STAGES        = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
+const UNDERGROWTH_GARDEN_STAGES = array( 'seedling', 'sprout', 'budding', 'evergreen' );
+const UNDERGROWTH_STAGE_BATCH   = 100;
 
 // How each reason for a change reads in the per-post file. The file is a
 // plain record in one fixed format, so these are not translated.
@@ -28,7 +29,6 @@ add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
 add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
-register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_deactivate' );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
@@ -532,69 +532,12 @@ function undergrowth_cycle_post( int $post_id ): void {
 		return;
 	}
 
-	$order    = array_flip( array( 'seedling', 'sprout', 'budding', 'evergreen' ) );
+	$order    = array_flip( UNDERGROWTH_GARDEN_STAGES );
 	$measured = undergrowth_measure_stage( $post_id );
 
 	if ( $order[ $measured ] > $order[ $stage ] || ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
 		undergrowth_set_stage( $post_id, $measured );
 	}
-}
-
-/**
- * Stops every scheduled event while the plugin is inactive, on every site
- * when it is deactivated across a network.
- *
- * Each site keeps its own cron queue, and network deactivation runs this
- * once, on the main site.
- *
- * @param bool $network_wide Whether the plugin is deactivated across the network.
- */
-function undergrowth_deactivate( $network_wide = false ): void {
-	if ( ! $network_wide || ! is_multisite() ) {
-		undergrowth_deactivate_site();
-		return;
-	}
-
-	// get_sites() stops at 100 sites unless told otherwise, and reads every
-	// network unless given one. The plugin stays active on other networks.
-	$site_ids = get_sites(
-		array(
-			'fields'     => 'ids',
-			'number'     => 0,
-			'network_id' => get_current_network_id(),
-		)
-	);
-
-	foreach ( $site_ids as $site_id ) {
-		switch_to_blog( (int) $site_id );
-		undergrowth_deactivate_site();
-		restore_current_blog();
-	}
-}
-
-/**
- * Stops the monthly cycles, the prompt events and every queued embed or
- * Discord post on the current site, and forgets the clusters and any
- * clustering pass that was under way.
- */
-function undergrowth_deactivate_site(): void {
-	undergrowth_unschedule_prompts();
-	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
-	wp_unschedule_hook( 'undergrowth_stage_cycle' );
-	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
-	wp_unschedule_hook( 'undergrowth_backfill' );
-	wp_unschedule_hook( 'undergrowth_backfill_check' );
-	wp_unschedule_hook( 'undergrowth_embed_post' );
-	// A suggestion left unposted is posted with the post's next refresh.
-	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
-	delete_option( 'undergrowth_backfill' );
-	delete_option( 'undergrowth_backfill.lock' );
-	delete_option( 'undergrowth_cluster_leaders' );
-	// Clusters, and the record of the last pass to compare new ones with,
-	// would be stale by the time the plugin is active again.
-	delete_post_meta_by_key( 'undergrowth_cluster' );
-	delete_option( 'undergrowth_previous_clusters' );
-	undergrowth_forget_resurfacing_signals();
 }
 
 /**
@@ -627,6 +570,26 @@ function undergrowth_stage_not_saved(): WP_Error {
 }
 
 /**
+ * Builds the marker a pinned stage shows beside its name.
+ *
+ * A composting post is never shown as pinned, since composting is always
+ * the author's own choice.
+ *
+ * @param int $post_id Post ID.
+ * @return string Escaped HTML, starting with a space, or an empty string when the stage is not pinned.
+ */
+function undergrowth_pinned_marker( int $post_id ): string {
+	if ( 'composting' === undergrowth_get_stage( $post_id ) || ! undergrowth_is_stage_pinned( $post_id ) ) {
+		return '';
+	}
+
+	return sprintf(
+		' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
+		esc_attr__( 'Pinned', 'undergrowth' )
+	);
+}
+
+/**
  * Pins a post's stage, so the monthly cycle leaves it alone.
  *
  * Pinning is an author action, so it takes effect at once. Any measured
@@ -645,7 +608,7 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 		return $error;
 	}
 
-	if ( ! in_array( $stage, array( 'seedling', 'sprout', 'budding', 'evergreen' ), true ) ) {
+	if ( ! in_array( $stage, UNDERGROWTH_GARDEN_STAGES, true ) ) {
 		return new WP_Error( 'undergrowth_unknown_stage', __( 'That stage cannot be pinned.', 'undergrowth' ) );
 	}
 
