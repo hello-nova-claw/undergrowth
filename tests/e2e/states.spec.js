@@ -254,8 +254,20 @@ const WITH_COMPOST = [
 		state: 'composting-view',
 		page: [ 'edit.php', 'undergrowth_stage=composting' ],
 	},
+	{
+		screen: 'posts',
+		state: 'filtered-by-stage',
+		page: [ 'edit.php', 'undergrowth_stage=seedling' ],
+	},
+	{
+		screen: 'posts',
+		state: 'sorted-by-stage',
+		page: [ 'edit.php', 'orderby=undergrowth_stage&order=desc' ],
+	},
 	// The notices the Posts screen returns with after a row or bulk action.
 	...[
+		[ 'pinned', 'undergrowth_pinned=2' ],
+		[ 'unpinned', 'undergrowth_unpinned=1' ],
 		[ 'composted', 'undergrowth_composted=1' ],
 		[ 'returned', 'undergrowth_returned=2' ],
 		[ 'skipped', 'undergrowth_composted=1&undergrowth_skipped=1' ],
