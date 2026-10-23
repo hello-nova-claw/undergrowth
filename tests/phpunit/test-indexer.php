@@ -78,6 +78,27 @@ class Test_Indexer extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_post_text_decodes_entities() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'   => 'Seasoning',
+				'post_content' => '<!-- wp:paragraph --><p>Salt &amp; pepper&nbsp;mix, it&#8217;s simple.</p><!-- /wp:paragraph -->',
+			)
+		);
+
+		$this->assertSame( "Seasoning\n\nSalt & pepper mix, it\u{2019}s simple.", undergrowth_post_text( get_post( $post_id ) ) );
+	}
+
+	public function test_entities_are_not_counted_as_words() {
+		$post_id = self::factory()->post->create( array( 'post_content' => '<p>Salt &amp; pepper&nbsp;mix, it&#8217;s simple.</p>' ) );
+
+		$counts = undergrowth_post_token_counts( get_post( $post_id ) );
+
+		$this->assertArrayNotHasKey( 'amp', $counts );
+		$this->assertArrayNotHasKey( 'nbsp', $counts );
+		$this->assertArrayNotHasKey( '8217', $counts );
+	}
+
 	public function test_publishing_schedules_an_embed() {
 		$post_id = $this->publish();
 
