@@ -20,6 +20,8 @@ msgstr ""
 #: src/dashboard.php
 #: src/discord-clicks.php
 #: src/settings.php
+#: build/editor/index.js
+#: src/editor/index.js
 msgid "Undergrowth"
 msgstr ""
 
@@ -224,6 +226,8 @@ msgstr ""
 
 #: src/admin.php
 #: src/posts-screen.php
+#: build/editor/index.js
+#: src/editor/stage-panel.js
 msgid "Return to garden"
 msgstr ""
 
@@ -260,10 +264,12 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php
+#: src/editor.php
 msgid "Stage pinned. The monthly cycle will leave it as it is."
 msgstr ""
 
 #: src/admin.php
+#: src/editor.php
 msgid "Stage unpinned and measured again from the links you have accepted."
 msgstr ""
 
@@ -308,7 +314,9 @@ msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
 #: src/blocks.php
-#, php-format
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+#, php-format,js-format
 msgid "Growth stage: %s"
 msgstr ""
 
@@ -370,6 +378,8 @@ msgid "Unpin the stage of %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
+#: build/editor/index.js
+#: src/editor/stage-panel.js
 msgid "Unpin"
 msgstr ""
 
@@ -578,6 +588,18 @@ msgstr ""
 msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
+#: src/editor.php
+msgid "Choose a stage to pin."
+msgstr ""
+
+#: src/editor.php
+msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+msgstr ""
+
+#: src/editor.php
+msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
 #: src/first-run.php
 msgid "Add a key in Settings"
 msgstr ""
@@ -654,6 +676,8 @@ msgstr ""
 
 #: src/help.php
 #: src/posts-screen.php
+#: build/editor/index.js
+#: src/editor/stage-panel.js
 msgid "Compost"
 msgstr ""
 
@@ -1186,6 +1210,38 @@ msgstr ""
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "This post gets a growth stage once it is published."
+msgstr ""
+
+#. translators: %s: growth stage name, such as Sprout.
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+#, js-format
+msgid "Growth stage: %s, pinned"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "Composting posts rest outside the garden. They stay published, and no links are suggested to or from them."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "The monthly cycle measures the stage from the links you accept. Pin a stage to keep it as it is."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "Stage to pin"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "Pin stage"
 msgstr ""
 
 #: build/blocks/growth-stage/block.json
