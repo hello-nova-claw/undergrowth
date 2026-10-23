@@ -45,7 +45,7 @@ function undergrowth_add_settings_link( $links ) {
 		array(
 			'settings' => sprintf(
 				'<a href="%1$s">%2$s</a>',
-				esc_url( admin_url( 'options-general.php?page=undergrowth' ) ),
+				esc_url( undergrowth_settings_url() ),
 				esc_html__( 'Settings', 'undergrowth' )
 			),
 		),
