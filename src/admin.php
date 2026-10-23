@@ -501,7 +501,8 @@ function undergrowth_post_link( int $post_id, string $link_class = '' ): string 
 	$title = esc_html( undergrowth_post_title( $post_id ) );
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
-	if ( null === $link ) {
+	// Core's own edit_post_link() also gives no link for an empty address.
+	if ( null === $link || '' === $link ) {
 		return $title;
 	}
 
