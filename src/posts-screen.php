@@ -461,18 +461,5 @@ function undergrowth_render_compost_notice(): void {
 		$notices['notice-warning'] = '<p>' . esc_html( $warning ) . '</p>';
 	}
 
-	$id = ' id="undergrowth-notice" tabindex="-1"';
-
-	// The first notice takes focus; a second one is read after it.
-	foreach ( $notices as $class => $paragraphs ) {
-		printf(
-			'<div%1$s class="notice %2$s is-dismissible" role="status">%3$s</div>',
-			$id, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A fixed string.
-			esc_attr( $class ),
-			wp_kses( $paragraphs, array( 'p' => array() ) )
-		);
-		$id = '';
-	}
-
-	undergrowth_print_notice_focus_script();
+	undergrowth_print_result_notices( $notices );
 }

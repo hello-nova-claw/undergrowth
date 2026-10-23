@@ -491,6 +491,37 @@ function undergrowth_print_notice_focus_script(): void {
 }
 
 /**
+ * Prints the notices that report the action which brought the user back,
+ * and moves focus to the first.
+ *
+ * The first is heard at once; a second is read after it.
+ *
+ * @param array<string, string> $notices Markup of paragraphs, and links within them, keyed by notice class such as 'notice-success'.
+ */
+function undergrowth_print_result_notices( array $notices ): void {
+	$id = ' id="undergrowth-notice"';
+
+	foreach ( $notices as $class => $paragraphs ) {
+		printf(
+			'<div%1$s class="notice %2$s is-dismissible" role="status"%3$s>%4$s</div>',
+			$id, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A fixed string.
+			esc_attr( $class ),
+			'' !== $id ? ' tabindex="-1"' : '',
+			wp_kses(
+				$paragraphs,
+				array(
+					'p' => array(),
+					'a' => array( 'href' => array() ),
+				)
+			)
+		);
+		$id = '';
+	}
+
+	undergrowth_print_notice_focus_script();
+}
+
+/**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
  * @param int $post_id Post ID.
@@ -623,12 +654,7 @@ function undergrowth_render_suggestions_notice(): void {
 		);
 	}
 
-	printf(
-		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
-		in_array( $notice, array( 'vetoed', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
-		esc_html( $messages[ $notice ] ),
-		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
-	);
+	$class = in_array( $notice, array( 'vetoed', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
 
-	undergrowth_print_notice_focus_script();
+	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }
