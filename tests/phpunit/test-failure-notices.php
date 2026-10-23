@@ -182,4 +182,33 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	public function test_a_status_code_alone_never_stands_for_the_cause() {
 		$this->assertDoesNotMatchRegularExpression( '/failed on [^(]+\(status \d+\)\./', $this->notice( 'undergrowth_last_embed_error', 429 ) );
 	}
+
+	public function test_failure_record_keeps_only_the_code_status_and_time() {
+		undergrowth_record_failure( 'undergrowth_last_embed_error', 'HTTP Status', 429 );
+
+		$error = get_option( 'undergrowth_last_embed_error' );
+
+		$this->assertSame( array( 'code', 'status', 'time' ), array_keys( $error ) );
+		$this->assertSame( 'httpstatus', $error['code'] );
+		$this->assertSame( 429, $error['status'] );
+		$this->assertEqualsWithDelta( time(), $error['time'], 5 );
+	}
+
+	public function test_discord_pending_lists_the_suggestions_that_failed() {
+		$this->assertSame( array(), undergrowth_discord_pending() );
+
+		update_option(
+			'undergrowth_last_discord_error',
+			array(
+				'time'    => 1767225600,
+				'status'  => 500,
+				'pending' => array(
+					'1:2' => true,
+					'3:4' => true,
+				),
+			)
+		);
+
+		$this->assertSame( array( '1:2', '3:4' ), undergrowth_discord_pending() );
+	}
 }
