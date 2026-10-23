@@ -2,31 +2,92 @@
 
 Undergrowth uses AI to read your site and ask you questions. It never writes a word your readers will see.
 
-The plugin exists to support two claims. AI is a useful tool, but it must not write or speak for you. SEO is worth understanding, but you stay yourself and do not become a content factory. Every feature has to be defensible against both. The rule that makes this concrete: the AI may speak **to** the author, never **for** the author.
+It is a WordPress plugin for personal bloggers. It treats a site as a garden: it finds links between your own posts, groups posts that belong together, tracks how each post grows, and now and then asks you a question about your own writing. You approve every change, and a veto is remembered.
 
-## What it does
+The rule behind every feature: the AI may speak **to** the author, never **for** the author. It ranks, groups, proposes and asks. It never writes, rewrites or publishes text for readers, and it does no keyword research, trend tracking or competitor analysis.
 
-Undergrowth treats a WordPress site like a mycorrhizal network and a digital garden. Each post records what it **has** (the topics it covers), what it **lacks** (what readers wanted and did not find), and its **scent** (how readers move through it, fading over time). An agent reads those fields and proposes links, hubs, prunes and gaps. You approve or veto every proposal. A veto is remembered.
+## Features
 
-The gardener plants. The readers decide where the paths go.
+- **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence you wrote, with the word to link highlighted. **Accept** makes that word a link and saves a revision. **Veto** removes the suggestion for good. They are listed on **Posts › Undergrowth**.
+- **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the groups your posts form. Stages never go down, and you can pin one. A Growth stage column shows them on the Posts list.
+- **Composting.** Move a post to compost to let it rest. It stays published and keeps its links but leaves the active garden. When an old composting post sits close to what you are writing now, Undergrowth tells you once.
+- **The Map.** Posts that are close in meaning are grouped once a month and listed on the Map tab. Groups are numbered, never named. A group with no post at its middle is marked as a gap.
+- **One question at a time.** With an Anthropic key, Claude writes an occasional question for you on the Dashboard, drawn from a gap between your posts, a reader's question in an approved comment, or a composting post. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. There are no streaks and no reminders.
+- **A page views meter.** With Jetpack Stats on, the Dashboard shows your page views in the last 30 days against a milestone of 1,000. Passing it changes nothing yet; it marks when the reader features of v2 can start.
+- **Discord, optionally.** Each new suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
+- **Abilities.** Through the WordPress Abilities API, `undergrowth/has`, `undergrowth/lacks`, `undergrowth/scent` and `undergrowth/stage` read a post, a group or the whole site. `undergrowth/accept-link` and `undergrowth/veto-link` work like the buttons and are never exposed over REST or MCP.
+- **A Growth stage block** that shows readers a post's stage as one line of text your theme styles.
+- **A plain-text file for each post** in the uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
 
-Version 1 works from your own writing only. It indexes your published posts, proposes up to three links per post to your other posts, measures each post's growth stage, groups posts into clusters, and asks you one question at a time about gaps between your own posts. Reader signals come later, once the site has enough visitors for them to mean something.
+Settings › Undergrowth has three sections (Link suggestions, Questions on your Dashboard, and Discord) and Help tabs that say what is sent where. Nothing is sent anywhere until you save a key. The full user documentation, including what each service receives and what it costs, is in [readme.txt](readme.txt).
 
-## What it will never do
+## Requirements
 
-- Write, rewrite or publish text for your readers.
-- Generate titles, meta descriptions, outlines or drafts.
-- Do keyword research or point you at trends.
-- Change anything on your site without your approval.
-- Send your content anywhere until you have entered an API key and been told where it goes.
+- WordPress 6.9 or later (for the Abilities API).
+- PHP 7.4 or later.
+- WP-Cron, or a real cron job calling it.
+- An OpenAI API key, or your own embedding provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [docs/examples/local-embeddings.php](docs/examples/local-embeddings.php) uses a model on your own machine instead.
+- Optional: an Anthropic API key for the Dashboard questions, Jetpack Stats for the meter, and an HTTPS site for Discord.
 
-## Status
+## Install
 
-0.1.0, being tested on real posts before its first release. To try it on your own posts, follow [docs/testing-v1.md](docs/testing-v1.md). The full design record is in [docs/handover.md](docs/handover.md).
+There is no WordPress.org release yet. To install a build:
 
-## Contributing
+1. On GitHub, open **Actions › Build**, open the newest run on `main`, and download `undergrowth.zip` from its artifacts.
+2. In WordPress, go to **Plugins › Add New › Upload Plugin**, upload the zip and activate it.
+3. Go to **Settings › Undergrowth** and paste an OpenAI API key. Your published posts are read in the background.
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or a pull request.
+[docs/testing-v1.md](docs/testing-v1.md) walks through a full test on your own posts, with what to check and what it should cost.
+
+## Development
+
+You need Node 22 (see `.nvmrc`), Composer, and Docker for `wp-env`.
+
+```bash
+npm install
+composer install
+npm run build
+```
+
+Run a local site:
+
+- `npm run env:start` starts WordPress in Docker with `wp-env`, with the plugin active. `npm run env:stop` stops it.
+- `npm run playground` starts WordPress Playground without Docker, with your working copy mounted and a few sample posts. It uses the e2e test provider, which counts fixture words instead of calling an API, so no key is needed.
+- `npm run playground:real`, a Playground with your own API keys, is coming in #203.
+
+Take screenshots of every screen and state, in three locales and two widths, without Docker:
+
+```bash
+npm run screenshots
+```
+
+Run the checks (most need `npm run env:start` first):
+
+```bash
+composer lint            # PHPCS with WordPress Coding Standards
+composer analyse         # PHPStan
+npm run test:php         # PHPUnit, single site
+npm run test:php:multisite
+npm run lint:js && npm run lint:css && npm run check:native
+npm run test:js          # Jest
+npm run test:e2e         # Playwright, with axe
+```
+
+CI runs all of these on every pull request, plus Plugin Check, a coverage gate and the POT check. Pull requests from this repository, not from forks, also get the screenshot comparison.
+
+## Documentation
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): how work flows, commit style, the rules for code, tests, i18n and accessibility. Read it before opening an issue or a pull request.
+- [docs/handover.md](docs/handover.md): the design record and the principles nothing may break.
+- [docs/testing-v1.md](docs/testing-v1.md): testing v1 on your own posts.
+- [docs/ux-review-v1.md](docs/ux-review-v1.md): the v1 review of the admin experience.
+- [docs/quality-report-v1.md](docs/quality-report-v1.md): how good the suggestions are on a realistic set of posts.
+
+## Status and roadmap
+
+Version 0.1.0. v1 ("germination mode") is complete: it works from your own posts and their approved comments only. It has been through security, quality and UX reviews and is now being tested on real sites.
+
+v2 ("reader mode") reads where readers go and what they ask for, once a site has enough visits. It will add suggestions from reader paths and search, a prune list, a refresh list and hubs, each still approved by you.
 
 ## Licence
 

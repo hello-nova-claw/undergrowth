@@ -129,6 +129,49 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
+	public function test_deactivation_keeps_the_record_of_a_first_prompt_already_written() {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+
+		undergrowth_unschedule_prompts();
+
+		$this->assertNotFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+	}
+
+	/**
+	 * Runs alone, since the constant stays defined once it is.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_first_prompt_still_waiting_at_deactivation_is_asked_for_again() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		undergrowth_queue_config_first_prompt();
+
+		undergrowth_unschedule_prompts();
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
+	/**
+	 * A key moved from the settings page to wp-config.php while a prompt is
+	 * snoozed must not start a second one.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_no_first_prompt_is_queued_while_a_prompt_is_snoozed() {
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
+		wp_unschedule_hook( 'undergrowth_write_prompt' );
+		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
+
+		undergrowth_queue_config_first_prompt();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
+	}
+
 	/**
 	 * Runs alone, since the constant stays defined once it is.
 	 *
@@ -149,6 +192,22 @@ class Test_Config_Keys extends WP_UnitTestCase {
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 		$this->assertNotFalse( get_option( 'undergrowth_config_prompt_queued' ) );
+	}
+
+	/**
+	 * Runs alone, since the constants stay defined once they are.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_saved_options_are_used_when_the_constants_are_empty_or_not_strings() {
+		define( 'UNDERGROWTH_OPENAI_API_KEY', '  ' );
+		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', array( 'not-a-key' ) );
+		update_option( 'undergrowth_openai_api_key', self::SAVED_KEY );
+		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
+
+		$this->assertSame( self::SAVED_KEY, undergrowth_openai_key() );
+		$this->assertSame( self::SAVED_KEY, undergrowth_anthropic_key() );
 	}
 
 	/**

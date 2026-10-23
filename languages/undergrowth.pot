@@ -191,15 +191,18 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 #: src/settings.php
 msgid "Suggestions"
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 msgid "Growth stages"
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 msgid "Map"
 msgstr ""
 
@@ -643,6 +646,75 @@ msgstr ""
 msgid "Posts > Undergrowth"
 msgstr ""
 
+#: src/help.php
+msgid "Overview"
+msgstr ""
+
+#: src/help.php
+msgid "Undergrowth reads your published posts and asks you about them. It never writes a word your readers will see, and it changes a post only when you accept a suggestion."
+msgstr ""
+
+#: src/help.php
+msgid "Your garden is every published post Undergrowth reads, without a password, except the posts you moved to compost."
+msgstr ""
+
+#: src/help.php
+msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted word is the word Accept will make into the link."
+msgstr ""
+
+#: src/help.php
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgstr ""
+
+#: src/help.php
+msgid "Seedling: a new post, with no more than one accepted link in or out."
+msgstr ""
+
+#: src/help.php
+msgid "Sprout: two or more accepted links, but not yet in a group of three or more posts on the Map."
+msgstr ""
+
+#: src/help.php
+msgid "Budding: in a group, with accepted links both in and out."
+msgstr ""
+
+#: src/help.php
+msgid "Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there."
+msgstr ""
+
+#: src/help.php
+msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again."
+msgstr ""
+
+#: src/help.php
+msgid "Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model."
+msgstr ""
+
+#: src/help.php
+msgid "A group marked \"with a gap\" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgstr ""
+
+#: src/help.php
+msgid "When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine."
+msgstr ""
+
+#: src/help.php
+#: src/posts-screen.php
+msgid "Compost"
+msgstr ""
+
+#: src/help.php
+msgid "Compost rests a post. It stays published, its links stay in place, and readers see no difference. Nothing is deleted."
+msgstr ""
+
+#: src/help.php
+msgid "A composting post leaves the garden: no link is suggested to or from it, and its stage does not change. Undergrowth may still draw on it for a question to you."
+msgstr ""
+
+#: src/help.php
+msgid "Return to garden brings it back, and its stage is measured again from the links you have accepted."
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
@@ -707,10 +779,6 @@ msgstr ""
 #: src/posts-screen.php
 #, php-format
 msgid "Compost &#8220;%s&#8221;"
-msgstr ""
-
-#: src/posts-screen.php
-msgid "Compost"
 msgstr ""
 
 #: src/posts-screen.php
