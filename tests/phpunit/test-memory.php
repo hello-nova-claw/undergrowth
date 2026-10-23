@@ -215,12 +215,12 @@ class Test_Memory extends WP_UnitTestCase {
 		$legacy  = $uploads['basedir'] . '/undergrowth';
 		wp_mkdir_p( $root . '/posts' );
 		wp_mkdir_p( $legacy . '/posts' );
-		add_filter(
-			'filesystem_method',
-			static function () {
-				return 'ftpext';
-			}
-		);
+		$checks = 0;
+		$ftp    = static function () use ( &$checks ) {
+			++$checks;
+			return 'ftpext';
+		};
+		add_filter( 'filesystem_method', $ftp );
 
 		undergrowth_prepare_memory_folder();
 		$this->assertSame( 'old_folder_left', get_option( 'undergrowth_last_file_error' )['code'] );
@@ -232,9 +232,17 @@ class Test_Memory extends WP_UnitTestCase {
 				'time' => 1,
 			)
 		);
+		$before = $checks;
 		undergrowth_prepare_memory_folder();
+		$this->assertSame( $before, $checks, 'Within the hour, the filesystem is not even probed.' );
 
-		$this->assertSame( 1, get_option( 'undergrowth_last_file_error' )['time'] );
+		delete_transient( 'undergrowth_old_folder_retry' );
+		undergrowth_prepare_memory_folder();
+		$this->assertGreaterThan( $before, $checks, 'After the hour, it is tried again.' );
+
+		remove_filter( 'filesystem_method', $ftp );
+
+		$this->assertSame( 1, get_option( 'undergrowth_last_file_error' )['time'], 'The same error is not written again.' );
 		$this->assertDirectoryExists( $legacy );
 	}
 
