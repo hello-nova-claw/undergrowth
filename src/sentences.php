@@ -401,7 +401,7 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 	// part 2", names nothing, and neither do its other forms.
 	foreach ( array_unique( undergrowth_tokens( $target->post_title . ' ' . implode( ' ', undergrowth_headings( $target->post_content ) ) ) ) as $name ) {
 		if ( 2 * ( $corpus['frequency'][ $name ] ?? 1 ) < $corpus['documents'] ) {
-			$exact[ (string) $name ]                         = true;
+			$exact[ (string) $name ]                          = true;
 			$names[ undergrowth_word_stem( (string) $name ) ] = true;
 		}
 	}
@@ -430,7 +430,7 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 	// the text narrows them, so a word the source happens to share is never
 	// central only because nothing better is shared.
 	$central = undergrowth_heaviest_terms( $tfidf, UNDERGROWTH_CENTRAL_TERMS );
-	$unnamed = undergrowth_unnamed_words( undergrowth_post_text( $target ), $locale );
+	$unnamed = null;
 	$top     = max( $weights );
 	$ranked  = array();
 
@@ -445,8 +445,13 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 			// The very word of the title or heading comes before another
 			// form of it.
 			$ranked[ $token ] = $weights[ $token ] + ( isset( $exact[ $token ] ) ? 2 : 1 ) * $top;
-		} elseif ( isset( $central[ $token ] ) && ! isset( $unnamed[ $token ] ) ) {
-			$ranked[ $token ] = $weights[ $token ];
+		} elseif ( isset( $central[ $token ] ) ) {
+			// The target is read word by word only once a central word needs it.
+			$unnamed = $unnamed ?? undergrowth_unnamed_words( undergrowth_post_text( $target ), $locale );
+
+			if ( ! isset( $unnamed[ $token ] ) ) {
+				$ranked[ $token ] = $weights[ $token ];
+			}
 		}
 	}
 
