@@ -102,6 +102,24 @@ class Test_Admin extends WP_UnitTestCase {
 		set_current_screen( 'front' );
 	}
 
+	public function test_result_notices_give_focus_to_the_first() {
+		ob_start();
+		undergrowth_print_result_notices(
+			array(
+				'notice-success' => '<p>Composted.</p>',
+				'notice-warning' => '<p>One was skipped.<script>x</script></p>',
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'id="undergrowth-notice"' ) );
+		$this->assertMatchesRegularExpression( '#<div id="undergrowth-notice" class="notice notice-success is-dismissible" role="status" tabindex="-1"><p>Composted.</p></div>#', $html );
+		// Newer versions of wp_kses() drop the element's text with its tags.
+		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning is-dismissible" role="status"><p>One was skipped\.x?</p></div>#', $html );
+		$this->assertStringNotContainsString( '<script>x', $html );
+		$this->assertSame( 1, substr_count( $html, '.focus()' ) );
+	}
+
 	public function test_post_link_can_carry_a_class() {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );

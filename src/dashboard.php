@@ -150,11 +150,5 @@ function undergrowth_render_prompt_notice(): void {
 		return;
 	}
 
-	printf(
-		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s</p></div>',
-		'prompt_gone' === $notice ? 'notice-warning' : 'notice-success',
-		esc_html( $messages[ $notice ] )
-	);
-
-	undergrowth_print_notice_focus_script();
+	undergrowth_print_result_notices( array( 'prompt_gone' === $notice ? 'notice-warning' : 'notice-success' => '<p>' . esc_html( $messages[ $notice ] ) . '</p>' ) );
 }
