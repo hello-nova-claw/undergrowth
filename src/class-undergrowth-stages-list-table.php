@@ -129,13 +129,8 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 */
 	public function column_post( $item ) {
 		$post_id = $item->ID;
-		$title   = esc_html( undergrowth_post_title( $post_id ) );
-		$link    = get_edit_post_link( $post_id, 'raw' );
+		$title   = undergrowth_post_link( $post_id, 'row-title' );
 		$stage   = undergrowth_get_stage( $post_id );
-
-		if ( null !== $link ) {
-			$title = sprintf( '<a class="row-title" href="%1$s">%2$s</a>', esc_url( $link ), $title );
-		}
 
 		$state = esc_html( undergrowth_stage_label( $stage ) );
 
