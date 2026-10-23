@@ -101,15 +101,7 @@ function undergrowth_handle_veto(): void {
 		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	if ( undergrowth_veto_link( $source, $target ) ) {
-		$notice = 'vetoed';
-	} elseif ( 'accepted' === undergrowth_link_state( $source, $target ) ) {
-		$notice = 'unchanged';
-	} else {
-		$notice = 'gone';
-	}
-
-	wp_safe_redirect( undergrowth_suggestions_url( $notice ) );
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_veto_result( $source, $target ) ) );
 	exit;
 }
 
@@ -578,15 +570,7 @@ function undergrowth_render_suggestions_notice(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
-	$messages = array(
-		'vetoed'                => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'unchanged'             => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'                  => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'accepted'              => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
-		'edited'                => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'               => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'not_proposed'          => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
-		'needs_admin'           => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
+	$messages = undergrowth_link_result_messages() + array(
 		'pinned'                => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
 		'unpinned'              => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
 		'stage_refused'         => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),

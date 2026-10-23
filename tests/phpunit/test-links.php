@@ -167,6 +167,26 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_veto_result_names_what_the_veto_did() {
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$ulluco = $this->plant( 'Ulluco', array( 0.8, 0.2, 0.0 ) );
+		$this->set_state( $oca, $yacon, 'proposed' );
+		$this->set_state( $oca, $ulluco, 'accepted' );
+
+		$this->assertSame( 'vetoed', undergrowth_veto_result( $oca, $yacon ) );
+		$this->assertSame( 'unchanged', undergrowth_veto_result( $oca, $ulluco ) );
+		$this->assertSame( 'gone', undergrowth_veto_result( $oca, PHP_INT_MAX ) );
+	}
+
+	public function test_every_link_result_has_a_message() {
+		$messages = undergrowth_link_result_messages();
+
+		foreach ( array( 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'needs_admin' ) as $result ) {
+			$this->assertNotSame( '', $messages[ $result ] ?? '', $result );
+		}
+	}
+
 	public function test_accepted_pair_is_left_alone() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
