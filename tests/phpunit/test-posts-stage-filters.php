@@ -120,11 +120,11 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 	}
 
 	public function test_the_posts_list_forgets_a_result_already_shown() {
-		$uri                    = $_SERVER['REQUEST_URI'] ?? '';
+		$uri                    = $_SERVER['REQUEST_URI'] ?? ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Put back as it was.
 		$_SERVER['REQUEST_URI'] = '/wp-admin/edit.php?undergrowth_composted=2&undergrowth_stage=sprout';
 
 		undergrowth_add_posts_list_hooks( 'post' );
-		$cleaned                = $_SERVER['REQUEST_URI'];
+		$cleaned                = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Compared as it is.
 		$_SERVER['REQUEST_URI'] = $uri;
 
 		$this->assertSame( '/wp-admin/edit.php?undergrowth_stage=sprout', $cleaned );

@@ -117,6 +117,7 @@ function undergrowth_add_posts_list_hooks( string $post_type ): void {
 		return;
 	}
 
+	undergrowth_forget_shown_results();
 	add_filter( 'bulk_actions-edit-' . $post_type, 'undergrowth_compost_bulk_actions' );
 	add_filter( 'handle_bulk_actions-edit-' . $post_type, 'undergrowth_handle_compost_bulk', 10, 3 );
 	add_filter( 'views_edit-' . $post_type, 'undergrowth_composting_view' );
@@ -279,6 +280,20 @@ function undergrowth_compost_result_url( string $url, string $result, int $done,
  */
 function undergrowth_compost_result_args(): array {
 	return array( 'undergrowth_pinned', 'undergrowth_unpinned', 'undergrowth_composted', 'undergrowth_returned', 'undergrowth_skipped' );
+}
+
+/**
+ * Takes results already shown out of the address that a list's sort links
+ * are built from, as core's Posts screen does with its own, so sorting
+ * the list does not show the notice again.
+ *
+ * The notice still reads them from the request.
+ */
+function undergrowth_forget_shown_results(): void {
+	if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Only arguments are taken out, and the address stays as core keeps it, as core's edit.php does.
+		$_SERVER['REQUEST_URI'] = remove_query_arg( array_merge( undergrowth_compost_result_args(), array( 'undergrowth_notice' ) ), $_SERVER['REQUEST_URI'] );
+	}
 }
 
 /**
