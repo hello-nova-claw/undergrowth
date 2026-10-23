@@ -312,6 +312,56 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertIsArray( get_option( 'undergrowth_previous_clusters' ) );
 	}
 
+	public function test_pass_after_one_with_no_clusters_is_a_baseline() {
+		// As right after activation: the first pass ran before anything clustered.
+		$old = $this->post_with_vector( array( 1.0, 0.0, 0.0 ) );
+		$this->compost( $old );
+		$this->cycle();
+		$this->assertSame( array(), get_option( 'undergrowth_previous_clusters' ) );
+
+		$this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+		$this->assertSame( array(), $this->events( $old ) );
+	}
+
+	public function test_first_pass_under_a_new_index_identity_is_a_baseline() {
+		$old = $this->garden_with_compost();
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v2',
+			),
+			false
+		);
+
+		$this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+		$this->assertSame( array(), $this->events( $old ) );
+	}
+
+	public function test_second_pass_under_a_new_index_identity_compares_with_the_first() {
+		$old = $this->garden_with_compost();
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v2',
+			),
+			false
+		);
+		$this->cycle();
+
+		$new = $this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
+	}
+
 	public function test_cluster_from_the_previous_cycle_is_not_new() {
 		$old = $this->garden_with_compost();
 		$this->new_cluster_near_compost();
