@@ -111,6 +111,18 @@ class Test_Admin extends WP_UnitTestCase {
 		set_current_screen( 'front' );
 	}
 
+	public function test_post_link_can_carry_a_class() {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*">Oca</a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertMatchesRegularExpression( '#^<a href="[^"]+">Oca</a>$#', undergrowth_post_link( $post_id ) );
+	}
+
+	public function test_settings_url_opens_settings_undergrowth() {
+		$this->assertSame( admin_url( 'options-general.php?page=undergrowth' ), undergrowth_settings_url() );
+	}
+
 	public function test_screen_is_listed_under_posts_for_editors() {
 		do_action( 'admin_menu' );
 
