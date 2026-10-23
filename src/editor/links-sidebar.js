@@ -5,10 +5,16 @@ import {
 	Notice,
 	PanelBody,
 	PanelRow,
+	SelectControl,
 } from '@wordpress/components';
 import { useDispatch } from '@wordpress/data';
-import { useEffect, useRef, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import {
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 // Blocks that hold someone else's words, as undergrowth_others_words_spans()
@@ -109,6 +115,90 @@ function Sentence( { sentence, span } ) {
 }
 
 /**
+ * Lets the author choose the first and last of their own words to link, as
+ * the Choose words form on the Suggestions tab does.
+ *
+ * Nothing can be typed, so the link only ever goes around words already in
+ * the sentence.
+ *
+ * @param {Object}                                props          Component props.
+ * @param {Object}                                props.item     Suggestion, with its words.
+ * @param {boolean}                               props.busy     Whether a request is under way.
+ * @param {(first: number, last: number) => void} props.onSave   Saves the choice.
+ * @param {() => void}                            props.onCancel Closes the form.
+ * @return {Element} Form.
+ */
+function ChooseWords( { item, busy, onSave, onCancel } ) {
+	const [ first, setFirst ] = useState( item.first );
+	const [ last, setLast ] = useState( item.last );
+	const firstField = useRef();
+	const options = item.words.map( ( word, index ) => ( {
+		value: String( index ),
+		label: sprintf(
+			/* translators: 1: a word from the author's sentence, 2: its position in the sentence, 3: how many words the sentence has. */
+			__( '%1$s (%2$s of %3$s)', 'undergrowth' ),
+			word,
+			( index + 1 ).toLocaleString(),
+			item.words.length.toLocaleString()
+		),
+	} ) );
+
+	useEffect( () => {
+		firstField.current?.focus();
+	}, [] );
+
+	return (
+		<fieldset className="undergrowth-choose-words">
+			<legend>{ __( 'Choose the words to link', 'undergrowth' ) }</legend>
+			<p className="description">
+				{ __(
+					'The link goes around your own words, from the first word to the last. Only words already in this sentence can be chosen.',
+					'undergrowth'
+				) }
+			</p>
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				ref={ firstField }
+				dir="auto"
+				label={ __( 'First word', 'undergrowth' ) }
+				value={ String( first ) }
+				options={ options }
+				onChange={ ( value ) => setFirst( Number( value ) ) }
+			/>
+			<SelectControl
+				__next40pxDefaultSize
+				__nextHasNoMarginBottom
+				dir="auto"
+				label={ __( 'Last word', 'undergrowth' ) }
+				value={ String( last ) }
+				options={ options }
+				onChange={ ( value ) => setLast( Number( value ) ) }
+			/>
+			<PanelRow>
+				<Button
+					__next40pxDefaultSize
+					variant="primary"
+					isBusy={ busy }
+					disabled={ busy }
+					accessibleWhenDisabled
+					onClick={ () => onSave( first, last ) }
+				>
+					{ __( 'Save words', 'undergrowth' ) }
+				</Button>
+				<Button
+					__next40pxDefaultSize
+					variant="tertiary"
+					onClick={ onCancel }
+				>
+					{ __( 'Cancel', 'undergrowth' ) }
+				</Button>
+			</PanelRow>
+		</fieldset>
+	);
+}
+
+/**
  * Lists this post's link suggestions, and the posts that could link here.
  *
  * Accept asks the server to link the words in the paragraph as the editor
@@ -128,7 +218,10 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 	const [ error, setError ] = useState( '' );
 	const [ refusals, setRefusals ] = useState( {} );
 	const [ busy, setBusy ] = useState( 0 );
+	const [ choosing, setChoosing ] = useState( 0 );
 	const outgoing = useRef();
+	const chooseButtons = useRef( {} );
+	const refocus = useRef( 0 );
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const path = `/undergrowth/v1/posts/${ postId }/links`;
 
@@ -178,6 +271,24 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 					} ) )
 			)
 			.finally( () => setBusy( 0 ) );
+	}
+
+	// Once the form closes, focus goes back to the button that opened it.
+	useLayoutEffect( () => {
+		if ( refocus.current && ! choosing ) {
+			chooseButtons.current[ refocus.current ]?.focus();
+			refocus.current = 0;
+		}
+	} );
+
+	/**
+	 * Closes the Choose words form.
+	 *
+	 * @param {number} target Post the link would point to.
+	 */
+	function closeChoice( target ) {
+		refocus.current = target;
+		setChoosing( 0 );
 	}
 
 	if ( ! lists ) {
@@ -254,63 +365,137 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 										) }
 									</p>
 								) }
-								{ ! linked && ! changed && (
-									<PanelRow>
-										<Button
-											__next40pxDefaultSize
-											variant="secondary"
-											className="undergrowth-accept"
-											isBusy={ busy === item.target }
-											disabled={ busy !== 0 }
-											accessibleWhenDisabled
-											onClick={ () =>
-												act(
-													item.target,
-													'accept',
-													( answer ) =>
-														onLink(
-															answer.id,
-															answer.content
-														),
-													{ paragraphs }
-												)
+								{ ! linked &&
+									! changed &&
+									choosing === item.target && (
+										<ChooseWords
+											item={ item }
+											busy={ busy === item.target }
+											onCancel={ () =>
+												closeChoice( item.target )
 											}
-										>
-											{ __( 'Accept', 'undergrowth' ) }
-										</Button>
-										<Button
-											__next40pxDefaultSize
-											variant="tertiary"
-											className="undergrowth-veto"
-											disabled={ busy !== 0 }
-											accessibleWhenDisabled
-											onClick={ () =>
+											onSave={ ( first, last ) =>
 												act(
 													item.target,
-													'veto',
-													() => {
+													'words',
+													( answer ) => {
 														setLists(
 															( shown ) => ( {
 																...shown,
 																outgoing:
-																	shown.outgoing.filter(
+																	shown.outgoing.map(
 																		(
 																			other
 																		) =>
-																			other.target !==
+																			other.target ===
 																			item.target
+																				? {
+																						...other,
+																						...answer,
+																					}
+																				: other
 																	),
 															} )
 														);
-														outgoing.current?.focus();
+														closeChoice(
+															item.target
+														);
+													},
+													{
+														first,
+														last,
+														shown: item.version,
 													}
 												)
 											}
-										>
-											{ __( 'Veto', 'undergrowth' ) }
-										</Button>
-									</PanelRow>
-								) }
+										/>
+									) }
+								{ ! linked &&
+									! changed &&
+									choosing !== item.target && (
+										<PanelRow>
+											<Button
+												__next40pxDefaultSize
+												variant="secondary"
+												className="undergrowth-accept"
+												isBusy={ busy === item.target }
+												disabled={ busy !== 0 }
+												accessibleWhenDisabled
+												onClick={ () =>
+													act(
+														item.target,
+														'accept',
+														( answer ) =>
+															onLink(
+																answer.id,
+																answer.content
+															),
+														{ paragraphs }
+													)
+												}
+											>
+												{ __(
+													'Accept',
+													'undergrowth'
+												) }
+											</Button>
+											<Button
+												__next40pxDefaultSize
+												variant="tertiary"
+												className="undergrowth-veto"
+												disabled={ busy !== 0 }
+												accessibleWhenDisabled
+												onClick={ () =>
+													act(
+														item.target,
+														'veto',
+														() => {
+															setLists(
+																( shown ) => ( {
+																	...shown,
+																	outgoing:
+																		shown.outgoing.filter(
+																			(
+																				other
+																			) =>
+																				other.target !==
+																				item.target
+																		),
+																} )
+															);
+															outgoing.current?.focus();
+														}
+													)
+												}
+											>
+												{ __( 'Veto', 'undergrowth' ) }
+											</Button>
+											{ item.words.length > 0 && (
+												<Button
+													__next40pxDefaultSize
+													variant="tertiary"
+													className="undergrowth-choose"
+													ref={ ( element ) => {
+														chooseButtons.current[
+															item.target
+														] = element;
+													} }
+													disabled={ busy !== 0 }
+													accessibleWhenDisabled
+													onClick={ () =>
+														setChoosing(
+															item.target
+														)
+													}
+												>
+													{ __(
+														'Choose words',
+														'undergrowth'
+													) }
+												</Button>
+											) }
+										</PanelRow>
+									) }
 							</div>
 						);
 					} ) }
