@@ -830,11 +830,25 @@ msgid "Anthropic API key"
 msgstr ""
 
 #: src/settings.php
+msgid "Undergrowth suggests links between your own posts, and asks you an occasional question about your writing with an Anthropic key."
+msgstr ""
+
+#: src/settings.php
 msgid "Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key."
 msgstr ""
 
 #: src/settings.php
 msgid "Undergrowth reads your published posts and suggests links between them, and changes a post only when you accept a link."
+msgstr ""
+
+#. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.
+#: src/settings.php
+#, php-format
+msgid "Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI."
+msgstr ""
+
+#: src/settings.php
+msgid "That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it."
 msgstr ""
 
 #: src/settings.php
@@ -883,6 +897,26 @@ msgstr ""
 #: src/settings.php
 #, php-format
 msgid "A key ending in %1$s is saved. Leave the field blank to keep it."
+msgstr ""
+
+#. translators: 1: file name, wp-config.php, 2: name of the constant.
+#: src/settings.php
+#, php-format
+msgid "A key is set in %1$s as %2$s, but it is ignored while code on this site reads the posts."
+msgstr ""
+
+#. translators: %1$s: last four characters of the saved API key.
+#: src/settings.php
+#, php-format
+msgid "A key ending in %1$s is saved, but it is ignored while code on this site reads the posts."
+msgstr ""
+
+#: src/settings.php
+msgid "Not used. Code on this site reads the posts, so no OpenAI key is needed."
+msgstr ""
+
+#: src/settings.php
+msgid "Remove the saved key"
 msgstr ""
 
 #: src/settings.php
@@ -989,6 +1023,12 @@ msgstr ""
 #: src/settings.php
 #, php-format
 msgid "That was on %1$s."
+msgstr ""
+
+#. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.
+#: src/settings.php
+#, php-format
+msgid "Posts are read by %1$s (%2$s), which code on this site set up instead of OpenAI. Undergrowth gives it the title and text of each published post without a password, so it can tell which of your posts are about similar things and suggest links between them. Where that code sends them depends on how it was set up, so ask whoever added it. Nothing is sent to OpenAI, even if an OpenAI key is saved. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 
 #: src/settings.php
