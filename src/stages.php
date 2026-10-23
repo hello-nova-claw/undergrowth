@@ -547,8 +547,9 @@ function undergrowth_cycle_post( int $post_id ): void {
 }
 
 /**
- * Stops the monthly cycle while the plugin is inactive, and forgets the
- * clusters and any clustering pass that was under way.
+ * Stops the monthly cycle and every queued embed or Discord post while the
+ * plugin is inactive, and forgets the clusters and any clustering pass that
+ * was under way.
  */
 function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
@@ -556,6 +557,9 @@ function undergrowth_deactivate(): void {
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
+	wp_unschedule_hook( 'undergrowth_embed_post' );
+	// A suggestion left unposted is posted with the post's next refresh.
+	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_cluster_leaders' );

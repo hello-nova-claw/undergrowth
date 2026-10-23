@@ -1,0 +1,1 @@
+Events queued for embedding a post or posting to Discord are now cleared when the plugin is deactivated, as the monthly cycles already were.
