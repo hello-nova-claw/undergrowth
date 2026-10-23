@@ -352,11 +352,6 @@ msgstr ""
 msgid "Post"
 msgstr ""
 
-#: src/class-undergrowth-stages-list-table.php
-#: src/posts-screen.php
-msgid "Pinned"
-msgstr ""
-
 #. translators: 1: post title, 2: its growth stage.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
@@ -1156,6 +1151,10 @@ msgstr ""
 
 #: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "Pinned"
 msgstr ""
 
 #: src/stages.php
