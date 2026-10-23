@@ -825,8 +825,10 @@ function undergrowth_ability_veto_link( array $input ) {
 	$source_id = (int) $input['source_id'];
 	$target_id = (int) $input['target_id'];
 
-	if ( ! undergrowth_veto_link( $source_id, $target_id ) ) {
-		return undergrowth_ability_link_error( 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone' );
+	$result = undergrowth_veto_result( $source_id, $target_id );
+
+	if ( 'vetoed' !== $result ) {
+		return undergrowth_ability_link_error( $result );
 	}
 
 	return array(
@@ -846,14 +848,7 @@ function undergrowth_ability_veto_link( array $input ) {
  * @return WP_Error The error.
  */
 function undergrowth_ability_link_error( string $reason ): WP_Error {
-	$messages = array(
-		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
-		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'needs_admin'  => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
-	);
+	$messages = undergrowth_link_result_messages();
 
 	return new WP_Error(
 		'undergrowth_' . $reason,

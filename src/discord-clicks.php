@@ -52,10 +52,8 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 	try {
 		if ( 'accept' === $button[1] ) {
 			$result = undergrowth_accept_link( $source_id, $target_id );
-		} elseif ( undergrowth_veto_link( $source_id, $target_id ) ) {
-			$result = 'vetoed';
 		} else {
-			$result = 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone';
+			$result = undergrowth_veto_result( $source_id, $target_id );
 		}
 	} finally {
 		wp_set_current_user( $previous_user );
@@ -78,16 +76,7 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 function undergrowth_discord_click_reply( int $source_id, int $target_id, string $result ): WP_REST_Response {
 	global $wpdb;
 
-	$messages = array(
-		'accepted'     => __( 'Linked. One word in your sentence now links to the suggested post.', 'undergrowth' ),
-		'vetoed'       => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
-		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'      => __( 'No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'needs_admin'  => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
-	);
+	$messages = undergrowth_link_result_messages();
 	$message  = $messages[ $result ] ?? $messages['gone'];
 
 	if ( in_array( $result, array( 'edited', 'no_word', 'needs_admin' ), true ) ) {
