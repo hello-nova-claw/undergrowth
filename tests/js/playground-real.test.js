@@ -9,6 +9,7 @@ describe( 'startMessage', () => {
 		const message = startMessage( {
 			siteUrl: site,
 			local: true,
+			model: 'nomic-embed-text',
 			anthropic: false,
 		} );
 
@@ -24,6 +25,7 @@ describe( 'startMessage', () => {
 		const message = startMessage( {
 			siteUrl: site,
 			local: true,
+			model: 'nomic-embed-text',
 			anthropic: false,
 		} );
 
@@ -32,8 +34,13 @@ describe( 'startMessage', () => {
 
 	it( 'says which way posts are read and whether questions are on', () => {
 		expect(
-			startMessage( { siteUrl: site, local: true, anthropic: false } )
-		).toMatch( /Ollama[\s\S]*No Anthropic key/ );
+			startMessage( {
+				siteUrl: site,
+				local: true,
+				model: 'nomic-embed-text',
+				anthropic: false,
+			} )
+		).toMatch( /nomic-embed-text in Ollama[\s\S]*No Anthropic key/ );
 		expect(
 			startMessage( { siteUrl: site, local: false, anthropic: true } )
 		).toMatch(
