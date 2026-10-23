@@ -1,5 +1,6 @@
 const path = require( 'path' );
 const { defineConfig } = require( '@playwright/test' );
+const { pluginMounts } = require( './bin/plugin-mounts.cjs' );
 
 const port = process.env.UNDERGROWTH_PLAYGROUND_PORT || '9400';
 
@@ -28,7 +29,10 @@ module.exports = defineConfig( {
 		command: [
 			`node "${ pseudo }" "${ plugin }/languages/undergrowth.pot" &&`,
 			`npx wp-playground-cli server --port=${ port } --verbosity=quiet`,
-			`--mount="${ plugin }:/wordpress/wp-content/plugins/undergrowth"`,
+			...pluginMounts( plugin ).map(
+				( { hostPath, vfsPath } ) =>
+					`--mount="${ hostPath }:${ vfsPath }"`
+			),
 			`--mount="${ muPlugins }:/wordpress/wp-content/mu-plugins"`,
 			`--blueprint="${ blueprint }"`,
 		].join( ' ' ),

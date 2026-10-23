@@ -23,6 +23,7 @@ import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseEnv } from 'node:util';
+import { pluginMounts } from './plugin-mounts.cjs';
 
 const root = resolve( import.meta.dirname, '..' );
 const envFile = join( root, '.env.local' );
@@ -156,25 +157,7 @@ http.Server.prototype.listen = function ( port, ...rest ) {
 	return listen.call( this, port, ...rest );
 };
 
-// Playground serves any file under a mount, so mounting the repository
-// would put .env.local, and the keys in it, at a URL. Only what the plugin
-// zip ships is mounted, from the working copy so edits still show.
-const shipped = [
-	'undergrowth.php',
-	'uninstall.php',
-	'readme.txt',
-	'LICENSE',
-	'src',
-	'build',
-	'assets',
-	'languages',
-];
-const mount = shipped
-	.filter( ( path ) => existsSync( join( root, path ) ) )
-	.map( ( path ) => ( {
-		hostPath: join( root, path ),
-		vfsPath: `/wordpress/wp-content/plugins/undergrowth/${ path }`,
-	} ) );
+const mount = pluginMounts( root );
 
 if ( local ) {
 	mount.push( {

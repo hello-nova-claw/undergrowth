@@ -11,7 +11,7 @@
 		"start": "wp-scripts start",
 		"env:start": "wp-env start",
 		"env:stop": "wp-env stop",
-		"playground": "wp-playground-cli server --mount=.:/wordpress/wp-content/plugins/undergrowth --mount=./tests/e2e/mu-plugins:/wordpress/wp-content/mu-plugins --blueprint=tests/e2e/playground/preview.json",
+		"playground": "wp-playground-cli server $(node bin/plugin-mounts.cjs) --mount=./tests/e2e/mu-plugins:/wordpress/wp-content/mu-plugins --blueprint=tests/e2e/playground/preview.json",
 		"playground:real": "node bin/playground-real.mjs",
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style --allow-empty-input",
