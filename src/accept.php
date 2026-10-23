@@ -311,7 +311,10 @@ function undergrowth_find_link_span( string $content, string $sentence, int $off
 		)
 	);
 
-	return undergrowth_find_in_sentence( $content, $sentence, '/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/u', $offset );
+	// A pair of characters from an unspaced script has no word boundaries.
+	$spaced = ! preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $span );
+
+	return undergrowth_find_in_sentence( $content, $sentence, '/' . ( $spaced ? '(?<![\p{L}\p{N}])' : '' ) . $pattern . ( $spaced ? '(?![\p{L}\p{N}])' : '' ) . '/u', $offset );
 }
 
 /**
