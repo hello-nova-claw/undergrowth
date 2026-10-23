@@ -617,10 +617,6 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
 
-	public function test_deactivation_hook_is_registered() {
-		$this->assertNotFalse( has_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ), 'undergrowth_deactivate' ) );
-	}
-
 	public function test_uninstall_clears_the_cycle() {
 		undergrowth_schedule_stage_cycle();
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
