@@ -344,6 +344,23 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->events( $old ) );
 	}
 
+	public function test_new_index_identity_stops_resurfacing_still_queued_from_the_old_one() {
+		update_option( 'undergrowth_new_clusters', array( 1 ), false );
+		wp_schedule_single_event( time(), 'undergrowth_resurfacing_cycle', array( 5 ) );
+
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v2',
+			),
+			false
+		);
+
+		$this->assertFalse( get_option( 'undergrowth_new_clusters' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_resurfacing_cycle', array( 5 ) ) );
+	}
+
 	public function test_second_pass_under_a_new_index_identity_compares_with_the_first() {
 		$old = $this->garden_with_compost();
 		update_option(
