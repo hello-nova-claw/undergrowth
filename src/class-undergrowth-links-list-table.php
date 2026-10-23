@@ -73,7 +73,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT source_id, target_id, sentence FROM %i WHERE state = %s ORDER BY updated_at DESC, source_id ASC, score DESC',
+				'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s ORDER BY updated_at DESC, source_id ASC, score DESC',
 				undergrowth_links_table(),
 				'proposed'
 			),
@@ -114,6 +114,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 					'source_id' => (int) $row['source_id'],
 					'target_id' => (int) $row['target_id'],
 					'sentence'  => (string) $row['sentence'],
+					'anchor'    => (string) $row['anchor'],
+					'offset'    => (int) $row['anchor_offset'],
 				);
 			},
 			array_slice( $rows, ( $this->get_pagenum() - 1 ) * self::PER_PAGE, self::PER_PAGE )
@@ -123,7 +125,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	/**
 	 * Prints the source post's title, linked to its editor.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
 	 * @return string Cell HTML.
 	 */
 	public function column_source( $item ) {
@@ -131,7 +133,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Prints the sentence the link would sit in, with the word Accept would
+	 * Prints the sentence the link would sit in, with the words Accept would
 	 * link marked, and the post the link would point to under it.
 	 *
 	 * The sentence is the author's own text, which may run the other way
@@ -139,7 +141,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * text. The forms behind the row actions sit here too, holding only
 	 * hidden fields.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
 	 * @return string Cell HTML.
 	 */
 	public function column_sentence( $item ) {
@@ -159,9 +161,9 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * They are this screen's whole purpose, so they are always shown rather
 	 * than waiting for hover or focus.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item        Row.
-	 * @param string                                                  $column_name Column being printed.
-	 * @param string                                                  $primary     Primary column name.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item        Row.
+	 * @param string                                                                               $column_name Column being printed.
+	 * @param string                                                                               $primary     Primary column name.
 	 * @return string Row actions HTML, in the primary column only.
 	 */
 	protected function handle_row_actions( $item, $column_name, $primary ) {
@@ -194,23 +196,29 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Escapes the sentence and marks the word Accept would link in it.
+	 * Escapes the sentence and marks the words Accept would link in it.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item Row.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
 	 * @return string HTML.
 	 */
 	private function marked_sentence( array $item ): string {
 		$sentence = $item['sentence'];
-		$choice   = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $sentence );
+		$choice   = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $sentence, $item['anchor'], $item['offset'] );
 
-		if ( null === $choice || mb_substr( $sentence, $choice['offset'], mb_strlen( $choice['word'] ) ) !== $choice['word'] ) {
+		if ( null === $choice ) {
 			return esc_html( $sentence );
 		}
 
-		$length = mb_strlen( $choice['word'] );
+		// A line break inside the words in the post shows as a space.
+		$words  = (string) preg_replace( '/\s+/u', ' ', $choice['word'] );
+		$length = mb_strlen( $words );
+
+		if ( mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
+			return esc_html( $sentence );
+		}
 
 		return esc_html( mb_substr( $sentence, 0, $choice['offset'] ) )
-			. '<mark>' . esc_html( $choice['word'] ) . '</mark>'
+			. '<mark>' . esc_html( $words ) . '</mark>'
 			. esc_html( mb_substr( $sentence, $choice['offset'] + $length ) );
 	}
 
@@ -246,8 +254,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	/**
 	 * Returns the id of the form behind one action button.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
-	 * @param string                                                  $action Action name.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
+	 * @param string                                                                               $action Action name.
 	 * @return string Element id.
 	 */
 	private function form_id( array $item, string $action ): string {
@@ -260,10 +268,10 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * The buttons sit outside their forms so they flow in the row actions
 	 * like core's own, which use the same button-link class.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
-	 * @param string                                                  $action Action name.
-	 * @param string                                                  $label  Accessible name.
-	 * @param string                                                  $text   Visible text.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
+	 * @param string                                                                               $action Action name.
+	 * @param string                                                                               $label  Accessible name.
+	 * @param string                                                                               $text   Visible text.
 	 * @return string Button HTML.
 	 */
 	private function action_button( array $item, string $action, string $label, string $text ): string {
@@ -281,8 +289,8 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * Each action is a separate form so it works without JavaScript and
 	 * carries a nonce for that exact pair of posts.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string} $item   Row.
-	 * @param string                                                  $action Action name.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
+	 * @param string                                                                               $action Action name.
 	 * @return string Form HTML.
 	 */
 	private function action_form( array $item, string $action ): string {

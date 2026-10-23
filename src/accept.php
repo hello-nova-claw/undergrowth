@@ -1,9 +1,10 @@
 <?php
 /**
- * Accepting a proposal: linking one word of the author's own sentence.
+ * Accepting a proposal: linking a few of the author's own words.
  *
- * The author's text is never rewritten. One existing word is wrapped in a
- * plain link, and anything that cannot be done safely is left untouched.
+ * The author's text is never rewritten. A short run of existing words is
+ * wrapped in a plain link, and anything that cannot be done safely is left
+ * untouched.
  *
  * @package Undergrowth
  */
@@ -14,8 +15,8 @@ defined( 'ABSPATH' ) || exit;
 const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary|iframe|script|object|embed|video|audio|select|textarea|math|svg';
 
 /**
- * Accepts a proposed link by linking the word the target is most about
- * where it appears in the proposal's sentence.
+ * Accepts a proposed link by linking the words the suggestion marks in
+ * its sentence.
  *
  * The suggestion is claimed before the post is touched, so two requests
  * arriving together can never both link it. Any failure gives the claim back.
@@ -84,7 +85,8 @@ function undergrowth_claim_link( int $source_id, int $target_id, string $from, s
 }
 
 /**
- * Links one word in the source post for a link already claimed as accepted.
+ * Links the proposal's words in the source post, for a link already
+ * claimed as accepted.
  *
  * @param int     $source_id Post the link sits in.
  * @param WP_Post $target    Post the link points to.
@@ -96,20 +98,24 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 	$source = get_post( $source_id );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
-	$sentence = (string) $wpdb->get_var(
+	$row = (array) $wpdb->get_row(
 		$wpdb->prepare(
-			'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d',
+			'SELECT sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND target_id = %d',
 			undergrowth_links_table(),
 			$source_id,
 			$target->ID
-		)
+		),
+		ARRAY_A
 	);
+
+	$sentence = (string) ( $row['sentence'] ?? '' );
 
 	if ( ! $source instanceof WP_Post || '' === $sentence || ! in_array( $sentence, array_column( undergrowth_split_sentences( $source->post_content ), 'text' ), true ) ) {
 		return 'edited';
 	}
 
-	$choice = undergrowth_choose_link_word( $source, $target, $sentence );
+	// The same choice the suggestions screen marked.
+	$choice = undergrowth_link_word_choice( $source_id, $target->ID, $sentence, (string) $row['anchor'], (int) $row['anchor_offset'] );
 
 	if ( null === $choice ) {
 		return 'no_word';
@@ -138,17 +144,23 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 }
 
 /**
- * Tells which word Accept would link in a proposal's sentence, without
- * changing anything, so the suggestions screen can show it.
+ * Tells which words Accept would link in a proposal's sentence, without
+ * changing anything, so the suggestions screen can show them.
  *
- * @param int    $source_id Post the link would sit in.
- * @param int    $target_id Post the link would point to.
- * @param string $sentence  Sentence as stored with the proposal.
- * @return array{term: string, word: string, offset: int, position: int}|null
- *         The word as written, its character offset in the sentence and its
- *         byte position in the post; null when Accept would link nothing.
+ * The words stored with the proposal are used while they still fit its
+ * sentence. A proposal stored before words were kept, or whose words no
+ * longer fit, has them worked out again.
+ *
+ * @param int    $source_id     Post the link would sit in.
+ * @param int    $target_id     Post the link would point to.
+ * @param string $sentence      Sentence as stored with the proposal.
+ * @param string $anchor        Words as stored with the proposal, if any.
+ * @param int    $anchor_offset Character offset of those words in the sentence.
+ * @return array{word: string, offset: int, position: int}|null
+ *         The words as written, their character offset in the sentence and
+ *         their byte position in the post; null when Accept would link nothing.
  */
-function undergrowth_link_word_choice( int $source_id, int $target_id, string $sentence ): ?array {
+function undergrowth_link_word_choice( int $source_id, int $target_id, string $sentence, string $anchor = '', int $anchor_offset = -1 ): ?array {
 	$source = get_post( $source_id );
 	$target = get_post( $target_id );
 
@@ -158,31 +170,53 @@ function undergrowth_link_word_choice( int $source_id, int $target_id, string $s
 		return null;
 	}
 
-	return undergrowth_choose_link_word( $source, $target, $sentence );
+	if ( '' !== $anchor && $anchor_offset >= 0 && mb_substr( $sentence, $anchor_offset, mb_strlen( $anchor ) ) === $anchor ) {
+		return undergrowth_find_link_span( $source->post_content, $sentence, $anchor_offset, mb_strlen( $anchor ) );
+	}
+
+	return undergrowth_choose_link_span( $source, $target, $sentence );
 }
 
 /**
- * Chooses the word to link in a sentence: the first that can be linked
- * safely, among every word the sentence shares with the target, the one
- * the target is most about first.
+ * Chooses the words to link in a sentence: the first run that can be
+ * linked safely, among the runs undergrowth_anchor_spans() offers for every
+ * word the sentence shares with the target.
  *
  * The sentence was chosen for a word among the top few, but which words
  * make the top few shifts as posts are added, most of all while a new site
  * is still being indexed, so every shared word is tried.
  *
- * @param WP_Post $source   Post the link would sit in.
- * @param WP_Post $target   Post the link would point to.
- * @param string  $sentence Sentence the link belongs in, as stored.
- * @return array{term: string, word: string, offset: int, position: int}|null
+ * @param WP_Post    $source   Post the link would sit in.
+ * @param WP_Post    $target   Post the link would point to.
+ * @param string     $sentence Sentence the link belongs in, as stored.
+ * @param array|null $corpus   Word counts to rank the target's words against, when already built.
+ * @return array{word: string, offset: int, position: int}|null
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>}|null $corpus
  */
-function undergrowth_choose_link_word( WP_Post $source, WP_Post $target, string $sentence ): ?array {
-	$corpus = undergrowth_reusable_corpus( array_merge( undergrowth_comparable_post_ids( $source->ID ), array( $source->ID, $target->ID ) ) );
+function undergrowth_choose_link_span( WP_Post $source, WP_Post $target, string $sentence, ?array $corpus = null ): ?array {
+	$corpus = $corpus ?? undergrowth_reusable_corpus( array_merge( undergrowth_comparable_post_ids( $source->ID ), array( $source->ID, $target->ID ) ) );
+	$terms  = undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 );
 
-	foreach ( array_keys( undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 ) ) as $term ) {
-		$found = undergrowth_find_link_word( $source->post_content, $sentence, (string) $term );
+	// A pair of characters from an unspaced script is not a word, so no run
+	// of words is made from it.
+	if ( preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $sentence ) ) {
+		foreach ( array_keys( $terms ) as $term ) {
+			$found = undergrowth_find_link_word( $source->post_content, $sentence, (string) $term );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	}
+
+	foreach ( undergrowth_anchor_spans( $sentence, $terms, $target->post_title, undergrowth_post_language( $target ) ) as $span ) {
+		$found = undergrowth_find_link_span( $source->post_content, $sentence, $span['offset'], $span['length'] );
 
 		if ( null !== $found ) {
-			return array( 'term' => (string) $term ) + $found;
+			return $found;
 		}
 	}
 
@@ -190,10 +224,10 @@ function undergrowth_choose_link_word( WP_Post $source, WP_Post $target, string 
 }
 
 /**
- * Wraps a chosen word in a link.
+ * Wraps chosen words in a link.
  *
  * @param string $content Post content.
- * @param array  $found   Result of undergrowth_find_link_word().
+ * @param array  $found   Result of undergrowth_find_link_word() or undergrowth_find_link_span().
  * @param string $url     Address to link to.
  * @return string
  *
@@ -238,9 +272,58 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
  */
 function undergrowth_find_link_word( string $content, string $sentence, string $term ): ?array {
 	// A pair of characters from an unspaced script has no word boundaries.
-	$spaced  = ! preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $term );
-	$pattern = '/' . ( $spaced ? '(?<![\p{L}\p{N}])' : '' ) . preg_quote( $term, '/' ) . ( $spaced ? '(?![\p{L}\p{N}])' : '' ) . '/iu';
+	$spaced = ! preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $term );
 
+	return undergrowth_find_in_sentence( $content, $sentence, '/' . ( $spaced ? '(?<![\p{L}\p{N}])' : '' ) . preg_quote( $term, '/' ) . ( $spaced ? '(?![\p{L}\p{N}])' : '' ) . '/iu' );
+}
+
+/**
+ * Finds a run of words at an exact place in a sentence, where it can be
+ * linked safely.
+ *
+ * The rules are those of undergrowth_link_word(), and the whole run must
+ * sit in one stretch of text: never across a tag, such as the end of an
+ * <em>, and never across a character reference. Line breaks in the post
+ * count as the spaces they show as.
+ *
+ * @param string $content  Post content.
+ * @param string $sentence Sentence the link belongs in, as stored.
+ * @param int    $offset   Character offset of the run in the sentence.
+ * @param int    $length   Length of the run in characters.
+ * @return array{word: string, offset: int, position: int}|null The run as
+ *         written, its offset in the sentence and its byte position in the
+ *         content, or null when it cannot be linked safely.
+ */
+function undergrowth_find_link_span( string $content, string $sentence, int $offset, int $length ): ?array {
+	$span = mb_substr( $sentence, $offset, $length );
+
+	if ( $length < 1 || $offset < 0 || '' === trim( $span ) || mb_strlen( $span ) !== $length ) {
+		return null;
+	}
+
+	$pattern = implode(
+		'\s+',
+		array_map(
+			static function ( $part ) {
+				return preg_quote( $part, '/' );
+			},
+			(array) preg_split( '/\s+/u', $span )
+		)
+	);
+
+	return undergrowth_find_in_sentence( $content, $sentence, '/(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])/u', $offset );
+}
+
+/**
+ * Finds the first safe match of a pattern inside a sentence.
+ *
+ * @param string   $content  Post content.
+ * @param string   $sentence Sentence the link belongs in, as stored.
+ * @param string   $pattern  Regular expression for the words.
+ * @param int|null $offset   Character offset in the sentence the match must start at, or null for anywhere in it.
+ * @return array{word: string, offset: int, position: int}|null
+ */
+function undergrowth_find_in_sentence( string $content, string $sentence, string $pattern, ?int $offset = null ): ?array {
 	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
 		list( $inner, $inner_start, $plain ) = $paragraph;
 
@@ -253,7 +336,7 @@ function undergrowth_find_link_word( string $content, string $sentence, string $
 		$end = $start + mb_strlen( $sentence );
 
 		foreach ( ( new Undergrowth_HTML_Text( $inner ) )->text_nodes() as $node ) {
-			list( $text, $offset, $in_link ) = $node;
+			list( $text, $node_at, $in_link ) = $node;
 
 			if ( $in_link ) {
 				continue;
@@ -278,10 +361,11 @@ function undergrowth_find_link_word( string $content, string $sentence, string $
 			foreach ( $matches as $match ) {
 				list( $word, $at ) = $match;
 
-				$before = ltrim( undergrowth_plain_text( substr( $inner, 0, $offset + $at ) ) );
+				$before = ltrim( undergrowth_plain_text( substr( $inner, 0, $node_at + $at ) ) );
 				$from   = mb_strlen( $before );
+				$shown  = mb_strlen( (string) preg_replace( '/\s+/u', ' ', $word ) );
 
-				if ( $from < $start || $from + mb_strlen( $word ) > $end ) {
+				if ( $from < $start || $from + $shown > $end || ( null !== $offset && $from - $start !== $offset ) ) {
 					continue;
 				}
 
@@ -289,14 +373,14 @@ function undergrowth_find_link_word( string $content, string $sentence, string $
 				// "Self-reliance" is half a word. The hyphen can be a character
 				// reference or sit outside an inline tag, so the visible text
 				// around the match is checked.
-				if ( preg_match( '/[\p{L}\p{N}][-\x{2010}\x{2011}]$/u', $before ) || preg_match( '/^[-\x{2010}\x{2011}][\p{L}\p{N}]/u', undergrowth_plain_text( substr( $inner, $offset + $at + strlen( $word ) ) ) ) ) {
+				if ( preg_match( '/[\p{L}\p{N}][-\x{2010}\x{2011}]$/u', $before ) || preg_match( '/^[-\x{2010}\x{2011}][\p{L}\p{N}]/u', undergrowth_plain_text( substr( $inner, $node_at + $at + strlen( $word ) ) ) ) ) {
 					continue;
 				}
 
 				return array(
 					'word'     => $word,
 					'offset'   => $from - $start,
-					'position' => $inner_start + $offset + $at,
+					'position' => $inner_start + $node_at + $at,
 				);
 			}
 		}
