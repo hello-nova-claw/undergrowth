@@ -14,9 +14,24 @@ class Test_Admin_Compost extends WP_UnitTestCase {
 	use Plants_Posts;
 	use Stops_Redirects;
 
+	/**
+	 * The screen and main query as they were before the test, which the
+	 * composting view tests replace.
+	 *
+	 * @var array{pagenow: mixed, wp_the_query: mixed}
+	 */
+	private $globals = array(
+		'pagenow'      => null,
+		'wp_the_query' => null,
+	);
+
 	public function set_up() {
 		parent::set_up();
 
+		$this->globals = array(
+			'pagenow'      => $GLOBALS['pagenow'] ?? null,
+			'wp_the_query' => $GLOBALS['wp_the_query'] ?? null,
+		);
 		$this->start_planting();
 		undergrowth_register_stage_meta();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
@@ -26,6 +41,10 @@ class Test_Admin_Compost extends WP_UnitTestCase {
 	public function tear_down() {
 		unset( $_GET['post'], $_GET['_wpnonce'], $_REQUEST['_wpnonce'], $_GET['tab'], $_GET['undergrowth_stage'], $_GET['undergrowth_composted'], $_GET['undergrowth_returned'], $_GET['undergrowth_skipped'], $_SERVER['HTTP_REFERER'], $_REQUEST['_wp_http_referer'] );
 		undergrowth_delete_memory_folder();
+
+		foreach ( $this->globals as $name => $value ) {
+			$GLOBALS[ $name ] = $value;
+		}
 
 		parent::tear_down();
 	}
