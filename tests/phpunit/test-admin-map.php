@@ -43,7 +43,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 	 *
 	 * @param string  $title  Post title.
 	 * @param float[] $vector Vector to store.
-	 * @param int     $leader Leader of the cluster, or 0 for the post to lead.
+	 * @param int     $leader Leader of the cluster, 0 for the post to lead, or -1 for no cluster.
 	 * @return int Post ID.
 	 */
 	private function member( string $title, array $vector, int $leader = 0 ): int {
@@ -64,7 +64,9 @@ class Test_Admin_Map extends WP_UnitTestCase {
 				'content_hash' => 'hash',
 			)
 		);
-		update_post_meta( $post_id, 'undergrowth_cluster', 0 === $leader ? $post_id : $leader );
+		if ( $leader >= 0 ) {
+			update_post_meta( $post_id, 'undergrowth_cluster', 0 === $leader ? $post_id : $leader );
+		}
 
 		return $post_id;
 	}
@@ -113,7 +115,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertSame( 2, substr_count( $html, '<ul class="undergrowth-cluster"' ) );
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Group 2</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Around “Yacon”</h2>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="undergrowth-cluster-' . $posts['Yacon'] . '"', $html );
 		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post\\.php\\?post=' . $posts['Yacon syrup'] . '&[^"]*action=edit">Yacon syrup<\\/a> \\(Budding\\)<\\/li>/', $html );
 
@@ -141,7 +143,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$posts = $this->plant_clusters();
 		$html  = $this->render();
 
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Group 1, with a gap</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Around “Oca”, with a gap</h2>', $html );
 		$this->assertSame( 1, substr_count( $html, 'class="undergrowth-gap"' ) );
 		$this->assertMatchesRegularExpression( '/<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"><\/span> [^<]+<\/p>/', $html );
 	}
@@ -151,7 +153,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 
 		preg_match( '/<p class="undergrowth-gap">(.*?)<\/p>/', $this->render(), $gap );
 
-		foreach ( array( 'Oca', 'Ulluco', 'Mashua', 'Yacon' ) as $title ) {
+		foreach ( array( 'Ulluco', 'Mashua', 'Yacon' ) as $title ) {
 			$this->assertStringNotContainsString( $title, $gap[1] );
 		}
 	}
@@ -175,5 +177,125 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( '<li>Mashua (Seedling)</li>', $this->render() );
+	}
+
+	public function test_group_is_named_after_its_post_nearest_the_middle() {
+		$posts = $this->plant_clusters();
+		$this->member( 'Yacon pickles', array( 0.05, 0.05, 0.99 ), $posts['Yacon'] );
+
+		$this->assertStringContainsString( '>Around “Yacon pickles”</h2>', $this->render() );
+	}
+
+	public function test_each_group_says_its_size() {
+		$posts = $this->plant_clusters();
+		$this->member( 'Yacon pickles', array( 0.05, 0.05, 0.99 ), $posts['Yacon'] );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/<p class="undergrowth-group-about"><span>3 posts\.<\/span>/', $html );
+		$this->assertMatchesRegularExpression( '/<p class="undergrowth-group-about"><span>4 posts\.<\/span>/', $html );
+	}
+
+	public function test_group_shows_its_stored_words_except_those_in_its_name() {
+		$posts = $this->plant_clusters();
+		update_option(
+			'undergrowth_cluster_labels',
+			array(
+				'made'  => '2026-10-01 00:00:00',
+				'terms' => array( $posts['Yacon'] => array( 'Yacon', 'sweet syrup', 'leaves', '<b>tubers</b>' ) ),
+			),
+			false
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<span>Words that set this group apart: <bdi>sweet syrup</bdi>, <bdi>leaves</bdi>, and <bdi>&lt;b&gt;tubers&lt;/b&gt;</bdi>.</span>', $html );
+		$this->assertStringNotContainsString( '<bdi>Yacon</bdi>', $html );
+	}
+
+	public function test_group_without_stored_words_says_only_its_size() {
+		$this->plant_clusters();
+
+		$this->assertStringNotContainsString( 'Words that set', $this->render() );
+	}
+
+	public function test_summary_accounts_for_every_post() {
+		$posts = $this->plant_clusters();
+		self::factory()->post->create(
+			array(
+				'post_title'  => 'Bread',
+				'post_status' => 'publish',
+			)
+		);
+		update_post_meta( $this->member( 'Resting', array( 1.0, 0.0, 0.0 ), $posts['Oca'] ), 'undergrowth_stage', 'composting' );
+
+		$this->assertStringContainsString( '<p class="undergrowth-map-counts"><span>6 posts are in 2 groups.</span> <span>1 post is not in a group yet.</span> <span>1 post is composting.</span></p>', $this->render() );
+	}
+
+	public function test_summary_leaves_out_counts_of_none() {
+		$this->plant_clusters();
+
+		$this->assertStringContainsString( '<p class="undergrowth-map-counts"><span>6 posts are in 2 groups.</span></p>', $this->render() );
+	}
+
+	public function test_posts_not_in_a_group_are_listed_with_a_reason_and_composting_ones_are_not() {
+		$posts   = $this->plant_clusters();
+		$bread   = self::factory()->post->create(
+			array(
+				'post_title'  => 'Bread',
+				'post_status' => 'publish',
+			)
+		);
+		$cycle   = $this->member( 'Cycling', array( 0.0, 1.0, 0.0 ), -1 );
+		$resting = $this->member( 'Resting', array( 0.0, 1.0, 0.0 ), -1 );
+		update_post_meta( $resting, 'undergrowth_stage', 'composting' );
+		update_option(
+			'undergrowth_cluster_labels',
+			array(
+				'made'  => '2999-01-01 00:00:00',
+				'terms' => array(),
+			),
+			false
+		);
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<h2 id="undergrowth-ungrouped">Not in a group yet</h2>', $html );
+		$this->assertStringContainsString( '<ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">', $html );
+		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $bread . '&[^"]*">Bread<\/a> \(Not read yet\)<\/li>/', $html );
+		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $cycle . '&[^"]*">Cycling<\/a> \(Not close enough to other posts yet\)<\/li>/', $html );
+		$this->assertStringNotContainsString( 'Resting', $html );
+		$this->assertStringNotContainsString( '<details', $html );
+	}
+
+	public function test_post_read_since_the_last_pass_says_so() {
+		$this->plant_clusters();
+		$cycle = $this->member( 'Cycling', array( 0.0, 1.0, 0.0 ), -1 );
+		update_option(
+			'undergrowth_cluster_labels',
+			array(
+				'made'  => '2000-01-01 00:00:00',
+				'terms' => array(),
+			),
+			false
+		);
+
+		$this->assertMatchesRegularExpression( '/>Cycling<\/a> \(Read since the groups were last found\)<\/li>/', $this->render() );
+	}
+
+	public function test_long_list_of_posts_not_in_a_group_starts_collapsed() {
+		$this->plant_clusters();
+		self::factory()->post->create_many( 11, array( 'post_status' => 'publish' ) );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<details class="undergrowth-ungrouped-list"><summary>Show all 11 posts</summary><ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">', $html );
+		$this->assertSame( 11, preg_match_all( '/\(Not read yet\)<\/li>/', $html ) );
+	}
+
+	public function test_no_section_when_every_post_is_in_a_group() {
+		$this->plant_clusters();
+
+		$this->assertStringNotContainsString( 'undergrowth-ungrouped', $this->render() );
 	}
 }
