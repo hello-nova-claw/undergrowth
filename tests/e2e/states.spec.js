@@ -400,6 +400,11 @@ const WITH_SIDEBAR = [ 'suggestions', 'incoming' ].map( ( state ) => ( {
 	screen: 'editor-sidebar',
 	state,
 	sidebar: () => sidebarPosts[ state ],
+	// A build from before the sidebar has none to show.
+	open: ( page ) =>
+		page.evaluate( () =>
+			Boolean( window.wp.plugins?.getPlugin( 'undergrowth-links' ) )
+		),
 } ) );
 
 // Posts share fixture words, so the e2e provider suggests links between them.

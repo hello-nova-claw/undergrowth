@@ -11,7 +11,7 @@ const SIDEBAR = '.undergrowth-links-sidebar';
  */
 async function openSidebar( page ) {
 	const toggle = page.locator(
-		'button[aria-controls$="undergrowth-links/undergrowth-links"]'
+		'button[aria-controls="undergrowth-links:undergrowth-links"]'
 	);
 
 	await toggle.focus();
