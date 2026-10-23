@@ -408,6 +408,8 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Accept"
 msgstr ""
 
@@ -419,6 +421,8 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Veto"
 msgstr ""
 
@@ -429,36 +433,52 @@ msgid "Choose words for the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Choose words"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "First word"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Last word"
 msgstr ""
 
 #. translators: 1: a word from the author's sentence, 2: its position in the sentence, 3: how many words the sentence has.
 #: src/class-undergrowth-links-list-table.php
-#, php-format
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+#, php-format,js-format
 msgid "%1$s (%2$s of %3$s)"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Choose the words to link"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "The link goes around your own words, from the first word to the last. Only words already in this sentence can be chosen."
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Save words"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
 msgid "Cancel"
 msgstr ""
 
@@ -732,6 +752,10 @@ msgstr ""
 
 #: src/discord.php
 msgid "Undergrowth only answers its own Accept and Veto buttons."
+msgstr ""
+
+#: src/editor-links.php
+msgid "Linked in the editor. Save the post to keep the link."
 msgstr ""
 
 #: src/editor.php
@@ -1387,6 +1411,41 @@ msgstr ""
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Suggested links"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "No links are suggested from this post."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Linked. The suggestion is accepted when you save the post."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "That sentence has changed."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Posts that could link here"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "No other post is suggested to link here."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Open one of these posts to accept its link to this one."
 msgstr ""
 
 #: build/editor/index.js

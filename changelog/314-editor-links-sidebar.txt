@@ -1,0 +1,1 @@
+New Undergrowth sidebar in the block editor lists the links suggested from the post you are editing, with Accept, Veto and Choose words, and the posts that could link to it. Accept links your words in the editor, so Undo takes the link out again, and the suggestion counts as accepted once you save the post with the link.
