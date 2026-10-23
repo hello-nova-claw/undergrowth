@@ -454,9 +454,19 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
 	}
 
-	public function test_closeness_threshold_is_a_named_constant() {
-		$this->assertSame( 0.5, UNDERGROWTH_MIN_RESURFACING_SIMILARITY );
-		$this->assertSame( 0.5, undergrowth_min_resurfacing_similarity() );
+	public function test_closeness_threshold_is_the_fixed_cluster_threshold_until_one_is_measured() {
+		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_resurfacing_similarity() );
+	}
+
+	public function test_closeness_threshold_follows_the_cluster_threshold() {
+		$measured = static function () {
+			return 0.72;
+		};
+		add_filter( 'undergrowth_min_cluster_similarity', $measured );
+
+		$this->assertSame( 0.72, undergrowth_min_resurfacing_similarity() );
+
+		remove_filter( 'undergrowth_min_cluster_similarity', $measured );
 	}
 
 	public function test_closeness_threshold_can_be_filtered() {
@@ -487,7 +497,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 			return 'close';
 		};
 		add_filter( 'undergrowth_min_resurfacing_similarity', $filter );
-		$this->assertSame( UNDERGROWTH_MIN_RESURFACING_SIMILARITY, undergrowth_min_resurfacing_similarity() );
+		$this->assertSame( undergrowth_min_cluster_similarity(), undergrowth_min_resurfacing_similarity() );
 		remove_filter( 'undergrowth_min_resurfacing_similarity', $filter );
 	}
 

@@ -20,10 +20,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// As close as a post has to be to a leader to join its cluster, so a signal
-// means the composting post would have joined the new cluster.
-const UNDERGROWTH_MIN_RESURFACING_SIMILARITY = 0.5;
-
 add_action( 'undergrowth_resurfacing_cycle', 'undergrowth_run_resurfacing_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_resurfacing_signal' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_returned_signal' );
@@ -117,17 +113,23 @@ function undergrowth_resurfacing_log( int $post_id ): array {
  * @return float Cosine similarity between -1 and 1.
  */
 function undergrowth_min_resurfacing_similarity(): float {
+	// As close as a post has to be to a leader to join its cluster, so a
+	// signal means the composting post would have joined the new cluster.
+	$default = undergrowth_min_cluster_similarity();
+
 	/**
 	 * Filters the lowest similarity at which a composting post resurfaces
 	 * near a new cluster.
 	 *
 	 * Compared with the cluster's leader, as a post joining it would be.
 	 *
-	 * @param float $similarity Cosine similarity. Default 0.5.
+	 * @param float $similarity Cosine similarity. Default the lowest
+	 *                          similarity at which a post joins a cluster.
+	 *                          See undergrowth_min_cluster_similarity().
 	 */
-	$similarity = apply_filters( 'undergrowth_min_resurfacing_similarity', UNDERGROWTH_MIN_RESURFACING_SIMILARITY );
+	$similarity = apply_filters( 'undergrowth_min_resurfacing_similarity', $default );
 
-	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : UNDERGROWTH_MIN_RESURFACING_SIMILARITY;
+	return is_numeric( $similarity ) ? max( -1.0, min( 1.0, (float) $similarity ) ) : $default;
 }
 
 /**
