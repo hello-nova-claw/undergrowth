@@ -28,7 +28,7 @@ Most of section 7 works the same. These parts don't:
 
 - **Settings > Undergrowth still talks about the OpenAI key.** That is the wording a real site needs. In the free mode nothing is sent to OpenAI; the terminal says so when the script starts.
 - **Running the cycle again.** Playground has no WP-CLI. Go to **Plugins > Add New Plugin**, search for WP Crontrol, then install and activate it. Then follow "Without WP-CLI" in section 5. WP Crontrol warns that `DISABLE_WP_CRON` is set: that is expected, because the script runs WP-Cron itself every 10 seconds. A cycle runs in batches, so give it a minute before you look at the stages.
-- **The Dashboard widget.** With no Anthropic key, and Jetpack not connected, the Dashboard has no Undergrowth widget at all. That is correct. The question and the meter checks need a key and a connected Jetpack, so leave them for a real site.
+- **The Dashboard widget** shows a question only with an Anthropic key, and the meter only with Jetpack connected and Stats on. With neither, the Dashboard has no Undergrowth widget at all, and that is correct. To check the question, put an Anthropic key in `.env.local`. Jetpack can't connect to a site on `127.0.0.1`, so leave the meter checks for a real site.
 - **The per-post files** aren't on your disk. Open them in the browser instead: take the folder Settings > Undergrowth shows under Per-post files, add the post's ID and `.txt`, for example `http://127.0.0.1:9400/wp-content/uploads/undergrowth-<random>/posts/123.txt`. The post's ID is the number after `post=` in its edit address. The nginx check doesn't apply.
 - **Discord** can't reach a site on `127.0.0.1`, so skip it.
 - **The post count** on Settings > Undergrowth is one more than your published posts: the new site's own Hello world post is counted too. Drafts, private posts, pages and posts behind a password are left out, as on a real site.
@@ -130,7 +130,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Log in as an editor. If Jetpack's Stats settings don't let editors see Stats, the meter shouldn't show for them either.
 
 **The per-post files**
-- On the server, open the folder that Settings > Undergrowth shows under Per-post files, `wp-content/uploads/undergrowth-<random>/posts/`. Check that `wp-content/uploads/undergrowth/` no longer exists. There is one file per post, named by post ID, for example `123.txt`. Check that each file only holds your own words, addresses, stages and the questions you were asked. `has` lists the post's most distinctive words and the posts it links to, and `lacks` its open link suggestions. `scent` stays empty in this version.
+- On the server, open the folder that Settings > Undergrowth shows under Per-post files, `wp-content/uploads/undergrowth-<random>/posts/`. Check that `wp-content/uploads/undergrowth/` no longer exists. There is one file per post, named by post ID, for example `123.txt`. Each file starts with the post's title, address, slug and when it was last written. Then come its stage and how it changed, any resurfacing notice, `has` (its most distinctive words and the posts it links to), `lacks` (its open link suggestions), `scent` (empty in this version), its proposed and accepted links with their sentences, your vetoes and the questions you were asked. Check that the only sentences in it are your own, and the questions.
 - If the site runs on nginx, check that the folder can't be opened in a browser. See the readme FAQ.
 
 ## 8. Feedback checklist
