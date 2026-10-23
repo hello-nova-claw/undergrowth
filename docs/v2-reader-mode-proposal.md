@@ -16,6 +16,8 @@ Drafted 2026-10-23 for #217. It reads with `docs/handover.md` open: section numb
 8. [Prune, refresh and gap lists](#8-prune-refresh-and-gap-lists)
 9. [The related-by-readers block (#97)](#9-the-related-by-readers-block-97)
 10. [The WordPress AI Client path (#189 to #191)](#10-the-wordpress-ai-client-path-189-to-191)
+11. [Build order](#11-build-order)
+12. [Open questions for Anna](#12-open-questions-for-anna)
 13. [Sources](#13-sources)
 
 ---
@@ -490,6 +492,63 @@ That is a change to #191's scope, and it's noted there when the build issues are
   - For: one settings rewrite at the end.
   - Against: the hurdle stays for longer, and #191's copy is written twice anyway.
 - **10C: a parallel track.** *(Recommended.)* #190 (prompts, WordPress 7.0+) and #191 (copy) any time, since neither depends on reader data. #189 once 7.2 is released. Each step that adds something sent (8.3B, comments in prompts) updates the copy that #191 introduced.
+
+---
+
+## 11. Build order
+
+Each step is one issue and one PR, under the usual rules: test first, changelog fragment, CodeRabbit. They are numbered for v2. Steps marked **(no reader data)** could ship in a v1.x release.
+
+| Step | Issue title (draft) | Depends on | Notes |
+|---|---|---|---|
+| 0 | Docs: Record the reader mode decisions in the handover | Anna's answers | Turns this proposal's answers into handover text and files steps 1 to 17. |
+| 1 | Stages: Let the author mark a post as a hub | — | **(no reader data)** 7.1A. Post meta, editor checkbox, row action, per-post file line. |
+| 2 | Stages: Measure Evergreen once hubs exist (#84) | 1 | **(no reader data)** The structural Evergreen rule. Closes #84. |
+| 3 | Settings: Add the "Learn from readers" switch | — | Appears only when the meter is crossed. Holds the per-signal toggles, consent mode and privacy policy text. Collects nothing yet. |
+| 4 | Storage: Add the scent, paths and terms tables | 3 | Schema, upserts (checked on SQLite), weekly fold, retention cron, uninstall, `wp undergrowth scent`. |
+| 5 | Scent: Count 404s and zero-result searches | 4 | Server-side, minimised at intake, Site Health note for cached search pages. |
+| 6 | Scent: Read per-post views from Jetpack Stats | 4 | 3.5, batched through top posts. |
+| 7 | Scent: Read Search Console clicks through Site Kit | 4 | 3.6A, as a signal ability, clicks only. |
+| 8 | Scent: Treat questions in comments as lacks | 4 | IDs only, plus the eraser and exporter. |
+| 9 | Scent: Add the reading beacon | 4 | 3.2B: the script, REST route, consent API, GPC, caps, sampling filter, Site Health test. Includes the e2e test on a cached page. |
+| 10 | Scent: Add the statistical check | 4 | 5C in `src/check.php`, `wp undergrowth check`, Help tab text. Can be built alongside 5 to 9. |
+| 11 | Abilities: Return reader scent from undergrowth/scent | 6 or 9, 10 | Fills `value`, writes the per-post `## scent` section on the cycle. |
+| 12 | Stages: Add scent to Evergreen and measure Wilting | 2, 11 | 6.2 and 6.3B, refresh-list confirmation. |
+| 13 | Admin: Add the refresh list | 12 | 8.2. |
+| 14 | Admin: Add the prune list | 9, 10 | 8.1, with unlink Accept. |
+| 15 | Admin: Add the gap list | 5, 7, 10 | 8.3A, with "Link from here" through self-trade. 8.3B as its own follow-up issue. |
+| 16 | Map: Propose a hub where readers trade heavily | 1, 9, 10 | 7.2B. |
+| 17 | Blocks: List the posts readers go on to read next (#97) | 9, 10 | 9B. Closes #97. |
+| 18 | Prompts: Draw questions from reader signals | 8, 13, 15 | Comment questions, wilting posts and gaps as 5b sources, B5. |
+| — | #190, #191, then #189 after WordPress 7.2 | — | The parallel track (10C). |
+
+Steps 5 to 8 are independent of each other and can run in parallel sessions. So can step 10 beside any of them.
+
+---
+
+## 12. Open questions for Anna
+
+Each can be answered in a sentence. The recommendation is in brackets.
+
+1. Should reader mode collect in-page signals (dwell, scroll, next clicks) through a script at all, or only signals that need no script? [Both, in two phases. Script signals come second and have their own switch.]
+2. When the beacon is on and no consent tool is installed, should the default be to send nothing? [Yes: nothing until there is consent, or until the owner picks "without asking, under an analytics exemption".]
+3. Should Global Privacy Control and Do Not Track always count as an objection? [Yes.]
+4. How long should scent be kept: 13 weeks, 26 weeks or 13 months? [26 weeks.]
+5. Is "shown only after 3 hits, stored minimised" enough for search terms and 404 paths? [Yes, plus the author can delete any term.]
+6. Search Console: clicks only, or impressions too (B6)? [Clicks only.]
+7. Should Search Console data come through Site Kit's REST datapoint, fetched from an admin visit, instead of the handover's "read tokens from Site Kit" (B7)? [Yes.]
+8. May reader-typed queries be sent to the embedding provider for gap matching, as a separate opt-in (B4)? [Yes, off by default.]
+9. May approved comment text, without name, email or URL, be sent to Anthropic when a comment question feeds a writing prompt (B5)? [Yes, listed in the settings notice.]
+10. Contact-form messages: in v2.0 or not? [Not.]
+11. Should "scent" for Evergreen and Wilting mean engaged reads, rather than views or flow? [Engaged reads, falling back to views.]
+12. Should Wilting reach the reader-visible badge only after the author confirms it (B2)? [Yes.]
+13. Are hubs marked by the author, so Evergreen (#84) can ship before reader mode? [Yes.]
+14. May a fusion Accept create an unpublished draft holding only the member posts' titles as links (B3)? [Yes, and nothing else in it.]
+15. May the prune list propose removing links the author wrote by hand, not only accepted ones? [Yes, Accept still needs the author.]
+16. Related-by-readers: should the author approve each post's list when it changes, or does placing the block count as approval (B1)? [Approve each change.]
+17. Once the meter is crossed and reader mode is on, should reader mode pause if views fall back below the line? [No. The statistical check already stops proposals when traffic is thin.]
+18. Is sampling 1 in N beacons on very busy sites acceptable? [Yes, through a filter, off by default.]
+19. AI Client: a parallel track, with #190 and #191 now and #189 after 7.2? [Yes.]
 
 ---
 
