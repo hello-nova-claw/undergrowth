@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 4;
+const UNDERGROWTH_SCHEMA_VERSION = 5;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -109,6 +109,7 @@ function undergrowth_install_schema(): bool {
 			sentence_index int(11) NOT NULL DEFAULT -1,
 			anchor varchar(255) NOT NULL DEFAULT '',
 			anchor_offset int(11) NOT NULL DEFAULT -1,
+			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),

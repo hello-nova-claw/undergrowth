@@ -327,18 +327,21 @@ function undergrowth_veto_result( int $source_id, int $target_id ): string {
  * Words the result of accepting or vetoing a link, so the author reads the
  * same reason on the screen, through an ability and in Discord.
  *
- * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.
+ * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe' or 'needs_admin'.
  */
 function undergrowth_link_result_messages(): array {
 	return array(
-		'accepted'     => __( 'Linked. The highlighted words in your sentence now link to the suggested post.', 'undergrowth' ),
-		'vetoed'       => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
-		'unchanged'    => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
-		'gone'         => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
-		'not_proposed' => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
-		'edited'       => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'no_word'      => __( 'No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
-		'needs_admin'  => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
+		'accepted'      => __( 'Linked. The highlighted words in your sentence now link to the suggested post.', 'undergrowth' ),
+		'vetoed'        => __( 'Done. This link won’t be suggested again.', 'undergrowth' ),
+		'unchanged'     => __( 'That link was already accepted, so it was left as it is.', 'undergrowth' ),
+		'gone'          => __( 'One of those posts no longer exists or is no longer published, so nothing was changed.', 'undergrowth' ),
+		'not_proposed'  => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
+		'edited'        => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'no_word'       => __( 'No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'words_saved'   => __( 'Saved. Accept will link the words now highlighted.', 'undergrowth' ),
+		'words_invalid' => __( 'Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it.', 'undergrowth' ),
+		'words_unsafe'  => __( 'Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words.', 'undergrowth' ),
+		'needs_admin'   => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
 	);
 }
 
@@ -625,10 +628,22 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 			'sentence_index' => $sentence['index'],
 			'anchor'         => $anchor['anchor'],
 			'anchor_offset'  => $anchor['offset'],
+			'anchor_chosen'  => 0,
 			'updated_at'     => $now,
 		);
+		$formats               = array( '%f', '%s', '%d', '%s', '%d', '%d', '%s' );
 
 		if ( 'proposed' === $state ) {
+			// Words the author chose stay theirs while the sentence they
+			// chose them in is still the one suggested.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+			$chosen = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d AND anchor_chosen = 1', $table, $post_id, $target_id ) );
+
+			if ( $sentence['text'] === $chosen ) {
+				unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
+				$formats = array( '%f', '%s', '%d', '%s' );
+			}
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 			$wpdb->update(
 				$table,
@@ -637,7 +652,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 					'source_id' => $post_id,
 					'target_id' => $target_id,
 				),
-				array( '%f', '%s', '%d', '%s', '%d', '%s' ),
+				$formats,
 				array( '%d', '%d' )
 			);
 		} elseif ( '' === $state ) {
@@ -653,7 +668,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 					),
 					$fields
 				),
-				array( '%d', '%d', '%s', '%s', '%f', '%s', '%d', '%s', '%d', '%s' )
+				array_merge( array( '%d', '%d', '%s', '%s' ), $formats )
 			);
 		}
 

@@ -134,6 +134,98 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			expect( post.content.raw ).toContain( `>${ marked }</a>` );
 		} );
 
+		test( 'chooses the words to link by keyboard, then links exactly those', async ( {
+			page,
+			requestUtils,
+		} ) => {
+			const row = page
+				.locator( 'table.undergrowth-links tbody tr' )
+				.filter( {
+					has: page.locator( '.column-source a', { hasText: 'Oca' } ),
+				} );
+			const choose = row.locator( '.row-actions .choose a' );
+
+			await expect( choose ).toHaveAttribute(
+				'aria-label',
+				/Oca[\s\S]*Yacon/
+			);
+			await choose.focus();
+			await page.keyboard.press( 'Enter' );
+
+			// The form opens under the sentence with the first word focused.
+			const form = page.locator( 'form.undergrowth-choose-words' );
+			const first = form.locator( 'select[name="first"]' );
+			const last = form.locator( 'select[name="last"]' );
+
+			await expect( first ).toBeFocused();
+			await expect( form.locator( 'legend' ) ).toBeVisible();
+			await expect(
+				form.locator( 'input:not([type="hidden"]), textarea' )
+			).toHaveCount( 0 );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			// "I keep yacon nearby.": words 3 and 4.
+			await first.selectOption( '2' );
+			await page.keyboard.press( 'Tab' );
+			await expect( last ).toBeFocused();
+			await last.selectOption( '3' );
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				form.locator( 'button[type="submit"]' )
+			).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+
+			const notice = page.locator( '#undergrowth-notice' );
+			await expect( notice ).toBeFocused();
+			await expect( notice ).toHaveClass( /notice-success/ );
+			await expect( row.locator( 'q mark' ) ).toHaveText(
+				'yacon nearby'
+			);
+			await expect( form ).toHaveCount( 0 );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			await actionButton( row, 'accept', /Oca[\s\S]*Yacon/ ).focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( notice ).toBeFocused();
+
+			const post = await requestUtils.rest( {
+				path: `/wp/v2/posts/${ oca.id }`,
+				params: { context: 'edit' },
+			} );
+			expect( post.content.raw ).toContain( '>yacon nearby</a>' );
+		} );
+
+		test( 'at phone width, the Choose words form fits and keeps no violations', async ( {
+			page,
+		} ) => {
+			await page.setViewportSize( { width: 390, height: 800 } );
+
+			const row = page
+				.locator( 'table.undergrowth-links tbody tr' )
+				.first();
+
+			await row.locator( '.row-actions .choose a' ).click();
+
+			const form = page.locator( 'form.undergrowth-choose-words' );
+
+			await expect(
+				form.locator( 'select[name="first"]' )
+			).toBeInViewport();
+			expect(
+				await page.evaluate(
+					() =>
+						document.documentElement.scrollWidth <=
+						window.innerWidth
+				)
+			).toBe( true );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			// Cancel closes the form without changing anything.
+			await form.locator( 'a.button' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( form ).toHaveCount( 0 );
+		} );
+
 		test( 'at phone width, each row leads with its sentence and target', async ( {
 			page,
 		} ) => {

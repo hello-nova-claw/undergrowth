@@ -19,6 +19,14 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	const PER_PAGE = 20;
 
 	/**
+	 * Each row's form, printed after the table so it never sits inside the
+	 * form that holds the bulk actions.
+	 *
+	 * @var string[]
+	 */
+	private $row_forms = array();
+
+	/**
 	 * Sets up the table.
 	 */
 	public function __construct() {
@@ -34,16 +42,126 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	/**
 	 * Names the table's columns.
 	 *
-	 * One column, as on core's Posts screen: the stage sits beside the
-	 * title as a post state, and Pin is a row action, so a narrow screen
-	 * shows all of it.
+	 * The stage and the pin have columns of their own, so each can be
+	 * sorted. Pin and Unpin stay row actions under the title.
 	 *
 	 * @return array<string, string> Column labels keyed by column name.
 	 */
 	public function get_columns() {
-		return array(
-			'post' => __( 'Post', 'undergrowth' ),
+		$columns = array();
+
+		if ( array() !== $this->get_bulk_actions() ) {
+			$columns['cb'] = '<input type="checkbox" />';
+		}
+
+		return $columns + array(
+			'post'   => __( 'Post', 'undergrowth' ),
+			'stage'  => __( 'Growth stage', 'undergrowth' ),
+			'pinned' => __( 'Pinned', 'undergrowth' ),
 		);
+	}
+
+	/**
+	 * Names the sortable columns and the order each sorts in first.
+	 *
+	 * Pinned sorts pinned posts first the first time it is chosen.
+	 *
+	 * @return array<string, array{0: string, 1: bool}> Sortable columns.
+	 */
+	public function get_sortable_columns() {
+		return array(
+			'post'   => array( 'title', false ),
+			'stage'  => array( 'stage', false ),
+			'pinned' => array( 'pinned', true ),
+		);
+	}
+
+	/**
+	 * Names the bulk actions, for a user who can edit posts.
+	 *
+	 * Composting posts are not listed here, so Return to garden is not
+	 * offered. Each post is still checked on its own when the action runs.
+	 *
+	 * @return array<string, string> Labels keyed by action.
+	 */
+	public function get_bulk_actions() {
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			return array();
+		}
+
+		return array(
+			'pin'     => __( 'Pin stage', 'undergrowth' ),
+			'unpin'   => __( 'Unpin stage', 'undergrowth' ),
+			'compost' => __( 'Compost', 'undergrowth' ),
+		);
+	}
+
+	/**
+	 * Builds the links above the table: All, each stage, Pinned and Not
+	 * pinned, with their counts.
+	 *
+	 * A view with no posts is left out, as the summary leaves out an empty
+	 * stage: on a new site, a row of zeros reads like a score.
+	 *
+	 * @return array<string, string> Link HTML keyed by view.
+	 */
+	protected function get_views() {
+		$counts = undergrowth_count_stages();
+		$all    = 0;
+
+		foreach ( UNDERGROWTH_GARDEN_STAGES as $stage ) {
+			$all += $counts[ $stage ];
+		}
+
+		$counts['pinned']   = undergrowth_count_pinned();
+		$counts['unpinned'] = $all - $counts['pinned'];
+
+		$current = undergrowth_stage_filter_value();
+		$views   = array( 'all' => $this->view_link( '', __( 'All', 'undergrowth' ), $all, '' === $current ) );
+
+		foreach ( undergrowth_stage_filters() as $filter => $label ) {
+			if ( $counts[ $filter ] > 0 ) {
+				$views[ $filter ] = $this->view_link( $filter, $label, $counts[ $filter ], $filter === $current );
+			}
+		}
+
+		return $views;
+	}
+
+	/**
+	 * Builds one view link, as core builds the links above the Posts list.
+	 *
+	 * @param string $filter  A key of undergrowth_stage_filters(), or an empty string for All.
+	 * @param string $label   Translated name of the view.
+	 * @param int    $count   Number of posts in it.
+	 * @param bool   $current Whether it is the view on screen.
+	 * @return string Link HTML.
+	 */
+	private function view_link( string $filter, string $label, int $count, bool $current ): string {
+		$url = undergrowth_suggestions_url( '', 'stages' );
+
+		if ( '' !== $filter ) {
+			$url = add_query_arg( 'undergrowth_stage', $filter, $url );
+		}
+
+		return sprintf(
+			'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
+			esc_url( $url ),
+			$current ? ' class="current" aria-current="page"' : '',
+			esc_html( $label ),
+			esc_html( number_format_i18n( $count ) )
+		);
+	}
+
+	/**
+	 * Says that the view on screen has no posts.
+	 *
+	 * The tab has its own message for a garden with no posts at all.
+	 *
+	 * @return void
+	 */
+	public function no_items() {
+		esc_html_e( 'No posts in this view.', 'undergrowth' );
 	}
 
 	/**
@@ -65,7 +183,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	public function prepare_items() {
-		$this->_column_headers = array( $this->get_columns(), array(), array(), $this->get_default_primary_column_name() );
+		$this->_column_headers = array( $this->get_columns(), array(), $this->get_sortable_columns(), $this->get_default_primary_column_name() );
 
 		$post_types = undergrowth_indexed_post_types();
 
@@ -76,31 +194,48 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			return;
 		}
 
-		$query = new WP_Query(
-			array(
-				'post_type'      => $post_types,
-				'post_status'    => 'publish',
-				'has_password'   => false,
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'posts_per_page' => self::PER_PAGE,
-				'paged'          => $this->get_pagenum(),
-				'fields'         => 'ids',
-				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- A post with no stage stored is a seedling, so only a composting value can leave it out.
-				'meta_query'     => array(
-					'relation' => 'OR',
-					array(
-						'key'     => 'undergrowth_stage',
-						'compare' => 'NOT EXISTS',
-					),
-					array(
-						'key'     => 'undergrowth_stage',
-						'value'   => 'composting',
-						'compare' => '!=',
-					),
-				),
-			)
+		$meta_query = array( undergrowth_garden_meta_query() );
+		$filter     = undergrowth_stage_filter_value();
+
+		if ( '' !== $filter ) {
+			$meta_query[] = undergrowth_stage_filter_meta_query( $filter );
+		}
+
+		list( $orderby, $order ) = undergrowth_stages_table_order();
+
+		$args  = array(
+			'post_type'           => $post_types,
+			'post_status'         => 'publish',
+			'has_password'        => false,
+			// A sort by stage or pin keeps the titles in order within it.
+			'orderby'             => 'title',
+			'order'               => 'title' === $orderby ? $order : 'ASC',
+			'undergrowth_orderby' => 'title' === $orderby ? '' : $orderby,
+			'undergrowth_order'   => $order,
+			'posts_per_page'      => self::PER_PAGE,
+			'paged'               => $this->get_pagenum(),
+			'fields'              => 'ids',
+			'meta_query'          => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The garden and the view the author chose.
 		);
+		$query = new WP_Query( $args );
+		$total = (int) $query->found_posts;
+
+		// A page past the end, as after a bulk action emptied the last page,
+		// finds no posts and counts none. Core's pagination then shows the
+		// last page, so that page is the one listed.
+		if ( array() === $query->posts && $this->get_pagenum() > 1 ) {
+			$count = new WP_Query(
+				array(
+					'paged'          => 1,
+					'posts_per_page' => 1,
+				) + $args
+			);
+			$total = (int) $count->found_posts;
+
+			if ( $total > 0 ) {
+				$query = new WP_Query( array( 'paged' => (int) ceil( $total / self::PER_PAGE ) ) + $args );
+			}
+		}
 
 		$post_ids = array_map( 'intval', $query->posts );
 
@@ -110,7 +245,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$this->set_pagination_args(
 			array(
-				'total_items' => (int) $query->found_posts,
+				'total_items' => $total,
 				'per_page'    => self::PER_PAGE,
 			)
 		);
@@ -119,33 +254,77 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Prints the post's title, linked to its editor when the user can edit
-	 * it, with its stage beside it as core prints "Draft" beside a title,
-	 * and a marker when the stage is pinned. The forms behind the row
-	 * actions sit here too, holding only hidden fields.
+	 * Prints the post's title, linked to its editor when the user can edit it.
+	 *
+	 * The form behind its row action is kept for print_row_forms().
 	 *
 	 * @param WP_Post $item Post.
 	 * @return string Cell HTML.
 	 */
 	public function column_post( $item ) {
 		$post_id = $item->ID;
-		$title   = undergrowth_post_link( $post_id, 'row-title' );
-		$stage   = undergrowth_get_stage( $post_id );
-
-		$state = esc_html( undergrowth_stage_label( $stage ) ) . undergrowth_pinned_marker( $post_id );
-
-		$html = '<strong>' . sprintf(
-			/* translators: 1: post title, 2: its growth stage. */
-			__( '%1$s &mdash; %2$s', 'undergrowth' ),
-			$title,
-			'<span class="post-state">' . $state . '</span>'
-		) . '</strong>';
 
 		if ( $this->can_pin( $post_id ) ) {
-			$html .= $this->form( $post_id, undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin' );
+			$this->row_forms[] = $this->form( $post_id, undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin' );
 		}
 
-		return $html;
+		return '<strong>' . undergrowth_post_link( $post_id, 'row-title' ) . '</strong>';
+	}
+
+	/**
+	 * Prints the post's stage.
+	 *
+	 * @param WP_Post $item Post.
+	 * @return string Cell HTML.
+	 */
+	public function column_stage( $item ) {
+		return esc_html( undergrowth_stage_label( undergrowth_get_stage( $item->ID ) ) );
+	}
+
+	/**
+	 * Prints the pin marker, or core's dash for an empty cell.
+	 *
+	 * @param WP_Post $item Post.
+	 * @return string Cell HTML.
+	 */
+	public function column_pinned( $item ) {
+		$marker = trim( undergrowth_pinned_marker( $item->ID ) );
+
+		if ( '' !== $marker ) {
+			return $marker;
+		}
+
+		return sprintf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>', esc_html__( 'Not pinned', 'undergrowth' ) );
+	}
+
+	/**
+	 * Prints a row's checkbox, for a post the user may change.
+	 *
+	 * @param WP_Post $item Post.
+	 * @return string Checkbox HTML.
+	 */
+	public function column_cb( $item ) {
+		if ( ! $this->can_pin( $item->ID ) ) {
+			return '';
+		}
+
+		return sprintf(
+			'<label class="screen-reader-text" for="cb-select-%1$d">%2$s</label><input id="cb-select-%1$d" type="checkbox" name="post[]" value="%1$d" />',
+			$item->ID,
+			/* translators: %s: post title. */
+			esc_html( sprintf( __( 'Select %s', 'undergrowth' ), undergrowth_post_title( $item->ID ) ) )
+		);
+	}
+
+	/**
+	 * Prints the forms behind the rows' Pin and Unpin actions.
+	 *
+	 * Each holds only hidden fields. A form cannot sit inside another, so
+	 * these come after the table's own form, and the row actions point at
+	 * them by id.
+	 */
+	public function print_row_forms(): void {
+		echo implode( '', $this->row_forms ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each form is escaped where it is built.
 	}
 
 	/**
