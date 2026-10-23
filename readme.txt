@@ -51,21 +51,25 @@ Suggestions appear on Posts > Undergrowth a few moments after a post is read. Cl
 
 == Frequently Asked Questions ==
 
+= Which outside services does Undergrowth use? =
+
+Four, and none until you set it up: OpenAI, to read your posts, once you save an OpenAI key; Anthropic, to write your Dashboard question, once you save an Anthropic key; Discord, once you fill in its settings; and Jetpack Stats, for the readers meter, if Jetpack is installed with Stats on. Each is a service you sign up to yourself, under its own terms. The four questions below say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its authors and loads nothing from outside the plugin.
+
 = What is sent to OpenAI? =
 
-With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. Remove the key on Settings > Undergrowth to stop.
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. Remove the key on Settings > Undergrowth to stop. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/).
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, never as instructions. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard.
+With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, never as instructions. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron: once soon after you first save the key, then when the monthly cycle looks for a question. Remove the key to stop. They are made under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy).
 
 = What is sent to Discord? =
 
-Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Button clicks come back to your site signed by Discord, and are checked against your application's public key.
+Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Messages are sent to `discord.com` from WP-Cron, a few moments after each suggestion is made. Button clicks come back to your site signed by Discord, and are checked against your application's public key. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
 
 = What does the readers meter read from Jetpack? =
 
-Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen; Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, there is no meter on the Dashboard; the Help tab on Settings > Undergrowth says what it needs.
+Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/); Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, there is no meter on the Dashboard; the Help tab on Settings > Undergrowth says what it needs.
 
 = What does it cost? =
 
