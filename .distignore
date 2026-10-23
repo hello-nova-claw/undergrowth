@@ -39,3 +39,5 @@ playwright.screenshots.config.js
 .wp-env.override.json
 .phpunit.result.cache
 .*
+/.wordpress-org
+CLAUDE.md
