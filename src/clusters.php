@@ -24,7 +24,6 @@ const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
-add_filter( 'is_protected_meta', 'undergrowth_protect_cluster_meta', 10, 2 );
 
 /**
  * Returns the lowest similarity at which a post joins a cluster.
@@ -602,16 +601,4 @@ function undergrowth_forget_composted_cluster( int $post_id ): void {
 	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
 		undergrowth_forget_cluster( $post_id );
 	}
-}
-
-/**
- * Keeps the cluster key out of the Custom Fields box, where it could be
- * edited by hand.
- *
- * @param bool   $is_protected Whether the key is protected.
- * @param string $meta_key     Meta key.
- * @return bool True for the cluster key, otherwise unchanged.
- */
-function undergrowth_protect_cluster_meta( $is_protected, $meta_key ) {
-	return 'undergrowth_cluster' === $meta_key ? true : $is_protected;
 }
