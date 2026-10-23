@@ -101,8 +101,8 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 - Is anything suggested that you would never link?
 
 **Accept and Veto**
-- Each suggestion leads with your sentence, with the word Undergrowth would link highlighted, and "Link to" the other post under it, then Accept | Veto. Try it on a phone too: all of that should show without opening the row.
-- Accept a suggestion. Undergrowth picks the word itself. Open the post: the highlighted word, and nothing else, should now be a plain link. A revision should be saved too. Does it pick a sensible word?
+- Each suggestion leads with your sentence, with the words Undergrowth would link highlighted, and "Link to" the other post under it, then Accept | Veto. Try it on a phone too: all of that should show without opening the row.
+- Accept a suggestion. Undergrowth picks the words itself, one to four of them, preferring the other post's title or a short phrase that names it. Open the post: the highlighted words, and nothing else, should now be a plain link. A revision should be saved too. Do they read like link text you would have chosen? If not, use Choose words on the row first: pick the first and last word, save, and check the highlight moved before you accept.
 - Veto a suggestion. It should go away and not come back, even after you edit either post.
 
 **Growth stages** (Growth stages tab)
@@ -145,7 +145,7 @@ Copy this into a new issue, tick what worked, and add a line about anything that
 - [ ] Existing posts were all read without saving them
 - [ ] Link suggestions mostly connect posts that belong together
 - [ ] Quoted sentences are good places for the links
-- [ ] Accept linked one word and changed nothing else
+- [ ] Accept linked the highlighted words and changed nothing else
 - [ ] Veto removed a suggestion for good
 - [ ] Stages look plausible after running the cycle
 - [ ] Pin and unpin behave as expected

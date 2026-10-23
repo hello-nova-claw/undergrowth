@@ -13,9 +13,12 @@ add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
 add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
+add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_words' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
+add_action( 'load-posts_page_undergrowth-links', 'undergrowth_handle_stages_bulk' );
+add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' );
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
 
 /**
@@ -163,6 +166,27 @@ function undergrowth_handle_accept(): void {
 }
 
 /**
+ * Saves the words chosen in a row's Choose words form, then returns to the screen.
+ */
+function undergrowth_handle_choose_words(): void {
+	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
+	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_choose_words_' . $source . '_' . $target );
+
+	if ( ! current_user_can( 'edit_post', $source ) ) {
+		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$first = isset( $_POST['first'] ) ? (int) $_POST['first'] : -1;
+	$last  = isset( $_POST['last'] ) ? (int) $_POST['last'] : -1;
+	$shown = isset( $_POST['shown'] ) ? sanitize_key( wp_unslash( $_POST['shown'] ) ) : '';
+
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
+	exit;
+}
+
+/**
  * Pins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_pin(): void {
@@ -295,7 +319,10 @@ function undergrowth_render_stages_tab(): void {
 	$table = new Undergrowth_Stages_List_Table();
 	$table->prepare_items();
 
-	if ( ! $table->has_items() ) {
+	// Only a garden with no posts at all gets the first-run message. A view
+	// with no posts, or a page past the end after a bulk action, still shows
+	// the table, so the author can choose another view or page.
+	if ( 0 === (int) $table->get_pagination_arg( 'total_items' ) && '' === undergrowth_stage_filter_value() ) {
 		if ( undergrowth_has_composting_posts() ) {
 			echo '<p>' . esc_html__( 'Every published post is composting, so none has a growth stage to show here. Composting posts are marked on the Posts screen.', 'undergrowth' ) . '</p>';
 		} else {
@@ -330,32 +357,143 @@ function undergrowth_render_stages_tab(): void {
 		);
 	}
 
+	$table->views();
+
+	// Like the Posts list, the bulk actions go by GET to the screen itself,
+	// keeping the view and the sort.
+	echo '<form method="get" id="undergrowth-stages-form" action="' . esc_url( admin_url( 'edit.php' ) ) . '">';
+
+	foreach ( undergrowth_stages_table_args() as $name => $value ) {
+		printf( '<input type="hidden" name="%1$s" value="%2$s" />', esc_attr( $name ), esc_attr( $value ) );
+	}
+
 	$table->display();
+	echo '</form>';
+	$table->print_row_forms();
 }
 
 /**
- * Prints the map tab: each cluster as a heading over its posts.
+ * Reads the stages table's sort from the address.
  *
- * Clusters are numbered, never named, so nothing on the screen is written
- * by a model. A gap is marked in the heading, where a screen reader's list
- * of headings finds it, and said in words that name no post or topic.
+ * @return array{0: string, 1: string} 'title', 'stage' or 'pinned', then 'ASC' or 'DESC'. Title, A to Z, for anything else.
+ */
+function undergrowth_stages_table_order(): array {
+	// The sort only orders the list; nothing is changed.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$orderby = isset( $_GET['orderby'] ) && is_string( $_GET['orderby'] ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : '';
+	$order   = isset( $_GET['order'] ) && is_string( $_GET['order'] ) ? strtoupper( sanitize_key( wp_unslash( $_GET['order'] ) ) ) : '';
+	// phpcs:enable
+
+	if ( ! in_array( $orderby, array( 'title', 'stage', 'pinned' ), true ) ) {
+		return array( 'title', 'ASC' );
+	}
+
+	return array( $orderby, 'DESC' === $order ? 'DESC' : 'ASC' );
+}
+
+/**
+ * Names the address arguments that keep the stages tab's view and sort.
+ *
+ * @return array<string, string> Argument values keyed by name, checked against their allowlists.
+ */
+function undergrowth_stages_table_args(): array {
+	$args = array(
+		'page' => 'undergrowth-links',
+		'tab'  => 'stages',
+	);
+
+	$filter = undergrowth_stage_filter_value();
+
+	if ( '' !== $filter ) {
+		$args['undergrowth_stage'] = $filter;
+	}
+
+	// The sort only orders the list; nothing is changed.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( isset( $_GET['orderby'] ) ) {
+		list( $args['orderby'], $order ) = undergrowth_stages_table_order();
+		$args['order']                   = strtolower( $order );
+	}
+
+	return $args;
+}
+
+/**
+ * Carries out a bulk action from the stages table, then returns to it
+ * with the counts.
+ *
+ * It runs as the screen loads, as core's Posts list does, and hands each
+ * post to the Posts list's own bulk handler, so both lists keep the same
+ * rules. Each post is checked on its own there.
+ */
+function undergrowth_handle_stages_bulk(): void {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only reads which tab is open; the nonce is checked below.
+	if ( ! isset( $_GET['tab'] ) || 'stages' !== sanitize_key( wp_unslash( $_GET['tab'] ) ) ) {
+		return;
+	}
+
+	undergrowth_load_stages_table();
+	$table   = new Undergrowth_Stages_List_Table();
+	$action  = $table->current_action();
+	$actions = $table->get_bulk_actions();
+	$url     = add_query_arg( undergrowth_stages_table_args(), admin_url( 'edit.php' ) );
+	$paged   = $table->get_pagenum();
+
+	if ( $paged > 1 ) {
+		$url = add_query_arg( 'paged', $paged, $url );
+	}
+
+	if ( false === $action || ! isset( $actions[ $action ] ) ) {
+		// Apply with no action chosen, or a page number typed in, sends the
+		// whole form. Core's lists then return to a clean address.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nothing is changed.
+		if ( isset( $_GET['_wp_http_referer'] ) ) {
+			wp_safe_redirect( $url );
+			exit;
+		}
+
+		return;
+	}
+
+	check_admin_referer( 'bulk-undergrowth-stages' );
+
+	$post_ids = isset( $_GET['post'] ) ? array_map( 'absint', (array) wp_unslash( $_GET['post'] ) ) : array();
+
+	wp_safe_redirect( undergrowth_handle_compost_bulk( $url, 'undergrowth_' . $action, $post_ids ) );
+	exit;
+}
+
+/**
+ * Prints the map tab: a count of every post, each cluster as a heading over
+ * its posts, then the posts not in a group yet.
+ *
+ * A cluster is named after the title of its post nearest the middle, with
+ * a few words its posts share, all stored by the monthly pass. Every word
+ * is the author's own; none is written by a model. A gap is marked in the
+ * heading, where a screen reader's list of headings finds it, and said in
+ * words that name no post or topic.
  */
 function undergrowth_render_map_tab(): void {
-	echo '<p>' . esc_html__( 'Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first.', 'undergrowth' ) . '</p>';
 
-	foreach ( undergrowth_cluster_map() as $number => $cluster ) {
+	$map    = undergrowth_cluster_map();
+	$counts = undergrowth_map_accounting( $map );
+
+	undergrowth_render_map_counts( count( $map ), $counts );
+
+	foreach ( $map as $cluster ) {
 		$id    = 'undergrowth-cluster-' . $cluster['leader'];
-		$label = number_format_i18n( $number + 1 );
+		$title = undergrowth_post_title( $cluster['members'][0] );
 
 		printf(
 			'<h2 id="%1$s">%2$s</h2>',
 			esc_attr( $id ),
 			esc_html(
 				$cluster['gap']
-					/* translators: %1$s: number of the group on the screen. */
-					? sprintf( __( 'Group %1$s, with a gap', 'undergrowth' ), $label )
-					/* translators: %1$s: number of the group on the screen. */
-					: sprintf( __( 'Group %1$s', 'undergrowth' ), $label )
+					/* translators: %1$s: title of the post nearest the middle of the group. */
+					? sprintf( __( 'Around “%1$s”, with a gap', 'undergrowth' ), $title )
+					/* translators: %1$s: title of the post nearest the middle of the group. */
+					: sprintf( __( 'Around “%1$s”', 'undergrowth' ), $title )
 			)
 		);
 
@@ -366,25 +504,146 @@ function undergrowth_render_map_tab(): void {
 			);
 		}
 
-		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
+		$size  = count( $cluster['members'] );
+		$about = array(
+			/* translators: %1$s: number of posts in the group. */
+			esc_html( sprintf( _n( '%1$s post.', '%1$s posts.', $size, 'undergrowth' ), number_format_i18n( $size ) ) ),
+		);
+		$terms = undergrowth_cluster_terms( $cluster['leader'], undergrowth_plain_line( $title ) );
 
-		foreach ( $cluster['members'] as $post_id ) {
-			printf(
-				'<li>%s</li>',
-				wp_kses(
-					sprintf(
-						/* translators: 1: post title, linked to its editor when you can edit it, 2: growth stage. */
-						__( '%1$s (%2$s)', 'undergrowth' ),
-						undergrowth_post_link( $post_id ),
-						esc_html( undergrowth_stage_label( undergrowth_get_stage( $post_id ) ) )
-					),
-					array( 'a' => array( 'href' => array() ) )
+		if ( array() !== $terms ) {
+			$about[] = sprintf(
+				/* translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost". */
+				esc_html__( 'Words that set this group apart: %1$s.', 'undergrowth' ),
+				wp_sprintf_l(
+					'%l',
+					array_map(
+						static function ( $term ) {
+							return '<bdi>' . esc_html( $term ) . '</bdi>';
+						},
+						$terms
+					)
 				)
 			);
 		}
 
+		echo '<p class="undergrowth-group-about"><span>' . implode( '</span> <span>', $about ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part is escaped above.
+
+		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
+
+		foreach ( $cluster['members'] as $post_id ) {
+			undergrowth_render_map_post( $post_id, undergrowth_stage_label( undergrowth_get_stage( $post_id ) ) );
+		}
+
 		echo '</ul>';
 	}
+
+	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
+}
+
+/**
+ * Prints the line that accounts for every post on the map.
+ *
+ * Each count is its own sentence, translated whole. A count of none is
+ * left out, as on the growth stages tab.
+ *
+ * @param int   $groups Number of groups on the map.
+ * @param array $counts Result of undergrowth_map_accounting().
+ *
+ * @phpstan-param array{grouped: int, ungrouped: array<int, string>, composting: int} $counts
+ */
+function undergrowth_render_map_counts( int $groups, array $counts ): void {
+	$sentences = array(
+		sprintf(
+			/* translators: 1: number of posts, 2: number of groups, such as "4 groups". */
+			_n( '%1$s post is in %2$s.', '%1$s posts are in %2$s.', $counts['grouped'], 'undergrowth' ),
+			number_format_i18n( $counts['grouped'] ),
+			/* translators: %1$s: number of groups. */
+			sprintf( _n( '%1$s group', '%1$s groups', $groups, 'undergrowth' ), number_format_i18n( $groups ) )
+		),
+	);
+	$ungrouped = count( $counts['ungrouped'] );
+
+	if ( $ungrouped > 0 ) {
+		/* translators: %1$s: number of posts. */
+		$sentences[] = sprintf( _n( '%1$s post is not in a group yet.', '%1$s posts are not in a group yet.', $ungrouped, 'undergrowth' ), number_format_i18n( $ungrouped ) );
+	}
+
+	if ( $counts['composting'] > 0 ) {
+		$sentences[] = undergrowth_stage_count_sentence( 'composting', $counts['composting'] );
+	}
+
+	echo '<p class="undergrowth-map-counts"><span>' . implode( '</span> <span>', array_map( 'esc_html', $sentences ) ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each sentence is escaped here.
+}
+
+/**
+ * Prints the posts not in a group yet, each with the reason.
+ *
+ * A long list starts collapsed, in core's own disclosure element, so the
+ * groups above stay in reach.
+ *
+ * @param array<int, string> $ungrouped Reason keyed by post ID, from undergrowth_map_accounting().
+ */
+function undergrowth_render_ungrouped_posts( array $ungrouped ): void {
+	if ( array() === $ungrouped ) {
+		return;
+	}
+
+	$reasons = array(
+		'unread' => __( 'Not read yet', 'undergrowth' ),
+		'new'    => __( 'Read since the groups were last found', 'undergrowth' ),
+		'apart'  => __( 'Not close enough to other posts yet', 'undergrowth' ),
+	);
+	$count   = count( $ungrouped );
+	$long    = $count > 10;
+
+	printf( '<h2 id="undergrowth-ungrouped">%s</h2>', esc_html__( 'Not in a group yet', 'undergrowth' ) );
+	echo '<p>' . esc_html__( 'A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month.', 'undergrowth' ) . '</p>';
+
+	if ( $long ) {
+		printf(
+			'<details class="undergrowth-ungrouped-list"><summary>%s</summary>',
+			/* translators: %1$s: number of posts. */
+			esc_html( sprintf( _n( 'Show the %1$s post', 'Show all %1$s posts', $count, 'undergrowth' ), number_format_i18n( $count ) ) )
+		);
+	}
+
+	echo '<ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">';
+
+	// One query for every post's title and edit link, however long the list.
+	_prime_post_caches( array_keys( $ungrouped ), false, false );
+
+	foreach ( $ungrouped as $post_id => $reason ) {
+		undergrowth_render_map_post( $post_id, $reasons[ $reason ] ?? $reasons['apart'] );
+	}
+
+	echo '</ul>';
+
+	if ( $long ) {
+		echo '</details>';
+	}
+}
+
+/**
+ * Prints one post on the map as a list item: its title, linked to its
+ * editor when the user can edit it, and a note in brackets.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $note    Growth stage or reason, not escaped.
+ */
+function undergrowth_render_map_post( int $post_id, string $note ): void {
+	printf(
+		'<li>%s</li>',
+		wp_kses(
+			sprintf(
+				/* translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group. */
+				__( '%1$s (%2$s)', 'undergrowth' ),
+				undergrowth_post_link( $post_id ),
+				esc_html( $note )
+			),
+			array( 'a' => array( 'href' => array() ) )
+		)
+	);
 }
 
 /**
@@ -490,6 +749,37 @@ function undergrowth_post_title( int $post_id ): string {
  */
 function undergrowth_print_notice_focus_script(): void {
 	wp_print_inline_script_tag( "window.addEventListener( 'load', function () { var notice = document.getElementById( 'undergrowth-notice' ); if ( notice ) { notice.focus(); } } );" );
+}
+
+/**
+ * Prints the notices that report the action which brought the user back,
+ * and moves focus to the first.
+ *
+ * The first is heard at once; a second is read after it.
+ *
+ * @param array<string, string> $notices Markup of paragraphs, and links within them, keyed by notice class such as 'notice-success'.
+ */
+function undergrowth_print_result_notices( array $notices ): void {
+	$id = ' id="undergrowth-notice"';
+
+	foreach ( $notices as $class => $paragraphs ) {
+		printf(
+			'<div%1$s class="notice %2$s is-dismissible" role="status"%3$s>%4$s</div>',
+			$id, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- A fixed string.
+			esc_attr( $class ),
+			'' !== $id ? ' tabindex="-1"' : '',
+			wp_kses(
+				$paragraphs,
+				array(
+					'p' => array(),
+					'a' => array( 'href' => array() ),
+				)
+			)
+		);
+		$id = '';
+	}
+
+	undergrowth_print_notice_focus_script();
 }
 
 /**
@@ -644,12 +934,7 @@ function undergrowth_render_suggestions_notice(): void {
 		);
 	}
 
-	printf(
-		'<div id="undergrowth-notice" class="notice %1$s is-dismissible" role="status" tabindex="-1"><p>%2$s%3$s</p></div>',
-		in_array( $notice, array( 'vetoed', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning',
-		esc_html( $messages[ $notice ] ),
-		wp_kses( $see, array( 'a' => array( 'href' => array() ) ) )
-	);
+	$class = in_array( $notice, array( 'vetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
 
-	undergrowth_print_notice_focus_script();
+	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }

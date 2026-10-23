@@ -59,7 +59,7 @@ Digital garden tie-in (Maggie Appleton / Mike Caulfield): topography over timeli
 ### Germination mode (v1, the whole of v1)
 No reader data. Signals come from the author's own text only.
 - Index: embed every published post (title, headings, body). Re-embed on save.
-- Self-trade: propose up to 3 links per post to other posts, each with the sentence in the source post where the link fits. Accept inserts a plain `<a>` at that sentence. Veto hides it permanently.
+- Self-trade: propose up to 3 links per post to other posts, each with the sentence in the source post where the link fits. Accept inserts a plain `<a>` at that sentence, around one to four of the author's own words: a run of the target's title where the sentence has one, otherwise the phrase around the word the target is most about (decided 2026-10-23, #289; v1 linked one word, which read like an accident). Before accepting, the author can choose other words of the same sentence as the first and last of the link (#292); nothing can be typed, so the link is always the author's own words. Veto hides it permanently.
 - Map: cluster the vectors. Show clusters as a list with their posts. Flag any cluster whose centre has no post (a gap found from the author's own writing).
 - Threshold meter: one number, visits in last 30 days against the switch line. Nothing else shown until crossed.
 - Growth stages (see section 5).

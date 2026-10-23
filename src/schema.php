@@ -8,7 +8,40 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 3;
+const UNDERGROWTH_SCHEMA_VERSION = 5;
+
+add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
+
+/**
+ * Lists the post meta keys the plugin keeps.
+ *
+ * @return string[] Meta keys.
+ */
+function undergrowth_protected_meta_keys(): array {
+	return array(
+		'undergrowth_cluster',
+		'undergrowth_discord_messages',
+		'undergrowth_prompt_keys',
+		'undergrowth_prompt_log',
+		'undergrowth_resurfacing',
+		'undergrowth_resurfacing_log',
+		'undergrowth_stage',
+		'undergrowth_stage_log',
+		'undergrowth_stage_pinned',
+	);
+}
+
+/**
+ * Keeps the plugin's post meta out of the Custom Fields box, where it could
+ * be edited by hand.
+ *
+ * @param bool   $is_protected Whether the key is protected so far.
+ * @param string $meta_key     Meta key.
+ * @return bool True for the plugin's keys, otherwise unchanged.
+ */
+function undergrowth_protect_meta( $is_protected, $meta_key ) {
+	return in_array( $meta_key, undergrowth_protected_meta_keys(), true ) ? true : (bool) $is_protected;
+}
 
 /**
  * Returns the name of the vectors table for the current site.
@@ -73,6 +106,9 @@ function undergrowth_install_schema(): bool {
 			score double NOT NULL,
 			sentence text NOT NULL,
 			sentence_index int(11) NOT NULL DEFAULT -1,
+			anchor varchar(255) NOT NULL DEFAULT '',
+			anchor_offset int(11) NOT NULL DEFAULT -1,
+			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
@@ -216,6 +252,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_labels' );
 	delete_option( 'undergrowth_scores' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );

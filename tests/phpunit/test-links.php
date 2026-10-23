@@ -55,12 +55,12 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( 0.0, undergrowth_cosine( array( 0.0, 0.0 ), array( 1.0, 0.0 ) ) );
 	}
 
-	public function test_links_table_has_one_row_per_pair_with_state_and_sentence() {
+	public function test_links_table_has_one_row_per_pair_with_state_sentence_and_anchor() {
 		global $wpdb;
 
 		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', undergrowth_links_table() ) );
 
-		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'sentence_index', 'created_at', 'updated_at' ), $columns );
+		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'sentence_index', 'anchor', 'anchor_offset', 'anchor_chosen', 'created_at', 'updated_at' ), $columns );
 	}
 
 	public function test_closest_posts_are_proposed_best_first() {

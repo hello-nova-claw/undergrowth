@@ -33,6 +33,9 @@ const NOTICES = [
 	'no_word',
 	'not_proposed',
 	'needs_admin',
+	'words_saved',
+	'words_invalid',
+	'words_unsafe',
 ];
 
 // Notices the growth stages tab returns with after a pin or unpin.
@@ -207,6 +210,23 @@ const WITH_POSTS = [
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
 	{
 		screen: 'suggestions',
+		state: 'choose-words',
+		page: SUGGESTIONS,
+		open: async ( page ) => {
+			const choose = page.locator( '.row-actions .choose a' ).first();
+
+			if ( ( await choose.count() ) === 0 ) {
+				return false;
+			}
+
+			await choose.click();
+			await page.locator( 'form.undergrowth-choose-words' ).waitFor();
+
+			return true;
+		},
+	},
+	{
+		screen: 'suggestions',
 		state: 'off',
 		page: SUGGESTIONS,
 		fixture: 'suggestions-off',
@@ -223,6 +243,25 @@ const WITH_POSTS = [
 		notice: true,
 	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
+	...[
+		[ 'view-seedling', 'undergrowth_stage=seedling' ],
+		[ 'view-empty', 'undergrowth_stage=evergreen' ],
+		[ 'sorted-by-stage', 'orderby=stage&order=desc' ],
+		[ 'sorted-by-pin', 'orderby=pinned&order=desc' ],
+	].map( ( [ state, query ] ) => ( {
+		screen: 'stages',
+		state,
+		page: [ STAGES[ 0 ], `${ STAGES[ 1 ] }&${ query }` ],
+	} ) ),
+	{
+		screen: 'stages',
+		state: 'notice-bulk-pinned',
+		page: [
+			STAGES[ 0 ],
+			`${ STAGES[ 1 ] }&undergrowth_pinned=2&undergrowth_skipped=1`,
+		],
+		notice: true,
+	},
 	{
 		screen: 'dashboard',
 		state: 'prompt',
@@ -254,8 +293,20 @@ const WITH_COMPOST = [
 		state: 'composting-view',
 		page: [ 'edit.php', 'undergrowth_stage=composting' ],
 	},
+	{
+		screen: 'posts',
+		state: 'filtered-by-stage',
+		page: [ 'edit.php', 'undergrowth_stage=seedling' ],
+	},
+	{
+		screen: 'posts',
+		state: 'sorted-by-stage',
+		page: [ 'edit.php', 'orderby=undergrowth_stage&order=desc' ],
+	},
 	// The notices the Posts screen returns with after a row or bulk action.
 	...[
+		[ 'pinned', 'undergrowth_pinned=2' ],
+		[ 'unpinned', 'undergrowth_unpinned=1' ],
 		[ 'composted', 'undergrowth_composted=1' ],
 		[ 'returned', 'undergrowth_returned=2' ],
 		[ 'skipped', 'undergrowth_composted=1&undergrowth_skipped=1' ],
@@ -281,9 +332,16 @@ const WITH_RESURFACING = [
 	} ) ),
 ];
 
-// Shown after a clustering pass made two clusters, one of them a gap.
+// Shown after a clustering pass made two clusters, one of them a gap, with
+// two posts outside any group: one too far from the rest, one read since.
 const WITH_CLUSTERS = [
 	{ screen: 'map', state: 'clusters', page: MAP, fixture: 'tight-gaps' },
+];
+
+// The same, with so many posts outside a group that their list starts
+// collapsed.
+const WITH_MANY_UNGROUPED = [
+	{ screen: 'map', state: 'ungrouped-collapsed', page: MAP },
 ];
 
 // Filled in once the badge's posts exist, since the shots need their IDs.
@@ -421,6 +479,10 @@ function capture( states ) {
 					await admin.visitAdminPage( ...entry.page );
 				}
 
+				// Opens what this state is about, such as a row's form. A build
+				// without it is listed as skipped, as a missing notice is.
+				const opened = entry.open ? await entry.open( page ) : true;
+
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help
 					? page.locator( `#tab-link-${ entry.help } a` )
@@ -444,6 +506,7 @@ function capture( states ) {
 				// plain screen. The marker lets the comment list it, rather
 				// than drop it.
 				if (
+					! opened ||
 					( entry.notice &&
 						( await page
 							.locator( '#undergrowth-notice' )
@@ -688,6 +751,13 @@ test.describe( 'Screenshot catalogue', () => {
 				} );
 			}
 
+			// Too far from every other post to join a group.
+			await requestUtils.createPost( {
+				title: 'Bread',
+				content: '<p>Sourdough loaves.</p>',
+				status: 'publish',
+			} );
+
 			const response = await requestUtils.request.get(
 				'wp-admin/index.php?undergrowth_e2e_cluster=1'
 			);
@@ -697,9 +767,30 @@ test.describe( 'Screenshot catalogue', () => {
 					`Clustering failed with HTTP ${ response.status() }.`
 				);
 			}
+
+			// Read after the groups were found.
+			await requestUtils.createPost( {
+				title: 'Yacon pickles',
+				content: `<p>${ 'yacon '.repeat( 6 ).trim() }</p>`,
+				status: 'publish',
+			} );
 		} );
 
 		capture( WITH_CLUSTERS );
+
+		test.describe( 'and many posts outside a group', () => {
+			test.beforeAll( async ( { requestUtils } ) => {
+				for ( let i = 1; i <= 10; i++ ) {
+					await requestUtils.createPost( {
+						title: `Note ${ i }`,
+						content: '<p>A short note.</p>',
+						status: 'publish',
+					} );
+				}
+			} );
+
+			capture( WITH_MANY_UNGROUPED );
+		} );
 	} );
 
 	test.describe( 'with a growth-stage badge', () => {

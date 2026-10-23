@@ -24,7 +24,6 @@ const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
-add_filter( 'is_protected_meta', 'undergrowth_protect_cluster_meta', 10, 2 );
 
 /**
  * Returns the lowest similarity at which a post joins a cluster.
@@ -183,7 +182,8 @@ function undergrowth_has_clusters(): bool {
  * UNDERGROWTH_CLUSTER_BATCH posts, as for gaps, so a very large cluster lists
  * the rest after the measured ones. Composting and unpublished posts are
  * left out, and never counted towards the centre, even if their cluster key
- * is still there. Nothing is named: a cluster is only its posts.
+ * is still there. The Map names each cluster after its first post; see
+ * src/map.php.
  *
  * @return array<int, array{leader: int, members: int[], gap: bool}> Clusters with posts to show, lowest leader first.
  */
@@ -375,7 +375,8 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * many exist, a post that matches none of them stays out of every cluster
  * until the next pass, so no batch compares more than its size times the
  * cap. Each batch that fills up schedules the next; the last starts the
- * stage cycle and looks for composting posts near the new clusters.
+ * stage cycle, looks for composting posts near the new clusters, and then
+ * stores the words that name each cluster on the Map.
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
@@ -392,6 +393,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		delete_post_meta_by_key( 'undergrowth_cluster' );
 		update_option( 'undergrowth_cluster_leaders', array(), false );
 		undergrowth_forget_resurfacing_signals();
+		undergrowth_start_cluster_labels();
 	}
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
@@ -454,6 +456,9 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	undergrowth_measure_gap_threshold();
 	wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 0 ) );
 	undergrowth_start_resurfacing();
+	// Last, because it reads every post: the words only label the Map, so
+	// running out of time here must not hold up stages or resurfacing.
+	undergrowth_label_clusters();
 }
 
 /**
@@ -602,16 +607,4 @@ function undergrowth_forget_composted_cluster( int $post_id ): void {
 	if ( 'composting' === undergrowth_get_stage( $post_id ) ) {
 		undergrowth_forget_cluster( $post_id );
 	}
-}
-
-/**
- * Keeps the cluster key out of the Custom Fields box, where it could be
- * edited by hand.
- *
- * @param bool   $is_protected Whether the key is protected.
- * @param string $meta_key     Meta key.
- * @return bool True for the cluster key, otherwise unchanged.
- */
-function undergrowth_protect_cluster_meta( $is_protected, $meta_key ) {
-	return 'undergrowth_cluster' === $meta_key ? true : $is_protected;
 }

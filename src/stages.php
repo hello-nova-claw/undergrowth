@@ -25,12 +25,12 @@ const UNDERGROWTH_STAGE_REASONS = array(
 
 // Late, so a filter that adds post types to the index has been added first.
 add_action( 'init', 'undergrowth_register_stage_meta', 20 );
-add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
 add_action( 'add_meta_boxes', 'undergrowth_remove_added_custom_fields_box', 99 );
 add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
 add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
+add_filter( 'posts_clauses', 'undergrowth_order_by_stage_clauses', 10, 2 );
 
 /**
  * Registers the stage meta for every indexed post type, so themes and the
@@ -139,18 +139,6 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
 	if ( in_array( $post_type, undergrowth_custom_fields_added(), true ) ) {
 		remove_meta_box( 'postcustom', $post_type, 'normal' );
 	}
-}
-
-/**
- * Keeps the stage keys out of the Custom Fields box, where they could be
- * edited by hand.
- *
- * @param bool   $is_protected Whether the key is protected.
- * @param string $meta_key     Meta key.
- * @return bool True for the stage keys, otherwise unchanged.
- */
-function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log', 'undergrowth_resurfacing_log' ), true ) ? true : $is_protected;
 }
 
 /**
@@ -589,6 +577,209 @@ function undergrowth_pinned_marker( int $post_id ): string {
 		' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
 		esc_attr__( 'Pinned', 'undergrowth' )
 	);
+}
+
+/**
+ * Names the choices a list of posts can be narrowed to by stage.
+ *
+ * The Posts list's filter and the growth stages table's views both offer
+ * these, so the two never disagree. Composting is not one of them: it is a
+ * view of its own on the Posts list, and rests outside the stages table.
+ *
+ * @return array<string, string> Translated labels keyed by value.
+ */
+function undergrowth_stage_filters(): array {
+	$filters = array();
+
+	foreach ( UNDERGROWTH_GARDEN_STAGES as $stage ) {
+		$filters[ $stage ] = undergrowth_stage_label( $stage );
+	}
+
+	$filters['pinned']   = __( 'Pinned', 'undergrowth' );
+	$filters['unpinned'] = __( 'Not pinned', 'undergrowth' );
+
+	return $filters;
+}
+
+/**
+ * Reads the stage filter's value from the address.
+ *
+ * @return string A key of undergrowth_stage_filters(), or an empty string for none or anything else.
+ */
+function undergrowth_stage_filter_value(): string {
+	// The filter only selects which posts to list; nothing is changed.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$value = isset( $_GET['undergrowth_stage'] ) && is_string( $_GET['undergrowth_stage'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_stage'] ) ) : '';
+	// phpcs:enable
+
+	return isset( undergrowth_stage_filters()[ $value ] ) ? $value : '';
+}
+
+/**
+ * Builds the meta query clause that leaves composting posts out.
+ *
+ * A post with no stage stored is a seedling, so only a composting value
+ * can leave it out.
+ *
+ * @return array<int|string, mixed> Meta query clause.
+ */
+function undergrowth_garden_meta_query(): array {
+	return array(
+		'relation' => 'OR',
+		array(
+			'key'     => 'undergrowth_stage',
+			'compare' => 'NOT EXISTS',
+		),
+		array(
+			'key'     => 'undergrowth_stage',
+			'value'   => 'composting',
+			'compare' => '!=',
+		),
+	);
+}
+
+/**
+ * Builds the meta query clause for one of the stage filters.
+ *
+ * Each post is read as undergrowth_get_stage() reads it: one with no stage
+ * stored, or one Undergrowth does not know, is a seedling. A composting
+ * post is never pinned, and is not counted as unpinned either.
+ *
+ * @param string $filter A key of undergrowth_stage_filters().
+ * @return array<int|string, mixed> Meta query clause.
+ */
+function undergrowth_stage_filter_meta_query( string $filter ): array {
+	switch ( $filter ) {
+		case 'pinned':
+			return array(
+				'key'     => 'undergrowth_stage_pinned',
+				'compare' => 'EXISTS',
+			);
+		case 'unpinned':
+			return array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'undergrowth_stage_pinned',
+					'compare' => 'NOT EXISTS',
+				),
+				undergrowth_garden_meta_query(),
+			);
+		case 'seedling':
+			return array(
+				'relation' => 'OR',
+				array(
+					'key'   => 'undergrowth_stage',
+					'value' => 'seedling',
+				),
+				array(
+					'key'     => 'undergrowth_stage',
+					'compare' => 'NOT EXISTS',
+				),
+				array(
+					'key'     => 'undergrowth_stage',
+					'value'   => UNDERGROWTH_STAGES,
+					'compare' => 'NOT IN',
+				),
+			);
+		default:
+			return array(
+				'key'   => 'undergrowth_stage',
+				'value' => $filter,
+			);
+	}
+}
+
+/**
+ * Counts the published garden posts whose stage is pinned.
+ *
+ * @return int Number of posts.
+ */
+function undergrowth_count_pinned(): int {
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return 0;
+	}
+
+	$query = new WP_Query(
+		array(
+			'post_type'              => $post_types,
+			'post_status'            => 'publish',
+			'has_password'           => false,
+			'meta_query'             => array( undergrowth_stage_filter_meta_query( 'pinned' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
+			'posts_per_page'         => 1,
+			'fields'                 => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+		)
+	);
+
+	return (int) $query->found_posts;
+}
+
+/**
+ * Orders a query by growth stage or by pin, when it asks with the
+ * undergrowth_orderby query variable, in the direction undergrowth_order
+ * gives, or order when that is not set.
+ *
+ * Stages sort by rank, from Seedling to Evergreen with Composting after,
+ * not by name, which would differ in every language. Pinned sorts pinned
+ * posts last, or first when the order is descending. Only a post's first
+ * row counts, as undergrowth_get_stage() reads it. Posts outside the
+ * garden have no stage and stay last in either direction. The query's own
+ * order breaks ties.
+ *
+ * @param array<string, string> $clauses Query clauses.
+ * @param WP_Query              $query   Query about to run.
+ * @return array<string, string> Query clauses.
+ */
+function undergrowth_order_by_stage_clauses( $clauses, $query ) {
+	global $wpdb;
+
+	$by = $query instanceof WP_Query ? $query->get( 'undergrowth_orderby' ) : '';
+
+	if ( 'stage' !== $by && 'pinned' !== $by ) {
+		return $clauses;
+	}
+
+	$indexable = undergrowth_indexable_sql( "{$wpdb->posts}." );
+
+	if ( null === $indexable ) {
+		return $clauses;
+	}
+
+	// The query's own order may run the other way, to break ties.
+	$order = $query->get( 'undergrowth_order' );
+	$order = 'DESC' === strtoupper( (string) ( '' === $order ? $query->get( 'order' ) : $order ) ) ? 'DESC' : 'ASC';
+
+	$clauses['join'] .= $wpdb->prepare(
+		' LEFT JOIN %i AS undergrowth_sort ON undergrowth_sort.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = %i.ID AND f.meta_key = %s )',
+		$wpdb->postmeta,
+		$wpdb->postmeta,
+		$wpdb->posts,
+		'stage' === $by ? 'undergrowth_stage' : 'undergrowth_stage_pinned'
+	);
+
+	if ( 'stage' === $by ) {
+		$rank = 'CASE undergrowth_sort.meta_value';
+
+		foreach ( UNDERGROWTH_STAGES as $position => $stage ) {
+			$rank .= $wpdb->prepare( ' WHEN %s THEN %d', $stage, $position );
+		}
+
+		$rank .= ' ELSE 0 END';
+	} else {
+		$rank = 'CASE WHEN undergrowth_sort.meta_id IS NULL THEN 0 ELSE 1 END';
+	}
+
+	$then = trim( (string) $clauses['orderby'] );
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The condition's placeholders come with it, and the ranks were prepared above.
+	$clauses['orderby'] = $wpdb->prepare( "CASE WHEN {$indexable[0]} THEN 0 ELSE 1 END ASC, ", ...$indexable[1] )
+		. "{$rank} {$order}" . ( '' === $then ? '' : ', ' . $then );
+	// phpcs:enable
+
+	return $clauses;
 }
 
 /**

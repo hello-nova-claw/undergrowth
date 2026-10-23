@@ -97,7 +97,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-pinned', $html );
 	}
 
-	public function test_the_stage_sits_beside_the_title_as_a_post_state() {
+	public function test_the_title_cell_holds_the_title_alone() {
 		$oca = self::factory()->post->create(
 			array(
 				'post_title'  => 'Oca',
@@ -108,8 +108,8 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+">Oca</a> &mdash; <span class="post-state">Sprout</span></strong>#', $html );
-		$this->assertStringNotContainsString( 'column-stage', $html );
+		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+">Oca</a></strong>#', $html );
+		$this->assertStringNotContainsString( 'post-state', $html );
 		$this->assertStringNotContainsString( 'column-actions', $html );
 	}
 
@@ -139,25 +139,6 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$this->assertMatchesRegularExpression( '#<a class="row-title" href="[^"]+">\(no title\)</a>#', $html );
 		$this->assertStringContainsString( 'aria-label="Pin the stage of (no title)"', $html );
-	}
-
-	public function test_translators_can_put_the_stage_before_the_title() {
-		self::factory()->post->create(
-			array(
-				'post_title'  => 'Oca',
-				'post_status' => 'publish',
-			)
-		);
-		add_filter(
-			'gettext_undergrowth',
-			static function ( $translation, $text ) {
-				return '%1$s &mdash; %2$s' === $text ? '%2$s: %1$s' : $translation;
-			},
-			10,
-			2
-		);
-
-		$this->assertMatchesRegularExpression( '#<strong><span class="post-state">Seedling</span>: <a class="row-title" href="[^"]+">Oca</a></strong>#', $this->render() );
 	}
 
 	public function test_unpin_is_a_row_action() {
@@ -193,7 +174,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<strong>Oca &mdash; <span class="post-state">Seedling</span></strong>', $html );
+		$this->assertStringContainsString( '<strong>Oca</strong>', $html );
 		$this->assertStringNotContainsString( 'form="undergrowth-pin-' . $oca . '"', $html );
 		$this->assertStringNotContainsString( 'form="undergrowth-unpin-' . $oca . '"', $html );
 	}

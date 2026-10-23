@@ -218,16 +218,10 @@ function undergrowth_render_discord_section(): void {
 	?>
 	<p id="undergrowth-discord-notice"><?php esc_html_e( 'Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in.', 'undergrowth' ); ?></p>
 
-	<?php if ( is_array( $error ) && isset( $error['time'] ) ) : ?>
-		<div class="notice notice-warning inline">
-			<p>
-				<?php
-				echo esc_html( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ) );
-				?>
-			</p>
-		</div>
-	<?php endif; ?>
 	<?php
+	if ( is_array( $error ) && isset( $error['time'] ) ) {
+		undergrowth_print_failure_notice( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ) );
+	}
 }
 
 /**

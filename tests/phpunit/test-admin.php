@@ -102,6 +102,24 @@ class Test_Admin extends WP_UnitTestCase {
 		set_current_screen( 'front' );
 	}
 
+	public function test_result_notices_give_focus_to_the_first() {
+		ob_start();
+		undergrowth_print_result_notices(
+			array(
+				'notice-success' => '<p>Composted.</p>',
+				'notice-warning' => '<p>One was skipped.<script>x</script></p>',
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'id="undergrowth-notice"' ) );
+		$this->assertMatchesRegularExpression( '#<div id="undergrowth-notice" class="notice notice-success is-dismissible" role="status" tabindex="-1"><p>Composted.</p></div>#', $html );
+		// Newer versions of wp_kses() drop the element's text with its tags.
+		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning is-dismissible" role="status"><p>One was skipped\.x?</p></div>#', $html );
+		$this->assertStringNotContainsString( '<script>x', $html );
+		$this->assertSame( 1, substr_count( $html, '.focus()' ) );
+	}
+
 	public function test_post_link_can_carry_a_class() {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
@@ -361,7 +379,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'accept\'><button type="submit" form="undergrowth-accept-\d+-\d+" class="button-link" aria-label="Accept the link from Oca to Yacon">Accept</button> \| </span><span class=\'veto\'><button type="submit" form="undergrowth-veto-\d+-\d+" class="button-link" aria-label="Veto the link from Oca to Yacon">Veto</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'accept\'><button type="submit" form="undergrowth-accept-\d+-\d+" class="button-link" aria-label="Accept the link from Oca to Yacon">Accept</button> \| </span><span class=\'veto\'><button type="submit" form="undergrowth-veto-\d+-\d+" class="button-link" aria-label="Veto the link from Oca to Yacon">Veto</button> \| </span><span class=\'choose\'><a href="[^"]+" aria-label="Choose words for the link from Oca to Yacon">Choose words</a></span></div>#', $html );
 		$this->assertStringNotContainsString( 'button-primary', $html );
 	}
 
@@ -404,6 +422,14 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<q dir="auto">I keep <mark>yacon</mark> nearby.</q>', $html );
+	}
+
+	public function test_every_word_accept_will_link_is_inside_one_mark() {
+		$this->plant( 'Shed', array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		$this->plant( 'Spring', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Every spring I copy the seed ledger out again.</p>' ) );
+		$this->plant( 'The Seed Ledger', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>The ledger lists every seed. A ledger needs care.</p>' ) );
+
+		$this->assertStringContainsString( '<q dir="auto">Every spring I copy the <mark>seed ledger</mark> out again.</q>', $this->render() );
 	}
 
 	public function test_a_quote_with_no_word_to_link_is_shown_without_a_mark() {

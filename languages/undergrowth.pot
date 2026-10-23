@@ -103,7 +103,7 @@ msgid "Accept a link"
 msgstr ""
 
 #: src/abilities.php
-msgid "Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely."
+msgid "Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely."
 msgstr ""
 
 #: src/abilities.php
@@ -191,26 +191,92 @@ msgid "Composting posts rest outside the garden, so they are not listed here. Th
 msgstr ""
 
 #: src/admin.php
-msgid "Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first."
+msgid "Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first."
 msgstr ""
 
-#. translators: %1$s: number of the group on the screen.
+#. translators: %1$s: title of the post nearest the middle of the group.
 #: src/admin.php
 #, php-format
-msgid "Group %1$s, with a gap"
+msgid "Around “%1$s”, with a gap"
 msgstr ""
 
-#. translators: %1$s: number of the group on the screen.
+#. translators: %1$s: title of the post nearest the middle of the group.
 #: src/admin.php
 #, php-format
-msgid "Group %1$s"
+msgid "Around “%1$s”"
 msgstr ""
 
 #: src/admin.php
 msgid "No post sits at the middle of this group. These posts circle something none of them is about yet."
 msgstr ""
 
-#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage.
+#. translators: %1$s: number of posts in the group.
+#: src/admin.php
+#, php-format
+msgid "%1$s post."
+msgid_plural "%1$s posts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost".
+#: src/admin.php
+#, php-format
+msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: 1: number of posts, 2: number of groups, such as "4 groups".
+#: src/admin.php
+#, php-format
+msgid "%1$s post is in %2$s."
+msgid_plural "%1$s posts are in %2$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of groups.
+#: src/admin.php
+#, php-format
+msgid "%1$s group"
+msgid_plural "%1$s groups"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/admin.php
+#, php-format
+msgid "%1$s post is not in a group yet."
+msgid_plural "%1$s posts are not in a group yet."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin.php
+msgid "Not read yet"
+msgstr ""
+
+#: src/admin.php
+msgid "Read since the groups were last found"
+msgstr ""
+
+#: src/admin.php
+msgid "Not close enough to other posts yet"
+msgstr ""
+
+#: src/admin.php
+msgid "Not in a group yet"
+msgstr ""
+
+#: src/admin.php
+msgid "A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month."
+msgstr ""
+
+#. translators: %1$s: number of posts.
+#: src/admin.php
+#, php-format
+msgid "Show the %1$s post"
+msgid_plural "Show all %1$s posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group.
 #: src/admin.php
 #, php-format
 msgid "%1$s (%2$s)"
@@ -348,14 +414,95 @@ msgstr ""
 msgid "Veto"
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "Choose words for the link from %1$s to %2$s"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Choose words"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "First word"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Last word"
+msgstr ""
+
+#. translators: 1: a word from the author's sentence, 2: its position in the sentence, 3: how many words the sentence has.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "%1$s (%2$s of %3$s)"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Choose the words to link"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "The link goes around your own words, from the first word to the last. Only words already in this sentence can be chosen."
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Save words"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Cancel"
+msgstr ""
+
 #: src/class-undergrowth-stages-list-table.php
 msgid "Post"
 msgstr ""
 
-#. translators: 1: post title, 2: its growth stage.
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Growth stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/stages.php
+msgid "Pinned"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+msgid "Pin stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+msgid "Unpin stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/help.php
+#: src/posts-screen.php
+msgid "Compost"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+msgid "All"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+msgid "No posts in this view."
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/stages.php
+msgid "Not pinned"
+msgstr ""
+
+#. translators: %s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "%1$s &mdash; %2$s"
+msgid "Select %s"
 msgstr ""
 
 #. translators: %1$s: post title.
@@ -608,7 +755,11 @@ msgid "Your garden is every published post Undergrowth reads, without a password
 msgstr ""
 
 #: src/help.php
-msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted word is the word Accept will make into the link."
+msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted words are the words Accept will make into the link."
+msgstr ""
+
+#: src/help.php
+msgid "Choose words lets you pick other words of the same sentence for the link: choose the first word and the last, then save. Only words already in your sentence can be chosen; nothing can be typed or added."
 msgstr ""
 
 #: src/help.php
@@ -636,7 +787,11 @@ msgid "Stages are measured once a month from the links you have accepted, and ne
 msgstr ""
 
 #: src/help.php
-msgid "Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model."
+msgid "Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model."
+msgstr ""
+
+#: src/help.php
+msgid "A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted."
 msgstr ""
 
 #: src/help.php
@@ -645,11 +800,6 @@ msgstr ""
 
 #: src/help.php
 msgid "When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine."
-msgstr ""
-
-#: src/help.php
-#: src/posts-screen.php
-msgid "Compost"
 msgstr ""
 
 #: src/help.php
@@ -665,7 +815,7 @@ msgid "Return to garden brings it back, and its stage is measured again from the
 msgstr ""
 
 #: src/links.php
-msgid "Linked. One word in your sentence now links to the suggested post."
+msgid "Linked. The highlighted words in your sentence now link to the suggested post."
 msgstr ""
 
 #: src/links.php
@@ -689,7 +839,19 @@ msgid "That sentence has changed since the link was suggested, so nothing was ch
 msgstr ""
 
 #: src/links.php
-msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgid "No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgstr ""
+
+#: src/links.php
+msgid "Saved. Accept will link the words now highlighted."
+msgstr ""
+
+#: src/links.php
+msgid "Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it."
+msgstr ""
+
+#: src/links.php
+msgid "Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words."
 msgstr ""
 
 #: src/links.php
@@ -763,14 +925,32 @@ msgid "Compost &#8220;%s&#8221;"
 msgstr ""
 
 #: src/posts-screen.php
-#: build/blocks/growth-stage/index.js
-#: src/blocks/growth-stage/edit.js
-msgid "Growth stage"
+msgid "No growth stage"
 msgstr ""
 
 #: src/posts-screen.php
-msgid "No growth stage"
+msgid "All stages"
 msgstr ""
+
+#: src/posts-screen.php
+msgid "Filter by growth stage"
+msgstr ""
+
+#. translators: %s: number of posts.
+#: src/posts-screen.php
+#, php-format
+msgid "%s post pinned at its stage. The monthly cycle leaves it there until you unpin it."
+msgid_plural "%s posts pinned at their stages. The monthly cycle leaves them there until you unpin them."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/posts-screen.php
+#, php-format
+msgid "%s post unpinned. Its stage was measured again from the links you have accepted."
+msgid_plural "%s posts unpinned. Their stages were measured again from the links you have accepted."
+msgstr[0] ""
+msgstr[1] ""
 
 #. translators: %s: number of posts.
 #: src/posts-screen.php
@@ -791,8 +971,8 @@ msgstr[1] ""
 #. translators: %s: number of posts.
 #: src/posts-screen.php
 #, php-format
-msgid "%s post was left as it was, because it is not published, is already at that stage, or you cannot edit it."
-msgid_plural "%s posts were left as they were, because they are not published, are already at that stage, or you cannot edit them."
+msgid "%s post was left as it was, because it is not published, the action does not apply to it, or you cannot edit it."
+msgid_plural "%s posts were left as they were, because they are not published, the action does not apply to them, or you cannot edit them."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1151,10 +1331,6 @@ msgstr ""
 
 #: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "Pinned"
 msgstr ""
 
 #: src/stages.php

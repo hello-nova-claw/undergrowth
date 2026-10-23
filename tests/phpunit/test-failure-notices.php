@@ -211,4 +211,14 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 
 		$this->assertSame( array( '1:2', '3:4' ), undergrowth_discord_pending() );
 	}
+
+	public function test_failure_notice_is_an_inline_warning_with_escaped_text() {
+		ob_start();
+		undergrowth_print_failure_notice( 'Salt & <b>pepper</b>' );
+		undergrowth_print_failure_notice( 'Files.', 'undergrowth-file-error' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="notice notice-warning inline"><p>Salt &amp; &lt;b&gt;pepper&lt;/b&gt;</p></div>', $html );
+		$this->assertStringContainsString( '<div class="notice notice-warning inline" id="undergrowth-file-error"><p>Files.</p></div>', $html );
+	}
 }
