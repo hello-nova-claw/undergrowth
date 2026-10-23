@@ -161,6 +161,21 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<em>seed</em> <a href="' . get_permalink( $target ) . '">ledger</a> out', get_post( $source )->post_content );
 	}
 
+	public function test_a_pair_of_characters_stored_from_an_unspaced_script_is_what_accept_links() {
+		global $wpdb;
+
+		$this->plant( 'Shed', array( 0.0, 0.0, 1.0 ), array( 'post_content' => '<p>Frost again.</p>' ) );
+		$source = $this->plant( 'Trip', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>明日は東京へ行く。</p>' ) );
+		$target = $this->plant( '東京', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>東京は大きい。東京の夜は長い。</p>' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$anchor = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT anchor FROM %i WHERE source_id = %d AND target_id = %d', undergrowth_links_table(), $source, $target ) );
+
+		$this->assertNotSame( '', $anchor );
+		$this->assertSame( 'accepted', undergrowth_accept_link( $source, $target ) );
+		$this->assertStringContainsString( '">' . $anchor . '</a>', get_post( $source )->post_content );
+	}
+
 	public function test_a_phrase_across_a_character_reference_is_never_linked() {
 		$this->assertNull( undergrowth_find_link_span( '<p>Salt &amp; pepper mills.</p>', 'Salt & pepper mills.', 0, 13 ) );
 	}
