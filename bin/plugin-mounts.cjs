@@ -11,6 +11,7 @@
  * wp-playground-cli arguments for package.json.
  */
 
+const { execFileSync } = require( 'child_process' );
 const { existsSync } = require( 'fs' );
 const { join } = require( 'path' );
 
@@ -43,7 +44,26 @@ function pluginMounts( dir ) {
 	);
 }
 
-module.exports = { pluginMounts };
+/**
+ * Builds the plugin's JavaScript, which a fresh clone lacks. Without it the
+ * Growth stage block renders on the front end but is missing from the
+ * editor. A build takes a few seconds, so it runs every time, which also
+ * picks up block changes since the last one.
+ *
+ * @param {string}              dir Folder holding the plugin.
+ * @param {typeof execFileSync} run Runs a command, as execFileSync does.
+ */
+function buildPlugin( dir, run = execFileSync ) {
+	try {
+		run( 'npm', [ 'run', 'build' ], { cwd: dir, stdio: 'ignore' } );
+	} catch {
+		throw new Error(
+			'Could not build the Growth stage block. Run `npm run build` to see why.'
+		);
+	}
+}
+
+module.exports = { buildPlugin, pluginMounts };
 
 if ( require.main === module ) {
 	process.stdout.write(
