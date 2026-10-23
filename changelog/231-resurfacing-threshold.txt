@@ -1,0 +1,1 @@
+An old composting post is now shown as close to a new cluster only when it is as close as a post must be to join that cluster, using the threshold measured on your own posts, not a fixed 0.5.
