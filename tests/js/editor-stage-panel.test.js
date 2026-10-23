@@ -220,6 +220,35 @@ describe( 'Editor stage panel', () => {
 		).toBe( 'Growth stage: Sprout, pinned' );
 	} );
 
+	test( 'drops the old stage and refusal while it asks again', async () => {
+		replies = [
+			inGarden( 'sprout' ),
+			Object.assign( new Error( 'Sorry, you cannot do that.' ), {
+				code: 'rest_forbidden',
+			} ),
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="publish" /> )
+		);
+		await waitFor( () => button( container, 'Compost' ) );
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="private" /> )
+		);
+		await new Promise( ( resolve ) => setTimeout( resolve ) );
+
+		// No control for a stage that may no longer hold is left to press.
+		expect( container.querySelector( '.undergrowth-stage' ) ).toBeNull();
+		expect( container.querySelectorAll( 'button' ) ).toHaveLength( 0 );
+		expect(
+			container.querySelector( '.components-notice' ).textContent
+		).toContain( 'Sorry, you cannot do that.' );
+	} );
+
 	test( 'asks again once the post is published', async () => {
 		replies = [
 			{ in_garden: false, stage: null, label: '', pinned: false },
