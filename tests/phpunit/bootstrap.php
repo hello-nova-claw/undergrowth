@@ -46,3 +46,11 @@ if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
 if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
 	require __DIR__ . '/includes/class-wpcom-stats.php';
 }
+
+// WP-CLI is not loaded under PHPUnit. A stand-in records the commands, so
+// the commands file can be loaded and its commands run.
+if ( ! class_exists( 'WP_CLI' ) ) {
+	require __DIR__ . '/includes/class-wp-cli.php';
+	require __DIR__ . '/includes/class-wp-cli-stopped.php';
+	require dirname( __DIR__, 2 ) . '/src/cli.php';
+}
