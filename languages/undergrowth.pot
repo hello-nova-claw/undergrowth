@@ -970,6 +970,42 @@ msgid "Each post’s plain-text record is kept in this folder."
 msgstr ""
 
 #: src/settings.php
+msgid "Undergrowth tries again each time a post’s file is updated, and for every post at the next monthly cycle."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress cannot write files directly on this server, so the per-post files are not being written. Your host can tell you how to allow it."
+msgstr ""
+
+#: src/settings.php
+msgid "The folder for the per-post files could not be made, so they are not being written. Check that the uploads folder can be written to."
+msgstr ""
+
+#: src/settings.php
+msgid "The files that keep visitors out of the per-post folder could not be written, so no per-post files are written either. Check that the uploads folder can be written to."
+msgstr ""
+
+#. translators: %1$s: path of the old folder, such as wp-content/uploads/undergrowth.
+#: src/settings.php
+#, php-format
+msgid "The old folder for the per-post files, at an address anyone could guess, could not be removed. Delete %1$s by hand."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth tries again within the hour."
+msgstr ""
+
+#: src/settings.php
+msgid "A post’s file could not be written. Check that the uploads folder can be written to."
+msgstr ""
+
+#. translators: %1$s: date and time.
+#: src/settings.php
+#, php-format
+msgid "That was on %1$s."
+msgstr ""
+
+#: src/settings.php
 msgid "With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 

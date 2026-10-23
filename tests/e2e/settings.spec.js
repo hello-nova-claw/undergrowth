@@ -270,6 +270,7 @@ test.describe( 'Settings page', () => {
 		'discord-saved',
 		'discord-invalid',
 		'discord-last-error',
+		'file-last-error',
 	] ) {
 		test( `has no WCAG 2.2 AA violations with ${ fixture }`, async ( {
 			admin,
