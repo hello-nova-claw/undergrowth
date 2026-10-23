@@ -220,8 +220,9 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		$query = new WP_Query( $args );
 		$total = (int) $query->found_posts;
 
-		// WP_Query counts nothing for a page past the end, as after a bulk
-		// action emptied the last page, so the pages are counted again.
+		// A page past the end, as after a bulk action emptied the last page,
+		// finds no posts and counts none. Core's pagination then shows the
+		// last page, so that page is the one listed.
 		if ( array() === $query->posts && $this->get_pagenum() > 1 ) {
 			$count = new WP_Query(
 				array(
@@ -230,6 +231,10 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 				) + $args
 			);
 			$total = (int) $count->found_posts;
+
+			if ( $total > 0 ) {
+				$query = new WP_Query( array( 'paged' => (int) ceil( $total / self::PER_PAGE ) ) + $args );
+			}
 		}
 
 		$post_ids = array_map( 'intval', $query->posts );
