@@ -13,6 +13,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// The rules ask for under 250 characters, so a question that runs a little
+// over is still kept, not thrown away.
 const UNDERGROWTH_PROMPT_MAX_LENGTH = 300;
 const UNDERGROWTH_PROMPT_MAX_CALLS  = 3;
 const UNDERGROWTH_PROMPT_DATA_CHARS = 1000;
@@ -37,7 +39,6 @@ add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_fi
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_comment_prompt_sources' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_gap_prompt_sources', 15 );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_compost_prompt_sources', 20 );
-add_filter( 'is_protected_meta', 'undergrowth_protect_prompt_meta', 10, 2 );
 add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 2 );
 
 /**
@@ -101,17 +102,6 @@ function undergrowth_unschedule_prompts(): void {
 
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
-}
-
-/**
- * Hides the prompt records from the Custom Fields box.
- *
- * @param bool   $is_protected Whether the key is protected already.
- * @param string $meta_key     Meta key.
- * @return bool True for the plugin's prompt keys.
- */
-function undergrowth_protect_prompt_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_prompt_keys', 'undergrowth_prompt_log' ), true ) ? true : $is_protected;
 }
 
 /**

@@ -9,7 +9,10 @@
  *
  * The read abilities keep the fractal contract: the same fields answer for one
  * post, one cluster or the whole site, and only posts the current user can
- * edit are ever counted.
+ * edit are ever counted. One post's words are weighed against every post it
+ * can be compared with; a cluster's or the site's against the posts in the
+ * garden the user can edit, so one post can show different words alone than
+ * as part of a set.
  *
  * @package Undergrowth
  */
@@ -220,7 +223,7 @@ function undergrowth_register_write_abilities(): void {
 	$abilities = array(
 		'undergrowth/accept-link' => array(
 			'label'       => __( 'Accept a link', 'undergrowth' ),
-			'description' => __( 'Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely.', 'undergrowth' ),
+			'description' => __( 'Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely.', 'undergrowth' ),
 			'callback'    => 'undergrowth_ability_accept_link',
 			'state'       => 'accepted',
 		),

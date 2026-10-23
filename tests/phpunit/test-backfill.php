@@ -751,4 +751,13 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		$this->assertSame( array(), $this->run_cron() );
 	}
+
+	public function test_a_long_site_language_is_fitted_like_a_post_language() {
+		$this->site_locale( 'en_GB-x-a-very-long-site-variant' );
+
+		$language = undergrowth_index_target()['language'];
+
+		$this->assertSame( undergrowth_fit_language( 'en_GB-x-a-very-long-site-variant' ), $language );
+		$this->assertSame( undergrowth_post_language( get_post( self::factory()->post->create() ) ), $language );
+	}
 }

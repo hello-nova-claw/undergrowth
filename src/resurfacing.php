@@ -27,7 +27,6 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'undergrowth_resurfacing_cycle', 'undergrowth_run_resurfacing_cycle' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_resurfacing_signal' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_returned_signal' );
-add_filter( 'is_protected_meta', 'undergrowth_protect_resurfacing_meta', 10, 2 );
 add_action( 'add_option_undergrowth_index_identity', 'undergrowth_forget_previous_clusters' );
 add_action( 'update_option_undergrowth_index_identity', 'undergrowth_forget_previous_clusters' );
 
@@ -372,16 +371,4 @@ function undergrowth_forget_returned_signal( int $post_id ): void {
 	if ( 'composting' !== undergrowth_get_stage( $post_id ) ) {
 		undergrowth_forget_resurfacing_signal( $post_id );
 	}
-}
-
-/**
- * Keeps the signal key out of the Custom Fields box, where it could be
- * edited by hand.
- *
- * @param bool   $is_protected Whether the key is protected.
- * @param string $meta_key     Meta key.
- * @return bool True for the signal key, otherwise unchanged.
- */
-function undergrowth_protect_resurfacing_meta( $is_protected, $meta_key ) {
-	return 'undergrowth_resurfacing' === $meta_key ? true : $is_protected;
 }
