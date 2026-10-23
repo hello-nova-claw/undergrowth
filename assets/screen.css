@@ -6,3 +6,15 @@
 .wp-list-table .row-actions {
 	padding-top: 6px;
 }
+
+/*
+ * The Choose words form sits in the sentence's cell. A long word must never
+ * push a select past a phone's width.
+ */
+.undergrowth-choose-words select {
+	max-width: 100%;
+}
+
+.undergrowth-choose-words legend {
+	font-weight: 600;
+}
