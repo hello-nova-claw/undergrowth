@@ -23,6 +23,8 @@ class Test_Plants_Posts extends WP_UnitTestCase {
 		wp_mkdir_p( $root . '/posts' );
 		file_put_contents( $root . '/posts/1.txt', "Left by an earlier test.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- A stray file, as an earlier test would leave one.
 
+		$this->assertFileExists( $root . '/posts/1.txt' );
+
 		$this->start_planting();
 
 		$this->assertFileDoesNotExist( $root . '/posts/1.txt' );
