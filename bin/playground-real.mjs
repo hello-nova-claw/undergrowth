@@ -156,9 +156,25 @@ http.Server.prototype.listen = function ( port, ...rest ) {
 	return listen.call( this, port, ...rest );
 };
 
-const mount = [
-	{ hostPath: root, vfsPath: '/wordpress/wp-content/plugins/undergrowth' },
+// Playground serves any file under a mount, so mounting the repository
+// would put .env.local, and the keys in it, at a URL. Only what the plugin
+// zip ships is mounted, from the working copy so edits still show.
+const shipped = [
+	'undergrowth.php',
+	'uninstall.php',
+	'readme.txt',
+	'LICENSE',
+	'src',
+	'build',
+	'assets',
+	'languages',
 ];
+const mount = shipped
+	.filter( ( path ) => existsSync( join( root, path ) ) )
+	.map( ( path ) => ( {
+		hostPath: join( root, path ),
+		vfsPath: `/wordpress/wp-content/plugins/undergrowth/${ path }`,
+	} ) );
 
 if ( local ) {
 	mount.push( {
