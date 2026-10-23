@@ -321,10 +321,24 @@ function undergrowth_current_prompt(): ?array {
 }
 
 /**
+ * Tells whether an error from the Messages API is the model's answer rather
+ * than a failed request.
+ *
+ * A refusal, or a reply cut off at the token limit, would come back the same
+ * way if the source were sent again.
+ *
+ * @param WP_Error $error Error from undergrowth_anthropic_message().
+ * @return bool True when the request went through and the model answered.
+ */
+function undergrowth_prompt_reply_is_final( WP_Error $error ): bool {
+	return in_array( $error->get_error_code(), array( 'refusal', 'max_tokens' ), true );
+}
+
+/**
  * Asks Claude for a prompt when none is waiting, trying sources in order.
  *
- * Each source is sent at most once, whatever comes back, so a source the
- * model cannot turn into a valid question is not paid for again. A failed
+ * Each source is sent at most once, whatever the model answers, so a source
+ * it cannot turn into a valid question is not paid for again. A failed
  * request ends the run and the source is tried again next time.
  *
  * @return bool True when a prompt was written.
@@ -367,7 +381,7 @@ function undergrowth_write_prompt_from( array $record, int &$calls ): string {
 	++$calls;
 	$reply = undergrowth_anthropic_message( undergrowth_prompt_system(), undergrowth_prompt_user( $record ) );
 
-	if ( is_wp_error( $reply ) && 'refusal' !== $reply->get_error_code() ) {
+	if ( is_wp_error( $reply ) && ! undergrowth_prompt_reply_is_final( $reply ) ) {
 		return 'failed';
 	}
 
@@ -802,7 +816,7 @@ function undergrowth_prompt_rests( string $question ) {
 	);
 
 	if ( is_wp_error( $reply ) ) {
-		return 'refusal' === $reply->get_error_code() ? false : $reply;
+		return undergrowth_prompt_reply_is_final( $reply ) ? false : $reply;
 	}
 
 	return 1 === preg_match( '/^NO\.?$/', trim( $reply ) );
