@@ -53,15 +53,15 @@ Suggestions appear on Posts > Undergrowth a few moments after a post is read. Cl
 
 = Which outside services does Undergrowth use? =
 
-Four, and none until you set it up: OpenAI, to read your posts, once you save an OpenAI key; Anthropic, to write your Dashboard question, once you save an Anthropic key; Discord, once you fill in its settings; and Jetpack Stats, for the readers meter, if Jetpack is installed with Stats on. Each is a service you sign up to yourself, under its own terms. The four questions below say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its authors and loads nothing from outside the plugin.
+Undergrowth itself contacts three, each only once you set it up: OpenAI, to read your posts, once you add an OpenAI key; Anthropic, to write your Dashboard question, once you add an Anthropic key; and Discord, once you fill in its settings. It also reads one number for the readers meter through Jetpack Stats, with no setting of its own, whenever Jetpack is connected and Stats is on. Each is a service you sign up to yourself, under its own terms. The four questions below say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its authors and loads nothing from outside the plugin.
 
 = What is sent to OpenAI? =
 
-With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. Remove the key on Settings > Undergrowth to stop. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/).
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. To stop, remove the key on Settings > Undergrowth, or from `wp-config.php` if you put it there. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/).
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, never as instructions. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron: once soon after you first save the key, then when the monthly cycle looks for a question. Remove the key to stop. They are made under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy).
+With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, and Claude is told not to follow any instructions in it. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron: once soon after you first save the key, then when the monthly cycle looks for a question. To stop, remove the key on Settings > Undergrowth, or from `wp-config.php` if you put it there. They are made under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy).
 
 = What is sent to Discord? =
 
@@ -154,7 +154,7 @@ Each message sends Discord the titles of both posts, the suggested sentence, whi
 
 == Screenshots ==
 
-1. Posts > Undergrowth: each suggested link with the sentence of your own where it would fit, ready to accept or veto.
+1. Posts > Undergrowth: each suggested link with the sentence in your own post where it would fit, ready to accept or veto.
 2. The Growth stages tab: every post's stage, with a pin to keep one as it is.
 3. The Map tab: your posts in groups that are close in meaning, with a flag on any group that circles something none of them is about yet.
 4. Settings > Undergrowth: the keys, what is sent to each service, and how many of your posts have been read.
