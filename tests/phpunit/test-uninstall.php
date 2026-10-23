@@ -143,6 +143,17 @@ class Test_Uninstall extends WP_UnitTestCase {
 		$this->assertNotContains( 'undergrowth_monthly', $this->events() );
 	}
 
+	public function test_every_post_meta_key_is_kept_out_of_the_custom_fields_box() {
+		$keys = undergrowth_protected_meta_keys();
+		sort( $keys );
+
+		$this->assertSame( $this->post_meta_keys(), $keys );
+
+		foreach ( $keys as $key ) {
+			$this->assertTrue( is_protected_meta( $key, 'post' ), $key );
+		}
+	}
+
 	public function test_uninstall_deletes_every_option() {
 		foreach ( $this->options() as $option ) {
 			update_option( $option, 'x', false );
