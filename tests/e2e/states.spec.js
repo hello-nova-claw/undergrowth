@@ -64,6 +64,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'file-last-error',
+		page: SETTINGS,
+		fixture: 'file-last-error',
+	},
+	{
+		screen: 'settings',
 		state: 'prompt-key-saved',
 		page: SETTINGS,
 		fixture: 'prompt-key-saved',

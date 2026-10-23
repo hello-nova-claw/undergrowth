@@ -353,6 +353,16 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertSame( array( $post_id ), $written );
 	}
 
+	public function test_reader_text_is_sent_without_entities() {
+		$this->comment( $this->post(), 'Salt &amp; pepper, or just salt?' );
+
+		undergrowth_write_prompt();
+
+		$user = $this->requests[0]['messages'][0]['content'];
+		$json = json_decode( substr( $user, strpos( $user, '{' ) ), true );
+		$this->assertSame( 'Salt & pepper, or just salt?', $json['reader_text'] );
+	}
+
 	public function test_reader_text_is_never_stored_with_the_prompt() {
 		$this->comment( $this->post(), 'Secret reader words, how?' );
 

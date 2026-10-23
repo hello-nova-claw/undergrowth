@@ -34,7 +34,6 @@ add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
 add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
-register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_unschedule_prompts' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_comment_prompt_sources' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_gap_prompt_sources', 15 );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_compost_prompt_sources', 20 );
@@ -537,7 +536,7 @@ function undergrowth_comment_prompt_sources( $records ): array {
 		}
 
 		$post = get_post( (int) $comment->comment_post_ID );
-		$text = trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $comment->comment_content ) ) );
+		$text = undergrowth_plain_line( $comment->comment_content );
 
 		if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || undergrowth_is_post_author_comment( $comment, $post ) || ! undergrowth_has_question_mark( $text ) ) {
 			continue;

@@ -390,8 +390,7 @@ function undergrowth_discord_proposal_message( WP_Post $source, WP_Post $target,
  *                characters escaped.
  */
 function undergrowth_discord_plain( string $text, int $max ): string {
-	$text = html_entity_decode( wp_strip_all_tags( $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-	$text = trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+	$text = undergrowth_plain_line( $text );
 
 	if ( mb_strlen( $text ) > $max ) {
 		$text = rtrim( mb_substr( $text, 0, $max - 1 ) ) . '…';

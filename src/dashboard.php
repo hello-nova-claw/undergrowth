@@ -65,11 +65,7 @@ function undergrowth_render_prompt_widget(): void {
 		return;
 	}
 
-	$link = sprintf(
-		'<a href="%1$s">%2$s</a>',
-		esc_url( (string) get_edit_post_link( $prompt['post_id'], 'raw' ) ),
-		esc_html( get_the_title( $prompt['post_id'] ) )
-	);
+	$link = undergrowth_post_link( $prompt['post_id'] );
 
 	if ( 'comment' === $prompt['source'] ) {
 		/* translators: %1$s: title of the post, linked to its editor. */

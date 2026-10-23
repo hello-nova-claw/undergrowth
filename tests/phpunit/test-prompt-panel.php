@@ -244,6 +244,27 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"', $html );
 	}
 
+	public function test_widget_names_an_untitled_post() {
+		wp_update_post(
+			array(
+				'ID'         => $this->post_id,
+				'post_title' => '',
+			)
+		);
+		update_option(
+			'undergrowth_prompt',
+			array(
+				'key'      => 'comment:1',
+				'source'   => 'comment',
+				'post_id'  => $this->post_id,
+				'question' => self::QUESTION,
+				'time'     => time(),
+			)
+		);
+
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*post=' . $this->post_id . '[^"]*">\(no title\)</a>#', $this->render() );
+	}
+
 	public function test_question_is_escaped() {
 		update_option(
 			'undergrowth_prompt',

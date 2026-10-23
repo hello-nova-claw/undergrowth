@@ -479,6 +479,7 @@ function undergrowth_render_memory_folder_field(): void {
 		?>
 		<p><?php esc_html_e( 'No folder could be made for the per-post files, so none are written. Undergrowth tries again on the next page load.', 'undergrowth' ); ?></p>
 		<?php
+		undergrowth_render_file_failure_notice();
 		return;
 	}
 	?>
@@ -487,6 +488,64 @@ function undergrowth_render_memory_folder_field(): void {
 		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
 	</p>
 	<?php
+	undergrowth_render_file_failure_notice();
+}
+
+/**
+ * Prints why the last per-post file was not written, when one was not.
+ */
+function undergrowth_render_file_failure_notice(): void {
+	$error = get_option( 'undergrowth_last_file_error' );
+
+	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+		return;
+	}
+	?>
+	<div class="notice notice-warning inline" id="undergrowth-file-error">
+		<p><?php echo esc_html( undergrowth_file_failure_text( $error ) ); ?></p>
+	</div>
+	<?php
+}
+
+/**
+ * Says in plain words why the last per-post file was not written, when, and
+ * when it is tried again.
+ *
+ * @param array $error Saved error, with 'code' and 'time'.
+ * @return string Plain text.
+ *
+ * @phpstan-param array<string, mixed> $error
+ */
+function undergrowth_file_failure_text( array $error ): string {
+	$code  = (string) ( $error['code'] ?? '' );
+	$retry = __( 'Undergrowth tries again each time a post’s file is updated, and for every post at the next monthly cycle.', 'undergrowth' );
+
+	if ( 'no_direct_access' === $code ) {
+		$cause = __( 'WordPress cannot write files directly on this server, so the per-post files are not being written. Your host can tell you how to allow it.', 'undergrowth' );
+	} elseif ( 'no_folder' === $code ) {
+		$cause = __( 'The folder for the per-post files could not be made, so they are not being written. Check that the uploads folder can be written to.', 'undergrowth' );
+	} elseif ( 'no_protection' === $code ) {
+		$cause = __( 'The files that keep visitors out of the per-post folder could not be written, so no per-post files are written either. Check that the uploads folder can be written to.', 'undergrowth' );
+	} elseif ( 'old_folder_left' === $code ) {
+		$uploads = wp_upload_dir( null, false );
+		$cause   = sprintf(
+			/* translators: %1$s: path of the old folder, such as wp-content/uploads/undergrowth. */
+			__( 'The old folder for the per-post files, at an address anyone could guess, could not be removed. Delete %1$s by hand.', 'undergrowth' ),
+			str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $uploads['basedir'] . '/undergrowth' ) )
+		);
+		$retry = __( 'Undergrowth tries again on the first page load after an hour has passed.', 'undergrowth' );
+	} else {
+		$cause = __( 'A post’s file could not be written. Check that the uploads folder can be written to.', 'undergrowth' );
+	}
+
+	$when = sprintf(
+		/* translators: %1$s: date and time. */
+		__( 'That was on %1$s.', 'undergrowth' ),
+		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] )
+	);
+
+	// Each part is a whole sentence, translated on its own.
+	return $cause . ' ' . $when . ' ' . $retry;
 }
 
 /**
