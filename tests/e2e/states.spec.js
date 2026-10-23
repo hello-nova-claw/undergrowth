@@ -383,6 +383,11 @@ const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
 		screen: 'editor-panel',
 		state,
 		panel: () => panelPosts[ state ],
+		// A build from before the panel has none to show.
+		open: ( page ) =>
+			page.evaluate( () =>
+				Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) )
+			),
 	} )
 );
 
@@ -903,13 +908,17 @@ test.describe( 'Screenshot catalogue', () => {
 					} )
 				).id;
 
-				// Through the panel's own route, as the author would.
+				// Through the panel's own route, as the author would. A build
+				// from before the panel has no route, and its shots are
+				// listed as skipped.
 				if ( action ) {
-					await requestUtils.rest( {
-						method: 'POST',
-						path: `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`,
-						data: action,
-					} );
+					await requestUtils
+						.rest( {
+							method: 'POST',
+							path: `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`,
+							data: action,
+						} )
+						.catch( () => {} );
 				}
 			}
 		} );
