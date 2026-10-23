@@ -230,12 +230,6 @@ function undergrowth_add_meter_dashboard_help(): void {
  * screen's load hook.
  */
 function undergrowth_add_meter_help(): void {
-	$screen = get_current_screen();
-
-	if ( ! $screen ) {
-		return;
-	}
-
 	$line = number_format_i18n( undergrowth_meter_line() );
 
 	$paragraphs = array(
@@ -246,12 +240,5 @@ function undergrowth_add_meter_help(): void {
 		__( 'Reader features are not part of this version yet, so neither rule changes anything for now.', 'undergrowth' ),
 	);
 
-	$screen->add_help_tab(
-		array(
-			'id'       => 'undergrowth-meter',
-			'title'    => __( 'Page views meter', 'undergrowth' ),
-			'content'  => '<p>' . implode( '</p><p>', array_map( 'esc_html', $paragraphs ) ) . '</p>',
-			'priority' => 20,
-		)
-	);
+	undergrowth_add_help_tab( 'undergrowth-meter', __( 'Page views meter', 'undergrowth' ), $paragraphs, 20 );
 }

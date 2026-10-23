@@ -108,4 +108,16 @@ class Test_Help_Tabs extends WP_UnitTestCase {
 			$this->assertDoesNotMatchRegularExpression( '/\b(days?|weeks?|streak|ago|since|soon|should)\b/i', $text, $id );
 		}
 	}
+
+	public function test_help_tab_takes_a_priority_and_escapes_its_paragraphs() {
+		set_current_screen( 'dashboard' );
+		$screen = get_current_screen();
+		$screen->remove_help_tabs();
+
+		undergrowth_add_help_tab( 'undergrowth-test', 'Test', array( 'One & two.', 'Three.' ), 20 );
+
+		$tab = $screen->get_help_tab( 'undergrowth-test' );
+		$this->assertSame( 20, $tab['priority'] );
+		$this->assertSame( '<p>One &amp; two.</p><p>Three.</p>', $tab['content'] );
+	}
 }
