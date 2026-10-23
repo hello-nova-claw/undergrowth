@@ -547,11 +547,42 @@ function undergrowth_cycle_post( int $post_id ): void {
 }
 
 /**
- * Stops the monthly cycle and every queued embed or Discord post while the
- * plugin is inactive, and forgets the clusters and any clustering pass that
- * was under way.
+ * Stops every scheduled event while the plugin is inactive, on every site
+ * when it is deactivated across a network.
+ *
+ * Each site keeps its own cron queue, and network deactivation runs this
+ * once, on the main site.
+ *
+ * @param bool $network_wide Whether the plugin is deactivated across the network.
  */
-function undergrowth_deactivate(): void {
+function undergrowth_deactivate( $network_wide = false ): void {
+	if ( ! $network_wide || ! is_multisite() ) {
+		undergrowth_deactivate_site();
+		return;
+	}
+
+	// get_sites() stops at 100 sites unless told otherwise.
+	$site_ids = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	);
+
+	foreach ( $site_ids as $site_id ) {
+		switch_to_blog( (int) $site_id );
+		undergrowth_deactivate_site();
+		restore_current_blog();
+	}
+}
+
+/**
+ * Stops the monthly cycles, the prompt events and every queued embed or
+ * Discord post on the current site, and forgets the clusters and any
+ * clustering pass that was under way.
+ */
+function undergrowth_deactivate_site(): void {
+	undergrowth_unschedule_prompts();
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );

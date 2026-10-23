@@ -34,7 +34,6 @@ add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
 add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
-register_deactivation_hook( UNDERGROWTH_FILE, 'undergrowth_unschedule_prompts' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_comment_prompt_sources' );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_gap_prompt_sources', 15 );
 add_filter( 'undergrowth_prompt_sources', 'undergrowth_compost_prompt_sources', 20 );
