@@ -249,6 +249,48 @@ describe( 'Editor stage panel', () => {
 		).toContain( 'Sorry, you cannot do that.' );
 	} );
 
+	test( 'an action that settles after the post changed leaves the new stage alone', async () => {
+		let settle;
+		replies = [
+			inGarden( 'sprout' ),
+			new Promise( ( resolve ) => {
+				settle = resolve;
+			} ),
+			inGarden( 'budding' ),
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="publish" /> )
+		);
+		await waitFor( () => button( container, 'Compost' ) );
+		button( container, 'Compost' ).click();
+		await waitFor( () => requests.length === 2 );
+
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="private" /> )
+		);
+		await waitFor( () =>
+			container
+				.querySelector( '.undergrowth-stage' )
+				?.textContent.includes( 'Budding' )
+		);
+
+		settle( { ...inGarden( 'composting' ), message: 'Moved.' } );
+		await new Promise( ( resolve ) => setTimeout( resolve, 20 ) );
+
+		expect(
+			container.querySelector( '.undergrowth-stage' ).textContent
+		).toBe( 'Growth stage: Budding' );
+		expect( button( container, 'Compost' ).disabled ).toBe( false );
+		expect(
+			button( container, 'Compost' ).getAttribute( 'aria-disabled' )
+		).not.toBe( 'true' );
+	} );
+
 	test( 'asks again once the post is published', async () => {
 		replies = [
 			{ in_garden: false, stage: null, label: '', pinned: false },

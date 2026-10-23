@@ -28,14 +28,20 @@ export default function StagePanel( { postId, status } ) {
 	const [ error, setError ] = useState( '' );
 	const result = useRef();
 	const moved = useRef( false );
+	// Counts the times the panel asked again, so an action that settles
+	// after the post changed never overwrites the newer answer.
+	const asked = useRef( 0 );
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const path = `/undergrowth/v1/posts/${ postId }/stage`;
 
 	useEffect( () => {
 		let current = true;
 
+		asked.current++;
+
 		// Until the answer comes, the old stage and its controls may no longer
 		// hold, so neither is left on screen.
+		setBusy( false );
 		setError( '' );
 		setStage( null );
 		apiFetch( { path } ).then(
@@ -64,20 +70,27 @@ export default function StagePanel( { postId, status } ) {
 	 * @param {Object} data Action, and the stage to pin.
 	 */
 	function act( data ) {
+		const when = asked.current;
+		const current = () => when === asked.current;
+
 		setBusy( true );
 		setError( '' );
 
 		apiFetch( { path, method: 'POST', data } )
 			.then(
 				( answer ) => {
+					if ( ! current() ) {
+						return;
+					}
+
 					moved.current = true;
 					setChoice( null );
 					setStage( answer );
 					createSuccessNotice( answer.message, { type: 'snackbar' } );
 				},
-				( refusal ) => setError( refusal.message )
+				( refusal ) => current() && setError( refusal.message )
 			)
-			.finally( () => setBusy( false ) );
+			.finally( () => current() && setBusy( false ) );
 	}
 
 	const refusal = error && (
