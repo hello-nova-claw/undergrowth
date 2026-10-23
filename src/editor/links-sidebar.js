@@ -116,10 +116,10 @@ function Sentence( { sentence, span } ) {
  * editor where Undo can take it out. The suggestion is accepted when the
  * post is saved with the link.
  *
- * @param {Object}   props            Component props.
- * @param {number}                                 props.postId     Post being edited.
- * @param {string}                                 props.saved      Changes on every save, so the lists are read again.
- * @param {Object[]}                               props.paragraphs Result of editorParagraphs() for the post.
+ * @param {Object}                                props            Component props.
+ * @param {number}                                props.postId     Post being edited.
+ * @param {string}                                props.saved      Changes on every save, so the lists are read again.
+ * @param {Object[]}                              props.paragraphs Result of editorParagraphs() for the post.
  * @param {(id: string, content: string) => void} props.onLink     Puts a paragraph's new HTML in the editor, given its client ID.
  * @return {Element} Sidebar contents.
  */
