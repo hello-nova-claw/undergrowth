@@ -27,6 +27,7 @@ require_once __DIR__ . '/src/anthropic.php';
 require_once __DIR__ . '/src/prompts.php';
 require_once __DIR__ . '/src/indexer.php';
 require_once __DIR__ . '/src/anchor-words.php';
+require_once __DIR__ . '/src/anchor-spans.php';
 require_once __DIR__ . '/src/sentences.php';
 require_once __DIR__ . '/src/links.php';
 require_once __DIR__ . '/src/clusters.php';
