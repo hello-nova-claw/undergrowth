@@ -907,6 +907,24 @@ msgstr ""
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
 msgstr ""
 
+#. translators: %1$s: service name, such as Anthropic.
+#: src/settings.php
+#, php-format
+msgid "%1$s declined to write a question from one of your posts or comments, so Undergrowth skipped it and went on to the others."
+msgstr ""
+
+#. translators: %1$s: service name, such as Anthropic.
+#: src/settings.php
+#, php-format
+msgid "The reply from %1$s about one of your posts or comments was cut off, so Undergrowth skipped it and went on to the others."
+msgstr ""
+
+#. translators: %1$s: date and time.
+#: src/settings.php
+#, php-format
+msgid "That was on %1$s."
+msgstr ""
+
 #. translators: %1$s: service name, such as Discord.
 #: src/settings.php
 #, php-format
