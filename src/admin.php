@@ -1,6 +1,8 @@
 <?php
 /**
- * The link suggestions screen: where the author sees proposals and acts on them.
+ * Posts › Undergrowth: the Suggestions, Growth stages and Map tabs, where the
+ * author acts on proposals, stages and resurfacing signals, and the helpers
+ * those screens share.
  *
  * @package Undergrowth
  */
@@ -97,7 +99,7 @@ function undergrowth_load_list_table(): void {
  * Returns the address of the link suggestions screen.
  *
  * @param string $notice Notice to show on arrival, or an empty string.
- * @param string $tab    'stages' for the growth stages tab, or an empty string for the suggestions.
+ * @param string $tab    'stages' or 'map' for those tabs, or an empty string for the suggestions.
  * @return string Admin URL.
  */
 function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): string {
@@ -185,7 +187,7 @@ function undergrowth_handle_unpin(): void {
 
 /**
  * Dismisses the resurfacing signal posted from its form, then returns to
- * the stages tab.
+ * the Map tab.
  */
 function undergrowth_handle_dismiss_resurfacing(): void {
 	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;

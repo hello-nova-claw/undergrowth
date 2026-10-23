@@ -118,6 +118,12 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertSame( 'Oca', undergrowth_post_link( $post_id, 'row-title' ) );
 	}
 
+	public function test_suggestions_url_opens_each_tab_with_its_notice() {
+		$this->assertSame( admin_url( 'edit.php?page=undergrowth-links' ), undergrowth_suggestions_url() );
+		$this->assertSame( admin_url( 'edit.php?page=undergrowth-links&tab=map&undergrowth_notice=resurfacing_dismissed' ), undergrowth_suggestions_url( 'resurfacing_dismissed', 'map' ) );
+		$this->assertSame( admin_url( 'edit.php?page=undergrowth-links&tab=stages' ), undergrowth_suggestions_url( '', 'stages' ) );
+	}
+
 	public function test_settings_url_opens_settings_undergrowth() {
 		$this->assertSame( admin_url( 'options-general.php?page=undergrowth' ), undergrowth_settings_url() );
 	}
