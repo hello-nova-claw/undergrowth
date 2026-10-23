@@ -1,0 +1,1 @@
+Accept no longer links part of a hyphenated word, such as "reliance" in "Self-reliance". It links the word where it stands on its own instead, or another word in the sentence.
