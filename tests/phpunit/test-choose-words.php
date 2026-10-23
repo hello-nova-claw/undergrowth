@@ -108,8 +108,9 @@ class Test_Choose_Words extends WP_UnitTestCase {
 		$_POST['first']       = (string) $first;
 		$_POST['last']        = (string) $last;
 		$_POST['shown']       = undergrowth_sentence_version( self::SENTENCE );
-		$_POST['_wpnonce']    = wp_create_nonce( 'undergrowth_choose_words_' . $this->source . '_' . $this->target );
-		$_REQUEST['_wpnonce'] = $_POST['_wpnonce'];
+		$nonce                = wp_create_nonce( 'undergrowth_choose_words_' . $this->source . '_' . $this->target );
+		$_POST['_wpnonce']    = $nonce;
+		$_REQUEST['_wpnonce'] = $nonce;
 	}
 
 	public function test_chosen_words_are_stored_as_the_authors_choice() {
@@ -257,7 +258,7 @@ class Test_Choose_Words extends WP_UnitTestCase {
 	}
 
 	public function test_each_suggestion_offers_choose_words_named_with_both_titles() {
-		$this->assertMatchesRegularExpression( '#<span class=\'choose\'><a href="[^"]*choose=' . $this->source . '-' . $this->target . '[^"]*\#undergrowth-choose-' . $this->source . '-' . $this->target . '" aria-label="Choose which words link from Spring to The Seed Ledger">Choose words</a></span>#', $this->render() );
+		$this->assertMatchesRegularExpression( '#<span class=\'choose\'><a href="[^"]*choose=' . $this->source . '-' . $this->target . '[^"]*\#undergrowth-choose-' . $this->source . '-' . $this->target . '" aria-label="Choose words for the link from Spring to The Seed Ledger">Choose words</a></span>#', $this->render() );
 	}
 
 	public function test_the_form_opens_only_on_the_chosen_suggestion() {
