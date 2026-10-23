@@ -98,11 +98,11 @@ function Sentence( { sentence, span } ) {
 	const characters = [ ...sentence ];
 
 	if ( ! span ) {
-		return <blockquote>{ sentence }</blockquote>;
+		return <blockquote dir="auto">{ sentence }</blockquote>;
 	}
 
 	return (
-		<blockquote>
+		<blockquote dir="auto">
 			{ characters.slice( 0, span.offset ).join( '' ) }
 			<mark>
 				{ characters
