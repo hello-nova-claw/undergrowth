@@ -16,14 +16,15 @@ const UNDERGROWTH_OPENAI_MAX_BYTES   = 24000;
 const UNDERGROWTH_OPENAI_RETRY_BYTES = 8000;
 
 /**
- * Returns the saved OpenAI API key.
+ * Returns the OpenAI API key: the UNDERGROWTH_OPENAI_API_KEY constant when
+ * wp-config.php defines it, otherwise the saved option.
  *
- * @return string The key, or an empty string when none is saved.
+ * @return string The key, or an empty string when there is none.
  */
 function undergrowth_openai_key(): string {
-	$key = get_option( 'undergrowth_openai_api_key', '' );
+	$key = undergrowth_key_from_config( 'UNDERGROWTH_OPENAI_API_KEY' );
 
-	return is_string( $key ) ? $key : '';
+	return '' !== $key ? $key : undergrowth_saved_key( 'undergrowth_openai_api_key' );
 }
 
 /**

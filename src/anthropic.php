@@ -17,21 +17,22 @@ const UNDERGROWTH_ANTHROPIC_MODEL   = 'claude-opus-5-5';
 const UNDERGROWTH_ANTHROPIC_MAX_TOKENS = 4000;
 
 /**
- * Returns the saved Anthropic API key.
+ * Returns the Anthropic API key: the UNDERGROWTH_ANTHROPIC_API_KEY constant
+ * when wp-config.php defines it, otherwise the saved option.
  *
- * @return string The key, or an empty string when none is saved.
+ * @return string The key, or an empty string when there is none.
  */
 function undergrowth_anthropic_key(): string {
-	$key = get_option( 'undergrowth_anthropic_api_key', '' );
+	$key = undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' );
 
-	return is_string( $key ) ? $key : '';
+	return '' !== $key ? $key : undergrowth_saved_key( 'undergrowth_anthropic_api_key' );
 }
 
 /**
- * Tells whether writing prompts is switched on, which it is only while an
- * Anthropic key is saved.
+ * Tells whether writing prompts is switched on, which it is only while there
+ * is an Anthropic key.
  *
- * @return bool True when a key is saved.
+ * @return bool True when there is a key.
  */
 function undergrowth_prompts_enabled(): bool {
 	return '' !== undergrowth_anthropic_key();

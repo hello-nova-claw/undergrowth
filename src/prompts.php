@@ -29,6 +29,7 @@ const UNDERGROWTH_QUESTION_MARKS = '?？؟';
 const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed' );
 
 add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
+add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
 add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
@@ -50,6 +51,34 @@ function undergrowth_schedule_prompt_cycle(): void {
 }
 
 /**
+ * Writes a first prompt soon after an Anthropic key appears in wp-config.php.
+ *
+ * Such a key is never saved, so the option hooks that ask for the first
+ * prompt never fire. This asks once, and remembers that it did: a prompt
+ * that is dismissed or snoozed leaves nothing queued, and asking again on
+ * every request would skip the monthly wait.
+ */
+function undergrowth_queue_config_first_prompt(): void {
+	if ( '' === undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) || false !== get_option( 'undergrowth_config_prompt_queued' ) ) {
+		return;
+	}
+
+	// A snoozed prompt means the author has been asked already, with a key
+	// that was saved before it moved to wp-config.php.
+	if ( array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() ) ) {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+		return;
+	}
+
+	undergrowth_queue_first_prompt();
+
+	// Scheduling can fail, and then the next request tries again.
+	if ( false !== wp_next_scheduled( 'undergrowth_write_prompt' ) || null !== undergrowth_current_prompt() ) {
+		update_option( 'undergrowth_config_prompt_queued', 1 );
+	}
+}
+
+/**
  * Writes a first prompt soon after a key is saved, so the author does not
  * wait a month for the first one.
  *
@@ -65,6 +94,12 @@ function undergrowth_queue_first_prompt(): void {
  * Removes the plugin's prompt events.
  */
 function undergrowth_unschedule_prompts(): void {
+	// A first prompt for a key in wp-config.php that was never written is
+	// asked for again once the plugin is active again.
+	if ( false !== wp_next_scheduled( 'undergrowth_write_prompt' ) ) {
+		delete_option( 'undergrowth_config_prompt_queued' );
+	}
+
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 }
