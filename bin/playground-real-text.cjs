@@ -3,8 +3,6 @@
  */
 
 /**
- * Builds the message printed once the site is up.
- *
  * Playground logs in once per browser and remembers that in a cookie on
  * 127.0.0.1, which outlives the site. A second run in the same browser then
  * meets a login page, so the message says what to type there.
