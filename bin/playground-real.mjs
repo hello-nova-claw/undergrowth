@@ -24,6 +24,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseEnv } from 'node:util';
 import { buildPlugin, pluginMounts } from './plugin-mounts.cjs';
+import { startMessage } from './playground-real-text.cjs';
 
 const root = resolve( import.meta.dirname, '..' );
 const envFile = join( root, '.env.local' );
@@ -240,17 +241,10 @@ stop = async () => {
 };
 
 process.stdout.write(
-	[
-		'',
-		`Undergrowth is running at ${ siteUrl }.`,
-		local
-			? `Posts are read by ${ ollamaModel } in Ollama, on this computer. Nothing is sent to OpenAI.`
-			: 'Posts are read by OpenAI, with your key.',
-		'' !== anthropicKey
-			? 'Questions are written by Claude, with your Anthropic key.'
-			: 'No Anthropic key, so no questions on the Dashboard.',
-		'Posts are read in the background, a few at a time; Settings > Undergrowth counts them.',
-		'Stop with Ctrl+C. It prints the score percentiles, then deletes the site and the temporary blueprint.',
-		'',
-	].join( '\n' )
+	startMessage( {
+		siteUrl,
+		local,
+		model: ollamaModel,
+		anthropic: '' !== anthropicKey,
+	} )
 );
