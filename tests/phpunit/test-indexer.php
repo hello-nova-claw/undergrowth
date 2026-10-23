@@ -467,4 +467,45 @@ class Test_Indexer extends WP_UnitTestCase {
 
 		$this->assertSame( array(), $this->embedded );
 	}
+
+	public function test_indexable_sql_picks_the_posts_undergrowth_is_indexable_picks() {
+		global $wpdb;
+
+		$post_ids = array(
+			self::factory()->post->create(),
+			self::factory()->post->create( array( 'post_status' => 'draft' ) ),
+			self::factory()->post->create( array( 'post_password' => 'secret' ) ),
+			self::factory()->post->create( array( 'post_type' => 'page' ) ),
+		);
+
+		list( $where, $args ) = undergrowth_indexable_sql( 'p.' );
+
+		$placeholders = implode( ', ', array_fill( 0, count( $post_ids ), '%d' ) );
+		$picked       = array_map(
+			'intval',
+			$wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT p.ID FROM %i p WHERE p.ID IN ({$placeholders}) AND {$where} ORDER BY p.ID", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Placeholders built above.
+					array_merge( array( $wpdb->posts ), $post_ids, $args )
+				)
+			)
+		);
+
+		$expected = array_values(
+			array_filter(
+				$post_ids,
+				static function ( int $post_id ): bool {
+					return undergrowth_is_indexable( get_post( $post_id ) );
+				}
+			)
+		);
+		$this->assertSame( array( $post_ids[0] ), $expected );
+		$this->assertSame( $expected, $picked );
+	}
+
+	public function test_indexable_sql_is_null_with_no_post_types() {
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$this->assertNull( undergrowth_indexable_sql( 'p.' ) );
+	}
 }
