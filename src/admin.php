@@ -295,9 +295,10 @@ function undergrowth_render_stages_tab(): void {
 	$table = new Undergrowth_Stages_List_Table();
 	$table->prepare_items();
 
-	// A view with no posts still shows the table, with its views, so the
-	// author can choose another.
-	if ( ! $table->has_items() && '' === undergrowth_stage_filter_value() ) {
+	// Only a garden with no posts at all gets the first-run message. A view
+	// with no posts, or a page past the end after a bulk action, still shows
+	// the table, so the author can choose another view or page.
+	if ( 0 === (int) $table->get_pagination_arg( 'total_items' ) && '' === undergrowth_stage_filter_value() ) {
 		if ( undergrowth_has_composting_posts() ) {
 			echo '<p>' . esc_html__( 'Every published post is composting, so none has a growth stage to show here. Composting posts are marked on the Posts screen.', 'undergrowth' ) . '</p>';
 		} else {

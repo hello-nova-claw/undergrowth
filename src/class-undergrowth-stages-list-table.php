@@ -203,22 +203,34 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		list( $orderby, $order ) = undergrowth_stages_table_order();
 
-		$query = new WP_Query(
-			array(
-				'post_type'           => $post_types,
-				'post_status'         => 'publish',
-				'has_password'        => false,
-				// A sort by stage or pin keeps the titles in order within it.
-				'orderby'             => 'title',
-				'order'               => 'title' === $orderby ? $order : 'ASC',
-				'undergrowth_orderby' => 'title' === $orderby ? '' : $orderby,
-				'undergrowth_order'   => $order,
-				'posts_per_page'      => self::PER_PAGE,
-				'paged'               => $this->get_pagenum(),
-				'fields'              => 'ids',
-				'meta_query'          => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The garden and the view the author chose.
-			)
+		$args  = array(
+			'post_type'           => $post_types,
+			'post_status'         => 'publish',
+			'has_password'        => false,
+			// A sort by stage or pin keeps the titles in order within it.
+			'orderby'             => 'title',
+			'order'               => 'title' === $orderby ? $order : 'ASC',
+			'undergrowth_orderby' => 'title' === $orderby ? '' : $orderby,
+			'undergrowth_order'   => $order,
+			'posts_per_page'      => self::PER_PAGE,
+			'paged'               => $this->get_pagenum(),
+			'fields'              => 'ids',
+			'meta_query'          => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The garden and the view the author chose.
 		);
+		$query = new WP_Query( $args );
+		$total = (int) $query->found_posts;
+
+		// WP_Query counts nothing for a page past the end, as after a bulk
+		// action emptied the last page, so the pages are counted again.
+		if ( array() === $query->posts && $this->get_pagenum() > 1 ) {
+			$count = new WP_Query(
+				array(
+					'paged'          => 1,
+					'posts_per_page' => 1,
+				) + $args
+			);
+			$total = (int) $count->found_posts;
+		}
 
 		$post_ids = array_map( 'intval', $query->posts );
 
@@ -228,7 +240,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		$this->set_pagination_args(
 			array(
-				'total_items' => (int) $query->found_posts,
+				'total_items' => $total,
 				'per_page'    => self::PER_PAGE,
 			)
 		);
