@@ -31,20 +31,63 @@ The debt sits in three places:
 
 The test suite is thorough, but planting a post runs the whole embed pipeline, so the tests that plant many posts are slow. Per-post files also leak between tests.
 
+## Outcome
+
+Updated on 2026-10-23, once the fixes had merged.
+
+| Findings | Outcome |
+|---|---|
+| B0–B8 | Fixed, each in its own pull request (see the Bugs table). |
+| B9 | Open: #237. |
+| D1 | Decided by Anna: the first real pass is a baseline. Fixed in #264. |
+| D2 | Decided by Anna: a site language change re-embeds the index; a language set per post stays apart. Fixed in #265. |
+| D3, D4 | Open: #238 and #241. |
+| H1 | Fixed in #272. |
+| H2 | Fixed in #266. |
+| M1 | Fixed in #270. The dot products in `clusters.php` were left as they are. |
+| M2 | Fixed in #268. |
+| M3 | Fixed in #274. |
+| M4, L1 | Fixed in #278. The links table's `edit_link()` stays: it bolds a title that cannot be linked, which no other screen does. |
+| M5 | Fixed in #305. |
+| M6 | Fixed in #284. |
+| L2 | Fixed in #280. |
+| L3 | Fixed in #299. |
+| L4 | Fixed in #302, with a test that checks the list against every post meta key in `src/`. |
+| L5 | Declined. The two key getters are two lines each on shared helpers already. Uninstall has to name the Discord options itself, because `discord-settings.php` is not loaded then, and the uninstall inventory test now guards that list. |
+| L6, X1, X2, X3, T4 | Open: #311. |
+| C1, C2, C6, C7 | Fixed in #286. |
+| C3, C8 | Fixed in #297. |
+| C4 | Declined for now: the fix would change `wp undergrowth scores` output. |
+| C5 | Not a defect: the 1000 is a deliberate fallback for a site that defines the constant as 0. |
+| N1–N3 | Left as they are, as proposed. N1 goes with #237. |
+| F1 | Fixed in #295. |
+| F2–F4 | Open: #242. |
+| T1 | Fixed in #263. |
+| T2 | Open: #243. |
+| T3 | Fixed in #288 for `stop_redirect()`. The fake HTTP helpers stay per class, since each fakes something different. |
+| T5 | Fixed in #310. The sleep stays, as proposed. |
+
+Found along the way and also fixed:
+
+- deactivation now clears every site of the current network (#227);
+- long post languages stay apart when fitted to the column (#260);
+- comment text is decoded before it is sent for a prompt (#256);
+- the hooks reference, `docs/hooks.md` (#282).
+
 ## Bugs
 
 | ID | Finding | Proposed fix | Issue | Status |
 |---|---|---|---|---|
 | B0 | Deactivation leaves `undergrowth_embed_post` and `undergrowth_discord_post_proposals` queued, while every other event is unscheduled. Network deactivation clears only the main site (`stages.php` `undergrowth_deactivate()`). | Unschedule both hooks. Run deactivation on every site of a network. Fold the prompt events into the same handler. | #226 | Fixed in #227 |
-| B1 | A prompt reply that stops at `max_tokens` counts as a failed request. The source is never recorded as sent, and sources are tried best first, so every later run pays for the same request and never reaches another source (`prompts.php` `undergrowth_write_prompt_from()`). | Treat `max_tokens` like a refusal: record the source and move on. Do the same in the rest check. | #229 | Fix in #246 |
-| B2 | `undergrowth_last_file_error` is written for five kinds of failure, but nothing shows it. Settings shows the folder as if files were being written (`memory.php`, `settings.php`). | A warning under the per-post files field, one plain sentence per cause. | #230 | Fix in #248 |
-| B3 | Resurfacing uses a fixed 0.5. Its comment says this is the cluster threshold, but that threshold has been measured per site since #176 (`resurfacing.php`). | Default to `undergrowth_min_cluster_similarity()`, keeping the filter. | #231 | Fix in #251 |
-| B4 | Post text is stripped of tags but entities are not decoded, so `nbsp`, `amp` and `8217` reach the embedding and the word counts. Sentences are decoded, so those tokens can never be linked. Reader comments sent for prompts have the same gap (`indexer.php` `undergrowth_post_text()`, `prompts.php`). | Decode entities after stripping tags, as `undergrowth_sentences()` does. | #232 | To fix |
-| B5 | The Dashboard prompt widget builds its link by hand, so an untitled post gets a link with no name (`dashboard.php`). | Use `undergrowth_post_link()`. | #234 | To fix |
-| B6 | A refusal or a cut-off reply is recorded as the last prompt error, with status 200. Settings then calls it a fault on the provider's side and says it will be retried, but the source is skipped for good (`anthropic.php`, `settings.php` `undergrowth_failure_text()`). | Give these answers their own sentence, saying the source was skipped. | #235 | To fix |
-| B7 | `undergrowth_notice` and `revision` are not removable query arguments. A reload repeats the notice, and a stage action from the Map tab can show two contradicting notices with the same `id` (`posts-screen.php`, `admin.php`, `dashboard.php`). | Add both to `removable_query_args`. | #233 | To fix |
-| B8 | The post language is not cut to its `varchar(20)` column, as provider and model are. A longer filtered value never matches the stored one, so every save calls the provider again (`indexer.php` `undergrowth_post_language()`). | Cut it to 20 characters. | #236 | To fix |
-| B9 | Two clustering passes can interleave (monthly, end of backfill, WP-CLI). The second's first batch wipes the first's meta, and both then share the leaders option (`clusters.php` `undergrowth_run_cluster_cycle()`). | A pass ID stored with the leaders; a batch from an older pass stops. | #237 | Later |
+| B1 | A prompt reply that stops at `max_tokens` counts as a failed request. The source is never recorded as sent, and sources are tried best first, so every later run pays for the same request and never reaches another source (`prompts.php` `undergrowth_write_prompt_from()`). | Treat `max_tokens` like a refusal: record the source and move on. Do the same in the rest check. | #229 | Fixed in #246 |
+| B2 | `undergrowth_last_file_error` is written for five kinds of failure, but nothing shows it. Settings shows the folder as if files were being written (`memory.php`, `settings.php`). | A warning under the per-post files field, one plain sentence per cause. | #230 | Fixed in #248 |
+| B3 | Resurfacing uses a fixed 0.5. Its comment says this is the cluster threshold, but that threshold has been measured per site since #176 (`resurfacing.php`). | Default to `undergrowth_min_cluster_similarity()`, keeping the filter. | #231 | Fixed in #251 |
+| B4 | Post text is stripped of tags but entities are not decoded, so `nbsp`, `amp` and `8217` reach the embedding and the word counts. Sentences are decoded, so those tokens can never be linked. Reader comments sent for prompts have the same gap (`indexer.php` `undergrowth_post_text()`, `prompts.php`). | Decode entities after stripping tags, as `undergrowth_sentences()` does. | #232 | Fixed in #256 |
+| B5 | The Dashboard prompt widget builds its link by hand, so an untitled post gets a link with no name (`dashboard.php`). | Use `undergrowth_post_link()`. | #234 | Fixed in #257 |
+| B6 | A refusal or a cut-off reply is recorded as the last prompt error, with status 200. Settings then calls it a fault on the provider's side and says it will be retried, but the source is skipped for good (`anthropic.php`, `settings.php` `undergrowth_failure_text()`). | Give these answers their own sentence, saying the source was skipped. | #235 | Fixed in #259 |
+| B7 | `undergrowth_notice` and `revision` are not removable query arguments. A reload repeats the notice, and a stage action from the Map tab can show two contradicting notices with the same `id` (`posts-screen.php`, `admin.php`, `dashboard.php`). | Add both to `removable_query_args`. | #233 | Fixed in #258 |
+| B8 | The post language is not cut to its `varchar(20)` column, as provider and model are. A longer filtered value never matches the stored one, so every save calls the provider again (`indexer.php` `undergrowth_post_language()`). | Cut it to 20 characters. | #236 | Fixed in #260 |
+| B9 | Two clustering passes can interleave (monthly, end of backfill, WP-CLI). The second's first batch wipes the first's meta, and both then share the leaders option (`clusters.php` `undergrowth_run_cluster_cycle()`). | A pass ID stored with the leaders; a batch from an older pass stops. | #237 | Open |
 
 ## Decisions needed
 
