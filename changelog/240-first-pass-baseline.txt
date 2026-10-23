@@ -1,0 +1,1 @@
+Resurfacing now treats the first clustering pass as a starting point, so a fresh install, or the first pass after your posts are read again with another provider, model or language, no longer shows every composting post as close to what you are writing now.
