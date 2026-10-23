@@ -522,8 +522,8 @@ Each step is one issue and one PR, under the usual rules: test first, changelog 
 | 6 | Scent: Read per-post views from Jetpack Stats | 4 | 3.5, batched through top posts. |
 | 7 | Scent: Read Search Console clicks through Site Kit | 4 | 3.6A, as a signal ability, clicks only. |
 | 8 | Scent: Treat questions in comments as lacks | 4 | IDs only, plus the eraser and exporter. |
-| 9 | Scent: Add the reading beacon | 4 | 3.2B: the script, REST route, consent API, GPC, caps, sampling filter, Site Health test. Includes the e2e test on a cached page. Tests for the absence check: scaled counts that reach 300 with too few observed exposures, and exposures all in one half, both fail. |
-| 10 | Scent: Add the statistical check | 4 | 5C in `src/check.php`, `wp undergrowth check`, Help tab text. Can be built alongside 5 to 9. |
+| 9 | Scent: Add the reading beacon | 4 | 3.2B: the script, REST route, consent API, GPC, caps, sampling filter, Site Health test. Includes the e2e test on a cached page. |
+| 10 | Scent: Add the statistical check | 4 | 5C in `src/check.php`, `wp undergrowth check`, Help tab text. Can be built alongside 5 to 9. Tests for the absence check: scaled counts that reach 300 with too few observed exposures, and exposures all in one half, both fail. |
 | 11 | Abilities: Return reader scent from undergrowth/scent | 6 or 9, 10 | Fills `value`, writes the per-post `## scent` section on the cycle. |
 | 12 | Stages: Add scent to Evergreen and measure Wilting | 2, 11 | 6.2 and 6.3B, refresh-list confirmation. |
 | 13 | Admin: Add the refresh list | 12 | 8.2. |
