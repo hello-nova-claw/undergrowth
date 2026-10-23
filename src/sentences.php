@@ -12,6 +12,10 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DISTINCTIVE_TERMS = 20;
 
+// How many of a target's words count as what it is about, when choosing
+// the word a link to it sits on.
+const UNDERGROWTH_CENTRAL_TERMS = 25;
+
 add_action( 'clean_post_cache', 'undergrowth_forget_reusable_corpus' );
 // Another site's posts table can hold the same IDs.
 add_action( 'switch_blog', 'undergrowth_forget_reusable_corpus' );
@@ -362,14 +366,19 @@ function undergrowth_distinctive_terms( int $post_id, array $corpus, int $limit 
  * Only words in the text can be linked, so only those are ranked. Rarity
  * alone favours words the target happens to use once or twice, so it is
  * weighed against how often the target uses the word, and a word the target
- * uses only once counts for a quarter. A word in the target's title says
- * most plainly where the link goes, so it ranks above every other word,
- * unless half the site's posts use it.
+ * uses only once counts for a quarter. A word in the target's title or one
+ * of its headings says most plainly where the link goes, so it ranks above
+ * every other word, unless half the site's posts use it.
+ *
+ * Any other word must be among the few the target is most about, and must
+ * name something: function words, vague common words and words the target
+ * uses as verbs or adverbs never carry a link (see anchor-words.php). When
+ * no word in the text passes, nothing is returned, so no weak link is made.
  *
  * @param int    $target_id Post the link would point to.
  * @param string $text      Plain text the link would sit in.
  * @param array  $corpus    Result of undergrowth_build_corpus().
- * @param int    $limit     Most words to return, or 0 for every word the text shares with the target.
+ * @param int    $limit     Most words to return, or 0 for every word that may carry the link.
  * @return array<string, float> Weight keyed by token, highest first.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
@@ -381,27 +390,97 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 		return array();
 	}
 
-	$shared  = array_flip( undergrowth_tokens( $text ) );
-	$weights = array();
+	$locale = undergrowth_post_language( $target );
+	$stop   = undergrowth_anchor_stopwords( $locale );
+	$never  = array_flip( $stop['never'] );
+	$common = array_flip( $stop['named'] );
+	$exact  = array();
+	$names  = array();
 
-	foreach ( undergrowth_post_token_counts( $target ) as $token => $count ) {
-		if ( isset( $shared[ $token ] ) ) {
-			$rarity                     = log( ( $corpus['documents'] + 1 ) / ( ( $corpus['frequency'][ $token ] ?? 1 ) + 0.5 ) );
-			$weights[ (string) $token ] = ( $count > 1 ? $count : 0.25 ) * $rarity * $rarity;
+	// A title word in half the site's posts, such as "part" in "Economy,
+	// part 2", names nothing, and neither do its other forms.
+	foreach ( array_unique( undergrowth_tokens( $target->post_title . ' ' . implode( ' ', undergrowth_headings( $target->post_content ) ) ) ) as $name ) {
+		if ( 2 * ( $corpus['frequency'][ $name ] ?? 1 ) < $corpus['documents'] ) {
+			$exact[ (string) $name ]                          = true;
+			$names[ undergrowth_word_stem( (string) $name ) ] = true;
 		}
 	}
 
-	if ( array() !== $weights ) {
-		$top = max( $weights );
+	$weights = array();
+	$tfidf   = array();
 
-		foreach ( array_unique( undergrowth_tokens( $target->post_title ) ) as $token ) {
-			if ( isset( $weights[ $token ] ) && 2 * ( $corpus['frequency'][ $token ] ?? 1 ) < $corpus['documents'] ) {
-				$weights[ $token ] += $top;
+	foreach ( undergrowth_post_token_counts( $target ) as $token => $count ) {
+		$token = (string) $token;
+		$named = isset( $names[ undergrowth_word_stem( $token ) ] );
+
+		if ( isset( $never[ $token ] ) || ( isset( $common[ $token ] ) && ! $named ) ) {
+			continue;
+		}
+
+		$rarity            = log( ( $corpus['documents'] + 1 ) / ( ( $corpus['frequency'][ $token ] ?? 1 ) + 0.5 ) );
+		$weights[ $token ] = ( $count > 1 ? $count : 0.25 ) * $rarity * $rarity;
+		$tfidf[ $token ]   = ( $count > 1 ? $count : 0.25 ) * $rarity;
+	}
+
+	if ( array() === $weights ) {
+		return array();
+	}
+
+	// The target's central words are found among all of its words, before
+	// the text narrows them, so a word the source happens to share is never
+	// central only because nothing better is shared.
+	$central = undergrowth_heaviest_terms( $tfidf, UNDERGROWTH_CENTRAL_TERMS );
+	$unnamed = null;
+	$top     = max( $weights );
+	$ranked  = array();
+
+	foreach ( array_unique( undergrowth_tokens( $text ) ) as $token ) {
+		$token = (string) $token;
+
+		if ( ! isset( $weights[ $token ] ) ) {
+			continue;
+		}
+
+		if ( isset( $names[ undergrowth_word_stem( $token ) ] ) && 2 * ( $corpus['frequency'][ $token ] ?? 1 ) < $corpus['documents'] ) {
+			// The very word of the title or heading comes before another
+			// form of it.
+			$ranked[ $token ] = $weights[ $token ] + ( isset( $exact[ $token ] ) ? 2 : 1 ) * $top;
+		} elseif ( isset( $central[ $token ] ) ) {
+			// The target is read word by word only once a central word needs it.
+			$unnamed = $unnamed ?? undergrowth_unnamed_words( undergrowth_post_text( $target ), $locale );
+
+			if ( ! isset( $unnamed[ $token ] ) ) {
+				$ranked[ $token ] = $weights[ $token ];
 			}
 		}
 	}
 
-	return undergrowth_heaviest_terms( $weights, $limit );
+	return undergrowth_heaviest_terms( $ranked, $limit );
+}
+
+/**
+ * Cuts a common English ending off a word, so "walked" and "walking" both
+ * match a post titled "Walking".
+ *
+ * @param string $token Lowercase word.
+ * @return string The word without -s, -es, -ed, -ing or -er, when at least four letters are left.
+ */
+function undergrowth_word_stem( string $token ): string {
+	return (string) preg_replace( '/^(\p{L}{4,}?)(?:ing|ers|er|ed|es|s)$/u', '$1', $token );
+}
+
+/**
+ * Lists the plain text of a post's headings.
+ *
+ * @param string $content Post content.
+ * @return string[] Each heading's text, in order.
+ */
+function undergrowth_headings( string $content ): array {
+	if ( ! preg_match_all( '#<h[1-6]\b[^>]*>(.*?)</h[1-6]\s*>#is', $content, $matches ) ) {
+		return array();
+	}
+
+	return array_map( 'wp_strip_all_tags', $matches[1] );
 }
 
 /**

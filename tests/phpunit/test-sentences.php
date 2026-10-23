@@ -318,6 +318,22 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_distinctive_terms( 1, undergrowth_build_corpus( array() ) ) );
 	}
 
+	public function test_no_sentence_is_chosen_when_none_holds_a_word_the_target_is_about() {
+		$oca    = self::factory()->post->create( array( 'post_content' => '<p>We went about it all again.</p>' ) );
+		$yacon  = self::factory()->post->create( array( 'post_content' => '<p>We went about the yacon, the yacon, all again.</p>' ) );
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
+
+		$this->assertNull( undergrowth_choose_sentence( $oca, $yacon, $corpus ) );
+	}
+
+	public function test_sentence_holding_a_noun_the_target_is_about_is_chosen_over_one_holding_its_verbs() {
+		$oca    = self::factory()->post->create( array( 'post_content' => '<p>I waded in and waded out. A heron stood there.</p>' ) );
+		$yacon  = self::factory()->post->create( array( 'post_content' => '<p>I waded in. We waded out, and they waded far. The heron, the heron.</p>' ) );
+		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
+
+		$this->assertSame( 'A heron stood there.', undergrowth_choose_sentence( $oca, $yacon, $corpus )['text'] );
+	}
+
 	public function test_missing_source_post_gives_no_sentence() {
 		$yacon  = self::factory()->post->create(
 			array(

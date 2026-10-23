@@ -95,6 +95,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'prompt-refused',
+		page: SETTINGS,
+		fixture: 'prompt-refused',
+	},
+	{
+		screen: 'settings',
 		state: 'discord-saved',
 		page: SETTINGS,
 		fixture: 'discord-saved',
