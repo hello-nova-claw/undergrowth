@@ -106,7 +106,7 @@ function undergrowth_embed_post( int $post_id ): void {
 
 	$identity = undergrowth_embed_identity();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_identity_is_complete( $identity ) ) {
 		return;
 	}
 
@@ -377,7 +377,7 @@ function undergrowth_index_counts(): array {
 function undergrowth_start_backfill(): void {
 	$identity = undergrowth_index_target();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_identity_is_complete( $identity ) ) {
 		return;
 	}
 
@@ -413,7 +413,7 @@ function undergrowth_schedule_backfill_check(): void {
 function undergrowth_run_backfill(): void {
 	$identity = undergrowth_index_target();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_identity_is_complete( $identity ) ) {
 		return;
 	}
 
