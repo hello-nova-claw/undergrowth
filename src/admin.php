@@ -365,6 +365,13 @@ function undergrowth_render_map_tab(): void {
 			)
 		);
 
+		if ( $cluster['gap'] ) {
+			printf(
+				'<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"></span> %s</p>',
+				esc_html__( 'No post sits at the middle of this group. These posts circle something none of them is about yet.', 'undergrowth' )
+			);
+		}
+
 		$size  = count( $cluster['members'] );
 		$about = array(
 			/* translators: %s: number of posts in the group. */
@@ -389,13 +396,6 @@ function undergrowth_render_map_tab(): void {
 		}
 
 		echo '<p class="undergrowth-group-about"><span>' . implode( '</span> <span>', $about ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part is escaped above.
-
-		if ( $cluster['gap'] ) {
-			printf(
-				'<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"></span> %s</p>',
-				esc_html__( 'No post sits at the middle of this group. These posts circle something none of them is about yet.', 'undergrowth' )
-			);
-		}
 
 		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
 
