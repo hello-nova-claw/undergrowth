@@ -227,6 +227,17 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'No published posts yet', $html );
 	}
 
+	public function test_a_page_past_the_end_shows_the_table_not_the_first_run_message() {
+		$this->post_at( 'Oca', 'sprout' );
+		$this->request( array( 'paged' => '2' ) );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'wp-list-table', $html );
+		$this->assertStringContainsString( 'No posts in this view.', $html );
+		$this->assertStringNotContainsString( 'No published posts yet', $html );
+	}
+
 	public function test_the_stage_and_pin_have_their_own_columns() {
 		$oca = $this->post_at( 'Oca', 'sprout' );
 		undergrowth_pin_stage( $oca, 'sprout' );
