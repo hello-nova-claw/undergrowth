@@ -23,7 +23,6 @@ const UNDERGROWTH_STAGE_REASONS = array(
 
 // Late, so a filter that adds post types to the index has been added first.
 add_action( 'init', 'undergrowth_register_stage_meta', 20 );
-add_filter( 'is_protected_meta', 'undergrowth_protect_stage_meta', 10, 2 );
 add_action( 'add_meta_boxes', 'undergrowth_remove_added_custom_fields_box', 99 );
 add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
@@ -138,18 +137,6 @@ function undergrowth_remove_added_custom_fields_box( $post_type ): void {
 	if ( in_array( $post_type, undergrowth_custom_fields_added(), true ) ) {
 		remove_meta_box( 'postcustom', $post_type, 'normal' );
 	}
-}
-
-/**
- * Keeps the stage keys out of the Custom Fields box, where they could be
- * edited by hand.
- *
- * @param bool   $is_protected Whether the key is protected.
- * @param string $meta_key     Meta key.
- * @return bool True for the stage keys, otherwise unchanged.
- */
-function undergrowth_protect_stage_meta( $is_protected, $meta_key ) {
-	return in_array( $meta_key, array( 'undergrowth_stage', 'undergrowth_stage_pinned', 'undergrowth_stage_log', 'undergrowth_resurfacing_log' ), true ) ? true : $is_protected;
 }
 
 /**
