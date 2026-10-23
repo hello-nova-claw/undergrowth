@@ -7,6 +7,7 @@
 const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
+const { skipWelcomeGuide } = require( './preferences' );
 
 const OUTPUT = path.resolve(
 	process.env.UNDERGROWTH_SCREENSHOTS_DIR || 'artifacts/screenshots'
@@ -795,20 +796,7 @@ test.describe( 'Screenshot catalogue', () => {
 		test.beforeAll( async ( { requestUtils } ) => {
 			await requestUtils.deleteAllPosts();
 
-			// Stored before the editor first loads, or it loads them late and
-			// shows its welcome guide over the panel.
-			await requestUtils.rest( {
-				method: 'POST',
-				path: '/wp/v2/users/me',
-				data: {
-					meta: {
-						persisted_preferences: {
-							'core/edit-post': { welcomeGuide: false },
-							_modified: new Date().toISOString(),
-						},
-					},
-				},
-			} );
+			await skipWelcomeGuide( requestUtils );
 
 			for ( const [ state, title, action ] of [
 				[ 'seedling', 'Oca', null ],

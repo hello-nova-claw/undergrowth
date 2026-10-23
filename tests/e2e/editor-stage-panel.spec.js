@@ -1,5 +1,6 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
+const { skipWelcomeGuide } = require( './preferences' );
 
 const PANEL = '.undergrowth-editor-panel';
 
@@ -19,30 +20,6 @@ async function openPanel( page ) {
 	}
 
 	await expect( toggle ).toHaveAttribute( 'aria-expanded', 'true' );
-}
-
-/**
- * Stores the editor preferences on the server before the editor loads.
- *
- * On a site where the editor has never been opened, it loads its stored
- * preferences after the test utilities turn the welcome guide off, and the
- * guide comes back over the panel.
- *
- * @param {Object} requestUtils Request utilities.
- */
-async function skipWelcomeGuide( requestUtils ) {
-	await requestUtils.rest( {
-		method: 'POST',
-		path: '/wp/v2/users/me',
-		data: {
-			meta: {
-				persisted_preferences: {
-					'core/edit-post': { welcomeGuide: false },
-					_modified: new Date().toISOString(),
-				},
-			},
-		},
-	} );
 }
 
 /**
