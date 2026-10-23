@@ -314,6 +314,19 @@ const WITH_BADGE = [
 	},
 ];
 
+// Filled in once the panel's posts exist, since the shots need their IDs.
+const panelPosts = {};
+
+// The Undergrowth panel in the editor's Post tab, in each state the author
+// can leave a post in, and for a draft, which has no stage yet.
+const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
+	( state ) => ( {
+		screen: 'editor-panel',
+		state,
+		panel: () => panelPosts[ state ],
+	} )
+);
+
 // Posts share fixture words, so the e2e provider suggests links between them.
 const POSTS = [
 	{ title: 'Oca', content: '<p>Oca grows here. I keep yacon nearby.</p>' },
@@ -414,6 +427,28 @@ function capture( states ) {
 					await editor.canvas
 						.locator(
 							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+						)
+						.first()
+						.waitFor();
+				} else if ( entry.panel ) {
+					await admin.editPost( entry.panel() );
+
+					const panel = page.locator( '.undergrowth-editor-panel' );
+					const toggle = panel.locator(
+						'.components-panel__body-toggle'
+					);
+
+					if (
+						( await toggle.getAttribute( 'aria-expanded' ) ) !==
+						'true'
+					) {
+						await toggle.click();
+					}
+
+					// The stage comes from the server after the panel opens.
+					await panel
+						.locator(
+							'.undergrowth-stage, .undergrowth-not-in-garden'
 						)
 						.first()
 						.waitFor();
@@ -737,5 +772,37 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_BADGE );
+	} );
+
+	test.describe( 'with the editor panel', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			for ( const [ state, title, action ] of [
+				[ 'seedling', 'Oca', null ],
+				[ 'pinned', 'Yacon', { action: 'pin', stage: 'budding' } ],
+				[ 'composting', 'Seed ledger', { action: 'compost' } ],
+				[ 'draft', 'Mashua', null ],
+			] ) {
+				panelPosts[ state ] = (
+					await requestUtils.createPost( {
+						title,
+						content: '<p>Oca grows here.</p>',
+						status: 'draft' === state ? 'draft' : 'publish',
+					} )
+				).id;
+
+				// Through the panel's own route, as the author would.
+				if ( action ) {
+					await requestUtils.rest( {
+						method: 'POST',
+						path: `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`,
+						data: action,
+					} );
+				}
+			}
+		} );
+
+		capture( WITH_PANEL );
 	} );
 } );
