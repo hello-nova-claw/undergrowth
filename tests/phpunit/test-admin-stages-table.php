@@ -227,15 +227,29 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'No published posts yet', $html );
 	}
 
-	public function test_a_page_past_the_end_shows_the_table_not_the_first_run_message() {
-		$this->post_at( 'Oca', 'sprout' );
+	public function test_a_page_past_the_end_shows_the_last_page() {
+		$oca = $this->post_at( 'Oca', 'sprout' );
 		$this->request( array( 'paged' => '2' ) );
+
+		$this->assertSame( array( $oca ), $this->listed() );
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'wp-list-table', $html );
-		$this->assertStringContainsString( 'No posts in this view.', $html );
+		$this->assertStringContainsString( '>Oca<', $html );
+		$this->assertStringNotContainsString( 'No posts in this view.', $html );
 		$this->assertStringNotContainsString( 'No published posts yet', $html );
+	}
+
+	public function test_a_page_past_the_end_of_several_shows_the_last_one() {
+		$posts = array();
+
+		for ( $i = 1; $i <= Undergrowth_Stages_List_Table::PER_PAGE + 1; $i++ ) {
+			$posts[] = $this->post_at( sprintf( 'Post %02d', $i ) );
+		}
+
+		$this->request( array( 'paged' => '5' ) );
+
+		$this->assertSame( array( end( $posts ) ), $this->listed() );
 	}
 
 	public function test_the_stage_and_pin_have_their_own_columns() {
