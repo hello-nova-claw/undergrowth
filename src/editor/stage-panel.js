@@ -1,7 +1,12 @@
 import apiFetch from '@wordpress/api-fetch';
 import { Button, Notice, PanelRow, SelectControl } from '@wordpress/components';
 import { useDispatch } from '@wordpress/data';
-import { useEffect, useRef, useState } from '@wordpress/element';
+import {
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
@@ -43,7 +48,8 @@ export default function StagePanel( { postId, status } ) {
 		};
 	}, [ path, status ] );
 
-	useEffect( () => {
+	// Before the browser paints, so focus never rests on the page's body.
+	useLayoutEffect( () => {
 		// The button that was pressed is gone after an action, so focus goes
 		// to the result rather than falling back to the top of the page.
 		if ( moved.current ) {
