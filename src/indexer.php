@@ -182,10 +182,23 @@ function undergrowth_remove_from_index( int $post_id ): void {
  * @return string Title and body, separated by a blank line.
  */
 function undergrowth_post_text( WP_Post $post ): string {
-	$body = wp_strip_all_tags( strip_shortcodes( $post->post_content ) );
-	$body = trim( (string) preg_replace( '/\s+/u', ' ', $body ) );
+	return trim( $post->post_title . "\n\n" . undergrowth_plain_line( strip_shortcodes( $post->post_content ) ) );
+}
 
-	return trim( $post->post_title . "\n\n" . $body );
+/**
+ * Turns markup into one line of plain text, as a reader would read it.
+ *
+ * Entities are decoded, so `&amp;` reads as `&` and is never taken for a
+ * word, and every run of whitespace, a non-breaking space among them,
+ * becomes one space.
+ *
+ * @param string $html Markup, or text with entities.
+ * @return string Plain text on one line.
+ */
+function undergrowth_plain_line( string $html ): string {
+	$text = html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+	return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
 }
 
 /**
