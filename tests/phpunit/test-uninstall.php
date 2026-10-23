@@ -144,10 +144,12 @@ class Test_Uninstall extends WP_UnitTestCase {
 	}
 
 	public function test_every_post_meta_key_is_kept_out_of_the_custom_fields_box() {
-		$keys = undergrowth_protected_meta_keys();
+		$keys  = undergrowth_protected_meta_keys();
+		$found = $this->post_meta_keys();
 		sort( $keys );
+		sort( $found );
 
-		$this->assertSame( $this->post_meta_keys(), $keys );
+		$this->assertSame( $found, $keys );
 
 		foreach ( $keys as $key ) {
 			$this->assertTrue( is_protected_meta( $key, 'post' ), $key );
