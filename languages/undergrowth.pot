@@ -844,11 +844,7 @@ msgstr ""
 #. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.
 #: src/settings.php
 #, php-format
-msgid "Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI."
-msgstr ""
-
-#: src/settings.php
-msgid "That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it."
+msgid "Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI. That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it."
 msgstr ""
 
 #: src/settings.php

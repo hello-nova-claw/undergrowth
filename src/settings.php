@@ -298,10 +298,10 @@ function undergrowth_render_links_section(): void {
 	// Model names are code, so they keep left-to-right order in any language.
 	echo '<p id="undergrowth-links-provider">' . sprintf(
 		/* translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama. */
-		esc_html__( 'Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI.', 'undergrowth' ),
+		esc_html__( 'Posts are read by %1$s (%2$s), set up by code on this site. Nothing is sent to OpenAI. That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it.', 'undergrowth' ),
 		'<bdi dir="ltr">' . esc_html( $identity['model'] ) . '</bdi>',
 		'<bdi dir="ltr">' . esc_html( $identity['provider'] ) . '</bdi>'
-	) . ' ' . esc_html__( 'That code is given the title and text of each published post without a password. Where it sends them depends on how it was set up, so ask whoever added it.', 'undergrowth' ) . '</p>';
+	) . '</p>';
 }
 
 /**
@@ -401,26 +401,32 @@ function undergrowth_render_key_field( array $args ): void {
 function undergrowth_render_unused_openai_key_field(): void {
 	$constant = 'UNDERGROWTH_OPENAI_API_KEY';
 	$saved    = undergrowth_saved_key( 'undergrowth_openai_api_key' );
+	$texts    = array();
 
 	if ( '' !== undergrowth_key_from_config( $constant ) ) {
-		$text = sprintf(
+		$texts[] = sprintf(
 			/* translators: 1: file name, wp-config.php, 2: name of the constant. */
 			__( 'A key is set in %1$s as %2$s, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
 			'wp-config.php',
 			$constant
 		);
-	} elseif ( '' !== $saved ) {
-		$text = sprintf(
+	}
+
+	// A key saved before the constant was added can still be removed here.
+	if ( '' !== $saved ) {
+		$texts[] = sprintf(
 			/* translators: %1$s: last four characters of the saved API key. */
 			__( 'A key ending in %1$s is saved, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
 			substr( $saved, -4 )
 		);
-	} else {
-		$text = __( 'Not used. Code on this site reads the posts, so no OpenAI key is needed.', 'undergrowth' );
+	}
+
+	if ( array() === $texts ) {
+		$texts[] = __( 'Not used. Code on this site reads the posts, so no OpenAI key is needed.', 'undergrowth' );
 	}
 	?>
-	<p id="undergrowth-openai-unused"><?php echo esc_html( $text ); ?></p>
-	<?php if ( '' === undergrowth_key_from_config( $constant ) && '' !== $saved ) : ?>
+	<p id="undergrowth-openai-unused"><?php echo esc_html( implode( ' ', $texts ) ); ?></p>
+	<?php if ( '' !== $saved ) : ?>
 		<p>
 			<label>
 				<input type="checkbox" name="undergrowth_remove_openai_key" value="1" />
