@@ -962,6 +962,10 @@ msgid "The rest are read in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
+msgid "No folder could be made for the per-post files, so none are written. Undergrowth tries again on the next page load."
+msgstr ""
+
+#: src/settings.php
 msgid "Each post’s plain-text record is kept in this folder."
 msgstr ""
 

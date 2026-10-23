@@ -455,8 +455,16 @@ function undergrowth_render_posts_read_field(): void {
  * Prints the folder that holds the per-post files.
  */
 function undergrowth_render_memory_folder_field(): void {
+	$root = undergrowth_memory_root();
+
+	if ( '' === $root ) {
+		?>
+		<p><?php esc_html_e( 'No folder could be made for the per-post files, so none are written. Undergrowth tries again on the next page load.', 'undergrowth' ); ?></p>
+		<?php
+		return;
+	}
 	?>
-	<p><code id="undergrowth-memory-folder" dir="ltr"><?php echo esc_html( str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( undergrowth_memory_root() ) ) . '/posts/' ); ?></code></p>
+	<p><code id="undergrowth-memory-folder" dir="ltr"><?php echo esc_html( str_replace( wp_normalize_path( ABSPATH ), '', wp_normalize_path( $root ) ) . '/posts/' ); ?></code></p>
 	<p class="description">
 		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
 	</p>
