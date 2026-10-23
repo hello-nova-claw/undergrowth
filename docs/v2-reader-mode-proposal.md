@@ -98,6 +98,7 @@ These four need a script on the page, because the server cannot see them, or can
   - a scroll-depth bucket, from `IntersectionObserver` sentinels in the post content at 25/50/75/100%, so there is no scroll handler;
   - the next same-site post, if the view ended on a click to one, with `via` set to `content` or `nav`;
   - the in-content links to the site's own posts that entered the viewport, at most 20, as **exposures** for the prune list's absence check (5C).
+- Every target post ID in a beacon, for a next click or an exposure, must be a link the source post really has, or a navigation link. The server checks against a cached list per post, rebuilt on save. Anything else is dropped before any write, so forged targets cannot add path rows.
 - Exit position is not a separate signal: it is the depth bucket of views with no next click.
 - No cookie, no `localStorage`, no visitor or session ID, no timestamps finer than a week, and no IP or user agent stored. The server turns each beacon into counter increments (section 4) and forgets the request.
 - Consent: when the WP Consent API is active [S9], the script sends only once `wp_has_consent( 'statistics-anonymous' )` is true, and listens for `wp_listen_for_consent_change`. The plugin declares itself through `wp_consent_api_registered_{plugin}`. Without the Consent API, the owner picks one of two modes on the settings page:
@@ -128,7 +129,7 @@ These four need a script on the page, because the server cannot see them, or can
 - The endpoint is a POST, which page caches and CDNs don't cache.
 - No nonce, because a nonce baked into cached HTML goes stale after 12 to 24 hours. The endpoint is public and write-only.
 - It accepts only enumerated buckets for a published, indexed post, checked against a cached list of published IDs, so a bad request costs no post query.
-- Before any write it checks a site-wide cap per minute and a cap per post per hour, and drops everything over them. The counters live in the object cache where there is a persistent one, and otherwise in one row of the scent table, updated in the same statement as the write.
+- Before any write it checks two caps, and drops everything over them: 1,200 beacons a minute site-wide and 600 an hour per post. Both are constants with filters. The counters are kept apart from the weekly tables. They live in the object cache where there is a persistent one, and otherwise in transients keyed by the minute (`undergrowth_beacon_m_<minute>`) and by post and hour (`undergrowth_beacon_h_<post>_<hour>`), which expire after two minutes and two hours. Either way both caps hold before the write.
 - It drops requests from bot user agents (read, never stored). That is a filter for honest bots only, because a user agent is the sender's choice.
 - None of this stops a flood before PHP starts. Only the web server or CDN can, so the Help tab tells busy sites to rate-limit `/wp-json/undergrowth/v1/scent` there.
 - Optionally, beacon views per post are capped at a multiple of Jetpack's views for the same post.
@@ -156,7 +157,7 @@ These four need a script on the page, because the server cannot see them, or can
   - Store a hash for grouping and the text for display.
   - Show a term only at 3 or more searches in the window.
   - Let the author delete any term.
-  - Treat the stored term as personal data anyway. Stripping tokens reduces it but cannot remove names or other details typed as words. Terms are kept only for the hard TTL in 3.8, so a term is deleted with its week's rows. An eraser request with a name or email deletes every term containing it (3.9).
+  - Treat the stored term as personal data anyway. Stripping tokens reduces it but cannot remove names or other details typed as words. Terms are kept only for the hard TTL in 3.8, so a term is deleted with its week's rows. An eraser request with a name or email deletes every term containing it (3.9). That match is best-effort, because terms are linked to no visitor.
 - **Caching:** some full-page caches do cache `?s=` pages, and those searches are then lost. Site Health can say so.
 - **Use:** handover 4 calls zero-result search "the strongest scent where site search exists". It feeds the gap list (section 8.3).
 - **Jetpack Search sites:** Jetpack Search answers in JavaScript against WordPress.com, so the PHP search query may never run. A Jetpack Search adapter registered as a signal ability is a later step. Until it exists, the setting says so.
@@ -194,7 +195,7 @@ The meter already needs Jetpack Stats. `WPCOM_Stats` also has `get_top_posts()`,
   - **Storage:** Undergrowth stores comment IDs only, never the text, and reads the text when it needs it. When core's eraser anonymises a comment, Undergrowth's next read sees the anonymised version.
   - **Retention:** a comment counts as lacks only within the retention window (3.8) from its date. The per-post file is rewritten on each cycle, so IDs that have expired or been erased drop out of `## lacks` then. The eraser also rewrites the files it touched at once.
   - **Privacy tools:** Undergrowth also registers an eraser on `wp_privacy_personal_data_erasers` [S17]. Given an email, it drops that person's comment IDs from Undergrowth's records and discards any pending prompt built from them. A matching exporter on `wp_privacy_personal_data_exporters` [S18] lists which of their comments Undergrowth used as a signal.
-  - **Sent to Anthropic for a prompt:** comment text only, which may itself hold personal data a commenter typed, and the settings notice says so (B5).
+  - **Sent to Anthropic for a prompt:** comment text only, which may itself hold personal data a commenter typed, and the settings notice says so (B5). It travels under the contract `src/prompts.php` already keeps for untrusted data: delimited text in the user message, below a system prompt that says it is data and never instructions, and the reply must be one question to the author. A refused or cut-off reply is never shown.
 - **Contact-form messages** are private messages to the owner, not published text, and every form plugin stores them differently (Jetpack's `feedback` posts, WPForms entries, or nowhere for Contact Form 7).
   - **Options:**
     - Leave them out of v2.0. *(Recommended.)*
@@ -220,7 +221,7 @@ The handover's nature model calls scent "pheromone trails" with a TTL. That need
 - **Exporters and erasers.**
   - The stored scent counters hold no identifier, so there is nothing to export or erase by email, and the policy text says why.
   - Comment-derived records get an exporter and an eraser (3.7).
-  - Search terms and 404 paths are minimised at intake (3.3, 3.4), but minimising is not anonymising. An eraser on `wp_privacy_personal_data_erasers` deletes every stored term or path containing the requester's email or the name on their account. An exporter lists them. The author can also delete any single term.
+  - Search terms and 404 paths are minimised at intake (3.3, 3.4), but minimising is not anonymising. An eraser on `wp_privacy_personal_data_erasers` deletes every stored term or path containing the requester's email or the name on their account. An exporter lists them. Both are best-effort: terms and paths are linked to no visitor, so a match on text cannot promise to find everything a person typed, and the privacy policy text says so. The author can also delete any single term.
 - **Personal data in the per-post file.** The `## scent` and `## lacks` sections hold counts and comment IDs, never commenter names or text, so the portable file never carries a stranger's words.
 
 ### 3.10 Recommendation for scent collection, in short
@@ -286,7 +287,11 @@ The bucket edges are constants:
 
 **Read side:**
 
-- `undergrowth/scent` keeps its current shape. `value` stays a number or null: the engaged reads over 60 days (6.1B), or null in germination mode or when the check fails. New optional properties sit beside it: `views`, `next` (post IDs), `check` (passes, and why not) and `median`. Callers that read only `mode` and `value` see no change. The output schema in `src/abilities.php` gains the new properties, not a new type for `value`. The same shape works at cluster and site scale, by summing members (principle 4).
+- `undergrowth/scent` keeps its current shape. `value` stays a number or null: the engaged reads over 60 days (6.1B), or null in germination mode or when the check fails. New optional properties sit beside it: `views`, `next` (post IDs), `check` (passes, and why not) and `median`. Callers that read only `mode` and `value` see no change. The output schema in `src/abilities.php` gains the new properties, not a new type for `value`. The same shape holds at cluster and site scale (principle 4), and each property is rebuilt from the members' weekly rows, not combined from their results:
+  - `value` and `views` are sums;
+  - `next` re-ranks the summed path rows to posts outside the set;
+  - `check` runs again on the summed counts;
+  - `median` is always the site median of eligible posts, the reference every scale is compared with.
 - The `## scent` section of the per-post file is written at the monthly cycle, as a few summary lines, never on every beacon.
 - `wp undergrowth scent [<post>]` prints the same numbers and the check's result, as `wp undergrowth scores` does for thresholds.
 
@@ -317,7 +322,7 @@ Handover 4: "A statistical check before each reader proposal (enough visits on t
 
 **Option 5C: interval bounds, plus split-half for rankings.** *(Recommended.)*
 - **Shares** use a 95% Wilson score interval. B is shown as a top next post only if its lower bound is above the upper bound of the next candidate's share. Otherwise, if its lower bound is at least 5%, it shows in the order the data supports, ties included.
-- **Absences** use the "rule of three": zero events in *n* chances gives a 95% upper bound of about 3/*n*. For a link, a chance is an **exposure**, a view in which the link entered the viewport, not a view of the page. A link below where most readers stop has had no chance to be clicked. So "nobody clicks this link" needs at least 300 exposures in the cycle (an upper bound of 1%) and zero clicks in both halves. Page views alone never justify a link prune. Without the beacon there are no exposures, so no link is proposed for pruning.
+- **Absences** use the "rule of three": zero events in *n* chances gives a 95% upper bound of about 3/*n*. For a link, a chance is an **exposure**, a view in which the link entered the viewport, not a view of the page. A link below where most readers stop has had no chance to be clicked. So "nobody clicks this link" needs at least 300 exposures in the cycle (an upper bound of 1%), at least 100 of them in each half, and zero clicks in both halves. These are observed counts, before any sampling scale-up: with 1-in-N sampling the rule of three applies to the sample, so one observed exposure never stands for N. Page views alone never justify a link prune. Without the beacon there are no exposures, so no link is proposed for pruning.
 - **Comparisons** need at least 30 views of the post in each half, and the result has to agree in both halves.
 - **Everything else** says "not enough readers to say yet" and proposes nothing.
 - For: each claim is backed by the kind of evidence it needs, and every number is a constant the Help tab can print.
@@ -517,7 +522,7 @@ Each step is one issue and one PR, under the usual rules: test first, changelog 
 | 6 | Scent: Read per-post views from Jetpack Stats | 4 | 3.5, batched through top posts. |
 | 7 | Scent: Read Search Console clicks through Site Kit | 4 | 3.6A, as a signal ability, clicks only. |
 | 8 | Scent: Treat questions in comments as lacks | 4 | IDs only, plus the eraser and exporter. |
-| 9 | Scent: Add the reading beacon | 4 | 3.2B: the script, REST route, consent API, GPC, caps, sampling filter, Site Health test. Includes the e2e test on a cached page. |
+| 9 | Scent: Add the reading beacon | 4 | 3.2B: the script, REST route, consent API, GPC, caps, sampling filter, Site Health test. Includes the e2e test on a cached page. Tests for the absence check: scaled counts that reach 300 with too few observed exposures, and exposures all in one half, both fail. |
 | 10 | Scent: Add the statistical check | 4 | 5C in `src/check.php`, `wp undergrowth check`, Help tab text. Can be built alongside 5 to 9. |
 | 11 | Abilities: Return reader scent from undergrowth/scent | 6 or 9, 10 | Fills `value`, writes the per-post `## scent` section on the cycle. |
 | 12 | Stages: Add scent to Evergreen and measure Wilting | 2, 11 | 6.2 and 6.3B, refresh-list confirmation. |
@@ -526,7 +531,7 @@ Each step is one issue and one PR, under the usual rules: test first, changelog 
 | 15 | Admin: Add the gap list | 5, 7, 10 | 8.3A, with "Link from here" through self-trade. 8.3B as its own follow-up issue. |
 | 16 | Map: Propose a hub where readers trade heavily | 1, 9, 10 | 7.2B. |
 | 17 | Blocks: List the posts readers go on to read next (#97) | 9, 10 | 9B. Closes #97. |
-| 18 | Prompts: Draw questions from reader signals | 8, 13, 15 | Comment questions, wilting posts and gaps as 5b sources, B5. |
+| 18 | Prompts: Draw questions from reader signals | 8, 13, 15 | Comment questions, wilting posts and gaps as 5b sources, B5. Includes a test with adversarial comment text (instructions, fake delimiters) that checks it stays data and the reply is still one question to the author. |
 | — | #190, #191, then #189 after WordPress 7.2 | — | The parallel track (10C). |
 
 Steps 5 to 8 are independent of each other and can run in parallel sessions. So can step 10 beside any of them.
