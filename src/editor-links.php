@@ -77,6 +77,32 @@ function undergrowth_register_editor_link_routes(): void {
 
 	register_rest_route(
 		'undergrowth/v1',
+		'/posts/(?P<id>\d+)/links/(?P<target>\d+)/words',
+		array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => 'undergrowth_rest_choose_words',
+			'permission_callback' => 'undergrowth_rest_can_edit_post',
+			'args'                => $target + array(
+				'first' => array(
+					'type'     => 'integer',
+					'minimum'  => 0,
+					'required' => true,
+				),
+				'last'  => array(
+					'type'     => 'integer',
+					'minimum'  => 0,
+					'required' => true,
+				),
+				'shown' => array(
+					'type'     => 'string',
+					'required' => true,
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'undergrowth/v1',
 		'/posts/(?P<id>\d+)/links/(?P<target>\d+)/veto',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -126,18 +152,11 @@ function undergrowth_rest_get_links( WP_REST_Request $request ): WP_REST_Respons
 		}
 
 		if ( $source_id === $post_id ) {
-			$span = undergrowth_editor_link_span( $source_id, $target_id );
-
 			$outgoing[] = array(
-				'target'   => $target_id,
-				'title'    => undergrowth_editor_title( $target_id ),
-				'url'      => (string) get_permalink( $target_id ),
-				'sentence' => null === $span ? undergrowth_stored_sentence( $source_id, $target_id ) : $span['sentence'],
-				'span'     => null === $span ? null : array(
-					'offset' => $span['offset'],
-					'length' => $span['length'],
-				),
-			);
+				'target' => $target_id,
+				'title'  => undergrowth_editor_title( $target_id ),
+				'url'    => (string) get_permalink( $target_id ),
+			) + undergrowth_editor_words( $source_id, $target_id );
 		} else {
 			$incoming[] = array(
 				'source'   => $source_id,
@@ -153,6 +172,48 @@ function undergrowth_rest_get_links( WP_REST_Request $request ): WP_REST_Respons
 			'outgoing' => $outgoing,
 			'incoming' => $incoming,
 		)
+	);
+}
+
+/**
+ * Describes a suggestion's sentence for the sidebar: the words a link would
+ * sit on, and the words the author can choose from instead.
+ *
+ * The choice is the one on the Suggestions tab, so the words are those of
+ * undergrowth_anchor_words() and the version is the one
+ * undergrowth_choose_words() checks.
+ *
+ * @param int $source_id Post the link sits in.
+ * @param int $target_id Post the link points to.
+ * @return array{sentence: string, span: array{offset: int, length: int}|null, words: string[], first: int, last: int, version: string}
+ */
+function undergrowth_editor_words( int $source_id, int $target_id ): array {
+	$span     = undergrowth_editor_link_span( $source_id, $target_id );
+	$sentence = null === $span ? undergrowth_stored_sentence( $source_id, $target_id ) : $span['sentence'];
+	$words    = undergrowth_can_choose_words( $sentence ) ? undergrowth_anchor_words( $sentence ) : array();
+	$first    = 0;
+	$last     = 0;
+
+	foreach ( $words as $index => $word ) {
+		if ( null !== $span && $word['offset'] === $span['offset'] ) {
+			$first = $index;
+		}
+
+		if ( null !== $span && $word['offset'] + $word['length'] === $span['offset'] + $span['length'] ) {
+			$last = $index;
+		}
+	}
+
+	return array(
+		'sentence' => $sentence,
+		'span'     => null === $span ? null : array(
+			'offset' => $span['offset'],
+			'length' => $span['length'],
+		),
+		'words'    => array_column( $words, 'text' ),
+		'first'    => $first,
+		'last'     => $last,
+		'version'  => undergrowth_sentence_version( $sentence ),
 	);
 }
 
@@ -308,6 +369,25 @@ function undergrowth_rest_accept_link( WP_REST_Request $request ) {
 	}
 
 	return undergrowth_editor_link_error( $result );
+}
+
+/**
+ * Saves the words the author chose in the sidebar, as the Suggestions tab
+ * saves them.
+ *
+ * @param WP_REST_Request $request Request.
+ * @return WP_REST_Response|WP_Error The message and the words now marked, or why nothing changed.
+ */
+function undergrowth_rest_choose_words( WP_REST_Request $request ) {
+	$source_id = (int) $request['id'];
+	$target_id = (int) $request['target'];
+	$result    = undergrowth_choose_words( $source_id, $target_id, (int) $request['first'], (int) $request['last'], (string) $request['shown'] );
+
+	if ( 'words_saved' !== $result ) {
+		return undergrowth_editor_link_error( $result );
+	}
+
+	return new WP_REST_Response( array( 'message' => undergrowth_link_result_messages()['words_saved'] ) + undergrowth_editor_words( $source_id, $target_id ) );
 }
 
 /**
