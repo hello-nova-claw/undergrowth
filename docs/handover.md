@@ -93,7 +93,7 @@ Mixed rule. A fixed visit number for the meter (milestone the owner can see): 1,
 Composting rules:
 - Only the author moves a post to compost, from any stage. The plugin never suggests it.
 - Composted posts' vectors stay in the index. The prompt generator (section 5b) may draw on them, e.g. "Three years ago you wrote about X. Is there something there now?"
-- Resurfacing: when a composted post's vector sits close to a new cluster, one signal appears on the map: "this old post is near what you are writing now". The author returns it to the garden or leaves it. One signal per post per cycle, dismissable.
+- Resurfacing: when a composted post's vector sits close to a new cluster, one signal appears on the map: "this old post is near what you are writing now". The author returns it to the garden or leaves it. One signal per post per cycle, dismissable. The first clustering pass is a baseline, so nothing resurfaces on it, and the same holds for a pass after one that found no clusters and for the first pass after a re-embed under a new provider, model or language (decided 2026-10-23, #240).
 - No "composting for N days" message, no expiry, no nudge to return it. You cannot schedule a winter.
 - Composting is not deletion, redirect, or noindex. Those remain prune actions the author can take separately.
 - Storage: composting is a value of the same post meta key as the other stages, and is written to the per-post text file like any stage change. Pinning rules do not apply; composting is always an explicit author action, so no pin marker is shown.

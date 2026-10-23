@@ -12,8 +12,12 @@
  * of its posts. Leader IDs are not compared: a cluster whose leader is
  * composted is led by another of its posts the next time, and is still the
  * same cluster. A cluster that more than doubled is mostly new writing, so
- * it counts as new too. The first pass has nothing to compare with, so no
- * cluster is new on it.
+ * it counts as new too.
+ *
+ * The first pass is a baseline: nothing is new on it, so a fresh install
+ * never resurfaces every composting post at once. A pass after one that
+ * found no clusters is a first pass too, as is the first pass after the
+ * index is read again with another provider, model or language.
  *
  * @package Undergrowth
  */
@@ -24,6 +28,8 @@ add_action( 'undergrowth_resurfacing_cycle', 'undergrowth_run_resurfacing_cycle'
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_resurfacing_signal' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_returned_signal' );
 add_filter( 'is_protected_meta', 'undergrowth_protect_resurfacing_meta', 10, 2 );
+add_action( 'add_option_undergrowth_index_identity', 'undergrowth_forget_previous_clusters' );
+add_action( 'update_option_undergrowth_index_identity', 'undergrowth_forget_previous_clusters' );
 
 // How each event reads in the per-post file. The file is a plain record in
 // one fixed format, so these are not translated.
@@ -218,7 +224,7 @@ function undergrowth_start_resurfacing(): void {
 
 	update_option( 'undergrowth_previous_clusters', $current, false );
 
-	if ( ! is_array( $previous ) ) {
+	if ( ! is_array( $previous ) || array() === $previous ) {
 		return;
 	}
 
@@ -307,6 +313,19 @@ function undergrowth_run_resurfacing_cycle( $after_id = 0 ): void {
 	}
 
 	delete_option( 'undergrowth_new_clusters' );
+}
+
+/**
+ * Forgets the previous pass's clusters once the index is read with another
+ * provider, model or language, so the first pass after it is a baseline.
+ *
+ * Resurfacing still queued from the old index would compare with leaders
+ * that no longer stand for anything, so it stops too.
+ */
+function undergrowth_forget_previous_clusters(): void {
+	delete_option( 'undergrowth_previous_clusters' );
+	delete_option( 'undergrowth_new_clusters' );
+	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 }
 
 /**
