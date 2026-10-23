@@ -207,9 +207,25 @@ function undergrowth_post_language( WP_Post $post ): string {
 	$locale = apply_filters( 'undergrowth_post_language', get_locale(), $post );
 	$locale = is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
 
-	// Cut to the column, as the provider and model are, so the value stored
-	// is the value compared on the next save.
-	return mb_substr( $locale, 0, 20 );
+	return undergrowth_fit_language( $locale );
+}
+
+/**
+ * Fits a language to the 20 characters its column holds.
+ *
+ * The value stored is then the value compared on the next save. A longer
+ * one keeps its start and ends in a short hash of the whole, so two
+ * languages that begin alike are never compared as one.
+ *
+ * @param string $locale Language, such as en_US.
+ * @return string The language, at most 20 characters.
+ */
+function undergrowth_fit_language( string $locale ): string {
+	if ( mb_strlen( $locale ) <= 20 ) {
+		return $locale;
+	}
+
+	return mb_substr( $locale, 0, 11 ) . '~' . substr( md5( $locale ), 0, 8 );
 }
 
 /**

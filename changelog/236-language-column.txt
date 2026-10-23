@@ -1,1 +1,1 @@
-A post language longer than 20 characters, from a multilingual plugin's filter, is now cut to fit where it is stored. Until now such a post's reading could fail to be saved, or be sent to the provider again on every save.
+A post language longer than 20 characters, from a multilingual plugin's filter, is now shortened to fit where it is stored, keeping a short fingerprint of the whole so two different languages are never mixed up. Until now such a post's reading could fail to be saved, or be sent to the provider again on every save.
