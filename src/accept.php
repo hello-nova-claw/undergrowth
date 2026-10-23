@@ -238,10 +238,8 @@ function undergrowth_link_word( string $content, string $sentence, string $term,
  */
 function undergrowth_find_link_word( string $content, string $sentence, string $term ): ?array {
 	// A pair of characters from an unspaced script has no word boundaries.
-	// Elsewhere a hyphen joins a word to its neighbour, so "reliance" in
-	// "Self-reliance" is part of a word, and linking it would split one.
 	$spaced  = ! preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $term );
-	$pattern = '/' . ( $spaced ? '(?<![\p{L}\p{N}])(?<![\p{L}\p{N}][-\x{2010}\x{2011}])' : '' ) . preg_quote( $term, '/' ) . ( $spaced ? '(?![\p{L}\p{N}])(?![-\x{2010}\x{2011}][\p{L}\p{N}])' : '' ) . '/iu';
+	$pattern = '/' . ( $spaced ? '(?<![\p{L}\p{N}])' : '' ) . preg_quote( $term, '/' ) . ( $spaced ? '(?![\p{L}\p{N}])' : '' ) . '/iu';
 
 	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
 		list( $inner, $inner_start, $plain ) = $paragraph;
@@ -284,6 +282,14 @@ function undergrowth_find_link_word( string $content, string $sentence, string $
 				$from   = mb_strlen( $before );
 
 				if ( $from < $start || $from + mb_strlen( $word ) > $end ) {
+					continue;
+				}
+
+				// A hyphen joins a word to its neighbour, so "reliance" in
+				// "Self-reliance" is half a word. The hyphen can be a character
+				// reference or sit outside an inline tag, so the visible text
+				// around the match is checked.
+				if ( $spaced && ( preg_match( '/[\p{L}\p{N}][-\x{2010}\x{2011}]$/u', $before ) || preg_match( '/^[-\x{2010}\x{2011}][\p{L}\p{N}]/u', undergrowth_plain_text( substr( $inner, $offset + $at + strlen( $word ) ) ) ) ) ) {
 					continue;
 				}
 
