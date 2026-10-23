@@ -368,7 +368,7 @@ class Test_Settings extends WP_UnitTestCase {
 		foreach ( array( 'openai', 'anthropic' ) as $provider ) {
 			$this->assertSame( 1, preg_match( '#<p class="description" id="undergrowth-' . $provider . '-notice">(.*?)<a #s', $html, $notice ), $provider );
 			$this->assertLessThanOrEqual( 2, preg_match_all( '/[.!?](\s|$)/', trim( wp_strip_all_tags( $notice[1] ) ) ), $provider );
-			$this->assertStringContainsString( 'Nothing is sent until you save a key.', $notice[1] );
+			$this->assertStringContainsString( 'Nothing is sent while there is no key.', $notice[1] );
 		}
 	}
 

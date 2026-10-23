@@ -153,6 +153,32 @@ function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_
 }
 
 /**
+ * Returns an API key defined as a constant, usually in wp-config.php, which
+ * keeps it out of the database and its backups.
+ *
+ * @param string $constant Name of the constant.
+ * @return string The key, or an empty string when the constant is not a
+ *                non-empty string.
+ */
+function undergrowth_key_from_config( string $constant ): string {
+	$key = defined( $constant ) ? constant( $constant ) : '';
+
+	return is_string( $key ) ? trim( $key ) : '';
+}
+
+/**
+ * Returns an API key saved on the settings page.
+ *
+ * @param string $option Option name.
+ * @return string The key, or an empty string when none is saved.
+ */
+function undergrowth_saved_key( string $option ): string {
+	$key = get_option( $option, '' );
+
+	return is_string( $key ) ? $key : '';
+}
+
+/**
  * Cleans the submitted "Suggest links between my posts" choice.
  *
  * An unticked box sends nothing, which reads as off. The switch is only on
@@ -179,7 +205,7 @@ function undergrowth_sanitize_suggest_links( $value ): string {
  * @return string The key to save.
  */
 function undergrowth_sanitize_openai_key( $value ): string {
-	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_openai_key', undergrowth_openai_key() );
+	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_openai_key', undergrowth_saved_key( 'undergrowth_openai_api_key' ) );
 }
 
 /**
@@ -189,7 +215,7 @@ function undergrowth_sanitize_openai_key( $value ): string {
  * @return string The key to save.
  */
 function undergrowth_sanitize_anthropic_key( $value ): string {
-	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_anthropic_key', undergrowth_anthropic_key() );
+	return undergrowth_sanitize_api_key( $value, 'undergrowth_remove_anthropic_key', undergrowth_saved_key( 'undergrowth_anthropic_api_key' ) );
 }
 
 /**
@@ -197,7 +223,9 @@ function undergrowth_sanitize_anthropic_key( $value ): string {
  *
  * The field is always shown empty so the saved key never reaches the page,
  * which means an empty submission has to keep the saved key rather than
- * clear it. Clearing takes the separate remove checkbox.
+ * clear it. Clearing takes the separate remove checkbox. A field disabled
+ * because its key is in wp-config.php is not submitted at all, and keeps
+ * the saved key the same way.
  *
  * @param mixed  $value  Submitted value.
  * @param string $remove Name of the key's remove checkbox.
@@ -268,29 +296,44 @@ function undergrowth_render_key_field( array $args ): void {
 	if ( 'openai' === $args['provider'] ) {
 		$key    = undergrowth_openai_key();
 		$error  = get_option( 'undergrowth_last_embed_error' );
-		$notice = __( 'With a key saved, the title and text of each published post without a password are sent to OpenAI. Nothing is sent until you save a key.', 'undergrowth' );
+		$notice = __( 'With a key, the title and text of each published post without a password are sent to OpenAI. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.openai.com/api-keys', __( 'Get a key from OpenAI', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending posts to OpenAI', 'undergrowth' );
 		$retry  = __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
 		$key    = undergrowth_anthropic_key();
 		$error  = get_option( 'undergrowth_last_prompt_error' );
-		$notice = __( 'With a key saved, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent until you save a key.', 'undergrowth' );
+		$notice = __( 'With a key, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.claude.com/settings/keys', __( 'Get a key from Anthropic', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending anything to Anthropic', 'undergrowth' );
 		$retry  = __( 'Undergrowth tries again at its next monthly cycle.', 'undergrowth' );
 	}
 
-	$provider = $args['provider'];
+	$provider  = $args['provider'];
+	$constant  = 'openai' === $provider ? 'UNDERGROWTH_OPENAI_API_KEY' : 'UNDERGROWTH_ANTHROPIC_API_KEY';
+	$in_config = '' !== undergrowth_key_from_config( $constant );
 	?>
-	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-<?php echo esc_attr( $provider ); ?>-notice" />
+	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-<?php echo esc_attr( $provider ); ?>-notice<?php echo $in_config ? ' undergrowth-' . esc_attr( $provider ) . '-config' : ''; ?>"<?php disabled( $in_config ); ?> />
 
 	<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-notice">
 		<?php echo esc_html( $notice ); ?>
 		<a id="undergrowth-<?php echo esc_attr( $provider ); ?>-get-key" href="<?php echo esc_url( $link[0] ); ?>"><?php echo esc_html( $link[1] ); ?></a>
 	</p>
 
-	<?php if ( '' !== $key ) : ?>
+	<?php if ( $in_config ) : ?>
+		<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-config">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: 1: file name, wp-config.php, 2: name of the constant. */
+					__( 'This key is set in %1$s as %2$s, so it is used instead of one saved here. Change or remove it in that file.', 'undergrowth' ),
+					'wp-config.php',
+					$constant
+				)
+			);
+			?>
+		</p>
+	<?php elseif ( '' !== $key ) : ?>
 		<p class="description">
 			<?php
 			echo esc_html(
@@ -435,13 +478,13 @@ function undergrowth_add_settings_help(): void {
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
 			array(
-				__( 'With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ),
+				__( 'With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),
 			array(
-				__( 'With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ),
+				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-files'   => array(

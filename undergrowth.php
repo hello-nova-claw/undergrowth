@@ -46,6 +46,7 @@ require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/dashboard.php';
 require_once __DIR__ . '/src/meter.php';
 require_once __DIR__ . '/src/posts-screen.php';
+require_once __DIR__ . '/src/help.php';
 require_once __DIR__ . '/src/blocks.php';
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

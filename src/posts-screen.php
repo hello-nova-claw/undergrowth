@@ -119,6 +119,7 @@ function undergrowth_add_posts_list_hooks( string $post_type ): void {
 	add_action( 'admin_notices', 'undergrowth_render_compost_notice' );
 	add_filter( 'manage_' . $post_type . '_posts_columns', 'undergrowth_add_stage_column' );
 	add_action( 'manage_' . $post_type . '_posts_custom_column', 'undergrowth_render_stage_column', 10, 2 );
+	undergrowth_add_compost_help();
 }
 
 /**

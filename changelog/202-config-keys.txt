@@ -1,0 +1,1 @@
+The OpenAI and Anthropic keys can now be set in wp-config.php as UNDERGROWTH_OPENAI_API_KEY and UNDERGROWTH_ANTHROPIC_API_KEY, which keeps them out of the database. A key set there is used instead of a saved one, and Settings > Undergrowth says so without showing it.

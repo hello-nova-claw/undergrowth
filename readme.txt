@@ -75,6 +75,15 @@ Undergrowth is free. The services it uses bill your own accounts. Embedding is v
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. When you change the model, give it a new name through `undergrowth_embed_identity`, and every post is embedded again in the background. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
 
+= Can I keep the keys out of the database? =
+
+Yes. Add them to `wp-config.php` instead of saving them on Settings > Undergrowth:
+
+`define( 'UNDERGROWTH_OPENAI_API_KEY', 'your-openai-key' );`
+`define( 'UNDERGROWTH_ANTHROPIC_API_KEY', 'your-anthropic-key' );`
+
+A key set there is used instead of one saved on the settings page. The page then says the key is in `wp-config.php`, never shows it, and leaves the field disabled; change or remove the key in that file. What is sent is the same either way. Only the start differs: posts are read within the hour of adding the OpenAI key, or straight away if you activate Undergrowth after adding it, and the first question is asked for on the next page load after adding the Anthropic key.
+
 = Can I use a model on my own server instead of OpenAI? =
 
 Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. Each model scores similarity on its own scale, so the example also sets the thresholds for links, clusters and gaps that suit `nomic-embed-text`. You run and look after the model yourself, and the plugin's settings screen does not configure it. Most sites should use an OpenAI key instead.

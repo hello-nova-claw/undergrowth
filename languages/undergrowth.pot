@@ -191,15 +191,18 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 #: src/settings.php
 msgid "Suggestions"
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 msgid "Growth stages"
 msgstr ""
 
 #: src/admin.php
+#: src/help.php
 msgid "Map"
 msgstr ""
 
@@ -643,6 +646,75 @@ msgstr ""
 msgid "Posts > Undergrowth"
 msgstr ""
 
+#: src/help.php
+msgid "Overview"
+msgstr ""
+
+#: src/help.php
+msgid "Undergrowth reads your published posts and asks you about them. It never writes a word your readers will see, and it changes a post only when you accept a suggestion."
+msgstr ""
+
+#: src/help.php
+msgid "Your garden is every published post Undergrowth reads, without a password, except the posts you moved to compost."
+msgstr ""
+
+#: src/help.php
+msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted word is the word Accept will make into the link."
+msgstr ""
+
+#: src/help.php
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgstr ""
+
+#: src/help.php
+msgid "Seedling: a new post, with no more than one accepted link in or out."
+msgstr ""
+
+#: src/help.php
+msgid "Sprout: two or more accepted links, but not yet in a group of three or more posts on the Map."
+msgstr ""
+
+#: src/help.php
+msgid "Budding: in a group, with accepted links both in and out."
+msgstr ""
+
+#: src/help.php
+msgid "Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there."
+msgstr ""
+
+#: src/help.php
+msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again."
+msgstr ""
+
+#: src/help.php
+msgid "Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model."
+msgstr ""
+
+#: src/help.php
+msgid "A group marked \"with a gap\" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgstr ""
+
+#: src/help.php
+msgid "When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine."
+msgstr ""
+
+#: src/help.php
+#: src/posts-screen.php
+msgid "Compost"
+msgstr ""
+
+#: src/help.php
+msgid "Compost rests a post. It stays published, its links stay in place, and readers see no difference. Nothing is deleted."
+msgstr ""
+
+#: src/help.php
+msgid "A composting post leaves the garden: no link is suggested to or from it, and its stage does not change. Undergrowth may still draw on it for a question to you."
+msgstr ""
+
+#: src/help.php
+msgid "Return to garden brings it back, and its stage is measured again from the links you have accepted."
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
@@ -707,10 +779,6 @@ msgstr ""
 #: src/posts-screen.php
 #, php-format
 msgid "Compost &#8220;%s&#8221;"
-msgstr ""
-
-#: src/posts-screen.php
-msgid "Compost"
 msgstr ""
 
 #: src/posts-screen.php
@@ -788,7 +856,7 @@ msgid "Undergrowth asks Claude to write you an occasional question about your ow
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, the title and text of each published post without a password are sent to OpenAI. Nothing is sent until you save a key."
+msgid "With a key, the title and text of each published post without a password are sent to OpenAI. Nothing is sent while there is no key."
 msgstr ""
 
 #: src/settings.php
@@ -804,7 +872,7 @@ msgid "Posts that were not read are tried again within the hour."
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent until you save a key."
+msgid "With a key, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent while there is no key."
 msgstr ""
 
 #: src/settings.php
@@ -817,6 +885,12 @@ msgstr ""
 
 #: src/settings.php
 msgid "Undergrowth tries again at its next monthly cycle."
+msgstr ""
+
+#. translators: 1: file name, wp-config.php, 2: name of the constant.
+#: src/settings.php
+#, php-format
+msgid "This key is set in %1$s as %2$s, so it is used instead of one saved here. Change or remove it in that file."
 msgstr ""
 
 #. translators: %1$s: last four characters of the saved API key.
@@ -892,7 +966,7 @@ msgid "Each post’s plain-text record is kept in this folder."
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent until you save a key. Undergrowth changes a post only when you accept a link in it."
+msgid "With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it."
 msgstr ""
 
 #: src/settings.php
@@ -900,7 +974,7 @@ msgid "Questions"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key saved, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent until you save a key. The questions appear only on your Dashboard, never to your readers."
+msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers."
 msgstr ""
 
 #: src/settings.php
