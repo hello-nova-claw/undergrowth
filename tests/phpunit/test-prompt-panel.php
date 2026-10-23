@@ -12,6 +12,7 @@
 class Test_Prompt_Panel extends WP_UnitTestCase {
 
 	use Plants_Posts;
+	use Stops_Redirects;
 
 	const QUESTION = 'What do you actually do with oca over winter?';
 
@@ -98,16 +99,6 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 			'cookies'  => array(),
 			'filename' => null,
 		);
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**
