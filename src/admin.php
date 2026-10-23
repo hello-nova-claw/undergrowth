@@ -334,28 +334,36 @@ function undergrowth_render_stages_tab(): void {
 }
 
 /**
- * Prints the map tab: each cluster as a heading over its posts.
+ * Prints the map tab: a count of every post, each cluster as a heading over
+ * its posts, then the posts not in a group yet.
  *
- * Clusters are numbered, never named, so nothing on the screen is written
- * by a model. A gap is marked in the heading, where a screen reader's list
- * of headings finds it, and said in words that name no post or topic.
+ * A cluster is named after the title of its post nearest the middle, with
+ * a few words its posts share, all stored by the monthly pass. Every word
+ * is the author's own; none is written by a model. A gap is marked in the
+ * heading, where a screen reader's list of headings finds it, and said in
+ * words that name no post or topic.
  */
 function undergrowth_render_map_tab(): void {
-	echo '<p>' . esc_html__( 'Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first.', 'undergrowth' ) . '</p>';
 
-	foreach ( undergrowth_cluster_map() as $number => $cluster ) {
+	$map    = undergrowth_cluster_map();
+	$counts = undergrowth_map_accounting( $map );
+
+	undergrowth_render_map_counts( count( $map ), $counts );
+
+	foreach ( $map as $cluster ) {
 		$id    = 'undergrowth-cluster-' . $cluster['leader'];
-		$label = number_format_i18n( $number + 1 );
+		$title = undergrowth_post_title( $cluster['members'][0] );
 
 		printf(
 			'<h2 id="%1$s">%2$s</h2>',
 			esc_attr( $id ),
 			esc_html(
 				$cluster['gap']
-					/* translators: %1$s: number of the group on the screen. */
-					? sprintf( __( 'Group %1$s, with a gap', 'undergrowth' ), $label )
-					/* translators: %1$s: number of the group on the screen. */
-					: sprintf( __( 'Group %1$s', 'undergrowth' ), $label )
+					/* translators: %1$s: title of the post nearest the middle of the group. */
+					? sprintf( __( 'Around “%1$s”, with a gap', 'undergrowth' ), $title )
+					/* translators: %1$s: title of the post nearest the middle of the group. */
+					: sprintf( __( 'Around “%1$s”', 'undergrowth' ), $title )
 			)
 		);
 
@@ -366,25 +374,146 @@ function undergrowth_render_map_tab(): void {
 			);
 		}
 
-		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
+		$size  = count( $cluster['members'] );
+		$about = array(
+			/* translators: %1$s: number of posts in the group. */
+			esc_html( sprintf( _n( '%1$s post.', '%1$s posts.', $size, 'undergrowth' ), number_format_i18n( $size ) ) ),
+		);
+		$terms = undergrowth_cluster_terms( $cluster['leader'], undergrowth_plain_line( $title ) );
 
-		foreach ( $cluster['members'] as $post_id ) {
-			printf(
-				'<li>%s</li>',
-				wp_kses(
-					sprintf(
-						/* translators: 1: post title, linked to its editor when you can edit it, 2: growth stage. */
-						__( '%1$s (%2$s)', 'undergrowth' ),
-						undergrowth_post_link( $post_id ),
-						esc_html( undergrowth_stage_label( undergrowth_get_stage( $post_id ) ) )
-					),
-					array( 'a' => array( 'href' => array() ) )
+		if ( array() !== $terms ) {
+			$about[] = sprintf(
+				/* translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost". */
+				esc_html__( 'Words that set this group apart: %1$s.', 'undergrowth' ),
+				wp_sprintf_l(
+					'%l',
+					array_map(
+						static function ( $term ) {
+							return '<bdi>' . esc_html( $term ) . '</bdi>';
+						},
+						$terms
+					)
 				)
 			);
 		}
 
+		echo '<p class="undergrowth-group-about"><span>' . implode( '</span> <span>', $about ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each part is escaped above.
+
+		printf( '<ul class="undergrowth-cluster" aria-labelledby="%s">', esc_attr( $id ) );
+
+		foreach ( $cluster['members'] as $post_id ) {
+			undergrowth_render_map_post( $post_id, undergrowth_stage_label( undergrowth_get_stage( $post_id ) ) );
+		}
+
 		echo '</ul>';
 	}
+
+	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
+}
+
+/**
+ * Prints the line that accounts for every post on the map.
+ *
+ * Each count is its own sentence, translated whole. A count of none is
+ * left out, as on the growth stages tab.
+ *
+ * @param int   $groups Number of groups on the map.
+ * @param array $counts Result of undergrowth_map_accounting().
+ *
+ * @phpstan-param array{grouped: int, ungrouped: array<int, string>, composting: int} $counts
+ */
+function undergrowth_render_map_counts( int $groups, array $counts ): void {
+	$sentences = array(
+		sprintf(
+			/* translators: 1: number of posts, 2: number of groups, such as "4 groups". */
+			_n( '%1$s post is in %2$s.', '%1$s posts are in %2$s.', $counts['grouped'], 'undergrowth' ),
+			number_format_i18n( $counts['grouped'] ),
+			/* translators: %1$s: number of groups. */
+			sprintf( _n( '%1$s group', '%1$s groups', $groups, 'undergrowth' ), number_format_i18n( $groups ) )
+		),
+	);
+	$ungrouped = count( $counts['ungrouped'] );
+
+	if ( $ungrouped > 0 ) {
+		/* translators: %1$s: number of posts. */
+		$sentences[] = sprintf( _n( '%1$s post is not in a group yet.', '%1$s posts are not in a group yet.', $ungrouped, 'undergrowth' ), number_format_i18n( $ungrouped ) );
+	}
+
+	if ( $counts['composting'] > 0 ) {
+		$sentences[] = undergrowth_stage_count_sentence( 'composting', $counts['composting'] );
+	}
+
+	echo '<p class="undergrowth-map-counts"><span>' . implode( '</span> <span>', array_map( 'esc_html', $sentences ) ) . '</span></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each sentence is escaped here.
+}
+
+/**
+ * Prints the posts not in a group yet, each with the reason.
+ *
+ * A long list starts collapsed, in core's own disclosure element, so the
+ * groups above stay in reach.
+ *
+ * @param array<int, string> $ungrouped Reason keyed by post ID, from undergrowth_map_accounting().
+ */
+function undergrowth_render_ungrouped_posts( array $ungrouped ): void {
+	if ( array() === $ungrouped ) {
+		return;
+	}
+
+	$reasons = array(
+		'unread' => __( 'Not read yet', 'undergrowth' ),
+		'new'    => __( 'Read since the groups were last found', 'undergrowth' ),
+		'apart'  => __( 'Not close enough to other posts yet', 'undergrowth' ),
+	);
+	$count   = count( $ungrouped );
+	$long    = $count > 10;
+
+	printf( '<h2 id="undergrowth-ungrouped">%s</h2>', esc_html__( 'Not in a group yet', 'undergrowth' ) );
+	echo '<p>' . esc_html__( 'A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month.', 'undergrowth' ) . '</p>';
+
+	if ( $long ) {
+		printf(
+			'<details class="undergrowth-ungrouped-list"><summary>%s</summary>',
+			/* translators: %1$s: number of posts. */
+			esc_html( sprintf( _n( 'Show the %1$s post', 'Show all %1$s posts', $count, 'undergrowth' ), number_format_i18n( $count ) ) )
+		);
+	}
+
+	echo '<ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">';
+
+	// One query for every post's title and edit link, however long the list.
+	_prime_post_caches( array_keys( $ungrouped ), false, false );
+
+	foreach ( $ungrouped as $post_id => $reason ) {
+		undergrowth_render_map_post( $post_id, $reasons[ $reason ] ?? $reasons['apart'] );
+	}
+
+	echo '</ul>';
+
+	if ( $long ) {
+		echo '</details>';
+	}
+}
+
+/**
+ * Prints one post on the map as a list item: its title, linked to its
+ * editor when the user can edit it, and a note in brackets.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $note    Growth stage or reason, not escaped.
+ */
+function undergrowth_render_map_post( int $post_id, string $note ): void {
+	printf(
+		'<li>%s</li>',
+		wp_kses(
+			sprintf(
+				/* translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group. */
+				__( '%1$s (%2$s)', 'undergrowth' ),
+				undergrowth_post_link( $post_id ),
+				esc_html( $note )
+			),
+			array( 'a' => array( 'href' => array() ) )
+		)
+	);
 }
 
 /**

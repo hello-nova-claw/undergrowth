@@ -191,26 +191,92 @@ msgid "Composting posts rest outside the garden, so they are not listed here. Th
 msgstr ""
 
 #: src/admin.php
-msgid "Each group below is a set of your posts that are close in meaning, found once a month. Posts nearest the middle of each group come first."
+msgid "Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first."
 msgstr ""
 
-#. translators: %1$s: number of the group on the screen.
+#. translators: %1$s: title of the post nearest the middle of the group.
 #: src/admin.php
 #, php-format
-msgid "Group %1$s, with a gap"
+msgid "Around “%1$s”, with a gap"
 msgstr ""
 
-#. translators: %1$s: number of the group on the screen.
+#. translators: %1$s: title of the post nearest the middle of the group.
 #: src/admin.php
 #, php-format
-msgid "Group %1$s"
+msgid "Around “%1$s”"
 msgstr ""
 
 #: src/admin.php
 msgid "No post sits at the middle of this group. These posts circle something none of them is about yet."
 msgstr ""
 
-#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage.
+#. translators: %1$s: number of posts in the group.
+#: src/admin.php
+#, php-format
+msgid "%1$s post."
+msgid_plural "%1$s posts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost".
+#: src/admin.php
+#, php-format
+msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: 1: number of posts, 2: number of groups, such as "4 groups".
+#: src/admin.php
+#, php-format
+msgid "%1$s post is in %2$s."
+msgid_plural "%1$s posts are in %2$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of groups.
+#: src/admin.php
+#, php-format
+msgid "%1$s group"
+msgid_plural "%1$s groups"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/admin.php
+#, php-format
+msgid "%1$s post is not in a group yet."
+msgid_plural "%1$s posts are not in a group yet."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin.php
+msgid "Not read yet"
+msgstr ""
+
+#: src/admin.php
+msgid "Read since the groups were last found"
+msgstr ""
+
+#: src/admin.php
+msgid "Not close enough to other posts yet"
+msgstr ""
+
+#: src/admin.php
+msgid "Not in a group yet"
+msgstr ""
+
+#: src/admin.php
+msgid "A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month."
+msgstr ""
+
+#. translators: %1$s: number of posts.
+#: src/admin.php
+#, php-format
+msgid "Show the %1$s post"
+msgid_plural "Show all %1$s posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group.
 #: src/admin.php
 #, php-format
 msgid "%1$s (%2$s)"
@@ -636,7 +702,11 @@ msgid "Stages are measured once a month from the links you have accepted, and ne
 msgstr ""
 
 #: src/help.php
-msgid "Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model."
+msgid "Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model."
+msgstr ""
+
+#: src/help.php
+msgid "A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted."
 msgstr ""
 
 #: src/help.php

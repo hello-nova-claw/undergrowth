@@ -79,6 +79,14 @@ class Test_Help_Tabs extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'with a gap', $text );
 	}
 
+	public function test_map_help_says_how_groups_are_named_and_why_a_post_is_in_none() {
+		$text = $this->tabs( 'posts_page_undergrowth-links', 'posts_page_undergrowth-links' )['undergrowth-map'];
+
+		$this->assertStringContainsString( 'named after the title of its post nearest the middle', $text );
+		$this->assertStringContainsString( 'not in a group yet', $text );
+		$this->assertStringContainsString( 'written by a model', $text );
+	}
+
 	public function test_overview_explains_the_garden() {
 		$text = $this->tabs( 'posts_page_undergrowth-links', 'posts_page_undergrowth-links' )['undergrowth-overview'];
 

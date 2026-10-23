@@ -43,6 +43,7 @@ test.describe( 'Map tab', () => {
 
 	test.describe( 'with two clusters, one a gap', () => {
 		let roots;
+		let bread;
 
 		test.beforeEach(
 			async ( { requestUtils, admin, context, baseURL } ) => {
@@ -61,6 +62,9 @@ test.describe( 'Map tab', () => {
 					oca: 6,
 					ledger: 3,
 				} );
+
+				// No fixture word, so it is near none of the others.
+				bread = await publish( requestUtils, 'Bread', {} );
 
 				const pass = await requestUtils.request.get(
 					'wp-admin/index.php?undergrowth_e2e_cluster=1'
@@ -88,7 +92,8 @@ test.describe( 'Map tab', () => {
 				'href',
 				/tab=map/
 			);
-			await expect( page.locator( '.wrap h2' ) ).toHaveCount( 2 );
+			// Two groups, then the posts not in one.
+			await expect( page.locator( '.wrap h2' ) ).toHaveCount( 3 );
 			await expect(
 				page.locator( 'ul.undergrowth-cluster' )
 			).toHaveCount( 2 );
@@ -120,6 +125,37 @@ test.describe( 'Map tab', () => {
 			).toHaveAttribute( 'href', new RegExp( `post=${ roots.id }&` ) );
 
 			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
+		test( 'names each group after a post and counts every post', async ( {
+			page,
+		} ) => {
+			// The heading holds the title of the post nearest the middle.
+			await expect(
+				page.locator( `#undergrowth-cluster-${ roots.id }` )
+			).toContainText( 'Roots' );
+			await expect(
+				page.locator( '.undergrowth-group-about' )
+			).toHaveCount( 2 );
+			// The group's own word, as the posts spell it.
+			await expect(
+				page.locator(
+					`#undergrowth-cluster-${ roots.id } ~ .undergrowth-group-about bdi`
+				)
+			).toHaveText( [ 'oca' ] );
+			await expect(
+				page.locator( '.undergrowth-map-counts span' )
+			).toHaveCount( 2 );
+
+			const outside = page.locator(
+				'ul.undergrowth-ungrouped[aria-labelledby="undergrowth-ungrouped"] li a'
+			);
+			await expect( outside ).toHaveCount( 1 );
+			await expect( outside ).toHaveAttribute(
+				'href',
+				new RegExp( `post=${ bread.id }&` )
+			);
+			await expect( page.locator( 'details' ) ).toHaveCount( 0 );
 		} );
 
 		test( 'fits a narrow screen', async ( { page } ) => {
@@ -154,8 +190,61 @@ test.describe( 'Map tab', () => {
 				).toBeFocused();
 			}
 
+			// Then the post outside every group.
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				page.locator( 'ul.undergrowth-ungrouped li a' )
+			).toBeFocused();
+
 			await page.keyboard.press( 'Enter' );
 			await expect( page ).toHaveURL( /post\.php\?post=\d+&action=edit/ );
+		} );
+	} );
+
+	test.describe( 'with many posts outside a group', () => {
+		test.beforeEach( async ( { requestUtils, admin } ) => {
+			for ( const title of [ 'First', 'Second', 'Third' ] ) {
+				await publish( requestUtils, title, { yacon: 6 } );
+			}
+
+			const pass = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+			expect( pass.ok() ).toBe( true );
+
+			// Published after the pass: identical notes would otherwise make
+			// a group of their own.
+			for ( let i = 1; i <= 11; i++ ) {
+				await publish( requestUtils, `Note ${ i }`, {} );
+			}
+
+			await admin.visitAdminPage(
+				'edit.php',
+				'page=undergrowth-links&tab=map'
+			);
+		} );
+
+		test( 'starts the list collapsed and opens it by keyboard, with no WCAG 2.2 AA violations', async ( {
+			page,
+		} ) => {
+			const details = page.locator(
+				'details.undergrowth-ungrouped-list'
+			);
+			const summary = details.locator( 'summary' );
+			const posts = details.locator( 'ul.undergrowth-ungrouped li a' );
+
+			await expect( details ).not.toHaveAttribute( 'open', '' );
+			await expect( posts.first() ).toBeHidden();
+			await expectNoA11yViolations( page, '.wrap' );
+
+			await summary.focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( details ).toHaveAttribute( 'open', '' );
+			await expect( posts ).toHaveCount( 11 );
+
+			await page.keyboard.press( 'Tab' );
+			await expect( posts.first() ).toBeFocused();
+			await expectNoA11yViolations( page, '.wrap' );
 		} );
 	} );
 } );
