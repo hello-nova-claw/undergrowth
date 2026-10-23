@@ -29,6 +29,10 @@ export default function StagePanel( { postId, status } ) {
 	useEffect( () => {
 		let current = true;
 
+		// Until the answer comes, the old stage and its controls may no longer
+		// hold, so neither is left on screen.
+		setError( '' );
+		setStage( null );
 		apiFetch( { path } ).then(
 			( answer ) => current && setStage( answer ),
 			( refusal ) => current && setError( refusal.message )
