@@ -40,7 +40,7 @@
 		"@wordpress/i18n": "^6.30.0",
 		"@wordpress/scripts": "^36.1.0",
 		"@wordpress/server-side-render": "^6.33.0",
-		"@wp-playground/cli": "^3.1.58",
+		"@wp-playground/cli": "^3.1.59",
 		"jest": "^30.5.2",
 		"jest-environment-jsdom": "^30.5.2",
 		"pa11y-ci": "^5.0.0",
