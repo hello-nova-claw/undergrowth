@@ -54,13 +54,14 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	 *
 	 * @param string $option Option holding the error.
 	 * @param int    $status HTTP status, or 0.
+	 * @param string $code   Saved error code.
 	 * @return string Notice text.
 	 */
-	private function notice( string $option, int $status ): string {
+	private function notice( string $option, int $status, string $code = 'http_status' ): string {
 		update_option(
 			$option,
 			array(
-				'code'   => 'http_status',
+				'code'   => $code,
 				'status' => $status,
 				'time'   => 1767225600,
 			)
@@ -120,6 +121,38 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( '(status ' . $status . ')', $text );
 		$this->assertStringContainsString( $this->when(), $text );
 		$this->assertStringContainsString( 'next monthly cycle', $text );
+	}
+
+	/**
+	 * A source Claude answered without a question is skipped, not retried,
+	 * so the notice says so and blames no one.
+	 *
+	 * @dataProvider answers
+	 *
+	 * @param string $code  Saved error code.
+	 * @param string $words Words the notice must hold.
+	 */
+	public function test_anthropic_notice_says_an_answered_source_is_skipped( string $code, string $words ) {
+		$text = $this->notice( 'undergrowth_last_prompt_error', 200, $code );
+
+		$this->assertStringContainsString( $words, $text );
+		$this->assertStringContainsString( 'skipped', $text );
+		$this->assertStringContainsString( $this->when(), $text );
+		$this->assertStringNotContainsString( 'problem on its side', $text );
+		$this->assertStringNotContainsString( 'next monthly cycle', $text );
+		$this->assertStringNotContainsString( 'status', $text );
+	}
+
+	/**
+	 * Codes for a reply that came back but gave no question.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function answers(): array {
+		return array(
+			'refusal'    => array( 'refusal', 'declined' ),
+			'max tokens' => array( 'max_tokens', 'cut off' ),
+		);
 	}
 
 	/**
