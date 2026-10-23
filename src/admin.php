@@ -14,6 +14,7 @@ add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
+add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
 
 /**
  * Adds Posts > Undergrowth, with its Suggestions, Growth stages and Map tabs.
@@ -29,6 +30,29 @@ function undergrowth_add_suggestions_page(): void {
 		'undergrowth-links',
 		'undergrowth_render_suggestions_page'
 	);
+}
+
+/**
+ * Lets core remove the result arguments from the address once shown, so a
+ * reload does not repeat the notice, and an action that returns to the same
+ * address shows only its own.
+ *
+ * The revision argument is removed on this screen only, since core's
+ * revisions screen is addressed by an argument of the same name.
+ *
+ * @param string[] $args Removable argument names.
+ * @return string[] Argument names.
+ */
+function undergrowth_notice_removable_query_args( $args ) {
+	$args   = (array) $args;
+	$args[] = 'undergrowth_notice';
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+	if ( null !== $screen && 'posts_page_undergrowth-links' === $screen->id ) {
+		$args[] = 'revision';
+	}
+
+	return $args;
 }
 
 /**
