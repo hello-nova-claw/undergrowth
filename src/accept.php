@@ -289,7 +289,7 @@ function undergrowth_find_link_word( string $content, string $sentence, string $
 				// "Self-reliance" is half a word. The hyphen can be a character
 				// reference or sit outside an inline tag, so the visible text
 				// around the match is checked.
-				if ( $spaced && ( preg_match( '/[\p{L}\p{N}][-\x{2010}\x{2011}]$/u', $before ) || preg_match( '/^[-\x{2010}\x{2011}][\p{L}\p{N}]/u', undergrowth_plain_text( substr( $inner, $offset + $at + strlen( $word ) ) ) ) ) ) {
+				if ( preg_match( '/[\p{L}\p{N}][-\x{2010}\x{2011}]$/u', $before ) || preg_match( '/^[-\x{2010}\x{2011}][\p{L}\p{N}]/u', undergrowth_plain_text( substr( $inner, $offset + $at + strlen( $word ) ) ) ) ) {
 					continue;
 				}
 
