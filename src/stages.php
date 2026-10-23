@@ -1,6 +1,8 @@
 <?php
 /**
- * Growth stages: where each post's stage is stored.
+ * Growth stages: storing each post's stage, measuring it on the monthly
+ * cycle, counting stages for the admin screens, and the author's own
+ * actions: pinning, composting and returning a post to the garden.
  *
  * @package Undergrowth
  */
