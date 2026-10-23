@@ -66,6 +66,24 @@ class Test_Stages extends WP_UnitTestCase {
 		return self::factory()->post->create_many( $count, array( 'post_status' => 'publish' ) );
 	}
 
+	public function test_garden_stages_are_every_stage_but_composting() {
+		$this->assertSame( array_values( array_diff( UNDERGROWTH_STAGES, array( 'composting' ) ) ), UNDERGROWTH_GARDEN_STAGES );
+	}
+
+	public function test_pinned_marker_shows_only_for_a_pinned_stage() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$post_id = self::factory()->post->create();
+
+		$this->assertSame( '', undergrowth_pinned_marker( $post_id ) );
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'sprout' ) );
+		$this->assertStringContainsString( 'dashicons-sticky undergrowth-pinned', undergrowth_pinned_marker( $post_id ) );
+		$this->assertStringContainsString( '<span class="screen-reader-text">Pinned</span>', undergrowth_pinned_marker( $post_id ) );
+
+		$this->assertTrue( undergrowth_compost_post( $post_id ) );
+		$this->assertSame( '', undergrowth_pinned_marker( $post_id ) );
+	}
+
 	public function test_post_with_no_accepted_links_measures_seedling() {
 		list( $post_id ) = $this->publish( 1 );
 
