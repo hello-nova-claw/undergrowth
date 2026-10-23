@@ -181,13 +181,16 @@ function undergrowth_embed_identity_is_built_in( array $identity ): bool {
 
 /**
  * Says whether code on the site, rather than an OpenAI key, has named the
- * provider that reads the posts. OpenAI is then never called, even with a
- * key saved.
+ * provider that reads the posts. Undergrowth then never calls OpenAI, even
+ * with a key saved.
  *
- * @return bool True when a provider other than the built-in one is named.
+ * Any OpenAI model counts as OpenAI here, so Settings never says nothing is
+ * sent to OpenAI while code names it as the provider.
+ *
+ * @return bool True when a provider other than OpenAI is named.
  */
 function undergrowth_embed_provider_set_by_code(): bool {
 	$identity = undergrowth_embed_identity();
 
-	return undergrowth_identity_is_complete( $identity ) && ! undergrowth_embed_identity_is_built_in( $identity );
+	return undergrowth_identity_is_complete( $identity ) && 'openai' !== $identity['provider'];
 }

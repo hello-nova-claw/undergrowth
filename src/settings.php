@@ -399,33 +399,37 @@ function undergrowth_render_key_field( array $args ): void {
  * ignored, with its remove checkbox.
  */
 function undergrowth_render_unused_openai_key_field(): void {
-	$constant = 'UNDERGROWTH_OPENAI_API_KEY';
-	$saved    = undergrowth_saved_key( 'undergrowth_openai_api_key' );
-	$texts    = array();
+	$constant  = 'UNDERGROWTH_OPENAI_API_KEY';
+	$saved     = undergrowth_saved_key( 'undergrowth_openai_api_key' );
+	$in_config = '' !== undergrowth_key_from_config( $constant );
 
-	if ( '' !== undergrowth_key_from_config( $constant ) ) {
-		$texts[] = sprintf(
+	// A key saved before the constant was added can still be removed here.
+	if ( $in_config && '' !== $saved ) {
+		$text = sprintf(
+			/* translators: 1: file name, wp-config.php, 2: name of the constant, 3: last four characters of the saved API key. */
+			__( 'A key is set in %1$s as %2$s, and a key ending in %3$s is saved, but both are ignored while code on this site reads the posts.', 'undergrowth' ),
+			'wp-config.php',
+			$constant,
+			substr( $saved, -4 )
+		);
+	} elseif ( $in_config ) {
+		$text = sprintf(
 			/* translators: 1: file name, wp-config.php, 2: name of the constant. */
 			__( 'A key is set in %1$s as %2$s, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
 			'wp-config.php',
 			$constant
 		);
-	}
-
-	// A key saved before the constant was added can still be removed here.
-	if ( '' !== $saved ) {
-		$texts[] = sprintf(
+	} elseif ( '' !== $saved ) {
+		$text = sprintf(
 			/* translators: %1$s: last four characters of the saved API key. */
 			__( 'A key ending in %1$s is saved, but it is ignored while code on this site reads the posts.', 'undergrowth' ),
 			substr( $saved, -4 )
 		);
-	}
-
-	if ( array() === $texts ) {
-		$texts[] = __( 'Not used. Code on this site reads the posts, so no OpenAI key is needed.', 'undergrowth' );
+	} else {
+		$text = __( 'Not used. Code on this site reads the posts, so no OpenAI key is needed.', 'undergrowth' );
 	}
 	?>
-	<p id="undergrowth-openai-unused"><?php echo esc_html( implode( ' ', $texts ) ); ?></p>
+	<p id="undergrowth-openai-unused"><?php echo esc_html( $text ); ?></p>
 	<?php if ( '' !== $saved ) : ?>
 		<p>
 			<label>

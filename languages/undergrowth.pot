@@ -895,6 +895,12 @@ msgstr ""
 msgid "A key ending in %1$s is saved. Leave the field blank to keep it."
 msgstr ""
 
+#. translators: 1: file name, wp-config.php, 2: name of the constant, 3: last four characters of the saved API key.
+#: src/settings.php
+#, php-format
+msgid "A key is set in %1$s as %2$s, and a key ending in %3$s is saved, but both are ignored while code on this site reads the posts."
+msgstr ""
+
 #. translators: 1: file name, wp-config.php, 2: name of the constant.
 #: src/settings.php
 #, php-format
