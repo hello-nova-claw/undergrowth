@@ -18,6 +18,7 @@ const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
+const DEV = [ 'edit.php', 'page=undergrowth-links&tab=dev' ];
 const DASHBOARD = [ 'index.php' ];
 const POSTS_LIST = [ 'edit.php', '' ];
 const PROFILE = [ 'profile.php', '' ];
@@ -49,6 +50,12 @@ const STAGE_NOTICES = [
 ];
 
 // Notices the Dashboard returns with after a prompt is dismissed or snoozed.
+const DEV_NOTICES = [
+	'dev_accept_started',
+	'dev_reset_started',
+	'dev_cycle_queued',
+	'dev_busy',
+];
 const PROMPT_NOTICES = [ 'prompt_dismissed', 'prompt_snoozed', 'prompt_gone' ];
 
 const WITHOUT_POSTS = [
@@ -283,6 +290,21 @@ const WITH_POSTS = [
 		],
 		notice: true,
 	} ) ),
+	// The Dev tools tab is on local sites only, and here only for these shots.
+	{ screen: 'dev', state: 'tab', page: DEV, devTools: true },
+	{
+		screen: 'dev',
+		state: 'confirm-reset',
+		page: [ DEV[ 0 ], `${ DEV[ 1 ] }&confirm=reset` ],
+		devTools: true,
+	},
+	...DEV_NOTICES.map( ( notice ) => ( {
+		screen: 'dev',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ DEV[ 0 ], `${ DEV[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+		devTools: true,
+	} ) ),
 ];
 
 // Shown after one post is composted, so every list it would be in is covered.
@@ -454,6 +476,10 @@ function capture( states ) {
 						'undergrowth_e2e_fixture',
 						entry.fixture,
 					] );
+				}
+
+				if ( entry.devTools ) {
+					cookies.push( [ 'undergrowth_e2e_dev_tools', '1' ] );
 				}
 
 				await context.addCookies(

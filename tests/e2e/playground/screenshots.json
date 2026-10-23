@@ -11,6 +11,12 @@
 	},
 	"steps": [
 		{
+			"step": "defineWpConfigConsts",
+			"consts": {
+				"WP_ENVIRONMENT_TYPE": "local"
+			}
+		},
+		{
 			"step": "activatePlugin",
 			"pluginPath": "undergrowth/undergrowth.php"
 		},
