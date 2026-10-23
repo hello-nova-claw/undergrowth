@@ -352,10 +352,51 @@ msgstr ""
 msgid "Post"
 msgstr ""
 
-#. translators: 1: post title, 2: its growth stage.
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Growth stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/stages.php
+msgid "Pinned"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+msgid "Pin stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/posts-screen.php
+msgid "Unpin stage"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/help.php
+#: src/posts-screen.php
+msgid "Compost"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+msgid "All"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+msgid "No posts in this view."
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: src/stages.php
+msgid "Not pinned"
+msgstr ""
+
+#. translators: %s: post title.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
-msgid "%1$s &mdash; %2$s"
+msgid "Select %s"
 msgstr ""
 
 #. translators: %1$s: post title.
@@ -648,11 +689,6 @@ msgid "When a post you moved to compost sits near a group that is new this month
 msgstr ""
 
 #: src/help.php
-#: src/posts-screen.php
-msgid "Compost"
-msgstr ""
-
-#: src/help.php
 msgid "Compost rests a post. It stays published, its links stay in place, and readers see no difference. Nothing is deleted."
 msgstr ""
 
@@ -763,30 +799,11 @@ msgid "Compost &#8220;%s&#8221;"
 msgstr ""
 
 #: src/posts-screen.php
-#: build/blocks/growth-stage/index.js
-#: src/blocks/growth-stage/edit.js
-msgid "Growth stage"
-msgstr ""
-
-#: src/posts-screen.php
 msgid "No growth stage"
 msgstr ""
 
 #: src/posts-screen.php
-msgid "Pin stage"
-msgstr ""
-
-#: src/posts-screen.php
-msgid "Unpin stage"
-msgstr ""
-
-#: src/posts-screen.php
 msgid "All stages"
-msgstr ""
-
-#: src/posts-screen.php
-#: src/stages.php
-msgid "Pinned"
 msgstr ""
 
 #: src/posts-screen.php
