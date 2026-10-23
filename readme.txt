@@ -18,7 +18,7 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 
 What it does in this version:
 
-* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links one word of that sentence to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Undergrowth.
+* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links a few of your own words in that sentence, such as the other post's title or a short phrase naming it, to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Undergrowth.
 * **Growth stages.** Each post has a stage, Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never change when you save a post, and the monthly cycle never lowers one. You can pin a stage to keep it as it is.
 * **Composting.** Move a post to compost when you want it to rest. It stays published and keeps its links, but leaves the active garden: no new suggestions, no stage changes, no timer. When a composting post sits close to what you are writing now, Undergrowth tells you once. Return it to the garden whenever you like.
 * **One question at a time.** With an Anthropic key, Claude writes you an occasional question on your Dashboard, drawn from a gap between your own posts, a reader's question in an approved comment, or a post you composted. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. Dismiss it for good or ask to see it next month. There are no streaks and no reminders.
@@ -158,7 +158,7 @@ Each message sends Discord the titles of both posts, the suggested sentence, whi
 * Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
 * Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
 * New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
-* Accept a suggestion to link one word of your own sentence to the suggested post. A revision is kept, and nothing changes when the word can't be linked safely.
+* Accept a suggestion to link a few of your own words, one to four, in your sentence to the suggested post. A revision is kept, and nothing changes when the words can't be linked safely.
 * Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
 * Growth stages are measured once a month from the links you have accepted: a post with two or more becomes a Sprout. Stages never change when you save a post, and the monthly cycle never lowers one.
 * Each post's file now names its growth stage and lists every change to it, with the date and what made it.

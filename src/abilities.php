@@ -220,7 +220,7 @@ function undergrowth_register_write_abilities(): void {
 	$abilities = array(
 		'undergrowth/accept-link' => array(
 			'label'       => __( 'Accept a link', 'undergrowth' ),
-			'description' => __( 'Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely.', 'undergrowth' ),
+			'description' => __( 'Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely.', 'undergrowth' ),
 			'callback'    => 'undergrowth_ability_accept_link',
 			'state'       => 'accepted',
 		),
