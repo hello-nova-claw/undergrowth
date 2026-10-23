@@ -370,7 +370,7 @@ function undergrowth_render_map_tab(): void {
 			/* translators: %s: number of posts in the group. */
 			esc_html( sprintf( _n( '%s post.', '%s posts.', $size, 'undergrowth' ), number_format_i18n( $size ) ) ),
 		);
-		$terms = undergrowth_cluster_terms( $cluster['leader'], wp_specialchars_decode( $title, ENT_QUOTES ) );
+		$terms = undergrowth_cluster_terms( $cluster['leader'], undergrowth_plain_line( $title ) );
 
 		if ( array() !== $terms ) {
 			$about[] = sprintf(

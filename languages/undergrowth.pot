@@ -702,7 +702,11 @@ msgid "Stages are measured once a month from the links you have accepted, and ne
 msgstr ""
 
 #: src/help.php
-msgid "Each group is a set of your posts that are close in meaning, found once a month. Groups are numbered, never named, so nothing on the Map is written by a model."
+msgid "Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model."
+msgstr ""
+
+#: src/help.php
+msgid "A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted."
 msgstr ""
 
 #: src/help.php
