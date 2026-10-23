@@ -52,7 +52,7 @@ function undergrowth_openai_embed( string $text ): array {
 	$vector = undergrowth_sanitize_vector( $result['vector'] );
 
 	if ( array() === $vector ) {
-		undergrowth_record_embed_error( '' !== $result['error'] ? $result['error'] : 'invalid_response', $result['status'] );
+		undergrowth_record_failure( 'undergrowth_last_embed_error', '' !== $result['error'] ? $result['error'] : 'invalid_response', $result['status'] );
 		return array();
 	}
 
@@ -127,25 +127,4 @@ function undergrowth_openai_truncate( string $text, int $max_bytes ): string {
 	$space = strrpos( $cut, ' ' );
 
 	return false !== $space && $space > 0 ? substr( $cut, 0, $space ) : $cut;
-}
-
-/**
- * Records the last failed request so the settings page can show it.
- *
- * Only the error code, HTTP status and time are kept. The key and the post
- * text never reach this record.
- *
- * @param string $code   Error code.
- * @param int    $status HTTP status, or 0.
- */
-function undergrowth_record_embed_error( string $code, int $status ): void {
-	update_option(
-		'undergrowth_last_embed_error',
-		array(
-			'code'   => sanitize_key( $code ),
-			'status' => $status,
-			'time'   => time(),
-		),
-		false
-	);
 }

@@ -380,6 +380,29 @@ function undergrowth_render_suggest_links_field(): void {
 }
 
 /**
+ * Records the last failure of one kind, so Settings › Undergrowth can say
+ * what went wrong.
+ *
+ * Only the error code, HTTP status and time are kept. Keys, post text and
+ * response bodies never reach the record.
+ *
+ * @param string $option Option that holds the record, such as 'undergrowth_last_embed_error'.
+ * @param string $code   Error code.
+ * @param int    $status HTTP status, or 0 when there was no request or no response.
+ */
+function undergrowth_record_failure( string $option, string $code, int $status = 0 ): void {
+	update_option(
+		$option,
+		array(
+			'code'   => sanitize_key( $code ),
+			'status' => $status,
+			'time'   => time(),
+		),
+		false
+	);
+}
+
+/**
  * Says in plain words why the last request to a service failed, when, with
  * the status code in brackets, and when it is tried again.
  *
