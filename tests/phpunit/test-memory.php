@@ -246,6 +246,18 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertDirectoryExists( $legacy );
 	}
 
+	public function test_a_name_stored_by_another_request_in_place_of_a_bad_one_is_kept() {
+		global $wpdb;
+
+		update_option( 'undergrowth_memory_folder', 'not-ours' );
+		get_option( 'undergrowth_memory_folder' );
+
+		// Another request replaced the bad value after this one read it.
+		$wpdb->update( $wpdb->options, array( 'option_value' => 'undergrowth-bbbbbbbbbbbb' ), array( 'option_name' => 'undergrowth_memory_folder' ) );
+
+		$this->assertSame( 'undergrowth-bbbbbbbbbbbb', undergrowth_memory_folder() );
+	}
+
 	public function test_preparing_the_folder_again_leaves_it_alone() {
 		$folder = undergrowth_memory_folder();
 
