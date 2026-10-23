@@ -374,15 +374,15 @@ function undergrowth_render_map_tab(): void {
 
 		$size  = count( $cluster['members'] );
 		$about = array(
-			/* translators: %s: number of posts in the group. */
-			esc_html( sprintf( _n( '%s post.', '%s posts.', $size, 'undergrowth' ), number_format_i18n( $size ) ) ),
+			/* translators: %1$s: number of posts in the group. */
+			esc_html( sprintf( _n( '%1$s post.', '%1$s posts.', $size, 'undergrowth' ), number_format_i18n( $size ) ) ),
 		);
 		$terms = undergrowth_cluster_terms( $cluster['leader'], undergrowth_plain_line( $title ) );
 
 		if ( array() !== $terms ) {
 			$about[] = sprintf(
-				/* translators: %s: a list of words from the group's posts, such as "oca, raised bed, and frost". */
-				esc_html__( 'Words that set this group apart: %s.', 'undergrowth' ),
+				/* translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost". */
+				esc_html__( 'Words that set this group apart: %1$s.', 'undergrowth' ),
 				wp_sprintf_l(
 					'%l',
 					array_map(
@@ -426,15 +426,15 @@ function undergrowth_render_map_counts( int $groups, array $counts ): void {
 			/* translators: 1: number of posts, 2: number of groups, such as "4 groups". */
 			_n( '%1$s post is in %2$s.', '%1$s posts are in %2$s.', $counts['grouped'], 'undergrowth' ),
 			number_format_i18n( $counts['grouped'] ),
-			/* translators: %s: number of groups. */
-			sprintf( _n( '%s group', '%s groups', $groups, 'undergrowth' ), number_format_i18n( $groups ) )
+			/* translators: %1$s: number of groups. */
+			sprintf( _n( '%1$s group', '%1$s groups', $groups, 'undergrowth' ), number_format_i18n( $groups ) )
 		),
 	);
 	$ungrouped = count( $counts['ungrouped'] );
 
 	if ( $ungrouped > 0 ) {
-		/* translators: %s: number of posts. */
-		$sentences[] = sprintf( _n( '%s post is not in a group yet.', '%s posts are not in a group yet.', $ungrouped, 'undergrowth' ), number_format_i18n( $ungrouped ) );
+		/* translators: %1$s: number of posts. */
+		$sentences[] = sprintf( _n( '%1$s post is not in a group yet.', '%1$s posts are not in a group yet.', $ungrouped, 'undergrowth' ), number_format_i18n( $ungrouped ) );
 	}
 
 	if ( $counts['composting'] > 0 ) {
@@ -471,12 +471,15 @@ function undergrowth_render_ungrouped_posts( array $ungrouped ): void {
 	if ( $long ) {
 		printf(
 			'<details class="undergrowth-ungrouped-list"><summary>%s</summary>',
-			/* translators: %s: number of posts. */
-			esc_html( sprintf( _n( 'Show the %s post', 'Show all %s posts', $count, 'undergrowth' ), number_format_i18n( $count ) ) )
+			/* translators: %1$s: number of posts. */
+			esc_html( sprintf( _n( 'Show the %1$s post', 'Show all %1$s posts', $count, 'undergrowth' ), number_format_i18n( $count ) ) )
 		);
 	}
 
 	echo '<ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">';
+
+	// One query for every post's title and edit link, however long the list.
+	_prime_post_caches( array_keys( $ungrouped ), false, false );
 
 	foreach ( $ungrouped as $post_id => $reason ) {
 		undergrowth_render_map_post( $post_id, $reasons[ $reason ] ?? $reasons['apart'] );
