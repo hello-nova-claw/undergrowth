@@ -614,7 +614,7 @@ function undergrowth_order_posts_by_stage( $clauses, $query ) {
 		'undergrowth_stage'
 	);
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The condition's placeholders come with it, and the ranks were prepared above.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The condition's placeholders come with it, and the ranks were prepared above.
 	$clauses['orderby'] = $wpdb->prepare( "CASE WHEN {$indexable[0]} THEN 0 ELSE 1 END ASC, ", ...$indexable[1] )
 		. "CASE undergrowth_stage_sort.meta_value{$ranks} ELSE 0 END {$order}, {$wpdb->posts}.post_date DESC, {$wpdb->posts}.ID DESC";
 	// phpcs:enable

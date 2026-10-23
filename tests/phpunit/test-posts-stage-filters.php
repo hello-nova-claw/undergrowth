@@ -258,7 +258,7 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 	public function test_the_stage_column_is_sortable() {
 		undergrowth_add_posts_list_hooks( 'post' );
 
-		$columns = apply_filters( 'manage_edit-post_sortable_columns', array( 'title' => 'title' ) );
+		$columns = apply_filters( 'manage_edit-post_sortable_columns', array( 'title' => 'title' ) ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
 
 		$this->assertSame( array( 'undergrowth_stage', false ), $columns['undergrowth_stage'] );
 		$this->assertSame( 'title', $columns['title'] );
