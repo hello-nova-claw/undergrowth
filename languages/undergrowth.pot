@@ -867,6 +867,8 @@ msgid "No growth stage"
 msgstr ""
 
 #: src/posts-screen.php
+#: build/editor/index.js
+#: src/editor/stage-panel.js
 msgid "Pin stage"
 msgstr ""
 
@@ -1339,11 +1341,6 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/stage-panel.js
 msgid "Stage to pin"
-msgstr ""
-
-#: build/editor/index.js
-#: src/editor/stage-panel.js
-msgid "Pin stage"
 msgstr ""
 
 #: build/blocks/growth-stage/block.json
