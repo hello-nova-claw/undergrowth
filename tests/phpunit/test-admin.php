@@ -406,7 +406,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 
-		$this->assertMatchesRegularExpression( '#<q dir="auto">Notes (<mark>)?about(</mark>)? Oca\.</q>#', $this->render() );
+		$this->assertMatchesRegularExpression( '#<q dir="auto">(<mark>)?Notes(</mark>)? about Oca\.</q>#', $this->render() );
 	}
 
 	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {
