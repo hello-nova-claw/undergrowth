@@ -91,7 +91,7 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<option value=""[^>]*>All stages</option>#', $html );
 
 		preg_match_all( '#<option value="([a-z]*)"#', $html, $values );
-		$this->assertSame( array( '', 'seedling', 'sprout', 'budding', 'evergreen', 'pinned' ), $values[1] );
+		$this->assertSame( array( '', 'seedling', 'sprout', 'budding', 'evergreen', 'pinned', 'unpinned' ), $values[1] );
 		$this->assertStringContainsString( '>Sprout</option>', $html );
 		$this->assertStringContainsString( '>Pinned</option>', $html );
 	}
