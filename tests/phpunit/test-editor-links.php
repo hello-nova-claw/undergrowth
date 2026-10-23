@@ -218,6 +218,69 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->assertNull( $this->call( 'GET' )->get_data()['outgoing'][0]['span'] );
 	}
 
+	public function test_offers_the_sentences_words_to_choose_from() {
+		$item = $this->call( 'GET' )->get_data()['outgoing'][0];
+
+		$this->assertSame( array( 'I', 'keep', 'yacon', 'syrup', 'beside', 'the', 'seed', 'ledger' ), $item['words'] );
+		$this->assertSame( 6, $item['first'] );
+		$this->assertSame( 7, $item['last'] );
+		$this->assertSame( undergrowth_sentence_version( self::SENTENCE ), $item['version'] );
+	}
+
+	public function test_choose_words_saves_them_as_the_suggestions_tab_does() {
+		$response = $this->call(
+			'POST',
+			'/' . $this->target . '/words',
+			array(
+				'first' => 2,
+				'last'  => 3,
+				'shown' => undergrowth_sentence_version( self::SENTENCE ),
+			)
+		);
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( undergrowth_link_result_messages()['words_saved'], $data['message'] );
+		$this->assertSame(
+			array(
+				'offset' => mb_strpos( self::SENTENCE, 'yacon' ),
+				'length' => 11,
+			),
+			$data['span']
+		);
+		$this->assertSame( 2, $data['first'] );
+		$this->assertSame( 3, $data['last'] );
+		$this->assertSame( 'yacon syrup', undergrowth_link_row( $this->source, $this->target )['anchor'] );
+	}
+
+	public function test_choose_words_refuses_as_the_suggestions_tab_does() {
+		$response = $this->call(
+			'POST',
+			'/' . $this->target . '/words',
+			array(
+				'first' => 3,
+				'last'  => 2,
+				'shown' => undergrowth_sentence_version( self::SENTENCE ),
+			)
+		);
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'undergrowth_words_invalid', $response->get_data()['code'] );
+
+		$response = $this->call(
+			'POST',
+			'/' . $this->target . '/words',
+			array(
+				'first' => 0,
+				'last'  => 1,
+				'shown' => 'an older sentence',
+			)
+		);
+
+		$this->assertSame( 'undergrowth_edited', $response->get_data()['code'] );
+		$this->assertSame( 'seed ledger', undergrowth_link_row( $this->source, $this->target )['anchor'] );
+	}
+
 	public function test_accept_links_the_stored_words_in_the_paragraph_without_saving() {
 		$before   = get_post_field( 'post_content', $this->source );
 		$response = $this->accept(
@@ -365,7 +428,20 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->assertSame( 403, $this->call( 'GET' )->get_status() );
 		$this->assertSame( 403, $this->accept( array( 'p' => self::SENTENCE ) )->get_status() );
 		$this->assertSame( 403, $this->call( 'POST', '/' . $this->target . '/veto' )->get_status() );
+		$this->assertSame(
+			403,
+			$this->call(
+				'POST',
+				'/' . $this->target . '/words',
+				array(
+					'first' => 2,
+					'last'  => 3,
+					'shown' => undergrowth_sentence_version( self::SENTENCE ),
+				)
+			)->get_status()
+		);
 		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
+		$this->assertSame( 'seed ledger', undergrowth_link_row( $this->source, $this->target )['anchor'] );
 	}
 
 	public function test_readers_get_nothing() {
