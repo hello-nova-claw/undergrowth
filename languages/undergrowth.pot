@@ -785,6 +785,11 @@ msgid "All stages"
 msgstr ""
 
 #: src/posts-screen.php
+#: src/stages.php
+msgid "Pinned"
+msgstr ""
+
+#: src/posts-screen.php
 msgid "Filter by growth stage"
 msgstr ""
 
@@ -1183,10 +1188,6 @@ msgstr ""
 
 #: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "Pinned"
 msgstr ""
 
 #: src/stages.php
