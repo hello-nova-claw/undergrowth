@@ -205,8 +205,11 @@ function undergrowth_post_language( WP_Post $post ): string {
 	 * @param WP_Post $post   Post being embedded.
 	 */
 	$locale = apply_filters( 'undergrowth_post_language', get_locale(), $post );
+	$locale = is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
 
-	return is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
+	// Cut to the column, as the provider and model are, so the value stored
+	// is the value compared on the next save.
+	return mb_substr( $locale, 0, 20 );
 }
 
 /**
