@@ -72,8 +72,14 @@ function undergrowth_memory_folder(): string {
 		return $folder;
 	}
 
+	// A value that is not one of ours is removed only while it is still
+	// that value, so a good name another request stored meanwhile stays.
 	if ( false !== $folder ) {
-		delete_option( 'undergrowth_memory_folder' );
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- delete_option() deletes by name alone.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND option_value = %s', $wpdb->options, 'undergrowth_memory_folder', maybe_serialize( $folder ) ) );
+		wp_cache_delete( 'alloptions', 'options' );
 	}
 
 	try {
