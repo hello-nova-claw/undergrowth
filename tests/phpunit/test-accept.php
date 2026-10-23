@@ -350,15 +350,50 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( '<p>It costs &pound;3 a <a href="https://example.test/">pound</a>.</p>', $linked );
 	}
 
-	public function test_a_word_inside_a_hyphenated_compound_is_never_linked() {
-		$this->assertNull( undergrowth_link_word( '<p>Self-reliance is its aversion.</p>', 'Self-reliance is its aversion.', 'reliance', 'https://example.test/' ) );
-		$this->assertNull( undergrowth_link_word( '<p>We ate home-made bread.</p>', 'We ate home-made bread.', 'home', 'https://example.test/' ) );
+	/**
+	 * Never links half of a compound, however its hyphen is written.
+	 *
+	 * @dataProvider data_hyphenated_compounds
+	 *
+	 * @param string $html Paragraph markup.
+	 * @param string $term Word that appears only inside the compound.
+	 */
+	public function test_a_word_inside_a_hyphenated_compound_is_never_linked( string $html, string $term ) {
+		$sentence = undergrowth_plain_text( $html );
+
+		$this->assertNull( undergrowth_link_word( '<p>' . $html . '</p>', $sentence, $term, 'https://example.test/' ) );
+	}
+
+	/**
+	 * Compounds joined by a hyphen, and the word inside each.
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public static function data_hyphenated_compounds(): array {
+		return array(
+			'hyphen-minus before'        => array( 'Self-reliance is its aversion.', 'reliance' ),
+			'hyphen-minus after'         => array( 'We ate home-made bread.', 'home' ),
+			'unicode hyphen'             => array( "Self\u{2010}reliance is its aversion.", 'reliance' ),
+			'non-breaking hyphen'        => array( "Self\u{2011}reliance is its aversion.", 'reliance' ),
+			'hex reference'              => array( 'Self&#x2010;reliance is its aversion.', 'reliance' ),
+			'decimal reference'          => array( 'Self&#8209;reliance is its aversion.', 'reliance' ),
+			'named reference'            => array( 'Self&hyphen;reliance is its aversion.', 'reliance' ),
+			'digit before'               => array( 'Our 2024-plan failed.', 'plan' ),
+			'digit after'                => array( 'A plan-9 failed.', 'plan' ),
+			'hyphen outside inline tags' => array( 'Self-<em>reliance</em> is its aversion.', 'reliance' ),
+		);
 	}
 
 	public function test_the_word_on_its_own_is_linked_after_its_hyphenated_use() {
 		$linked = undergrowth_link_word( '<p>Self-reliance is rare, and reliance on others common.</p>', 'Self-reliance is rare, and reliance on others common.', 'reliance', 'https://example.test/' );
 
 		$this->assertSame( '<p>Self-reliance is rare, and <a href="https://example.test/">reliance</a> on others common.</p>', $linked );
+	}
+
+	public function test_the_word_on_its_own_is_linked_after_an_encoded_hyphen() {
+		$linked = undergrowth_link_word( '<p>Self&#x2010;reliance is rare, and reliance on others common.</p>', "Self\u{2010}reliance is rare, and reliance on others common.", 'reliance', 'https://example.test/' );
+
+		$this->assertSame( '<p>Self&#x2010;reliance is rare, and <a href="https://example.test/">reliance</a> on others common.</p>', $linked );
 	}
 
 	public function test_a_word_beside_a_dash_used_as_punctuation_is_linked() {
