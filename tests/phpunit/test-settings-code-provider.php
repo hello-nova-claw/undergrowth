@@ -250,4 +250,39 @@ class Test_Settings_Code_Provider extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'sk-config-openai-Q7vZ', $html );
 		$this->assertStringNotContainsString( 'name="undergrowth_remove_openai_key"', $html );
 	}
+
+	/**
+	 * A constant cannot be undefined again, so this runs in a process of
+	 * its own.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_a_key_saved_beside_one_in_wp_config_can_still_be_removed() {
+		define( 'UNDERGROWTH_OPENAI_API_KEY', 'sk-config-openai-Q7vZ' );
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'as UNDERGROWTH_OPENAI_API_KEY, but it is ignored', $html );
+		$this->assertStringContainsString( 'A key ending in abcd is saved, but it is ignored', $html );
+		$this->assertStringContainsString( 'name="undergrowth_remove_openai_key"', $html );
+	}
+
+	public function test_the_provider_paragraph_is_one_string_for_translators() {
+		$strings = array();
+		$keep    = static function ( $translation, $text ) use ( &$strings ) {
+			$strings[] = $text;
+			return $translation;
+		};
+		add_filter( 'gettext', $keep, 10, 2 );
+
+		ob_start();
+		undergrowth_render_links_section();
+		ob_end_clean();
+
+		remove_filter( 'gettext', $keep, 10 );
+
+		$this->assertCount( 1, preg_grep( '/^Posts are read by %1\$s \(%2\$s\).*ask whoever added it\.$/', $strings ) );
+	}
 }
