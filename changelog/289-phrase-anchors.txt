@@ -1,0 +1,1 @@
+Suggested links now sit on a short phrase of your own words, one to four of them, instead of a single word: the other post's title where your sentence has it, otherwise the phrase that names what the other post is about, such as "seed ledger". The Suggestions screen highlights exactly the words Accept will link.

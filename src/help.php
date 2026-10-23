@@ -56,7 +56,7 @@ function undergrowth_add_screen_help(): void {
 		'undergrowth-suggestions',
 		__( 'Suggestions', 'undergrowth' ),
 		array(
-			__( 'Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted word is the word Accept will make into the link.', 'undergrowth' ),
+			__( 'Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted words are the words Accept will make into the link.', 'undergrowth' ),
 			__( 'Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post.', 'undergrowth' ),
 		)
 	);

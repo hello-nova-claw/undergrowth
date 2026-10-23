@@ -103,7 +103,7 @@ msgid "Accept a link"
 msgstr ""
 
 #: src/abilities.php
-msgid "Accepts a suggested link by linking one word of the author’s own sentence to the suggested post, exactly as the Accept button does. Nothing changes when the word cannot be linked safely."
+msgid "Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely."
 msgstr ""
 
 #: src/abilities.php
@@ -674,7 +674,7 @@ msgid "Your garden is every published post Undergrowth reads, without a password
 msgstr ""
 
 #: src/help.php
-msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted word is the word Accept will make into the link."
+msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted words are the words Accept will make into the link."
 msgstr ""
 
 #: src/help.php
@@ -735,7 +735,7 @@ msgid "Return to garden brings it back, and its stage is measured again from the
 msgstr ""
 
 #: src/links.php
-msgid "Linked. One word in your sentence now links to the suggested post."
+msgid "Linked. The highlighted words in your sentence now link to the suggested post."
 msgstr ""
 
 #: src/links.php
@@ -759,7 +759,7 @@ msgid "That sentence has changed since the link was suggested, so nothing was ch
 msgstr ""
 
 #: src/links.php
-msgid "No word in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgid "No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
 msgstr ""
 
 #: src/links.php
