@@ -1,0 +1,1 @@
+Each suggestion now has a Choose words action: pick the first and last of your own words in the sentence, and Accept links exactly those. Nothing can be typed, so the link is always your own words.

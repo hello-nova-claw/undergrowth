@@ -379,7 +379,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'accept\'><button type="submit" form="undergrowth-accept-\d+-\d+" class="button-link" aria-label="Accept the link from Oca to Yacon">Accept</button> \| </span><span class=\'veto\'><button type="submit" form="undergrowth-veto-\d+-\d+" class="button-link" aria-label="Veto the link from Oca to Yacon">Veto</button></span></div>#', $html );
+		$this->assertMatchesRegularExpression( '#<div class="row-actions visible"><span class=\'accept\'><button type="submit" form="undergrowth-accept-\d+-\d+" class="button-link" aria-label="Accept the link from Oca to Yacon">Accept</button> \| </span><span class=\'veto\'><button type="submit" form="undergrowth-veto-\d+-\d+" class="button-link" aria-label="Veto the link from Oca to Yacon">Veto</button> \| </span><span class=\'choose\'><a href="[^"]+" aria-label="Choose words for the link from Oca to Yacon">Choose words</a></span></div>#', $html );
 		$this->assertStringNotContainsString( 'button-primary', $html );
 	}
 

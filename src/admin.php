@@ -13,6 +13,7 @@ add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
 add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
+add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_words' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
@@ -159,6 +160,27 @@ function undergrowth_handle_accept(): void {
 	}
 
 	wp_safe_redirect( $url );
+	exit;
+}
+
+/**
+ * Saves the words chosen in a row's Choose words form, then returns to the screen.
+ */
+function undergrowth_handle_choose_words(): void {
+	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
+	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_choose_words_' . $source . '_' . $target );
+
+	if ( ! current_user_can( 'edit_post', $source ) ) {
+		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$first = isset( $_POST['first'] ) ? (int) $_POST['first'] : -1;
+	$last  = isset( $_POST['last'] ) ? (int) $_POST['last'] : -1;
+	$shown = isset( $_POST['shown'] ) ? sanitize_key( wp_unslash( $_POST['shown'] ) ) : '';
+
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
 	exit;
 }
 
@@ -804,7 +826,7 @@ function undergrowth_render_suggestions_notice(): void {
 		);
 	}
 
-	$class = in_array( $notice, array( 'vetoed', 'accepted', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
+	$class = in_array( $notice, array( 'vetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
 
 	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }

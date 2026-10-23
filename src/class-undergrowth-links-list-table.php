@@ -145,12 +145,15 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Cell HTML.
 	 */
 	public function column_sentence( $item ) {
-		return '<q dir="auto">' . $this->marked_sentence( $item ) . '</q>'
+		$choice = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $item['sentence'], $item['anchor'], $item['offset'] );
+
+		return '<q dir="auto">' . $this->marked_sentence( $item, $choice ) . '</q>'
 			. '<p>' . sprintf(
 				/* translators: %1$s: title of the post the link would point to, linked to its editor. */
 				esc_html__( 'Link to %1$s', 'undergrowth' ),
 				$this->edit_link( $item['target_id'], 'row-title' )
 			) . '</p>'
+			. ( $this->is_choosing( $item ) ? $this->choose_form( $item, $choice ) : '' )
 			. $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
 	}
 
@@ -190,20 +193,135 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Veto', 'undergrowth' )
 				),
-			),
+			)
+			+ ( undergrowth_can_choose_words( $item['sentence'] ) ? array(
+				'choose' => sprintf(
+					'<a href="%1$s" aria-label="%2$s">%3$s</a>',
+					esc_url( $this->choose_url( $item ) ),
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					esc_attr( sprintf( __( 'Choose words for the link from %1$s to %2$s', 'undergrowth' ), $source, $target ) ),
+					esc_html__( 'Choose words', 'undergrowth' )
+				),
+			) : array() ),
 			true
 		);
+	}
+
+	/**
+	 * Returns the address that opens a row's Choose words form.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return string URL, ending at the form.
+	 */
+	private function choose_url( array $item ): string {
+		$pagenum = $this->get_pagenum();
+
+		return add_query_arg(
+			array(
+				'choose' => $item['source_id'] . '-' . $item['target_id'],
+				'paged'  => $pagenum > 1 ? $pagenum : false,
+			),
+			undergrowth_suggestions_url()
+		) . '#' . $this->form_id( $item, 'choose' );
+	}
+
+	/**
+	 * Tells whether a row's Choose words form is open.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return bool
+	 */
+	private function is_choosing( array $item ): bool {
+		// Only opens a form; nothing is changed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$choose = isset( $_GET['choose'] ) ? sanitize_text_field( wp_unslash( $_GET['choose'] ) ) : '';
+
+		return $item['source_id'] . '-' . $item['target_id'] === $choose && undergrowth_can_choose_words( $item['sentence'] );
+	}
+
+	/**
+	 * Builds the form where the author chooses the first and last of their
+	 * own words to link.
+	 *
+	 * Two native selects list the sentence's words in order, so the form
+	 * works by keyboard and with a screen reader, and nothing can be typed.
+	 * The words now marked are selected.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
+	 * @param array{word: string, offset: int, position: int}|null                                 $choice Words Accept would link now.
+	 * @return string Form HTML.
+	 */
+	private function choose_form( array $item, ?array $choice ): string {
+		$words = undergrowth_anchor_words( $item['sentence'] );
+		$count = count( $words );
+		$first = 0;
+		$last  = 0;
+
+		if ( null !== $choice ) {
+			$end = $choice['offset'] + mb_strlen( (string) preg_replace( '/\s+/u', ' ', $choice['word'] ) );
+
+			foreach ( $words as $index => $word ) {
+				$first = $word['offset'] === $choice['offset'] ? $index : $first;
+				$last  = $word['offset'] + $word['length'] === $end ? $index : $last;
+			}
+		}
+
+		$suffix = $item['source_id'] . '-' . $item['target_id'];
+		$fields = '';
+
+		foreach ( array(
+			'first' => array( __( 'First word', 'undergrowth' ), $first ),
+			'last'  => array( __( 'Last word', 'undergrowth' ), $last ),
+		) as $name => $field ) {
+			$options = '';
+
+			foreach ( $words as $index => $word ) {
+				$options .= sprintf(
+					'<option value="%1$d"%2$s>%3$s</option>',
+					$index,
+					selected( $field[1], $index, false ),
+					/* translators: 1: a word from the author's sentence, 2: its position in the sentence, 3: how many words the sentence has. */
+					esc_html( sprintf( __( '%1$s (%2$s of %3$s)', 'undergrowth' ), $word['text'], number_format_i18n( $index + 1 ), number_format_i18n( $count ) ) )
+				);
+			}
+
+			$fields .= sprintf(
+				'<p><label for="undergrowth-%1$s-%2$s">%3$s</label> <select id="undergrowth-%1$s-%2$s" name="%1$s" dir="auto">%4$s</select></p>',
+				esc_attr( $name ),
+				esc_attr( $suffix ),
+				esc_html( $field[0] ),
+				$options
+			);
+		}
+
+		return sprintf(
+			'<form method="post" action="%1$s" id="%2$s" class="undergrowth-choose-words"><fieldset><legend>%3$s</legend><p class="description">%4$s</p>%5$s</fieldset>'
+			. '<input type="hidden" name="action" value="undergrowth_choose_words" /><input type="hidden" name="source" value="%6$d" /><input type="hidden" name="target" value="%7$d" /><input type="hidden" name="shown" value="%8$s" />%9$s'
+			. '<p><button type="submit" class="button button-primary">%10$s</button> <a href="%11$s" class="button">%12$s</a></p></form>',
+			esc_url( admin_url( 'admin-post.php' ) ),
+			esc_attr( $this->form_id( $item, 'choose' ) ),
+			esc_html__( 'Choose the words to link', 'undergrowth' ),
+			esc_html__( 'The link goes around your own words, from the first word to the last. Only words already in this sentence can be chosen.', 'undergrowth' ),
+			$fields,
+			$item['source_id'],
+			$item['target_id'],
+			esc_attr( undergrowth_sentence_version( $item['sentence'] ) ),
+			wp_nonce_field( 'undergrowth_choose_words_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false ),
+			esc_html__( 'Save words', 'undergrowth' ),
+			esc_url( undergrowth_suggestions_url() ),
+			esc_html__( 'Cancel', 'undergrowth' )
+		) . wp_get_inline_script_tag( "window.addEventListener( 'load', function () { var first = document.getElementById( " . wp_json_encode( 'undergrowth-first-' . $suffix ) . ' ); if ( first ) { first.focus(); } } );' );
 	}
 
 	/**
 	 * Escapes the sentence and marks the words Accept would link in it.
 	 *
 	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @param array{word: string, offset: int, position: int}|null                                 $choice Result of undergrowth_link_word_choice() for the row.
 	 * @return string HTML.
 	 */
-	private function marked_sentence( array $item ): string {
+	private function marked_sentence( array $item, ?array $choice ): string {
 		$sentence = $item['sentence'];
-		$choice   = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $sentence, $item['anchor'], $item['offset'] );
 
 		// A line break inside the words in the post shows as a space.
 		$words  = null === $choice ? '' : (string) preg_replace( '/\s+/u', ' ', $choice['word'] );

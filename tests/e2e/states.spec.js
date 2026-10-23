@@ -33,6 +33,9 @@ const NOTICES = [
 	'no_word',
 	'not_proposed',
 	'needs_admin',
+	'words_saved',
+	'words_invalid',
+	'words_unsafe',
 ];
 
 // Notices the growth stages tab returns with after a pin or unpin.
@@ -205,6 +208,23 @@ const WITH_POSTS = [
 		fixture: 'index-partial',
 	},
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
+	{
+		screen: 'suggestions',
+		state: 'choose-words',
+		page: SUGGESTIONS,
+		open: async ( page ) => {
+			const choose = page.locator( '.row-actions .choose a' ).first();
+
+			if ( ( await choose.count() ) === 0 ) {
+				return false;
+			}
+
+			await choose.click();
+			await page.locator( 'form.undergrowth-choose-words' ).waitFor();
+
+			return true;
+		},
+	},
 	{
 		screen: 'suggestions',
 		state: 'off',
@@ -440,6 +460,10 @@ function capture( states ) {
 					await admin.visitAdminPage( ...entry.page );
 				}
 
+				// Opens what this state is about, such as a row's form. A build
+				// without it is listed as skipped, as a missing notice is.
+				const opened = entry.open ? await entry.open( page ) : true;
+
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help
 					? page.locator( `#tab-link-${ entry.help } a` )
@@ -463,6 +487,7 @@ function capture( states ) {
 				// plain screen. The marker lets the comment list it, rather
 				// than drop it.
 				if (
+					! opened ||
 					( entry.notice &&
 						( await page
 							.locator( '#undergrowth-notice' )

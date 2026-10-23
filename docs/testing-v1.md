@@ -102,7 +102,7 @@ Work through these in any order. Note anything that surprises you, reads oddly, 
 
 **Accept and Veto**
 - Each suggestion leads with your sentence, with the words Undergrowth would link highlighted, and "Link to" the other post under it, then Accept | Veto. Try it on a phone too: all of that should show without opening the row.
-- Accept a suggestion. Undergrowth picks the words itself, one to four of them, preferring the other post's title or a short phrase that names it. Open the post: the highlighted words, and nothing else, should now be a plain link. A revision should be saved too. Do they read like link text you would have chosen?
+- Accept a suggestion. Undergrowth picks the words itself, one to four of them, preferring the other post's title or a short phrase that names it. Open the post: the highlighted words, and nothing else, should now be a plain link. A revision should be saved too. Do they read like link text you would have chosen? If not, use Choose words on the row first: pick the first and last word, save, and check the highlight moved before you accept.
 - Veto a suggestion. It should go away and not come back, even after you edit either post.
 
 **Growth stages** (Growth stages tab)

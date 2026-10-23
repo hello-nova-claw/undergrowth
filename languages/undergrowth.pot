@@ -414,6 +414,46 @@ msgstr ""
 msgid "Veto"
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "Choose words for the link from %1$s to %2$s"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Choose words"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "First word"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Last word"
+msgstr ""
+
+#. translators: 1: a word from the author's sentence, 2: its position in the sentence, 3: how many words the sentence has.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "%1$s (%2$s of %3$s)"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Choose the words to link"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "The link goes around your own words, from the first word to the last. Only words already in this sentence can be chosen."
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Save words"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Cancel"
+msgstr ""
+
 #: src/class-undergrowth-stages-list-table.php
 msgid "Post"
 msgstr ""
@@ -678,6 +718,10 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/help.php
+msgid "Choose words lets you pick other words of the same sentence for the link: choose the first word and the last, then save. Only words already in your sentence can be chosen; nothing can be typed or added."
+msgstr ""
+
+#: src/help.php
 msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
 msgstr ""
 
@@ -760,6 +804,18 @@ msgstr ""
 
 #: src/links.php
 msgid "No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgstr ""
+
+#: src/links.php
+msgid "Saved. Accept will link the words now highlighted."
+msgstr ""
+
+#: src/links.php
+msgid "Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it."
+msgstr ""
+
+#: src/links.php
+msgid "Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words."
 msgstr ""
 
 #: src/links.php
