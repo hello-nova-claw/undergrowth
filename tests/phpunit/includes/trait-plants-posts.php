@@ -20,10 +20,16 @@ trait Plants_Posts {
 	private $vectors = array();
 
 	/**
-	 * Hooks the test provider and its identity.
+	 * Hooks the test provider and its identity, and removes any per-post
+	 * files an earlier test left.
+	 *
+	 * Rolled-back tests reuse post IDs, so a file left behind would be read
+	 * as the new post's.
 	 */
 	private function start_planting(): void {
 		$this->vectors = array();
+
+		undergrowth_delete_memory_folder();
 
 		add_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10, 2 );
 		add_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
