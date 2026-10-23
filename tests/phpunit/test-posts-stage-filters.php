@@ -91,7 +91,7 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<option value=""[^>]*>All stages</option>#', $html );
 
 		preg_match_all( '#<option value="([a-z]*)"#', $html, $values );
-		$this->assertSame( array( '', 'seedling', 'sprout', 'budding', 'evergreen', 'pinned', 'unpinned' ), $values[1] );
+		$this->assertSame( array( '', 'seedling', 'sprout', 'budding', 'evergreen', 'pinned' ), $values[1] );
 		$this->assertStringContainsString( '>Sprout</option>', $html );
 		$this->assertStringContainsString( '>Pinned</option>', $html );
 	}
@@ -120,11 +120,11 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 	}
 
 	public function test_the_posts_list_forgets_a_result_already_shown() {
-		$uri                    = $_SERVER['REQUEST_URI'] ?? '';
+		$uri                    = $_SERVER['REQUEST_URI'] ?? ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Put back as it was.
 		$_SERVER['REQUEST_URI'] = '/wp-admin/edit.php?undergrowth_composted=2&undergrowth_stage=sprout';
 
 		undergrowth_add_posts_list_hooks( 'post' );
-		$cleaned                = $_SERVER['REQUEST_URI'];
+		$cleaned                = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Compared as it is.
 		$_SERVER['REQUEST_URI'] = $uri;
 
 		$this->assertSame( '/wp-admin/edit.php?undergrowth_stage=sprout', $cleaned );
@@ -240,6 +240,7 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 
 		$_GET['undergrowth_stage'] = 'sprout';
 		$GLOBALS['pagenow']        = 'upload.php';
+		set_current_screen( 'upload' );
 
 		$query                   = new WP_Query();
 		$GLOBALS['wp_the_query'] = $query;

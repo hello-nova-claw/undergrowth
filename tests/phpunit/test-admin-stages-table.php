@@ -509,11 +509,11 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 	}
 
 	public function test_sort_links_do_not_carry_a_result_already_shown() {
-		$uri                    = $_SERVER['REQUEST_URI'] ?? '';
+		$uri                    = $_SERVER['REQUEST_URI'] ?? ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Put back as it was.
 		$_SERVER['REQUEST_URI'] = '/wp-admin/edit.php?page=undergrowth-links&tab=stages&undergrowth_pinned=2&undergrowth_skipped=1&undergrowth_notice=pinned&orderby=stage';
 
 		undergrowth_forget_shown_results();
-		$cleaned                = $_SERVER['REQUEST_URI'];
+		$cleaned                = $_SERVER['REQUEST_URI']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Compared as it is.
 		$_SERVER['REQUEST_URI'] = $uri;
 
 		$this->assertSame( '/wp-admin/edit.php?page=undergrowth-links&tab=stages&orderby=stage', $cleaned );
