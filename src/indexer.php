@@ -52,6 +52,28 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
 }
 
 /**
+ * Builds undergrowth_is_indexable() as an SQL condition, for queries that
+ * pick indexable posts without loading each one.
+ *
+ * @param string $alias Prefix for the posts table's columns, such as 'p.', or empty.
+ * @return array{0: string, 1: array<int, string>}|null The condition with its placeholders, and their values in order, or null when no post type is indexed.
+ */
+function undergrowth_indexable_sql( string $alias ): ?array {
+	$post_types = undergrowth_indexed_post_types();
+
+	if ( array() === $post_types ) {
+		return null;
+	}
+
+	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+
+	return array(
+		"{$alias}post_status = %s AND {$alias}post_password = %s AND {$alias}post_type IN ({$placeholders})",
+		array_merge( array( 'publish', '' ), $post_types ),
+	);
+}
+
+/**
  * Schedules an embed when a post is saved, or removes its vector when it
  * leaves the index.
  *
@@ -302,8 +324,9 @@ function undergrowth_backfill_time_budget(): float {
  * Lists indexable posts that have no vector from the current provider and
  * model, or none in the site language when posts take theirs from the site.
  *
- * Mirrors undergrowth_is_indexable() in SQL, so posts that must not be sent
- * are never picked. undergrowth_embed_post() checks each post again.
+ * Uses undergrowth_indexable_sql(), the rule of undergrowth_is_indexable(),
+ * so posts that must not be sent are never picked. undergrowth_embed_post()
+ * checks each post again.
  *
  * @param array $identity {
  *     The current provider and model, and the site language when posts take theirs from the site.
@@ -321,20 +344,18 @@ function undergrowth_backfill_time_budget(): float {
 function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $limit ): array {
 	global $wpdb;
 
-	$post_types = undergrowth_indexed_post_types();
+	$indexable = undergrowth_indexable_sql( 'p.' );
 
-	if ( array() === $post_types ) {
+	if ( null === $indexable ) {
 		return array();
 	}
 
-	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
-
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders}) ORDER BY p.ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id, 'publish', '' ), $post_types, array( $limit ) )
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id ), $indexable[1], array( $limit ) )
 		)
 	);
 	// phpcs:enable
@@ -356,24 +377,23 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 function undergrowth_index_counts(): array {
 	global $wpdb;
 
-	$post_types = undergrowth_indexed_post_types();
+	$indexable = undergrowth_indexable_sql( 'p.' );
 
-	if ( array() === $post_types ) {
+	if ( null === $indexable ) {
 		return array(
 			'indexed' => 0,
 			'total'   => 0,
 		);
 	}
 
-	$identity     = undergrowth_index_target();
-	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
+	$identity = undergrowth_index_target();
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT COUNT(p.ID) AS total, COUNT(v.post_id) AS indexed FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN ({$placeholders})",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], 'publish', '' ), $post_types )
+			"SELECT COUNT(p.ID) AS total, COUNT(v.post_id) AS indexed FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE {$indexable[0]}",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'] ), $indexable[1] )
 		),
 		ARRAY_A
 	);
