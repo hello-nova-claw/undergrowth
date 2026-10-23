@@ -298,7 +298,12 @@ class Test_Posts_Stage_Filters extends WP_UnitTestCase {
 		add_post_meta( $sprout, 'undergrowth_stage', 'evergreen' );
 		$this->post_at( 'budding' );
 
-		$posts = $this->list_posts( array( 'orderby' => 'undergrowth_stage' ) );
+		$posts = $this->list_posts(
+			array(
+				'orderby' => 'undergrowth_stage',
+				'order'   => 'asc',
+			)
+		);
 
 		$this->assertCount( 2, $posts );
 		$this->assertSame( $sprout, $posts[0] );
