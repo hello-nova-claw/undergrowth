@@ -12,3 +12,4 @@
 .claude/
 .vscode/
 .idea/
+/.env.local
