@@ -63,8 +63,12 @@ test.describe( 'Prompt on the Dashboard', () => {
 		await expect( snooze ).toBeFocused();
 		await page.keyboard.press( 'Enter' );
 
-		await expect( page ).toHaveURL( /undergrowth_notice=prompt_snoozed/ );
+		await expect( page.locator( '#undergrowth-notice' ) ).toHaveClass(
+			/notice-success/
+		);
 		await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+		// Core takes the result out of the address once it is shown.
+		await expect( page ).not.toHaveURL( /undergrowth_notice/ );
 		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
 		await expectNoA11yViolations( page, '#undergrowth-notice' );
 	} );
@@ -77,8 +81,11 @@ test.describe( 'Prompt on the Dashboard', () => {
 		await dismiss.focus();
 		await page.keyboard.press( 'Space' );
 
-		await expect( page ).toHaveURL( /undergrowth_notice=prompt_dismissed/ );
+		await expect( page.locator( '#undergrowth-notice' ) ).toHaveClass(
+			/notice-success/
+		);
 		await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+		await expect( page ).not.toHaveURL( /undergrowth_notice/ );
 
 		await admin.visitAdminPage( 'index.php' );
 		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
