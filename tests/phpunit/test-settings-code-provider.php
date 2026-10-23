@@ -102,6 +102,21 @@ class Test_Settings_Code_Provider extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_embed_provider_set_by_code() );
 	}
 
+	public function test_another_openai_model_named_by_code_is_not_set_by_code() {
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => 'openai',
+					'model'    => 'text-embedding-3-large',
+				);
+			}
+		);
+
+		$this->assertFalse( undergrowth_embed_provider_set_by_code() );
+	}
+
 	public function test_no_provider_is_not_set_by_code() {
 		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
 
@@ -264,8 +279,7 @@ class Test_Settings_Code_Provider extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'as UNDERGROWTH_OPENAI_API_KEY, but it is ignored', $html );
-		$this->assertStringContainsString( 'A key ending in abcd is saved, but it is ignored', $html );
+		$this->assertStringContainsString( 'A key is set in wp-config.php as UNDERGROWTH_OPENAI_API_KEY, and a key ending in abcd is saved, but both are ignored while code on this site reads the posts.', $html );
 		$this->assertStringContainsString( 'name="undergrowth_remove_openai_key"', $html );
 	}
 
