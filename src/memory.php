@@ -190,7 +190,7 @@ function undergrowth_move_legacy_memory_folder( string $root ): void {
 		$last = get_option( 'undergrowth_last_file_error' );
 
 		if ( ! is_array( $last ) || 'old_folder_left' !== ( $last['code'] ?? '' ) ) {
-			undergrowth_record_file_error( 'old_folder_left' );
+			undergrowth_record_failure( 'undergrowth_last_file_error', 'old_folder_left' );
 		}
 	}
 }
@@ -434,14 +434,14 @@ function undergrowth_write_memory( int $post_id ): bool {
 	$filesystem = undergrowth_filesystem();
 
 	if ( null === $filesystem ) {
-		undergrowth_record_file_error( 'no_direct_access' );
+		undergrowth_record_failure( 'undergrowth_last_file_error', 'no_direct_access' );
 		return false;
 	}
 
 	$root = undergrowth_memory_root();
 
 	if ( '' === $root || ! wp_mkdir_p( $root . '/posts' ) ) {
-		undergrowth_record_file_error( 'no_folder' );
+		undergrowth_record_failure( 'undergrowth_last_file_error', 'no_folder' );
 		return false;
 	}
 
@@ -456,13 +456,13 @@ function undergrowth_write_memory( int $post_id ): bool {
 
 	foreach ( $protection as $name => $contents ) {
 		if ( ! undergrowth_write_protection_file( $filesystem, $root . '/' . $name, $contents ) ) {
-			undergrowth_record_file_error( 'no_protection' );
+			undergrowth_record_failure( 'undergrowth_last_file_error', 'no_protection' );
 			return false;
 		}
 	}
 
 	if ( ! $filesystem->put_contents( undergrowth_memory_path( $post_id ), undergrowth_memory_text( $post ), FS_CHMOD_FILE ) ) {
-		undergrowth_record_file_error( 'write_failed' );
+		undergrowth_record_failure( 'undergrowth_last_file_error', 'write_failed' );
 		return false;
 	}
 
@@ -582,22 +582,6 @@ function undergrowth_delete_memory_folder(): void {
 			$filesystem->rmdir( $root, true );
 		}
 	}
-}
-
-/**
- * Records why the last file could not be written.
- *
- * @param string $code Short error code.
- */
-function undergrowth_record_file_error( string $code ): void {
-	update_option(
-		'undergrowth_last_file_error',
-		array(
-			'code' => $code,
-			'time' => time(),
-		),
-		false
-	);
 }
 
 /**

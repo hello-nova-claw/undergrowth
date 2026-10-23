@@ -202,26 +202,22 @@ function undergrowth_stage_label( string $stage ): string {
 function undergrowth_count_stages(): array {
 	global $wpdb;
 
-	$counts     = array_fill_keys( UNDERGROWTH_STAGES, 0 );
-	$post_types = undergrowth_indexed_post_types();
+	$counts    = array_fill_keys( UNDERGROWTH_STAGES, 0 );
+	$indexable = undergrowth_indexable_sql( 'p.' );
 
-	if ( array() === $post_types ) {
+	if ( null === $indexable ) {
 		return $counts;
 	}
 
-	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
-
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One grouped query instead of loading every post; there is one placeholder for each post type.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One grouped query instead of loading every post; the condition's placeholders come with it.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = p.ID AND f.meta_key = %s ) WHERE p.post_status = %s AND p.post_password = %s AND p.post_type IN (' . $placeholders . ') GROUP BY m.meta_value',
+			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = p.ID AND f.meta_key = %s ) WHERE ' . $indexable[0] . ' GROUP BY m.meta_value',
 			$wpdb->posts,
 			$wpdb->postmeta,
 			$wpdb->postmeta,
 			'undergrowth_stage',
-			'publish',
-			'',
-			...$post_types
+			...$indexable[1]
 		),
 		ARRAY_A
 	);
@@ -487,20 +483,18 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 
 	$after_id = (int) $after_id;
 
-	$post_types = undergrowth_indexed_post_types();
+	$indexable = undergrowth_indexable_sql( '' );
 
-	if ( array() === $post_types ) {
+	if ( null === $indexable ) {
 		return;
 	}
 
-	$placeholders = implode( ', ', array_fill( 0, count( $post_types ), '%s' ) );
-
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per post type.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot page by ID, which keeps batches stable while posts are published mid-cycle.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT ID FROM %i WHERE ID > %d AND post_status = %s AND post_password = %s AND post_type IN ({$placeholders}) ORDER BY ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, $after_id, 'publish', '' ), $post_types, array( UNDERGROWTH_STAGE_BATCH ) )
+			"SELECT ID FROM %i WHERE ID > %d AND {$indexable[0]} ORDER BY ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, $after_id ), $indexable[1], array( UNDERGROWTH_STAGE_BATCH ) )
 		)
 	);
 	// phpcs:enable

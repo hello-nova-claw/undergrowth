@@ -255,7 +255,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		);
 		$corpus = undergrowth_build_corpus( array( $oca, $yacon ) );
 
-		$this->assertSame( array( 'tubers', 'frost', 'like', 'notes' ), array_keys( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
+		$this->assertSame( array( 'tubers', 'frost', 'notes' ), array_keys( undergrowth_anchor_terms( $yacon, get_post( $oca )->post_content, $corpus ) ) );
 	}
 
 	public function test_text_sharing_no_word_with_the_target_has_no_anchor_terms() {
@@ -335,9 +335,10 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertCount( 33, $rows );
 		// Recorded from the corpus that kept every post's word counts, and
 		// recorded again when anchor words began to follow what the target
-		// is about (#172) and when one post's proposals began to prefer
-		// different sentences (#173).
-		$this->assertSame( '3cde305bdb1854395c0a1c6467eba7fb', md5( (string) wp_json_encode( $rows ) ) );
+		// is about (#172), when one post's proposals began to prefer
+		// different sentences (#173), and when weak anchor words stopped
+		// counting (#172 again).
+		$this->assertSame( 'f1d010f08a4fb2031bbc0fe9885723bc', md5( (string) wp_json_encode( $rows ) ) );
 	}
 
 	public function test_refresh_reads_only_the_target_posts_it_needs() {

@@ -153,17 +153,7 @@ function undergrowth_anthropic_message( string $system, string $user ) {
  * @return WP_Error The failure.
  */
 function undergrowth_prompt_request_failed( string $code, int $status ): WP_Error {
-	$code = sanitize_key( $code );
+	undergrowth_record_failure( 'undergrowth_last_prompt_error', $code, $status );
 
-	update_option(
-		'undergrowth_last_prompt_error',
-		array(
-			'code'   => $code,
-			'status' => $status,
-			'time'   => time(),
-		),
-		false
-	);
-
-	return new WP_Error( $code );
+	return new WP_Error( sanitize_key( $code ) );
 }

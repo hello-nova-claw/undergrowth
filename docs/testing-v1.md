@@ -26,7 +26,7 @@ On a test export of 60 posts in the free mode, the site was ready 24 seconds aft
 
 Most of section 7 works the same. These parts don't:
 
-- **Settings > Undergrowth still talks about the OpenAI key.** That is the wording a real site needs. In the free mode nothing is sent to OpenAI; the terminal says so when the script starts.
+- **Settings > Undergrowth names the model that reads your posts.** In the free mode it says nomic-embed-text (ollama) reads them and nothing is sent to OpenAI, and it has no OpenAI key field. With an OpenAI key in `.env.local`, the page asks for the key as a real site does.
 - **Running the cycle again.** Playground has no WP-CLI. Go to **Plugins > Add New Plugin**, search for WP Crontrol, then install and activate it. Then follow "Without WP-CLI" in section 5. WP Crontrol warns that `DISABLE_WP_CRON` is set: that is expected, because the script runs WP-Cron itself every 10 seconds. A cycle runs in batches, so give it a minute before you look at the stages.
 - **The Dashboard widget** shows a question only with an Anthropic key, and the meter only with Jetpack connected and Stats on. With neither, the Dashboard has no Undergrowth widget at all, and that is correct. To check the question, put an Anthropic key in `.env.local`. Jetpack can't connect to a site on `127.0.0.1`, so leave the meter checks for a real site.
 - **The per-post files** aren't on your disk. Open them in the browser instead: take the folder Settings > Undergrowth shows under Per-post files, add the post's ID and `.txt`, for example `http://127.0.0.1:9400/wp-content/uploads/undergrowth-<random>/posts/123.txt`. The post's ID is the number after `post=` in its edit address. The nginx check doesn't apply.

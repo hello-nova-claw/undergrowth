@@ -11,6 +11,7 @@
 class Test_Admin extends WP_UnitTestCase {
 
 	use Plants_Posts;
+	use Stops_Redirects;
 
 	/**
 	 * Editor who can see the screen.
@@ -38,16 +39,6 @@ class Test_Admin extends WP_UnitTestCase {
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**
@@ -125,6 +116,26 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<div id="undergrowth-notice" class="notice notice-success is-dismissible" role="status" tabindex="-1"><p>Composted.</p></div>#', $html );
 		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning is-dismissible" role="status"><p>One was skipped.x</p></div>#', $html );
 		$this->assertSame( 1, substr_count( $html, '.focus()' ) );
+	}
+
+	public function test_post_link_can_carry_a_class() {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*">Oca</a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertMatchesRegularExpression( '#^<a href="[^"]+">Oca</a>$#', undergrowth_post_link( $post_id ) );
+	}
+
+	public function test_post_link_is_plain_text_when_the_edit_address_is_empty() {
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		add_filter( 'get_edit_post_link', '__return_empty_string' );
+
+		$this->assertSame( 'Oca', undergrowth_post_link( $post_id, 'row-title' ) );
+	}
+
+	public function test_settings_url_opens_settings_undergrowth() {
+		$this->assertSame( admin_url( 'options-general.php?page=undergrowth' ), undergrowth_settings_url() );
 	}
 
 	public function test_screen_is_listed_under_posts_for_editors() {
@@ -437,7 +448,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
 
-		$this->assertMatchesRegularExpression( '#<q dir="auto">Notes (<mark>)?about(</mark>)? Oca\.</q>#', $this->render() );
+		$this->assertMatchesRegularExpression( '#<q dir="auto">(<mark>)?Notes(</mark>)? about Oca\.</q>#', $this->render() );
 	}
 
 	public function test_screen_buttons_submit_their_own_forms_without_inline_styles() {

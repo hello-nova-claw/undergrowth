@@ -11,6 +11,7 @@
 class Test_Accept extends WP_UnitTestCase {
 
 	use Plants_Posts;
+	use Stops_Redirects;
 
 	public function set_up() {
 		parent::set_up();
@@ -25,16 +26,6 @@ class Test_Accept extends WP_UnitTestCase {
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
-	}
-
-	/**
-	 * Stops a redirect so the handler's exit never runs.
-	 *
-	 * @param string $location Redirect target.
-	 * @throws Exception Always, carrying the location.
-	 */
-	public function stop_redirect( $location ) {
-		throw new Exception( esc_url_raw( $location ) );
 	}
 
 	/**
@@ -180,6 +171,23 @@ class Test_Accept extends WP_UnitTestCase {
 
 		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
 		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', get_post( $oca )->post_content );
+	}
+
+	public function test_a_noun_is_linked_before_a_verb_the_target_uses_more() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>A heron waded past the oca.</p>' ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>I waded in. We waded out, and they waded far. The heron, the heron.</p>' ) );
+		$this->set_sentence( $oca, $yacon, 'A heron waded past the oca.' );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertStringContainsString( 'A <a href="' . get_permalink( $yacon ) . '">heron</a> waded', get_post( $oca )->post_content );
+	}
+
+	public function test_sentence_sharing_only_weak_words_with_the_target_links_nothing() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants for syrup. It is the one I keep well.</p>' );
+		$this->set_sentence( $oca, $yacon, 'It is the one I keep well.' );
+
+		$this->assertSame( 'no_word', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertNull( undergrowth_link_word_choice( $oca, $yacon, 'It is the one I keep well.' ) );
 	}
 
 	public function test_nothing_but_one_word_changes() {

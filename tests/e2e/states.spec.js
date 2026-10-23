@@ -49,7 +49,20 @@ const STAGE_NOTICES = [
 const PROMPT_NOTICES = [ 'prompt_dismissed', 'prompt_snoozed', 'prompt_gone' ];
 
 const WITHOUT_POSTS = [
-	{ screen: 'settings', state: 'no-key', page: SETTINGS },
+	// The test site's own provider is code, which the OpenAI states stand aside.
+	{
+		screen: 'settings',
+		state: 'no-key',
+		page: SETTINGS,
+		fixture: 'no-provider',
+	},
+	{ screen: 'settings', state: 'code-provider', page: SETTINGS },
+	{
+		screen: 'settings',
+		state: 'code-provider-key-saved',
+		page: SETTINGS,
+		fixture: 'code-provider-key-saved',
+	},
 	{
 		screen: 'settings',
 		state: 'key-saved',
@@ -79,6 +92,12 @@ const WITHOUT_POSTS = [
 		state: 'prompt-last-error',
 		page: SETTINGS,
 		fixture: 'prompt-last-error',
+	},
+	{
+		screen: 'settings',
+		state: 'prompt-refused',
+		page: SETTINGS,
+		fixture: 'prompt-refused',
 	},
 	{
 		screen: 'settings',
@@ -167,7 +186,14 @@ const WITHOUT_POSTS = [
 		state: `help-${ part }`,
 		page: SETTINGS,
 		help: `undergrowth-${ part }`,
+		fixture: 'links' === part ? 'key-saved' : undefined,
 	} ) ),
+	{
+		screen: 'settings',
+		state: 'help-links-code-provider',
+		page: SETTINGS,
+		help: 'undergrowth-links',
+	},
 ];
 
 const WITH_POSTS = [

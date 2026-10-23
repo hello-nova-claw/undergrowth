@@ -54,13 +54,14 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	 *
 	 * @param string $option Option holding the error.
 	 * @param int    $status HTTP status, or 0.
+	 * @param string $code   Saved error code.
 	 * @return string Notice text.
 	 */
-	private function notice( string $option, int $status ): string {
+	private function notice( string $option, int $status, string $code = 'http_status' ): string {
 		update_option(
 			$option,
 			array(
-				'code'   => 'http_status',
+				'code'   => $code,
 				'status' => $status,
 				'time'   => 1767225600,
 			)
@@ -123,6 +124,38 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A source Claude answered without a question is skipped, not retried,
+	 * so the notice says so and blames no one.
+	 *
+	 * @dataProvider answers
+	 *
+	 * @param string $code  Saved error code.
+	 * @param string $words Words the notice must hold.
+	 */
+	public function test_anthropic_notice_says_an_answered_source_is_skipped( string $code, string $words ) {
+		$text = $this->notice( 'undergrowth_last_prompt_error', 200, $code );
+
+		$this->assertStringContainsString( $words, $text );
+		$this->assertStringContainsString( 'skipped', $text );
+		$this->assertStringContainsString( $this->when(), $text );
+		$this->assertStringNotContainsString( 'problem on its side', $text );
+		$this->assertStringNotContainsString( 'next monthly cycle', $text );
+		$this->assertStringNotContainsString( 'status', $text );
+	}
+
+	/**
+	 * Codes for a reply that came back but gave no question.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function answers(): array {
+		return array(
+			'refusal'    => array( 'refusal', 'declined' ),
+			'max tokens' => array( 'max_tokens', 'cut off' ),
+		);
+	}
+
+	/**
 	 * Checks the Discord notice for one status code.
 	 *
 	 * @dataProvider causes
@@ -148,5 +181,34 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 
 	public function test_a_status_code_alone_never_stands_for_the_cause() {
 		$this->assertDoesNotMatchRegularExpression( '/failed on [^(]+\(status \d+\)\./', $this->notice( 'undergrowth_last_embed_error', 429 ) );
+	}
+
+	public function test_failure_record_keeps_only_the_code_status_and_time() {
+		undergrowth_record_failure( 'undergrowth_last_embed_error', 'HTTP Status', 429 );
+
+		$error = get_option( 'undergrowth_last_embed_error' );
+
+		$this->assertSame( array( 'code', 'status', 'time' ), array_keys( $error ) );
+		$this->assertSame( 'httpstatus', $error['code'] );
+		$this->assertSame( 429, $error['status'] );
+		$this->assertEqualsWithDelta( time(), $error['time'], 5 );
+	}
+
+	public function test_discord_pending_lists_the_suggestions_that_failed() {
+		$this->assertSame( array(), undergrowth_discord_pending() );
+
+		update_option(
+			'undergrowth_last_discord_error',
+			array(
+				'time'    => 1767225600,
+				'status'  => 500,
+				'pending' => array(
+					'1:2' => true,
+					'3:4' => true,
+				),
+			)
+		);
+
+		$this->assertSame( array( '1:2', '3:4' ), undergrowth_discord_pending() );
 	}
 }

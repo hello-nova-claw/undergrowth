@@ -17,18 +17,6 @@ add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_first_key_adde
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_first_key_saved', 10, 2 );
 
 /**
- * Tells whether Undergrowth has something to read posts with: a saved key or
- * a provider hooked in through the filters.
- *
- * @return bool
- */
-function undergrowth_has_embed_provider(): bool {
-	$identity = undergrowth_embed_identity();
-
-	return '' !== $identity['provider'] && '' !== $identity['model'];
-}
-
-/**
  * Queues the first-run notice on activation, unless a key is already saved
  * or the owner has been through it before.
  */
@@ -67,7 +55,7 @@ function undergrowth_render_first_run_notice(): void {
 
 	$settings = sprintf(
 		'<a href="%1$s">%2$s</a>',
-		esc_url( admin_url( 'options-general.php?page=undergrowth' ) ),
+		esc_url( undergrowth_settings_url() ),
 		esc_html__( 'Add a key in Settings', 'undergrowth' )
 	);
 	$dismiss  = sprintf(
@@ -139,7 +127,7 @@ function undergrowth_first_key_saved( $old_value, $value ): void {
 			esc_html__( 'Settings saved. Undergrowth is now reading your posts, a few at a time. Its suggestions appear on %1$s as they are found.', 'undergrowth' ),
 			sprintf(
 				'<a href="%1$s">%2$s</a>',
-				esc_url( admin_url( 'edit.php?page=undergrowth-links' ) ),
+				esc_url( undergrowth_suggestions_url() ),
 				esc_html__( 'Posts > Undergrowth', 'undergrowth' )
 			)
 		),
