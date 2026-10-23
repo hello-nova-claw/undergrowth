@@ -537,10 +537,9 @@ function undergrowth_has_composting_posts(): bool {
  * Prints the suggestions tab: the toggle and the proposals.
  */
 function undergrowth_render_suggestions_tab(): void {
-	$identity = undergrowth_embed_identity();
-	$enabled  = undergrowth_suggestions_enabled();
+	$enabled = undergrowth_suggestions_enabled();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_has_embed_provider() ) {
 		echo '<p>' . wp_kses(
 			sprintf(
 				/* translators: %1$s: address of the Undergrowth settings page. */

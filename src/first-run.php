@@ -17,18 +17,6 @@ add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_first_key_adde
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_first_key_saved', 10, 2 );
 
 /**
- * Tells whether Undergrowth has something to read posts with: a saved key or
- * a provider hooked in through the filters.
- *
- * @return bool
- */
-function undergrowth_has_embed_provider(): bool {
-	$identity = undergrowth_embed_identity();
-
-	return '' !== $identity['provider'] && '' !== $identity['model'];
-}
-
-/**
  * Queues the first-run notice on activation, unless a key is already saved
  * or the owner has been through it before.
  */

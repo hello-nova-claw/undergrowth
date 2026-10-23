@@ -166,7 +166,7 @@ function undergrowth_comparable_vectors( int $post_id ): array {
 
 		foreach ( $rows as $row ) {
 			$after  = (int) $row['post_id'];
-			$packed = undergrowth_pack_vector( undergrowth_sanitize_vector( json_decode( (string) $row['embedding'], true ) ) );
+			$packed = undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
 			if ( '' !== $packed ) {
 				$vectors[ $after ] = $packed;
@@ -790,7 +790,7 @@ function undergrowth_forget_post_links( int $post_id ): void {
 			continue;
 		}
 
-		$key = $vector['provider'] . '|' . $vector['model'] . '|' . $vector['language'];
+		$key = undergrowth_vector_space( $vector );
 
 		if ( ! isset( $pools[ $key ] ) ) {
 			$pools[ $key ] = undergrowth_comparable_vectors( $source_id );
