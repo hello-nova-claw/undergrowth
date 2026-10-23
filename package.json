@@ -4,7 +4,7 @@
 	"description": "Uses AI to read your site and ask you questions. It never writes a word your readers will see.",
 	"license": "GPL-2.0-or-later",
 	"engines": {
-		"node": ">=22"
+		"node": ">=22.22.2"
 	},
 	"scripts": {
 		"build": "wp-scripts build",
