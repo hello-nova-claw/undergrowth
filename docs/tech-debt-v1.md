@@ -44,7 +44,7 @@ Updated on 2026-10-23, once the fixes had merged.
 | D3, D4 | Open: #238 and #241. |
 | H1 | Fixed in #272. |
 | H2 | Fixed in #266. |
-| M1 | Fixed in #270. The dot products in `clusters.php` were left as they are. |
+| M1 | Partly fixed in #270: decoding and the vector-space key. The two hand-written dot products in `clusters.php` are open in #311. |
 | M2 | Fixed in #268. |
 | M3 | Fixed in #274. |
 | M4, L1 | Fixed in #278. The links table's `edit_link()` stays: it bolds a title that cannot be linked, which no other screen does. |
@@ -54,7 +54,7 @@ Updated on 2026-10-23, once the fixes had merged.
 | L3 | Fixed in #299. |
 | L4 | Fixed in #302, with a test that checks the list against every post meta key in `src/`. |
 | L5 | Declined. The two key getters are two lines each on shared helpers already. Uninstall has to name the Discord options itself, because `discord-settings.php` is not loaded then, and the uninstall inventory test now guards that list. |
-| L6, X1, X2, X3, T4 | Open: #311. |
+| L6, X1, X2, X3, T4, rest of M1 | Open: #311. |
 | C1, C2, C6, C7 | Fixed in #286. |
 | C3, C8 | Fixed in #297. |
 | C4 | Declined for now: the fix would change `wp undergrowth scores` output. |
