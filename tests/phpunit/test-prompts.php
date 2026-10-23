@@ -408,10 +408,10 @@ class Test_Prompts extends WP_UnitTestCase {
 
 	public function test_a_reply_cut_off_at_the_token_limit_is_skipped_for_good() {
 		// Comments are tried newest first.
-		$cut_off = $this->post();
-		$written = $this->post();
-		$first   = $this->comment( $cut_off, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-02 00:00:00' ) );
-		$second  = $this->comment( $written, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-01 00:00:00' ) );
+		$cut_off       = $this->post();
+		$written       = $this->post();
+		$first         = $this->comment( $cut_off, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-02 00:00:00' ) );
+		$second        = $this->comment( $written, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-01 00:00:00' ) );
 		$this->replies = array( $this->reply( 'What do you', 'max_tokens' ), $this->reply( 'What do you actually do with oca over winter?' ) );
 
 		$this->assertTrue( undergrowth_write_prompt() );
