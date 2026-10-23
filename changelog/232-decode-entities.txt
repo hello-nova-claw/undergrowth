@@ -1,0 +1,1 @@
+HTML entities such as `&amp;` and `&nbsp;` in a post are now read as the characters they stand for, so they no longer count as words when picking where a link fits. Posts that contain them are read again the next time they are saved.

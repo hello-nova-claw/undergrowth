@@ -23,7 +23,7 @@ import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseEnv } from 'node:util';
-import { pluginMounts } from './plugin-mounts.cjs';
+import { buildPlugin, pluginMounts } from './plugin-mounts.cjs';
 import { startMessage } from './playground-real-text.cjs';
 
 const root = resolve( import.meta.dirname, '..' );
@@ -157,6 +157,12 @@ http.Server.prototype.listen = function ( port, ...rest ) {
 
 	return listen.call( this, port, ...rest );
 };
+
+try {
+	buildPlugin( root );
+} catch ( error ) {
+	fail( error.message );
+}
 
 const mount = pluginMounts( root );
 

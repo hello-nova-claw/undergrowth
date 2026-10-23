@@ -353,6 +353,16 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertSame( array( $post_id ), $written );
 	}
 
+	public function test_reader_text_is_sent_without_entities() {
+		$this->comment( $this->post(), 'Salt &amp; pepper, or just salt?' );
+
+		undergrowth_write_prompt();
+
+		$user = $this->requests[0]['messages'][0]['content'];
+		$json = json_decode( substr( $user, strpos( $user, '{' ) ), true );
+		$this->assertSame( 'Salt & pepper, or just salt?', $json['reader_text'] );
+	}
+
 	public function test_reader_text_is_never_stored_with_the_prompt() {
 		$this->comment( $this->post(), 'Secret reader words, how?' );
 
@@ -404,6 +414,27 @@ class Test_Prompts extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 
 		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_a_reply_cut_off_at_the_token_limit_is_skipped_for_good() {
+		// Comments are tried newest first.
+		$cut_off       = $this->post();
+		$written       = $this->post();
+		$first         = $this->comment( $cut_off, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-02 00:00:00' ) );
+		$second        = $this->comment( $written, 'How do you store the tubers over winter?', array( 'comment_date_gmt' => '2026-10-01 00:00:00' ) );
+		$this->replies = array( $this->reply( 'What do you', 'max_tokens' ), $this->reply( 'What do you actually do with oca over winter?' ) );
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertCount( 2, $this->requests );
+		$this->assertSame( array( 'comment:' . $first ), get_post_meta( $cut_off, 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( array( 'comment:' . $second ), get_post_meta( $written, 'undergrowth_prompt_keys', false ) );
+		$this->assertSame( 'comment:' . $second, undergrowth_current_prompt()['key'] );
+	}
+
+	public function test_a_rest_check_cut_off_at_the_token_limit_keeps_no_question() {
+		$this->replies = array( $this->reply( 'N', 'max_tokens' ) );
+
+		$this->assertFalse( undergrowth_prompt_rests( 'What is in the ledger now?' ) );
 	}
 
 	public function test_a_failed_request_ends_the_run_and_the_source_is_tried_again() {

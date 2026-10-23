@@ -133,6 +133,7 @@ Personalised prompts that point the author in a direction. The one feature where
 - Anthropic offers no embedding model, so Anthropic API credits cannot pay for vectors.
 - Local provider example: tiny HTTP service on localhost (sentence-transformers behind FastAPI, or Ollama embedding model), called from a mu-plugin. Nova/Atlas on the VPS can host this.
 - Store provider name and model name with every vector. Refuse to compare vectors from different models. If the provider changes, re-embed everything on the next cron run.
+- A change of site language re-embeds everything in the same way, when posts take their language from the site, so the index never splits into halves that are never compared. When a multilingual plugin sets each post's language through `undergrowth_post_language`, posts in different languages stay apart and a site language change re-embeds nothing (decided 2026-10-23, #239).
 - Future zero-config path: in-PHP ONNX small model, or a hosted endpoint behind the Jetpack connection. Not v1.
 
 ### WordPress AI Client: decision (2026-10-22, #119)
