@@ -156,6 +156,51 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<code id="undergrowth-memory-folder"[^>]*>[^<]*' . preg_quote( undergrowth_memory_folder(), '#' ) . '/posts/</code>#', $this->render() );
 	}
 
+	/**
+	 * The per-post files field says why the last file was not written.
+	 *
+	 * @dataProvider data_file_errors
+	 *
+	 * @param string $code  Recorded error code.
+	 * @param string $words Words the warning should hold.
+	 */
+	public function test_page_says_why_the_last_per_post_file_was_not_written( string $code, string $words ) {
+		update_option(
+			'undergrowth_last_file_error',
+			array(
+				'code' => $code,
+				'time' => 1767225600,
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning inline" id="undergrowth-file-error">\s*<p>[^<]*' . preg_quote( $words, '#' ) . '#', $html );
+		$this->assertStringContainsString( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 ), $html );
+	}
+
+	/**
+	 * Recorded file errors and the words each should give.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function data_file_errors(): array {
+		return array(
+			'no direct access' => array( 'no_direct_access', 'cannot write files directly' ),
+			'no folder'        => array( 'no_folder', 'folder for the per-post files could not be made' ),
+			'no protection'    => array( 'no_protection', 'keep visitors out' ),
+			'write failed'     => array( 'write_failed', 'could not be written' ),
+			'old folder left'  => array( 'old_folder_left', 'old folder' ),
+			'unknown code'     => array( 'something_new', 'could not be written' ),
+		);
+	}
+
+	public function test_page_shows_no_file_warning_while_files_are_written() {
+		delete_option( 'undergrowth_last_file_error' );
+
+		$this->assertStringNotContainsString( 'id="undergrowth-file-error"', $this->render() );
+	}
+
 	public function test_page_says_what_is_sent_to_openai() {
 		$this->assertStringContainsString( 'sent to OpenAI', $this->render() );
 	}
