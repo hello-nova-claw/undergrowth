@@ -772,6 +772,43 @@ msgstr ""
 msgid "No growth stage"
 msgstr ""
 
+#: src/posts-screen.php
+msgid "Pin stage"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "Unpin stage"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "All stages"
+msgstr ""
+
+#: src/posts-screen.php
+#: src/stages.php
+msgid "Pinned"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "Filter by growth stage"
+msgstr ""
+
+#. translators: %s: number of posts.
+#: src/posts-screen.php
+#, php-format
+msgid "%s post pinned at its stage. The monthly cycle leaves it there until you unpin it."
+msgid_plural "%s posts pinned at their stages. The monthly cycle leaves them there until you unpin them."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts.
+#: src/posts-screen.php
+#, php-format
+msgid "%s post unpinned. Its stage was measured again from the links you have accepted."
+msgid_plural "%s posts unpinned. Their stages were measured again from the links you have accepted."
+msgstr[0] ""
+msgstr[1] ""
+
 #. translators: %s: number of posts.
 #: src/posts-screen.php
 #, php-format
@@ -791,8 +828,8 @@ msgstr[1] ""
 #. translators: %s: number of posts.
 #: src/posts-screen.php
 #, php-format
-msgid "%s post was left as it was, because it is not published, is already at that stage, or you cannot edit it."
-msgid_plural "%s posts were left as they were, because they are not published, are already at that stage, or you cannot edit them."
+msgid "%s post was left as it was, because it is not published, the action does not apply to it, or you cannot edit it."
+msgid_plural "%s posts were left as they were, because they are not published, the action does not apply to them, or you cannot edit them."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1151,10 +1188,6 @@ msgstr ""
 
 #: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "Pinned"
 msgstr ""
 
 #: src/stages.php
