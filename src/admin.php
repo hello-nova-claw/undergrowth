@@ -312,7 +312,7 @@ function undergrowth_render_stages_tab(): void {
 
 	// Each sentence is its own element, translated whole. A stage with no
 	// posts is left out: on a new site, a row of zeros reads like a score.
-	foreach ( array( 'seedling', 'sprout', 'budding', 'evergreen' ) as $stage ) {
+	foreach ( UNDERGROWTH_GARDEN_STAGES as $stage ) {
 		if ( $counts[ $stage ] > 0 ) {
 			$sentences[] = '<span>' . esc_html( undergrowth_stage_count_sentence( $stage, $counts[ $stage ] ) ) . '</span>';
 		}

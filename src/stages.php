@@ -7,8 +7,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_STAGES      = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
-const UNDERGROWTH_STAGE_BATCH = 100;
+const UNDERGROWTH_STAGES        = array( 'seedling', 'sprout', 'budding', 'evergreen', 'composting' );
+const UNDERGROWTH_GARDEN_STAGES = array( 'seedling', 'sprout', 'budding', 'evergreen' );
+const UNDERGROWTH_STAGE_BATCH   = 100;
 
 // How each reason for a change reads in the per-post file. The file is a
 // plain record in one fixed format, so these are not translated.
@@ -538,7 +539,7 @@ function undergrowth_cycle_post( int $post_id ): void {
 		return;
 	}
 
-	$order    = array_flip( array( 'seedling', 'sprout', 'budding', 'evergreen' ) );
+	$order    = array_flip( UNDERGROWTH_GARDEN_STAGES );
 	$measured = undergrowth_measure_stage( $post_id );
 
 	if ( $order[ $measured ] > $order[ $stage ] || ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
@@ -633,6 +634,26 @@ function undergrowth_stage_not_saved(): WP_Error {
 }
 
 /**
+ * Builds the marker a pinned stage shows beside its name.
+ *
+ * A composting post is never shown as pinned, since composting is always
+ * the author's own choice.
+ *
+ * @param int $post_id Post ID.
+ * @return string Escaped HTML, starting with a space, or an empty string when the stage is not pinned.
+ */
+function undergrowth_pinned_marker( int $post_id ): string {
+	if ( 'composting' === undergrowth_get_stage( $post_id ) || ! undergrowth_is_stage_pinned( $post_id ) ) {
+		return '';
+	}
+
+	return sprintf(
+		' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
+		esc_attr__( 'Pinned', 'undergrowth' )
+	);
+}
+
+/**
  * Pins a post's stage, so the monthly cycle leaves it alone.
  *
  * Pinning is an author action, so it takes effect at once. Any measured
@@ -651,7 +672,7 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 		return $error;
 	}
 
-	if ( ! in_array( $stage, array( 'seedling', 'sprout', 'budding', 'evergreen' ), true ) ) {
+	if ( ! in_array( $stage, UNDERGROWTH_GARDEN_STAGES, true ) ) {
 		return new WP_Error( 'undergrowth_unknown_stage', __( 'That stage cannot be pinned.', 'undergrowth' ) );
 	}
 
