@@ -142,3 +142,27 @@ function undergrowth_embed_identity(): array {
 
 	return $declared;
 }
+
+/**
+ * Tells whether an identity names both a provider and a model. A vector is
+ * stored only under a complete identity, so it can never be compared with
+ * one from another model.
+ *
+ * @param array $identity Provider and model names.
+ * @return bool
+ *
+ * @phpstan-param array{provider: string, model: string} $identity
+ */
+function undergrowth_identity_is_complete( array $identity ): bool {
+	return '' !== $identity['provider'] && '' !== $identity['model'];
+}
+
+/**
+ * Tells whether Undergrowth has something to read posts with: a saved key or
+ * a provider hooked in through the filters.
+ *
+ * @return bool
+ */
+function undergrowth_has_embed_provider(): bool {
+	return undergrowth_identity_is_complete( undergrowth_embed_identity() );
+}

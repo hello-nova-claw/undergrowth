@@ -87,7 +87,7 @@ function undergrowth_measure_scores(): void {
 
 	$identity = undergrowth_embed_identity();
 
-	if ( '' === $identity['provider'] || '' === $identity['model'] ) {
+	if ( ! undergrowth_identity_is_complete( $identity ) ) {
 		return;
 	}
 
