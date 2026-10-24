@@ -1,0 +1,1 @@
+Trashing, unpublishing, deleting or composting a post no longer slows the request down: the posts that suggested a link to it pick a replacement in the background.
