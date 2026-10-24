@@ -531,7 +531,7 @@ function undergrowth_comment_prompt_sources( $records ): array {
 		$post = get_post( (int) $comment->comment_post_ID );
 		$text = undergrowth_plain_line( $comment->comment_content );
 
-		if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || undergrowth_is_post_author_comment( $comment, $post ) || ! undergrowth_has_question_mark( $text, undergrowth_post_language( $post ) ) ) {
+		if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || undergrowth_is_post_author_comment( $comment, $post ) || ! undergrowth_has_question_mark( $text, undergrowth_prompt_language( $post->ID ) ) ) {
 			continue;
 		}
 
@@ -736,8 +736,9 @@ function undergrowth_has_question_mark( string $text, string $locale = '' ): boo
  *
  * That is the post's own language when a multilingual plugin gives one
  * through the undergrowth_post_language filter, and otherwise the language
- * its author chose for their dashboard, where the question is shown. The
- * site's language is never assumed, because prompts are written in WP-Cron.
+ * its author chose for their dashboard, where the question is shown. Readers'
+ * questions on the post are read in the same language. Prompts are written
+ * in WP-Cron, so the site's language is used only when there is neither.
  *
  * @param int $post_id Post the question is about.
  * @return string Locale such as fr_FR.
@@ -749,13 +750,17 @@ function undergrowth_prompt_language( int $post_id ): string {
 		return get_locale();
 	}
 
-	if ( has_filter( 'undergrowth_post_language' ) ) {
-		return undergrowth_post_language( $post );
+	$author        = (int) $post->post_author;
+	$author_locale = $author > 0 ? get_user_locale( $author ) : get_locale();
+
+	if ( ! has_filter( 'undergrowth_post_language' ) ) {
+		return $author_locale;
 	}
 
-	$author = (int) $post->post_author;
+	/** This filter is documented in src/indexer.php */
+	$locale = apply_filters( 'undergrowth_post_language', get_locale(), $post );
 
-	return $author > 0 ? get_user_locale( $author ) : get_locale();
+	return is_string( $locale ) && '' !== trim( $locale ) ? sanitize_text_field( $locale ) : $author_locale;
 }
 
 /**

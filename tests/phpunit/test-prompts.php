@@ -610,6 +610,20 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertSame( 'fr_FR', undergrowth_prompt_language( $this->post() ) );
 	}
 
+	public function test_filter_without_a_language_for_the_post_falls_back_to_the_authors() {
+		update_user_meta( $this->author, 'locale', 'de_DE' );
+		$this->post_language( '' );
+
+		$this->assertSame( 'de_DE', undergrowth_prompt_language( $this->post() ) );
+	}
+
+	public function test_greek_authors_reader_question_is_found_on_an_english_site() {
+		update_user_meta( $this->author, 'locale', 'el' );
+		$this->comment( $this->post(), 'Πώς αποθηκεύετε τους κονδύλους;' );
+
+		$this->assertCount( 1, undergrowth_prompt_candidates() );
+	}
+
 	public function test_without_a_post_the_question_is_asked_for_in_the_site_language() {
 		$this->assertSame( get_locale(), undergrowth_prompt_language( 0 ) );
 	}
