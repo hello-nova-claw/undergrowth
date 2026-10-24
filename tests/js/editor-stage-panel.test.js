@@ -249,7 +249,60 @@ describe( 'Editor stage panel', () => {
 		).toContain( 'Sorry, you cannot do that.' );
 	} );
 
-	test( 'an action that settles after the post changed leaves the new stage alone', async () => {
+	test( 'an action that settles after the panel asked again asks once more, quietly', async () => {
+		let settle;
+		replies = [
+			inGarden( 'sprout' ),
+			new Promise( ( resolve ) => {
+				settle = resolve;
+			} ),
+			inGarden( 'sprout', false, 'Sprout before the action' ),
+			inGarden( 'composting' ),
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="publish" /> )
+		);
+		await waitFor( () => button( container, 'Compost' ) );
+		button( container, 'Compost' ).click();
+		await waitFor( () => requests.length === 2 );
+
+		// The panel asks again, and that answer comes before the action's.
+		flushSync( () =>
+			root.render( <StagePanel postId={ 42 } status="private" /> )
+		);
+		await waitFor( () =>
+			container
+				.querySelector( '.undergrowth-stage' )
+				?.textContent.includes( 'before the action' )
+		);
+
+		settle( { ...inGarden( 'composting' ), message: 'Moved, late.' } );
+		await waitFor( () => button( container, 'Return to garden' ) );
+
+		// The action's own answer may be out of date, so the stage is read again.
+		expect( requests ).toHaveLength( 4 );
+		expect( requests[ 3 ].path ).toBe( '/undergrowth/v1/posts/42/stage' );
+		expect(
+			container.querySelector( '.undergrowth-stage' ).textContent
+		).toBe( 'Growth stage: Composting' );
+		expect(
+			button( container, 'Return to garden' ).getAttribute(
+				'aria-disabled'
+			)
+		).not.toBe( 'true' );
+		expect(
+			select( noticesStore )
+				.getNotices()
+				.map( ( notice ) => notice.content )
+		).not.toContain( 'Moved, late.' );
+	} );
+
+	test( 'an action for another post is dropped without asking again', async () => {
 		let settle;
 		replies = [
 			inGarden( 'sprout' ),
@@ -271,24 +324,22 @@ describe( 'Editor stage panel', () => {
 		await waitFor( () => requests.length === 2 );
 
 		flushSync( () =>
-			root.render( <StagePanel postId={ 42 } status="private" /> )
+			root.render( <StagePanel postId={ 43 } status="publish" /> )
 		);
-		await waitFor( () =>
-			container
-				.querySelector( '.undergrowth-stage' )
-				?.textContent.includes( 'Budding' )
-		);
+		await waitFor( () => button( container, 'Compost' ) );
 
-		settle( { ...inGarden( 'composting' ), message: 'Moved.' } );
-		await new Promise( ( resolve ) => setTimeout( resolve, 20 ) );
+		settle( { ...inGarden( 'composting' ), message: 'Moved away.' } );
+		await new Promise( ( resolve ) => setTimeout( resolve, 30 ) );
 
+		expect( requests ).toHaveLength( 3 );
 		expect(
 			container.querySelector( '.undergrowth-stage' ).textContent
 		).toBe( 'Growth stage: Budding' );
-		expect( button( container, 'Compost' ).disabled ).toBe( false );
 		expect(
-			button( container, 'Compost' ).getAttribute( 'aria-disabled' )
-		).not.toBe( 'true' );
+			select( noticesStore )
+				.getNotices()
+				.map( ( notice ) => notice.content )
+		).not.toContain( 'Moved away.' );
 	} );
 
 	test( 'asks again once the post is published', async () => {

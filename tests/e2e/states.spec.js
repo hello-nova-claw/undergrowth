@@ -951,17 +951,32 @@ test.describe( 'Screenshot catalogue', () => {
 					} )
 				).id;
 
+				if ( ! action ) {
+					continue;
+				}
+
 				// Through the panel's own route, as the author would. A build
 				// from before the panel has no route, and its shots are
-				// listed as skipped.
-				if ( action ) {
-					await requestUtils
-						.rest( {
-							method: 'POST',
-							path: `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`,
-							data: action,
-						} )
-						.catch( () => {} );
+				// listed as skipped. Any other failure would capture the
+				// post unchanged under this state's name, so it stops the run.
+				const route = `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`;
+				const answer = await requestUtils
+					.rest( { method: 'POST', path: route, data: action } )
+					.catch( ( error ) => {
+						if ( error?.code === 'rest_no_route' ) {
+							return null;
+						}
+
+						throw error;
+					} );
+
+				if (
+					answer &&
+					( 'pinned' === state
+						? ! answer.pinned
+						: 'composting' !== answer.stage )
+				) {
+					throw new Error( `The ${ state } post did not change.` );
 				}
 			}
 		} );
