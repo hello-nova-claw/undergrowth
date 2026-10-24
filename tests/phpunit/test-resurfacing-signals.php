@@ -770,6 +770,46 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render() );
 	}
 
+	public function test_signal_stays_when_its_group_leader_is_composted_afterwards() {
+		$old    = $this->garden_with_compost();
+		$new    = $this->new_cluster_near_compost();
+		$new[]  = $this->post_with_vector( array( 0.93, 0.03, 0.04 ), 'Oca flowers' );
+		$leader = $new[0];
+		$this->cycle();
+
+		$this->assertSame( $new, undergrowth_cluster_members( $leader ) );
+		$this->assertSame( $leader, undergrowth_resurfacing_signal( $old ) );
+
+		// The leader's own label goes; the other three keep its ID as theirs.
+		$this->compost( $leader );
+
+		$this->assertSame( array( $old => $new[3] ), undergrowth_visible_resurfacing_signals() );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p id="undergrowth-resurfacing-' . $old . '">', $html );
+		$this->assertStringContainsString( 'Oca in winter', $this->signal_text( $html ) );
+		$this->assertStringContainsString( 'Oca flowers', $this->signal_text( $html ) );
+		$this->assertStringContainsString( 'name="post" value="' . $old . '"', $html );
+
+		$this->assertStringContainsString( 'undergrowth_notice=resurfacing_dismissed', $this->dismiss( $old ) );
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing-' . $old, $this->render() );
+	}
+
+	public function test_signal_goes_with_its_group_when_the_leader_leaves_a_group_of_three() {
+		$old = $this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->compost( $new[0] );
+
+		// Two posts are no group, and the Map no longer shows them.
+		$this->assertNotContains( $new[0], undergrowth_cluster_leaders() );
+		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
+		$this->assertSame( array(), undergrowth_visible_resurfacing_signals() );
+	}
+
 	public function test_dismiss_form_removes_the_signal_and_returns_to_the_map_tab() {
 		$old = $this->garden_with_compost();
 		$this->new_cluster_near_compost();
