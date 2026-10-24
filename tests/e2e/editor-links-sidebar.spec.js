@@ -94,7 +94,7 @@ test.describe( 'Editor links sidebar', () => {
 		// The words are linked in the paragraph, and nothing is saved yet.
 		await expect( link ).toHaveCount( 1 );
 		await expect( accept ).toHaveCount( 0 );
-		await expect( suggestion.locator( '.description' ) ).toBeVisible();
+		await expect( suggestion.locator( '.description' ) ).toBeFocused();
 		expect(
 			( await linksOf( requestUtils, oca.id ) ).outgoing.map(
 				( item ) => item.target

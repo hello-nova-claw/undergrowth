@@ -155,6 +155,40 @@ describe( 'Editor links sidebar', () => {
 		expect( linked ).toEqual( [ [ 'p1', linkedHtml ] ] );
 	} );
 
+	test( 'moves focus to the note that replaces the pressed Accept', async () => {
+		const linkedHtml = `I keep yacon syrup beside the <a href="${ URL }">seed ledger</a>.`;
+		replies = [
+			suggestions(),
+			{ id: 'p1', content: linkedHtml, message: 'Linked, focus.' },
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+		const render = ( content ) =>
+			root.render(
+				<LinksSidebar
+					postId={ 42 }
+					saved="1"
+					paragraphs={ [ { id: 'p1', content } ] }
+					// As the editor does: the paragraph changes, then the
+					// sidebar renders again with it.
+					onLink={ ( id, html ) => render( html ) }
+				/>
+			);
+
+		flushSync( () => render( SENTENCE ) );
+		await waitFor( () => button( container, 'Accept' ) );
+		button( container, 'Accept' ).focus();
+		button( container, 'Accept' ).click();
+		await waitFor( () => ! button( container, 'Accept' ) );
+		await new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
+
+		expect( document.activeElement ).toBe(
+			container.querySelector( '.undergrowth-suggestion .description' )
+		);
+	} );
+
 	test( 'says a linked suggestion is kept on save, and offers nothing', async () => {
 		replies = [ suggestions() ];
 
