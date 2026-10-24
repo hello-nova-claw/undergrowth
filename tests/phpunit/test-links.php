@@ -232,6 +232,199 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( 'vetoed', undergrowth_link_state( $mashua, $yacon ) );
 	}
 
+	/**
+	 * Plants three sources that each propose one target, and a farther post
+	 * that is each source's next best target.
+	 *
+	 * @return array{target: int, sources: int[], spare: int}
+	 */
+	private function plant_three_sources(): array {
+		$spare   = $this->plant( 'Ulluco', array( 0.6, 0.0, 0.8 ) );
+		$target  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$sources = array(
+			$this->plant( 'Yacon', array( 0.99, 0.1, 0.0 ) ),
+			$this->plant( 'Mashua', array( 0.98, 0.15, 0.0 ) ),
+			$this->plant( 'Achira', array( 0.97, 0.2, 0.0 ) ),
+		);
+
+		foreach ( $sources as $source ) {
+			$this->assertContains( $target, $this->proposed( $source ) );
+			$this->assertNotContains( $spare, $this->proposed( $source ) );
+		}
+
+		return array(
+			'target'  => $target,
+			'sources' => $sources,
+			'spare'   => $spare,
+		);
+	}
+
+	/**
+	 * Counts the word counts built across the pool from now on.
+	 *
+	 * @return int[] Reference to the count.
+	 */
+	private function &count_corpus_builds(): array {
+		$builds = array( 0 );
+
+		add_filter(
+			'query',
+			static function ( $query ) use ( &$builds ) {
+				if ( false !== strpos( $query, 'SELECT ID, post_title, post_content FROM' ) && false !== strpos( $query, ' IN (' ) ) {
+					++$builds[0];
+				}
+
+				return $query;
+			}
+		);
+
+		return $builds;
+	}
+
+	/**
+	 * Lists the posts queued to pick a replacement target.
+	 *
+	 * @return int[]
+	 */
+	private function queued_sources(): array {
+		$queued = array();
+
+		foreach ( _get_cron_array() as $hooks ) {
+			foreach ( $hooks['undergrowth_refresh_sources'] ?? array() as $event ) {
+				$queued = array_merge( $queued, $event['args'][0] );
+			}
+		}
+
+		return $queued;
+	}
+
+	/**
+	 * Runs every queued refresh of the posts that proposed a post that left.
+	 */
+	private function run_queued_refreshes(): void {
+		$runs = 0;
+
+		while ( array() !== $this->queued_sources() ) {
+			$this->assertLessThan( 50, ++$runs );
+
+			foreach ( _get_cron_array() as $timestamp => $hooks ) {
+				foreach ( $hooks['undergrowth_refresh_sources'] ?? array() as $event ) {
+					wp_unschedule_event( $timestamp, 'undergrowth_refresh_sources', $event['args'] );
+					do_action_ref_array( 'undergrowth_refresh_sources', $event['args'] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Takes a post out of the index in each way an author can.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function leaving(): array {
+		return array(
+			'trashed'     => array( 'trash' ),
+			'unpublished' => array( 'draft' ),
+			'deleted'     => array( 'delete' ),
+			'composted'   => array( 'compost' ),
+		);
+	}
+
+	/**
+	 * Leaves the target, in the request the author made.
+	 *
+	 * @param string $how One of the keys of leaving().
+	 * @param int    $post_id Post that leaves.
+	 */
+	private function leave( string $how, int $post_id ): void {
+		if ( 'trash' === $how ) {
+			wp_trash_post( $post_id );
+		} elseif ( 'draft' === $how ) {
+			wp_update_post(
+				array(
+					'ID'          => $post_id,
+					'post_status' => 'draft',
+				)
+			);
+		} elseif ( 'delete' === $how ) {
+			wp_delete_post( $post_id, true );
+		} else {
+			wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+			$this->assertTrue( undergrowth_compost_post( $post_id ) );
+		}
+	}
+
+	/**
+	 * Checks that the sources are refreshed in cron, not in the request.
+	 *
+	 * @dataProvider leaving
+	 *
+	 * @param string $how How the target leaves.
+	 */
+	public function test_sources_of_a_post_that_left_are_refreshed_in_cron( string $how ) {
+		$planted   = $this->plant_three_sources();
+		$refreshes = did_action( 'undergrowth_proposals_refreshed' );
+
+		$this->leave( $how, $planted['target'] );
+
+		// The request only removes the proposals to the post that left.
+		$this->assertSame( $refreshes, did_action( 'undergrowth_proposals_refreshed' ) );
+		foreach ( $planted['sources'] as $source ) {
+			$this->assertNotContains( $planted['target'], $this->proposed( $source ) );
+			$this->assertCount( 2, $this->proposed( $source ) );
+		}
+		$this->assertSame( array(), array_diff( $planted['sources'], $this->queued_sources() ) );
+
+		// The files and Discord have their own tests, and count words of their own.
+		remove_all_actions( 'undergrowth_proposals_refreshed' );
+		// Cron runs in a request of its own, with nothing counted yet.
+		undergrowth_forget_reusable_corpus();
+		$builds = &$this->count_corpus_builds();
+
+		$this->run_queued_refreshes();
+
+		foreach ( $planted['sources'] as $source ) {
+			$this->assertContains( $planted['spare'], $this->proposed( $source ) );
+		}
+		$this->assertSame( 1, $builds[0] );
+	}
+
+	public function test_queued_refresh_leaves_vetoes_and_accepted_links_alone() {
+		$planted = $this->plant_three_sources();
+		$yacon   = $planted['sources'][0];
+		$mashua  = $planted['sources'][1];
+		$this->set_state( $yacon, $planted['spare'], 'vetoed' );
+		$this->set_state( $mashua, $planted['spare'], 'accepted' );
+
+		wp_trash_post( $planted['target'] );
+		$this->run_queued_refreshes();
+
+		$this->assertSame( 'vetoed', undergrowth_link_state( $yacon, $planted['spare'] ) );
+		$this->assertSame( 'accepted', undergrowth_link_state( $mashua, $planted['spare'] ) );
+	}
+
+	public function test_queued_refresh_skips_a_source_that_left_meanwhile() {
+		$planted = $this->plant_three_sources();
+		wp_trash_post( $planted['target'] );
+
+		$source = $planted['sources'][0];
+		global $wpdb;
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $source ) );
+		clean_post_cache( $source );
+
+		$this->run_queued_refreshes();
+
+		$this->assertNotContains( $planted['spare'], $this->proposed( $source ) );
+	}
+
+	public function test_many_sources_are_refreshed_in_batches() {
+		$ids = range( 1, UNDERGROWTH_REFRESH_BATCH + 5 );
+
+		undergrowth_refresh_sources( $ids );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_sources', array( array_slice( $ids, UNDERGROWTH_REFRESH_BATCH ) ) ) );
+	}
+
 	public function test_deleting_a_post_removes_its_proposals() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
