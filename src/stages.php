@@ -745,6 +745,36 @@ function undergrowth_stage_not_saved(): WP_Error {
 }
 
 /**
+ * Returns the error for a stage change that failed after the pin marker
+ * was taken away, when the marker could not be put back either.
+ *
+ * @return WP_Error The error.
+ */
+function undergrowth_pin_lost(): WP_Error {
+	return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+}
+
+/**
+ * Puts the pin marker back as it was before a stage change that failed.
+ *
+ * Pins are the author's, so a failed change must leave the marker as the
+ * author left it.
+ *
+ * @param int  $post_id Post ID.
+ * @param bool $pinned  Whether the post was pinned before the change.
+ * @return WP_Error|null The pin_lost error when the marker could not be put back, or null.
+ */
+function undergrowth_restore_pin( int $post_id, bool $pinned ): ?WP_Error {
+	if ( $pinned ) {
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+	} else {
+		delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
+	}
+
+	return undergrowth_is_stage_pinned( $post_id ) === $pinned ? null : undergrowth_pin_lost();
+}
+
+/**
  * Builds the marker a pinned stage shows beside its name.
  *
  * A composting post is never shown as pinned, since composting is always
@@ -1048,13 +1078,7 @@ function undergrowth_unpin_stage( int $post_id ) {
 	}
 
 	if ( ! undergrowth_set_stage( $post_id, undergrowth_measure_stage( $post_id ), 'unpin' ) ) {
-		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
-
-		if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
-			return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
-		}
-
-		return undergrowth_stage_not_saved();
+		return undergrowth_restore_pin( $post_id, true ) ?? undergrowth_stage_not_saved();
 	}
 
 	return true;
@@ -1092,15 +1116,7 @@ function undergrowth_compost_post( int $post_id ) {
 	}
 
 	if ( ! undergrowth_set_stage( $post_id, 'composting', 'compost' ) ) {
-		if ( $pinned ) {
-			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
-
-			if ( ! undergrowth_is_stage_pinned( $post_id ) ) {
-				return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
-			}
-		}
-
-		return undergrowth_stage_not_saved();
+		return undergrowth_restore_pin( $post_id, $pinned ) ?? undergrowth_stage_not_saved();
 	}
 
 	undergrowth_forget_post_links( $post_id );
