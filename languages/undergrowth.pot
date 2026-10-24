@@ -1620,11 +1620,19 @@ msgid "Undergrowth keeps a plain-text file for each post in the uploads folder, 
 msgstr ""
 
 #: src/site-health.php
-msgid "Undergrowth’s per-post files can be read from the web"
+msgid "Undergrowth could not check whether its per-post files can be read from the web"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth asks for a file in its folder at the site’s own address, and got no answer that shows whether visitors are refused. Until a check shows they are, the questions Claude wrote are left out of the per-post files."
 msgstr ""
 
 #: src/site-health.php
 msgid "How to keep the per-post files private"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files can be read from the web"
 msgstr ""
 
 #: src/stages.php

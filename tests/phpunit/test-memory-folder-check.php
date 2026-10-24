@@ -16,8 +16,9 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 	/**
 	 * How the fake web server answers: 'serve' reads the file from disk,
-	 * 'deny' answers 403, 'fail' gives no response, and a number answers
-	 * with that status.
+	 * 'deny' answers 403 inside the plugin's folder and serves the rest,
+	 * 'deny all' answers 403 everywhere, 'fail' gives no response, and a
+	 * number answers with that status.
 	 *
 	 * @var string
 	 */
@@ -68,7 +69,8 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 		}
 
 		$path   = $uploads['basedir'] . substr( $url, strlen( $uploads['baseurl'] ) );
-		$served = 'serve' === $this->server && is_file( $path );
+		$denied = 'deny all' === $this->server || ( 'deny' === $this->server && false !== strpos( $url, '/' . undergrowth_memory_folder() . '/' ) );
+		$served = in_array( $this->server, array( 'serve', 'deny' ), true ) && ! $denied && is_file( $path );
 		$status = ctype_digit( $this->server ) ? (int) $this->server : 403;
 
 		return array(
@@ -110,8 +112,8 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 		$this->assertTrue( undergrowth_check_memory_folder() );
 		$this->assertTrue( undergrowth_memory_exposed() );
-		$this->assertCount( 1, $this->asked );
-		$this->assertStringStartsWith( wp_upload_dir( null, false )['baseurl'] . '/' . undergrowth_memory_folder() . '/posts/', $this->asked[0] );
+		$this->assertCount( 2, $this->asked );
+		$this->assertStringStartsWith( wp_upload_dir( null, false )['baseurl'] . '/' . undergrowth_memory_folder() . '/posts/', $this->asked[1] );
 	}
 
 	public function test_folder_a_server_refuses_is_not_readable() {
@@ -127,7 +129,8 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 		undergrowth_check_memory_folder();
 
-		$this->assertSame( array(), glob( undergrowth_memory_root() . '/posts/check-*' ) );
+		$this->assertSame( array(), glob( undergrowth_memory_root() . '/posts/undergrowth-check-*' ) );
+		$this->assertSame( array(), glob( wp_upload_dir( null, false )['basedir'] . '/undergrowth-check-*' ) );
 	}
 
 	public function test_check_that_gets_no_answer_keeps_the_last_result() {
@@ -224,6 +227,35 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 		undergrowth_write_memory( $oca );
 		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
+	public function test_a_site_that_refuses_every_upload_proves_nothing() {
+		$this->written();
+		$this->server = 'deny all';
+
+		$this->assertNull( undergrowth_check_memory_folder() );
+		$this->assertCount( 1, $this->asked );
+		$this->assertFalse( undergrowth_memory_private() );
+	}
+
+	public function test_first_check_that_proves_nothing_takes_the_questions_out_of_existing_files() {
+		$oca = $this->written();
+		file_put_contents( undergrowth_memory_path( $oca ), "\n## prompts\n- a question\n", FILE_APPEND );
+		$this->server = '301';
+
+		$this->assertNull( undergrowth_check_memory_folder() );
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
+	public function test_site_health_says_when_it_could_not_tell() {
+		$this->written();
+		$this->server = 'fail';
+
+		$tests  = apply_filters( 'site_status_tests', array( 'direct' => array() ) );
+		$result = call_user_func( $tests['direct']['undergrowth_memory_folder']['test'] );
+
+		$this->assertSame( 'recommended', $result['status'] );
+		$this->assertStringContainsString( 'could not check', $result['label'] );
 	}
 
 	public function test_uploads_on_another_host_are_not_asked_for() {

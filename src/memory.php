@@ -555,34 +555,56 @@ function undergrowth_check_memory_folder(): ?bool {
 }
 
 /**
- * Writes a file into the per-post folder, asks for it at the site's own
- * address, and deletes it again.
+ * Asks for a file in the per-post folder at the site's own address, beside
+ * one in the uploads folder that visitors may read.
+ *
+ * The second file shows the request reaches the uploads at all: a site
+ * behind a password, or a loopback the host turns away, would refuse both,
+ * which says nothing about the folder.
  *
  * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
  * @param string             $root       The plugin's folder.
- * @return bool|null True when the file came back, false when it was refused,
- *                   or null when the answer proves neither.
+ * @return bool|null True when the folder's file came back, false when only it
+ *                   was refused, or null when the answers prove neither.
  */
 function undergrowth_ask_for_memory_file( WP_Filesystem_Base $filesystem, string $root ): ?bool {
 	$uploads = wp_upload_dir( null, false );
 
 	// Uploads served from another host, by an offload plugin say, would never
-	// hold this file, so its absence there would prove nothing.
+	// hold these files, so their absence there would prove nothing.
 	if ( wp_parse_url( $uploads['baseurl'], PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST ) ) {
 		return null;
 	}
 
-	// A name that is never a post's, and a body no other page holds.
-	$name  = 'check-' . strtolower( wp_generate_password( 12, false ) ) . '.txt';
-	$token = wp_generate_password( 32, false );
-	$path  = $root . '/posts/' . $name;
+	$control = undergrowth_fetch_check_file( $filesystem, $uploads['basedir'], $uploads['baseurl'] );
 
-	if ( ! $filesystem->put_contents( $path, $token, FS_CHMOD_FILE ) ) {
+	if ( true !== $control ) {
+		return null;
+	}
+
+	return undergrowth_fetch_check_file( $filesystem, $root . '/posts', $uploads['baseurl'] . '/' . undergrowth_memory_folder() . '/posts' );
+}
+
+/**
+ * Writes a file with a body no other page holds, asks for it, and deletes it.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $folder     Folder to write it in.
+ * @param string             $url        Address of that folder.
+ * @return bool|null True when the file came back, false when it was refused,
+ *                   or null when the answer proves neither.
+ */
+function undergrowth_fetch_check_file( WP_Filesystem_Base $filesystem, string $folder, string $url ): ?bool {
+	// A name that is never a post's.
+	$name  = 'undergrowth-check-' . strtolower( wp_generate_password( 12, false ) ) . '.txt';
+	$token = wp_generate_password( 32, false );
+
+	if ( ! $filesystem->put_contents( $folder . '/' . $name, $token, FS_CHMOD_FILE ) ) {
 		return null;
 	}
 
 	$response = wp_remote_get(
-		$uploads['baseurl'] . '/' . undergrowth_memory_folder() . '/posts/' . $name,
+		$url . '/' . $name,
 		array(
 			'timeout'     => 10,
 			'redirection' => 0,
@@ -591,7 +613,7 @@ function undergrowth_ask_for_memory_file( WP_Filesystem_Base $filesystem, string
 		)
 	);
 
-	$filesystem->delete( $path );
+	$filesystem->delete( $folder . '/' . $name );
 
 	if ( is_wp_error( $response ) ) {
 		return null;

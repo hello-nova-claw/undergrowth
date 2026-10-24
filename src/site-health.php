@@ -103,15 +103,17 @@ function undergrowth_site_health_backfill(): array {
 /**
  * Tests whether visitors can read the per-post files, for Site Health.
  *
- * Each run checks again. When no answer comes, the last result stands.
+ * Each run checks again. When no answer proves anything, the last answer
+ * that did stands, and with none the result says the check could not tell.
  *
  * @return array Site Health result.
  *
  * @phpstan-return array<string, mixed>
  */
 function undergrowth_site_health_memory_folder(): array {
-	$exposed = undergrowth_check_memory_folder() ?? undergrowth_memory_exposed();
-	$result  = array(
+	undergrowth_check_memory_folder();
+
+	$result = array(
 		'label'       => __( 'Undergrowth’s per-post files cannot be read from the web', 'undergrowth' ),
 		'status'      => 'good',
 		'badge'       => array(
@@ -123,7 +125,20 @@ function undergrowth_site_health_memory_folder(): array {
 		'test'        => 'undergrowth_memory_folder',
 	);
 
-	if ( ! $exposed ) {
+	if ( undergrowth_memory_private() ) {
+		return $result;
+	}
+
+	if ( ! undergrowth_memory_exposed() ) {
+		$result['label']       = __( 'Undergrowth could not check whether its per-post files can be read from the web', 'undergrowth' );
+		$result['status']      = 'recommended';
+		$result['description'] = '<p>' . esc_html__( 'Undergrowth asks for a file in its folder at the site’s own address, and got no answer that shows whether visitors are refused. Until a check shows they are, the questions Claude wrote are left out of the per-post files.', 'undergrowth' ) . '</p>';
+		$result['actions']     = sprintf(
+			'<p><a href="%1$s">%2$s</a></p>',
+			esc_url( UNDERGROWTH_MEMORY_DOCS ),
+			esc_html__( 'How to keep the per-post files private', 'undergrowth' )
+		);
+
 		return $result;
 	}
 
