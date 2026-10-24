@@ -310,6 +310,25 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
 	}
 
+	public function test_a_failed_claim_keeps_the_link_pending_for_the_next_save() {
+		$content = $this->accept( array( 'p' => self::SENTENCE ) )->get_data()['content'];
+		$table   = undergrowth_links_table();
+		$fail    = static function ( $query ) use ( $table ) {
+			return 0 === strpos( ltrim( $query ), 'UPDATE `' . $table . '`' ) ? '' : $query;
+		};
+
+		add_filter( 'query', $fail );
+		$this->save( $this->paragraph( $content ) );
+		remove_filter( 'query', $fail );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
+		$this->assertSame( array( (string) $this->target ), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
+
+		$this->save( $this->paragraph( $content ) );
+
+		$this->assertSame( 'accepted', undergrowth_link_state( $this->source, $this->target ) );
+	}
+
 	public function test_saving_after_undo_leaves_it_proposed() {
 		$this->accept( array( 'p' => self::SENTENCE ) );
 
