@@ -53,7 +53,15 @@ const env = existsSync( envFile )
 	: {};
 const openaiKey = ( env.OPENAI_API_KEY ?? '' ).trim();
 const anthropicKey = ( env.ANTHROPIC_API_KEY ?? '' ).trim();
-const wxr = ( env.WXR ?? '' ).trim();
+// WXR=demo and WXR=demo-small name the public-domain demo blog in demo/.
+const demoWxr = {
+	demo: 'demo/undergrowth-demo.xml',
+	'demo-small': 'demo/undergrowth-demo-small.xml',
+};
+const wxrSetting = ( env.WXR ?? '' ).trim();
+const wxr = Object.hasOwn( demoWxr, wxrSetting )
+	? demoWxr[ wxrSetting ]
+	: wxrSetting;
 const embeddings = ( env.UNDERGROWTH_EMBEDDINGS ?? '' ).trim();
 
 if ( ! [ '', 'ollama', 'openai' ].includes( embeddings ) ) {
