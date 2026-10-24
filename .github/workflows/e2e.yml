@@ -70,6 +70,5 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Starts WordPress Playground, builds the block, and tests the admin
-      # screens and the block on the front end.
+      # No PHP, Composer or wp-env: WordPress Playground supplies the site.
       - run: npm run test:a11y

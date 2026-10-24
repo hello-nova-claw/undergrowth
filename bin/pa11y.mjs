@@ -3,8 +3,8 @@
  * Runs pa11y-ci against the plugin's admin screens and the Growth stage
  * block on the front end, in WordPress Playground, so no Docker is needed.
  *
- * The site comes from tests/e2e/playground/pa11y.json and the e2e test
- * provider. The pages to test are in .pa11yci.js, which reads the site's
+ * The site comes from tests/e2e/playground/pa11y.json, the e2e test
+ * provider and the small demo blog. The pages to test are in .pa11yci.js, which reads the site's
  * address from WP_BASE_URL.
  *
  * Usage: npm run test:a11y
@@ -49,10 +49,16 @@ try {
 
 const mount = pluginMounts( root );
 
-mount.push( {
-	hostPath: join( root, 'tests/e2e/mu-plugins' ),
-	vfsPath: '/wordpress/wp-content/mu-plugins',
-} );
+mount.push(
+	{
+		hostPath: join( root, 'tests/e2e/mu-plugins' ),
+		vfsPath: '/wordpress/wp-content/mu-plugins',
+	},
+	{
+		hostPath: join( root, 'demo' ),
+		vfsPath: '/wordpress/wp-content/undergrowth-demo',
+	}
+);
 
 const { runCLI } = await import( '@wp-playground/cli' );
 
@@ -68,6 +74,13 @@ try {
 	} );
 } catch ( error ) {
 	fail( error.message );
+}
+
+// The CLI also listens once to see whether the port is free, so the override
+// above is checked on the server that serves the site.
+if ( host !== server.server.address()?.address ) {
+	await server[ Symbol.asyncDispose ]();
+	fail( `Playground did not listen on ${ host } only.` );
 }
 
 // Asynchronously, since this same process serves the site.
