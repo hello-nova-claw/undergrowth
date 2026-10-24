@@ -1,0 +1,1 @@
+Reading old posts in the background no longer sends a post that is too long a second time once its time limit has passed, so one slow post can hold it up for at most one request. The shorter text is sent on the next pass.

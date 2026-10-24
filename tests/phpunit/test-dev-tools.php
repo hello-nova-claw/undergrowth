@@ -653,6 +653,7 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 		update_option( 'undergrowth_new_clusters', array( $oca ), false );
 		update_option( 'undergrowth_cluster_labels', array( 'terms' => array() ), false );
 		undergrowth_mark_pass( 'undergrowth_cluster_cycle', $oca );
+		update_option( 'undergrowth_cluster_similarity', 0.5, false );
 		undergrowth_mark_pass( 'undergrowth_stage_cycle', $oca );
 		undergrowth_write_memory( $oca );
 		$file = undergrowth_memory_path( $oca );
@@ -670,7 +671,7 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 			}
 		}
 
-		foreach ( array( 'undergrowth_previous_clusters', 'undergrowth_new_clusters', 'undergrowth_cluster_labels', 'undergrowth_cluster_leaders', 'undergrowth_cluster_cycle_pass', 'undergrowth_stage_cycle_pass' ) as $option ) {
+		foreach ( array( 'undergrowth_previous_clusters', 'undergrowth_new_clusters', 'undergrowth_cluster_labels', 'undergrowth_cluster_leaders', 'undergrowth_cluster_cycle_pass', 'undergrowth_cluster_similarity', 'undergrowth_stage_cycle_pass' ) as $option ) {
 			$this->assertFalse( get_option( $option ), $option );
 		}
 

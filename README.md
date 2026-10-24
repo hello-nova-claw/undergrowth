@@ -1,17 +1,17 @@
 # Undergrowth
 
-Undergrowth uses AI to read your site and ask you questions. It never writes a word your readers will see.
+Undergrowth links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.
 
 It is a WordPress plugin for personal bloggers. It treats a site as a garden: it finds links between your own posts, groups posts that belong together, tracks how each post grows, and now and then asks you a question about your own writing. You approve every change, and a veto is remembered.
 
-The rule behind every feature: the AI may speak **to** the author, never **for** the author. It ranks, groups, proposes and asks. It never writes, rewrites or publishes text for readers, and it does no keyword research, trend tracking or competitor analysis.
+The rule behind every feature: the AI may speak **to** the author, never **for** the author. It ranks, groups, proposes and asks. It never writes, rewrites or publishes text for readers. Internal links in your own words, between posts that belong together, are SEO from a different direction.
 
 ## Features
 
 - **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence you wrote, with the word to link highlighted. **Accept** makes that word a link and saves a revision. **Veto** removes the suggestion for good. They are listed on **Posts › Undergrowth**.
 - **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the groups your posts form. Stages never go down, and you can pin one. A Growth stage column shows them on the Posts list.
 - **Composting.** Move a post to compost to let it rest. It stays published and keeps its links but leaves the active garden. When an old composting post sits close to what you are writing now, Undergrowth tells you once.
-- **The Map.** Posts that are close in meaning are grouped once a month and listed on the Map tab. Groups are numbered, never named. A group with no post at its middle is marked as a gap.
+- **The Map.** Posts that are close in meaning are grouped once a month and listed on the Map tab. Each group is named after the title of its post nearest the middle, with words from your own posts under it. No model names them. A group with no post at its middle is marked as a gap.
 - **One question at a time.** With an Anthropic key, Claude writes an occasional question for you on the Dashboard, drawn from a gap between your posts, a reader's question in an approved comment, or a composting post. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. There are no streaks and no reminders.
 - **A page views meter.** With Jetpack Stats on, the Dashboard shows your page views in the last 30 days against a milestone of 1,000. Passing it changes nothing yet; it marks when the reader features of v2 can start.
 - **Discord, optionally.** Each new suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
@@ -19,12 +19,12 @@ The rule behind every feature: the AI may speak **to** the author, never **for**
 - **A Growth stage block** that shows readers a post's stage as one line of text your theme styles.
 - **A plain-text file for each post** in the uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
 
-Settings › Undergrowth has three sections (Link suggestions, Questions on your Dashboard, and Discord) and Help tabs that say what is sent where. Nothing is sent anywhere until you save a key. The full user documentation, including what each service receives and what it costs, is in [readme.txt](readme.txt).
+Settings › Undergrowth has three sections (Link suggestions, Questions on your Dashboard, and Discord) and Help tabs that say what is sent where. OpenAI, Anthropic and Discord are sent nothing until you set each one up. An embedding provider of your own is given each published post's title and text, and sends them wherever its code says. The user documentation, including what each service receives and what it costs, is in [readme.txt](readme.txt), with the per-post file format in [docs/per-post-files.md](docs/per-post-files.md) and the Discord steps in [docs/discord.md](docs/discord.md).
 
 ## Requirements
 
 - WordPress 6.9 or later (for the Abilities API).
-- PHP 7.4 or later.
+- PHP 7.4 or later, with the mbstring extension.
 - WP-Cron, or a real cron job calling it.
 - An OpenAI API key, or your own embedding provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [docs/examples/local-embeddings.php](docs/examples/local-embeddings.php) uses a model on your own machine instead.
 - Optional: an Anthropic API key for the Dashboard questions, Jetpack Stats for the meter, and an HTTPS site for Discord.

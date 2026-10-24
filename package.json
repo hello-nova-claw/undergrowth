@@ -1,7 +1,7 @@
 {
 	"name": "undergrowth",
 	"private": true,
-	"description": "Uses AI to read your site and ask you questions. It never writes a word your readers will see.",
+	"description": "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.",
 	"license": "GPL-2.0-or-later",
 	"engines": {
 		"node": ">=22.22.2"

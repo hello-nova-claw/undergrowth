@@ -18,6 +18,7 @@ add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
+add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index' );
 
 /**
  * Tells whether two vectors can be compared at all.
@@ -226,18 +227,28 @@ function undergrowth_comparable_post_ids( int $post_id ): array {
 /**
  * Lists the posts a post already links to.
  *
+ * The tag processor reads links as a browser does: an address without
+ * quotes counts, and one inside a comment or another attribute does not.
+ *
  * @param WP_Post $post Post to read.
  * @return int[] Post IDs of internal link targets.
  */
 function undergrowth_linked_post_ids( WP_Post $post ): array {
-	if ( ! preg_match_all( '/href\s*=\s*["\']([^"\']+)["\']/i', $post->post_content, $matches ) ) {
-		return array();
+	$html = new WP_HTML_Tag_Processor( $post->post_content );
+	$urls = array();
+
+	while ( $html->next_tag( array( 'tag_name' => 'A' ) ) ) {
+		$href = $html->get_attribute( 'href' );
+
+		if ( is_string( $href ) && '' !== $href ) {
+			$urls[] = $href;
+		}
 	}
 
 	$ids = array();
 
-	foreach ( array_unique( $matches[1] ) as $url ) {
-		$id = url_to_postid( html_entity_decode( $url ) );
+	foreach ( array_unique( $urls ) as $url ) {
+		$id = url_to_postid( $url );
 
 		if ( $id > 0 ) {
 			$ids[] = $id;
@@ -270,7 +281,8 @@ function undergrowth_suggestions_enabled(): bool {
 function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 	global $wpdb;
 
-	if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post ) {
+	// Every caller checks this too, but a new one must not be able to forget.
+	if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post || ! current_user_can( 'edit_post', $source_id ) ) {
 		return false;
 	}
 
@@ -324,11 +336,16 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
  *
  * @param int $source_id Post the link would sit in.
  * @param int $target_id Post the link would point to.
- * @return string 'vetoed', 'unchanged' when the link was already accepted, or 'gone'.
+ * @return string 'vetoed', 'unchanged' when the link was already accepted,
+ *                'forbidden' when the user cannot edit the source post, or 'gone'.
  */
 function undergrowth_veto_result( int $source_id, int $target_id ): string {
 	if ( undergrowth_veto_link( $source_id, $target_id ) ) {
 		return 'vetoed';
+	}
+
+	if ( get_post( $source_id ) instanceof WP_Post && get_post( $target_id ) instanceof WP_Post && ! current_user_can( 'edit_post', $source_id ) ) {
+		return 'forbidden';
 	}
 
 	return 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone';
@@ -338,7 +355,7 @@ function undergrowth_veto_result( int $source_id, int $target_id ): string {
  * Words the result of accepting or vetoing a link, so the author reads the
  * same reason on the screen, through an ability and in Discord.
  *
- * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe' or 'needs_admin'.
+ * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'not_saved', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
  */
 function undergrowth_link_result_messages(): array {
 	return array(
@@ -349,9 +366,11 @@ function undergrowth_link_result_messages(): array {
 		'not_proposed'  => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
 		'edited'        => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
 		'no_word'       => __( 'No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_saved'     => __( 'The post could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 		'words_saved'   => __( 'Saved. Accept will link the words now highlighted.', 'undergrowth' ),
 		'words_invalid' => __( 'Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it.', 'undergrowth' ),
 		'words_unsafe'  => __( 'Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words.', 'undergrowth' ),
+		'forbidden'     => __( 'You cannot edit that post, so nothing was changed.', 'undergrowth' ),
 		'needs_admin'   => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
 	);
 }
@@ -634,15 +653,14 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 		$state                 = undergrowth_link_state( $post_id, $target_id );
 		$anchor                = undergrowth_proposal_anchor( $post_id, $target_id, $sentence['text'], $corpus );
 		$fields                = array(
-			'score'          => $score,
-			'sentence'       => $sentence['text'],
-			'sentence_index' => $sentence['index'],
-			'anchor'         => $anchor['anchor'],
-			'anchor_offset'  => $anchor['offset'],
-			'anchor_chosen'  => 0,
-			'updated_at'     => $now,
+			'score'         => $score,
+			'sentence'      => $sentence['text'],
+			'anchor'        => $anchor['anchor'],
+			'anchor_offset' => $anchor['offset'],
+			'anchor_chosen' => 0,
+			'updated_at'    => $now,
 		);
-		$formats               = array( '%f', '%s', '%d', '%s', '%d', '%d', '%s' );
+		$formats               = array( '%f', '%s', '%s', '%d', '%d', '%s' );
 
 		if ( 'proposed' === $state ) {
 			// Words the author chose stay theirs while the sentence they
@@ -652,7 +670,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 			if ( $sentence['text'] === $chosen ) {
 				unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
-				$formats = array( '%f', '%s', '%d', '%s' );
+				$formats = array( '%f', '%s', '%s' );
 			}
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
@@ -867,12 +885,32 @@ function undergrowth_refresh_sources( $source_ids ): void {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $rest ) );
 	}
 
-	// Sources sharing a provider, model and language share one pool and one
-	// set of word counts, so neither is built again for each source.
-	$pools = array();
+	undergrowth_refresh_posts( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) );
+}
 
-	foreach ( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) as $source_id ) {
-		$source = get_post( $source_id );
+/**
+ * Refreshes the proposals of some posts, in order, until the time is spent.
+ *
+ * Posts sharing a provider, model and language share one pool and one set
+ * of word counts, so neither is built again for each post. A post that
+ * left the index or is composting is skipped.
+ *
+ * @param int[] $post_ids Posts to refresh.
+ * @param float $budget   Seconds after which no further post is started. One post is always refreshed.
+ * @return int[] The posts that were reached, refreshed or skipped.
+ */
+function undergrowth_refresh_posts( array $post_ids, float $budget = INF ): array {
+	$started = microtime( true );
+	$pools   = array();
+	$reached = array();
+
+	foreach ( $post_ids as $source_id ) {
+		if ( array() !== $reached && microtime( true ) - $started >= $budget ) {
+			break;
+		}
+
+		$reached[] = $source_id;
+		$source    = get_post( $source_id );
 
 		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) || 'composting' === undergrowth_get_stage( $source_id ) ) {
 			continue;
@@ -894,4 +932,71 @@ function undergrowth_refresh_sources( $source_ids ): void {
 
 		undergrowth_refresh_proposals( $source_id, $pools[ $key ][0], $pools[ $key ][1] );
 	}
+
+	return $reached;
+}
+
+/**
+ * Refreshes every indexed post's proposals once the backfill has read the
+ * whole site, a batch at a time.
+ *
+ * Proposals made while the backfill was running were chosen with the word
+ * counts of part of the site, so their sentence may no longer hold a word
+ * that can carry the link. Each run takes the backfill's batch size and
+ * time budget, then queues the next after the last post it reached.
+ *
+ * @param int $after Refresh posts with a higher ID than this.
+ */
+function undergrowth_refresh_index( $after = 0 ): void {
+	$identity = undergrowth_index_target();
+
+	// A switch of model or language since starts another backfill, which
+	// queues its own refresh once it has read the site.
+	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		return;
+	}
+
+	$size     = undergrowth_backfill_batch_size();
+	$post_ids = undergrowth_indexed_post_ids( $identity, (int) $after, $size );
+	$reached  = undergrowth_refresh_posts( $post_ids, undergrowth_backfill_time_budget() );
+
+	if ( array() !== $reached && ( count( $post_ids ) === $size || count( $reached ) < count( $post_ids ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( end( $reached ) ) );
+	}
+}
+
+/**
+ * Lists posts that have a vector for an identity, by ID.
+ *
+ * @param array $identity {
+ *     The provider and model, and the site language when posts take theirs from the site.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @param int   $after    Only posts with a higher ID than this.
+ * @param int   $limit    Most posts to list.
+ * @return int[] Post IDs in ascending order.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_indexed_post_ids( array $identity, int $after, int $limit ): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT post_id FROM %i WHERE provider = %s AND model = %s AND ( %s = '' OR language = %s ) AND post_id > %d ORDER BY post_id LIMIT %d",
+			undergrowth_vectors_table(),
+			$identity['provider'],
+			$identity['model'],
+			$identity['language'],
+			$identity['language'],
+			$after,
+			$limit
+		)
+	);
+
+	return array_map( 'intval', (array) $ids );
 }

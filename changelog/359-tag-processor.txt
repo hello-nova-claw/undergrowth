@@ -1,0 +1,1 @@
+A post already linked from another without quotes around the address is no longer suggested again, and a link or heading inside an HTML comment no longer counts.

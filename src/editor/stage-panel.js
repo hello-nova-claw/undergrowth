@@ -11,6 +11,22 @@ import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 /**
+ * Returns why a request failed, or a sentence the author can act on when no
+ * reason came back, as for an aborted request.
+ *
+ * @param {Object|undefined} refusal What the request was rejected with.
+ * @return {string} Message to show.
+ */
+function reason( refusal ) {
+	return 'string' === typeof refusal?.message && '' !== refusal.message
+		? refusal.message
+		: __(
+				'Undergrowth could not reach your site. Check your connection, then reload the page.',
+				'undergrowth'
+			);
+}
+
+/**
  * Shows a post's growth stage, with Pin, Unpin, Compost and Return to garden.
  *
  * Every rule lives on the server, in the same functions the Growth stages tab
@@ -53,7 +69,7 @@ export default function StagePanel( { postId, status } ) {
 		setStage( null );
 		apiFetch( { path } ).then(
 			( answer ) => current && setStage( answer ),
-			( refusal ) => current && setError( refusal.message )
+			( refusal ) => current && setError( reason( refusal ) )
 		);
 
 		return () => {
@@ -102,7 +118,7 @@ export default function StagePanel( { postId, status } ) {
 					setStage( answer );
 					createSuccessNotice( answer.message, { type: 'snackbar' } );
 				},
-				( refusal ) => current() && setError( refusal.message )
+				( refusal ) => current() && setError( reason( refusal ) )
 			)
 			.finally( () => current() && setBusy( false ) );
 	}

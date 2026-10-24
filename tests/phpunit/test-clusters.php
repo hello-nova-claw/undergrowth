@@ -80,6 +80,52 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs every due cron event, oldest first, the way wp-cron.php does,
+	 * until none is due.
+	 *
+	 * @return string[] Hooks that ran, in order.
+	 */
+	private function run_due_events(): array {
+		$ran = array();
+
+		// Enough for any pass these tests plant; a chain that never ends fails.
+		for ( $guard = 0; $guard <= 100; $guard++ ) {
+			$due = null;
+
+			foreach ( (array) _get_cron_array() as $timestamp => $hooks ) {
+				if ( $timestamp > time() ) {
+					break;
+				}
+
+				foreach ( $hooks as $hook => $events ) {
+					$due = array( $timestamp, $hook, reset( $events ) );
+					break 2;
+				}
+			}
+
+			if ( null === $due ) {
+				return $ran;
+			}
+
+			if ( 100 === $guard ) {
+				break;
+			}
+
+			list( $timestamp, $hook, $event ) = $due;
+
+			if ( false !== $event['schedule'] ) {
+				wp_reschedule_event( $timestamp, $event['schedule'], $hook, $event['args'] );
+			}
+
+			wp_unschedule_event( $timestamp, $hook, $event['args'] );
+			do_action_ref_array( $hook, $event['args'] );
+			$ran[] = $hook;
+		}
+
+		$this->fail( 'More than 100 cron events came due; the last ran were ' . implode( ', ', array_slice( $ran, -5 ) ) );
+	}
+
+	/**
 	 * Builds a unit vector along one axis.
 	 *
 	 * @param int $axis       Axis to point along.
@@ -405,6 +451,47 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
 	}
 
+	public function test_threshold_read_when_the_pass_starts_holds_for_every_batch() {
+		$identity = static function () {
+			return array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model',
+			);
+		};
+		$measured = static function () {
+			return array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model',
+				'posts'    => UNDERGROWTH_DERIVED_MIN_POSTS,
+				'cluster'  => 0.9,
+			);
+		};
+		$posts    = array();
+
+		add_filter( 'undergrowth_embed_identity', $identity );
+		add_filter( 'pre_option_undergrowth_scores', $measured );
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		// 0.8 from the first post: in its cluster at the fixed 0.5, not at the measured 0.9.
+		$later = $this->post_with_vector( array( 0.8, 0.6 ) );
+
+		undergrowth_run_cluster_cycle();
+
+		// A post leaving the index between batches can forget the scores.
+		remove_filter( 'pre_option_undergrowth_scores', $measured );
+		delete_option( 'undergrowth_scores' );
+		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_cluster_similarity() );
+
+		undergrowth_run_cluster_cycle( $this->take_next_batch() );
+
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertSame( $later, undergrowth_cluster_leader( $later ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_similarity' ) );
+	}
+
 	public function test_pass_whose_next_batch_is_lost_is_resumed_by_the_hourly_check() {
 		$posts = array();
 
@@ -553,6 +640,65 @@ class Test_Clusters extends WP_UnitTestCase {
 		do_action( 'undergrowth_backfill_check' );
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+	}
+
+	public function test_monthly_event_drives_the_whole_chain_through_wp_cron() {
+		// Last month's pass: one cluster, and a composting post on its own.
+		$old = $this->post_with_vector( array( 1.0, 0.0, 0.0 ) );
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->post_with_vector( array( 0.0, 1.0, 0.0 ) );
+		}
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->assertTrue( undergrowth_compost_post( $old ) );
+		_set_cron_array( array() );
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
+		$this->run_due_events();
+
+		// This month: a new cluster near the composting post, and enough
+		// other posts for clustering to take two batches.
+		$near = array();
+
+		for ( $i = 0; $i < 3; $i++ ) {
+			$near[] = $this->post_with_vector( array( 0.95, 0.0, 0.05 ) );
+		}
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH; $i++ ) {
+			$this->post_with_vector( array( 0.0, 0.0, 1.0 ) );
+		}
+
+		$monthly = wp_next_scheduled( 'undergrowth_cluster_cycle' );
+		_set_cron_array( array() );
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
+
+		// Whether the first batch, which is not the last, queued the stage cycle.
+		$early = null;
+		$watch = static function () use ( &$early ) {
+			$early = $early ?? wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) );
+		};
+		add_action( 'undergrowth_cluster_cycle', $watch, 99 );
+
+		$ran = $this->run_due_events();
+
+		remove_action( 'undergrowth_cluster_cycle', $watch, 99 );
+
+		$this->assertGreaterThan( time(), $monthly );
+		$this->assertSame( 'undergrowth_cluster_cycle', $ran[0] );
+		$this->assertGreaterThanOrEqual( 2, count( array_keys( $ran, 'undergrowth_cluster_cycle', true ) ) );
+		$this->assertFalse( $early, 'The first clustering batch queued the stage cycle.' );
+		$this->assertContains( 'undergrowth_stage_cycle', $ran );
+		$this->assertGreaterThan(
+			max( array_keys( $ran, 'undergrowth_cluster_cycle', true ) ),
+			min( array_keys( $ran, 'undergrowth_stage_cycle', true ) ),
+			'The stage cycle ran before clustering finished.'
+		);
+		$this->assertSame( $near[0], undergrowth_cluster_leader( end( $near ) ) );
+		$this->assertTrue( metadata_exists( 'post', end( $near ), 'undergrowth_stage' ) );
+		$this->assertSame( $near[0], undergrowth_resurfacing_signal( $old ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 	}
 
 	public function test_batch_leaves_no_rows_in_wpdb() {

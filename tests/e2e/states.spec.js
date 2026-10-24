@@ -94,6 +94,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'post-types-by-code',
+		page: SETTINGS,
+		fixture: 'post-types-by-code',
+	},
+	{
+		screen: 'settings',
 		state: 'prompt-key-saved',
 		page: SETTINGS,
 		fixture: 'prompt-key-saved',
@@ -141,6 +147,26 @@ const WITHOUT_POSTS = [
 		fixture: 'no-provider',
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
+	{
+		screen: 'privacy',
+		state: 'policy-guide',
+		page: [ 'options-privacy.php', 'tab=policyguide' ],
+		// Opens Undergrowth's section. The plugin's name is never translated.
+		open: async ( page ) => {
+			const trigger = page.locator(
+				'.privacy-settings-accordion-trigger',
+				{ hasText: 'Undergrowth' }
+			);
+
+			if ( ( await trigger.count() ) === 0 ) {
+				return false;
+			}
+
+			await trigger.click();
+
+			return true;
+		},
+	},
 	// Where a new owner lands after activating, with the Settings link.
 	{ screen: 'plugins', state: 'row', page: [ 'plugins.php', '' ] },
 	// The first-run notice, right after activating on a site with no key.
