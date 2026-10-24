@@ -41,7 +41,7 @@ add_action( 'edit_user_profile_update', 'undergrowth_save_discord_user_field' );
 function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 	$custom_id = $interaction['data']['custom_id'] ?? '';
 
-	if ( ! is_string( $custom_id ) || 1 !== preg_match( '/^undergrowth:(accept|veto):([0-9]{1,20}):([0-9]{1,20})$/D', $custom_id, $button ) ) {
+	if ( ! is_string( $custom_id ) || 1 !== preg_match( '/^undergrowth:(accept|veto):(' . UNDERGROWTH_DISCORD_ID . '):(' . UNDERGROWTH_DISCORD_ID . ')$/D', $custom_id, $button ) ) {
 		return undergrowth_discord_ephemeral( __( 'Undergrowth does not know this button, so nothing was changed.', 'undergrowth' ) );
 	}
 
@@ -229,7 +229,7 @@ function undergrowth_discord_click_reply( int $source_id, int $target_id, string
  * @return WP_User|null The user, or null when none or more than one is linked.
  */
 function undergrowth_discord_linked_user( $discord_id ): ?WP_User {
-	if ( ! is_string( $discord_id ) || 1 !== preg_match( '/^[0-9]{1,20}$/', $discord_id ) ) {
+	if ( ! undergrowth_is_discord_id( $discord_id ) ) {
 		return null;
 	}
 
@@ -301,7 +301,7 @@ function undergrowth_discord_user_problem( string $discord_id, int $user_id ): s
 		return '';
 	}
 
-	if ( 1 !== preg_match( '/^[0-9]{1,20}$/', $discord_id ) ) {
+	if ( ! undergrowth_is_discord_id( $discord_id ) ) {
 		return __( 'The Discord user ID should be a long number, so it was not saved.', 'undergrowth' );
 	}
 
