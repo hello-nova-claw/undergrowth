@@ -1671,6 +1671,7 @@ msgstr ""
 
 #. translators: 1: title of the post the link would point to.
 #: build/editor/index.js
+#: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
 #, js-format
 msgid "Accept the link to %1$s"
