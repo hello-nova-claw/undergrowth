@@ -52,25 +52,7 @@ function undergrowth_register_editor_link_routes(): void {
 			'callback'            => 'undergrowth_rest_accept_link',
 			'permission_callback' => 'undergrowth_rest_can_edit_post',
 			'args'                => $target + array(
-				'paragraphs' => array(
-					'type'     => 'array',
-					'required' => true,
-					'maxItems' => 1000,
-					'items'    => array(
-						'type'                 => 'object',
-						'properties'           => array(
-							'id'      => array(
-								'type'     => 'string',
-								'required' => true,
-							),
-							'content' => array(
-								'type'     => 'string',
-								'required' => true,
-							),
-						),
-						'additionalProperties' => false,
-					),
-				),
+				'paragraphs' => undergrowth_editor_paragraphs_arg(),
 			),
 		)
 	);
@@ -333,49 +315,99 @@ function undergrowth_rest_accept_link( WP_REST_Request $request ) {
 		return undergrowth_editor_link_error( 'edited' );
 	}
 
+	$linked = undergrowth_link_in_paragraphs( (array) $request['paragraphs'], $span['sentence'], $span['offset'], $span['length'], (string) get_permalink( $target ) );
+
+	if ( is_string( $linked ) ) {
+		return undergrowth_editor_link_error( $linked );
+	}
+
+	// The words are kept with the note, so the save counts only a link
+	// around them, not another link to the same post.
+	$note = array(
+		'target' => $target_id,
+		'words'  => $linked['words'],
+	);
+
+	if ( ! in_array( $note, get_post_meta( $source_id, 'undergrowth_pending_links', false ), true ) ) {
+		add_post_meta( $source_id, 'undergrowth_pending_links', $note );
+	}
+
+	return new WP_REST_Response(
+		array(
+			'id'      => $linked['id'],
+			'content' => $linked['content'],
+			'message' => __( 'Linked in the editor. Save the post to keep the link.', 'undergrowth' ),
+		)
+	);
+}
+
+/**
+ * Describes the paragraphs the sidebar sends, as a REST argument.
+ *
+ * @return array<string, mixed> Argument schema.
+ */
+function undergrowth_editor_paragraphs_arg(): array {
+	return array(
+		'type'     => 'array',
+		'required' => true,
+		'maxItems' => 1000,
+		'items'    => array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'id'      => array(
+					'type'     => 'string',
+					'required' => true,
+				),
+				'content' => array(
+					'type'     => 'string',
+					'required' => true,
+				),
+			),
+			'additionalProperties' => false,
+		),
+	);
+}
+
+/**
+ * Links a run of words in the first paragraph that holds its sentence.
+ *
+ * Each paragraph is checked alone, as its block would sit in a post, so the
+ * rules for where a link may go are the ones Accept uses on a whole post.
+ *
+ * @param array<int, array{id: string, content: string}> $paragraphs Paragraphs as the editor holds them.
+ * @param string                                         $sentence   Sentence the link belongs in.
+ * @param int                                            $offset     Character offset of the words in the sentence.
+ * @param int                                            $length     Length of the words in characters.
+ * @param string                                         $url        Address to link to.
+ * @return array{id: string, content: string, words: string}|string The paragraph's block ID, its new HTML and the linked words as a reader sees them, or 'edited' or 'no_word'.
+ */
+function undergrowth_link_in_paragraphs( array $paragraphs, string $sentence, int $offset, int $length, string $url ) {
+	$open   = "<!-- wp:paragraph -->\n<p>";
+	$close  = "</p>\n<!-- /wp:paragraph -->";
 	$result = 'edited';
 
-	foreach ( (array) $request['paragraphs'] as $paragraph ) {
-		// The paragraph alone, as its block would sit in a post, so the rules
-		// for where a link may go are the ones Accept uses on a whole post.
-		$open    = "<!-- wp:paragraph -->\n<p>";
-		$close   = "</p>\n<!-- /wp:paragraph -->";
+	foreach ( $paragraphs as $paragraph ) {
 		$content = $open . $paragraph['content'] . $close;
 
-		if ( ! in_array( $span['sentence'], array_column( undergrowth_split_sentences( $content ), 'text' ), true ) ) {
+		if ( ! in_array( $sentence, array_column( undergrowth_split_sentences( $content ), 'text' ), true ) ) {
 			continue;
 		}
 
-		$found = undergrowth_find_link_span( $content, $span['sentence'], $span['offset'], $span['length'] );
+		$found = undergrowth_find_link_span( $content, $sentence, $offset, $length );
 
 		if ( null === $found ) {
 			$result = 'no_word';
 			continue;
 		}
 
-		$linked = undergrowth_wrap_link_word( $content, $found, (string) get_permalink( $target ) );
-
-		// The words are kept with the note, so the save counts only a link
-		// around them, not another link to the same post.
-		$note = array(
-			'target' => $target_id,
-			'words'  => undergrowth_plain_line( $found['word'] ),
-		);
-
-		if ( ! in_array( $note, get_post_meta( $source_id, 'undergrowth_pending_links', false ), true ) ) {
-			add_post_meta( $source_id, 'undergrowth_pending_links', $note );
-		}
-
-		return new WP_REST_Response(
-			array(
-				'id'      => $paragraph['id'],
-				'content' => substr( $linked, strlen( $open ), -strlen( $close ) ),
-				'message' => __( 'Linked in the editor. Save the post to keep the link.', 'undergrowth' ),
-			)
+		return array(
+			'id'      => $paragraph['id'],
+			'content' => substr( undergrowth_wrap_link_word( $content, $found, $url ), strlen( $open ), -strlen( $close ) ),
+			'words'   => undergrowth_plain_line( $found['word'] ),
 		);
 	}
 
-	return undergrowth_editor_link_error( $result );
+	return $result;
 }
 
 /**

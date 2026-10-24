@@ -542,10 +542,25 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
 function undergrowth_choose_sentence( int $source_id, int $target_id, array $corpus, array $taken = array() ): ?array {
 	$source = get_post( $source_id );
 
-	if ( ! $source instanceof WP_Post ) {
-		return null;
-	}
+	return $source instanceof WP_Post ? undergrowth_choose_sentence_in( $source, $target_id, $corpus, $taken ) : null;
+}
 
+/**
+ * Picks the sentence in a post's content that best fits a link to the
+ * target, as undergrowth_choose_sentence() does.
+ *
+ * The post need not be saved, so a draft scan can choose from the content
+ * the editor holds.
+ *
+ * @param WP_Post  $source    Post the link would sit in.
+ * @param int      $target_id Post the link would point to.
+ * @param array    $corpus    Result of undergrowth_build_corpus().
+ * @param string[] $taken     Sentences already holding another of the post's proposals.
+ * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ */
+function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array $corpus, array $taken = array() ): ?array {
 	// Only sentences from paragraphs a link may go in are scored, each with
 	// its own paragraph's flags, so a heading or list item is never chosen,
 	// even when it shares a paragraph's words or text. The target's words

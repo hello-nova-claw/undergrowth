@@ -1,5 +1,6 @@
 import { store as blockEditorStore } from '@wordpress/block-editor';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { PanelBody } from '@wordpress/components';
+import { select as read, useDispatch, useSelect } from '@wordpress/data';
 import {
 	PluginDocumentSettingPanel,
 	PluginSidebar,
@@ -10,6 +11,7 @@ import { useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { registerPlugin } from '@wordpress/plugins';
 
+import DraftScan from './draft-scan';
 import LinksSidebar, { editorParagraphs } from './links-sidebar';
 import StagePanel from './stage-panel';
 
@@ -47,9 +49,10 @@ function UndergrowthPanel() {
  * @param {Object} props        Component props.
  * @param {number} props.postId Post being edited.
  * @param {string} props.saved  Changes on every save.
+ * @param {string} props.status The post's saved status; an unpublished post also offers a scan.
  * @return {Element} Suggestions.
  */
-function OpenLinksSidebar( { postId, saved } ) {
+function OpenLinksSidebar( { postId, saved, status } ) {
 	const blocks = useSelect(
 		( select ) => select( blockEditorStore ).getBlocks(),
 		[]
@@ -57,15 +60,38 @@ function OpenLinksSidebar( { postId, saved } ) {
 	const paragraphs = useMemo( () => editorParagraphs( blocks ), [ blocks ] );
 	const { updateBlockAttributes } = useDispatch( blockEditorStore );
 
+	const onLink = ( id, content ) => updateBlockAttributes( id, { content } );
+
 	return (
-		<LinksSidebar
-			postId={ postId }
-			saved={ saved }
-			paragraphs={ paragraphs }
-			onLink={ ( id, content ) =>
-				updateBlockAttributes( id, { content } )
-			}
-		/>
+		<>
+			<LinksSidebar
+				postId={ postId }
+				saved={ saved }
+				paragraphs={ paragraphs }
+				onLink={ onLink }
+			/>
+			{ 'publish' !== status && (
+				<PanelBody title={ __( 'Scan this draft', 'undergrowth' ) }>
+					<DraftScan
+						postId={ postId }
+						paragraphs={ paragraphs }
+						onLink={ onLink }
+						// Read when the button is pressed, so the scan has
+						// exactly what the editor holds at that moment.
+						getDraft={ () => ( {
+							title: read( editorStore ).getEditedPostAttribute(
+								'title'
+							),
+							content: read( editorStore ).getEditedPostContent(),
+							password:
+								read( editorStore ).getEditedPostAttribute(
+									'password'
+								) ?? '',
+						} ) }
+					/>
+				</PanelBody>
+			) }
+		</>
 	);
 }
 
@@ -75,10 +101,11 @@ function OpenLinksSidebar( { postId, saved } ) {
  * @return {Element} Sidebar.
  */
 function UndergrowthSidebar() {
-	const { postId, saved } = useSelect(
+	const { postId, saved, status } = useSelect(
 		( select ) => ( {
 			postId: select( editorStore ).getCurrentPostId(),
 			saved: select( editorStore ).getCurrentPostAttribute( 'modified' ),
+			status: select( editorStore ).getCurrentPostAttribute( 'status' ),
 		} ),
 		[]
 	);
@@ -99,7 +126,11 @@ function UndergrowthSidebar() {
 				icon="admin-links"
 			>
 				{ postId && (
-					<OpenLinksSidebar postId={ postId } saved={ saved } />
+					<OpenLinksSidebar
+						postId={ postId }
+						saved={ saved }
+						status={ status }
+					/>
 				) }
 			</PluginSidebar>
 		</>

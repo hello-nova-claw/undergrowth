@@ -239,6 +239,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_scan_until', '', true );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_last_prompt_error' );
 	delete_option( 'undergrowth_prompt' );

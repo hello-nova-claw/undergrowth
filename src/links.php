@@ -128,21 +128,30 @@ function undergrowth_min_link_similarity(): float {
  * Loads every stored vector that can be compared with a post's vector.
  *
  * Only vectors from the same provider, model and language qualify, because
- * scores across models or languages mean nothing. Rows are read a chunk at a
- * time and kept packed, so a large archive never sits in memory as JSON or
- * as PHP arrays of floats.
+ * scores across models or languages mean nothing.
  *
  * @param int $post_id Post whose vector sets the provider, model and language.
  * @return array<int, string> Packed vectors keyed by post ID, including the post's own.
  */
 function undergrowth_comparable_vectors( int $post_id ): array {
-	global $wpdb;
-
 	$source = undergrowth_get_vector( $post_id );
 
-	if ( null === $source ) {
-		return array();
-	}
+	return null === $source ? array() : undergrowth_vectors_in_space( $source['provider'], $source['model'], $source['language'] );
+}
+
+/**
+ * Loads every stored vector from one provider, model and language.
+ *
+ * Rows are read a chunk at a time and kept packed, so a large archive never
+ * sits in memory as JSON or as PHP arrays of floats.
+ *
+ * @param string $provider Provider name.
+ * @param string $model    Model name.
+ * @param string $language Locale, such as en_US.
+ * @return array<int, string> Packed vectors keyed by post ID.
+ */
+function undergrowth_vectors_in_space( string $provider, string $model, string $language ): array {
+	global $wpdb;
 
 	$vectors = array();
 	$after   = 0;
@@ -153,9 +162,9 @@ function undergrowth_comparable_vectors( int $post_id ): array {
 			$wpdb->prepare(
 				'SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id > %d ORDER BY post_id LIMIT %d',
 				undergrowth_vectors_table(),
-				$source['provider'],
-				$source['model'],
-				$source['language'],
+				$provider,
+				$model,
+				$language,
 				$after,
 				UNDERGROWTH_VECTOR_CHUNK
 			),
