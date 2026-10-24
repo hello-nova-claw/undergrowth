@@ -135,6 +135,7 @@ class Test_Anthropic extends WP_UnitTestCase {
 		$this->assertSame( 'https://api.anthropic.com/v1/messages', $this->requests[0][0] );
 		$this->assertSame( 'POST', $this->requests[0][1]['method'] );
 		$this->assertSame( self::KEY, $this->requests[0][1]['headers']['x-api-key'] );
+		$this->assertSame( 0, $this->requests[0][1]['redirection'] );
 		$this->assertSame( '2023-06-01', $this->requests[0][1]['headers']['anthropic-version'] );
 	}
 

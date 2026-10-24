@@ -917,7 +917,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'not_pinned'            => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
 		'stage_not_saved'       => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 		'stage_pin_left'        => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
-		'stage_pin_lost'        => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+		'stage_pin_lost'        => undergrowth_pin_lost()->get_error_message(),
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 	);

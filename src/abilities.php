@@ -844,7 +844,7 @@ function undergrowth_ability_veto_link( array $input ) {
  * The wording is the suggestions screen's, so the author reads the same
  * reason wherever the request came from.
  *
- * @param string $reason 'gone', 'unchanged', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.
+ * @param string $reason 'gone', 'forbidden', 'unchanged', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.
  * @return WP_Error The error.
  */
 function undergrowth_ability_link_error( string $reason ): WP_Error {
@@ -853,6 +853,6 @@ function undergrowth_ability_link_error( string $reason ): WP_Error {
 	return new WP_Error(
 		'undergrowth_' . $reason,
 		$messages[ $reason ] ?? $messages['gone'],
-		array( 'status' => 'gone' === $reason ? 404 : 409 )
+		array( 'status' => 'gone' === $reason ? 404 : ( 'forbidden' === $reason ? 403 : 409 ) )
 	);
 }
