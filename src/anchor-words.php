@@ -86,8 +86,8 @@ function undergrowth_unnamed_words( string $text, string $locale ): array {
 
 	$determiners = array_flip( explode( ' ', 'a an the this these those his her its our their my your thy every each another such' ) );
 	$before_verb = array_flip( explode( ' ', 'i you he she it we they will would shall should can could may might must not never did does do to very so too quite more most less how well always am is are was were be been being seems seemed' ) );
-	// Function words end a phrase. Words under three letters are never
-	// tokens, so they are not in the lists, but they end phrases too.
+	// Function words end a phrase. Latin words under three letters are
+	// never tokens, so they are not in the lists, but they end phrases too.
 	$closing     = array_flip( array_merge( undergrowth_anchor_stopwords( $locale )['never'], explode( ' ', 'a i am an as at be by do he if in is it me my no of on or so to up us we' ) ) );
 	$words       = $matches[0];
 	$lower       = array_map( 'mb_strtolower', $words );

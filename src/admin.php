@@ -675,19 +675,15 @@ function undergrowth_visible_resurfacing_signals(): array {
 	}
 
 	$query = new WP_Query(
-		array(
-			'post_type'              => $post_types,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_key'               => 'undergrowth_resurfacing', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only composting posts near a new cluster have the key.
-			'orderby'                => 'ID',
-			'order'                  => 'ASC',
-			// Every signal is listed, since the Map is the only place it shows.
-			// There is one per post, and only posts the author composted have one.
-			'posts_per_page'         => -1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'meta_key'       => 'undergrowth_resurfacing', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only composting posts near a new cluster have the key.
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				// Every signal is listed, since the Map is the only place it shows.
+				// There is one per post, and only posts the author composted have one.
+				'posts_per_page' => -1,
+			)
 		)
 	);
 
@@ -844,17 +840,12 @@ function undergrowth_has_composting_posts(): bool {
 	}
 
 	$query = new WP_Query(
-		array(
-			'post_type'              => $post_types,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_key'               => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One row, once per screen.
-			'meta_value'             => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One row, once per screen.
-			'posts_per_page'         => 1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'meta_query'             => undergrowth_composting_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One row, once per screen.
+				'posts_per_page'         => 1,
+				'update_post_meta_cache' => false,
+			)
 		)
 	);
 
@@ -921,15 +912,7 @@ function undergrowth_render_suggestions_notice(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
-	$messages = undergrowth_link_result_messages() + array(
-		'pinned'                => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
-		'unpinned'              => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
-		'stage_refused'         => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
-		'stage_composting'      => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
-		'not_pinned'            => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
-		'stage_not_saved'       => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
-		'stage_pin_left'        => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
-		'stage_pin_lost'        => undergrowth_pin_lost()->get_error_message(),
+	$messages = undergrowth_link_result_messages() + undergrowth_stage_result_messages() + array(
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 	);

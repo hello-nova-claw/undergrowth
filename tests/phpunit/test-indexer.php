@@ -78,6 +78,50 @@ class Test_Indexer extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_garden_query_finds_the_indexable_posts_as_ids() {
+		$published = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		self::factory()->post->create(
+			array(
+				'post_status'   => 'publish',
+				'post_password' => 'secret',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_status' => 'publish',
+				'post_type'   => 'attachment',
+			)
+		);
+
+		$query = new WP_Query( undergrowth_garden_query_args() );
+
+		$this->assertSame( array( $published ), array_map( 'intval', $query->posts ) );
+	}
+
+	public function test_garden_query_finds_nothing_when_no_type_is_indexed() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$query = new WP_Query( undergrowth_garden_query_args() );
+
+		$this->assertSame( array(), $query->posts );
+	}
+
+	public function test_garden_query_arguments_can_be_replaced() {
+		$args = undergrowth_garden_query_args(
+			array(
+				'post_type'     => 'page',
+				'no_found_rows' => false,
+			)
+		);
+
+		$this->assertSame( 'page', $args['post_type'] );
+		$this->assertFalse( $args['no_found_rows'] );
+		$this->assertFalse( $args['has_password'] );
+		$this->assertSame( 'ids', $args['fields'] );
+	}
+
 	public function test_post_text_decodes_entities() {
 		$post_id = self::factory()->post->create(
 			array(

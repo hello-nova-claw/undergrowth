@@ -336,37 +336,6 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php
-#: src/editor.php
-msgid "Stage pinned. The monthly cycle will leave it as it is."
-msgstr ""
-
-#: src/admin.php
-#: src/editor.php
-msgid "Stage unpinned and measured again from the links you have accepted."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "A composting post cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage was not pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
-msgstr ""
-
-#: src/admin.php
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
-msgstr ""
-
-#: src/admin.php
 msgid "Dismissed. The post stays composting."
 msgstr ""
 
@@ -1016,14 +985,6 @@ msgstr ""
 
 #: src/editor.php
 msgid "Choose a stage to pin."
-msgstr ""
-
-#: src/editor.php
-msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
-msgstr ""
-
-#: src/editor.php
-msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
 msgstr ""
 
 #: src/first-run.php
@@ -1724,7 +1685,39 @@ msgid "You cannot change the growth stage of this post."
 msgstr ""
 
 #: src/stages.php
-msgid "The stage could not be saved, so nothing was changed."
+msgid "Stage pinned. The monthly cycle will leave it as it is."
+msgstr ""
+
+#: src/stages.php
+msgid "Stage unpinned and measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+msgstr ""
+
+#: src/stages.php
+msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "A composting post cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage was not pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/stages.php

@@ -101,6 +101,19 @@ class Test_Map extends WP_UnitTestCase {
 		$this->assertSame( undergrowth_tokens( 'ก้ข' ), array_keys( undergrowth_label_words( 'ก้ข', 'th' ) ) );
 	}
 
+	public function test_two_letter_hebrew_word_can_be_a_label_term() {
+		// "גן" is a garden; "ירק" a vegetable.
+		$words = undergrowth_label_words( 'גן ירק', 'he_IL' );
+
+		$this->assertArrayHasKey( 'גן', $words );
+		$this->assertArrayHasKey( 'גן ירק', $words );
+		$this->assertSame( array( 'גן' ), undergrowth_choose_label_terms( array( 'גן' => 3 ), 3, array( 'גן' => 3 ), 10 ) );
+	}
+
+	public function test_two_letter_english_word_is_no_label_term() {
+		$this->assertArrayNotHasKey( 'ox', undergrowth_label_words( 'An ox ploughs.', 'en_US' ) );
+	}
+
 	public function test_label_terms_are_shared_in_the_group_and_rare_elsewhere() {
 		$terms = undergrowth_choose_label_terms(
 			array(
