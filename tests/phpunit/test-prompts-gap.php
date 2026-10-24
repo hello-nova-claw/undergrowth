@@ -29,6 +29,9 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// Files hold the questions only once visitors are known to be refused.
+		update_option( 'undergrowth_memory_exposed', array( 'exposed' => false ), false );
+
 		$this->requests = array();
 		$this->reply    = self::QUESTION;
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );

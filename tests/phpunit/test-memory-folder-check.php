@@ -16,7 +16,8 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 	/**
 	 * How the fake web server answers: 'serve' reads the file from disk,
-	 * 'deny' answers 403, 'fail' gives no response.
+	 * 'deny' answers 403, 'fail' gives no response, and a number answers
+	 * with that status.
 	 *
 	 * @var string
 	 */
@@ -68,12 +69,13 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 		$path   = $uploads['basedir'] . substr( $url, strlen( $uploads['baseurl'] ) );
 		$served = 'serve' === $this->server && is_file( $path );
+		$status = ctype_digit( $this->server ) ? (int) $this->server : 403;
 
 		return array(
 			'headers'  => array(),
-			'body'     => $served ? (string) file_get_contents( $path ) : 'Forbidden',
+			'body'     => $served ? (string) file_get_contents( $path ) : 'Not here',
 			'response' => array(
-				'code'    => $served ? 200 : 403,
+				'code'    => $served ? 200 : $status,
 				'message' => '',
 			),
 			'cookies'  => array(),
@@ -148,8 +150,23 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 		$this->assertSame( 10, has_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' ) );
 	}
 
+	public function test_questions_are_left_out_until_a_check_has_answered() {
+		$oca = $this->written();
+
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_memory_folder_check' ) );
+		$this->assertSame( array(), $this->asked );
+
+		do_action( 'undergrowth_memory_folder_check' );
+		undergrowth_write_memory( $oca );
+
+		$this->assertStringContainsString( "\n## prompts", (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
 	public function test_questions_are_left_out_while_the_folder_can_be_read() {
 		$oca = $this->written();
+		undergrowth_check_memory_folder();
+		undergrowth_write_memory( $oca );
 		$this->assertStringContainsString( "\n## prompts", (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 
 		$this->server = 'serve';
@@ -162,6 +179,66 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 
 		undergrowth_write_memory( $oca );
 		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
+	public function test_questions_are_taken_out_again_on_each_check_while_the_folder_can_be_read() {
+		$oca          = $this->written();
+		$this->server = 'serve';
+		undergrowth_check_memory_folder();
+
+		// As if taking them out had failed last time.
+		file_put_contents( undergrowth_memory_path( $oca ), "## prompts\n- a question\n", FILE_APPEND );
+		undergrowth_check_memory_folder();
+
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
+	/**
+	 * Answers that say nothing about what a visitor would get.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_answers_that_prove_nothing() {
+		return array(
+			'redirect'      => array( '301' ),
+			'password'      => array( '401' ),
+			'server error'  => array( '500' ),
+			'other content' => array( '200' ),
+		);
+	}
+
+	/**
+	 * An answer that proves nothing leaves the questions out.
+	 *
+	 * @dataProvider data_answers_that_prove_nothing
+	 *
+	 * @param string $status Status the server answers with.
+	 */
+	public function test_an_answer_that_proves_nothing_keeps_the_questions_out( $status ) {
+		$oca          = $this->written();
+		$this->server = $status;
+
+		$this->assertNull( undergrowth_check_memory_folder() );
+		$this->assertFalse( undergrowth_memory_exposed() );
+		$this->assertFalse( undergrowth_memory_private() );
+
+		undergrowth_write_memory( $oca );
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
+	public function test_uploads_on_another_host_are_not_asked_for() {
+		$this->written();
+		add_filter(
+			'upload_dir',
+			static function ( $dirs ) {
+				$dirs['baseurl'] = 'https://cdn.example.net/uploads';
+				return $dirs;
+			}
+		);
+
+		$this->assertNull( undergrowth_check_memory_folder() );
+		$this->assertSame( array(), $this->asked );
+		$this->assertFalse( undergrowth_memory_private() );
 	}
 
 	public function test_questions_return_once_the_folder_is_refused_again() {

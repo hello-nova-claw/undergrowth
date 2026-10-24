@@ -30,6 +30,7 @@ add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 add_action( 'after_delete_post', 'undergrowth_update_memory_around', 10, 2 );
 add_action( 'init', 'undergrowth_prepare_memory_folder' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' );
+add_action( 'undergrowth_memory_folder_check', 'undergrowth_recheck_memory_folder' );
 
 /**
  * Returns the folder that holds the plugin's files for the current site.
@@ -301,8 +302,8 @@ function undergrowth_memory_text( WP_Post $post ): string {
 	);
 
 	// Questions a model wrote are the one thing in the file the author did not
-	// write, so they are left out while visitors could read it.
-	if ( ! undergrowth_memory_exposed() ) {
+	// write, so they are left out unless visitors are known to be refused.
+	if ( undergrowth_memory_private() ) {
 		$lines = array_merge( $lines, array( '', '## prompts' ), undergrowth_memory_prompts( $post->ID ) );
 	}
 
@@ -474,6 +475,12 @@ function undergrowth_write_memory( int $post_id ): bool {
 		}
 	}
 
+	// Until a check has answered, the questions are left out. The first check
+	// runs in WP-Cron, never in the request that wrote the file.
+	if ( false === get_option( 'undergrowth_memory_exposed' ) && false === wp_next_scheduled( 'undergrowth_memory_folder_check' ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_memory_folder_check' );
+	}
+
 	if ( ! $filesystem->put_contents( undergrowth_memory_path( $post_id ), undergrowth_memory_text( $post ), FS_CHMOD_FILE ) ) {
 		undergrowth_record_failure( 'undergrowth_last_file_error', 'write_failed' );
 		return false;
@@ -492,24 +499,76 @@ function undergrowth_write_memory( int $post_id ): bool {
 function undergrowth_memory_exposed(): bool {
 	$check = get_option( 'undergrowth_memory_exposed' );
 
-	return is_array( $check ) && ! empty( $check['exposed'] );
+	return is_array( $check ) && true === ( $check['exposed'] ?? null );
+}
+
+/**
+ * Tells whether the last check found that visitors are refused the per-post
+ * folder.
+ *
+ * @return bool True only when a check has answered that they are.
+ */
+function undergrowth_memory_private(): bool {
+	$check = get_option( 'undergrowth_memory_exposed' );
+
+	return is_array( $check ) && false === ( $check['exposed'] ?? null );
 }
 
 /**
  * Checks whether visitors can read the per-post files, by writing a file
  * into the folder and asking for it at the site's own address.
  *
- * The result is kept until the next check. When the folder has just been
- * found readable, the questions are taken out of the files already there.
+ * An answer is kept until the next check. While the folder is not known to
+ * be refused, the questions are taken out of the files already there, so
+ * a file that could not be rewritten last time is tried again.
  *
- * @return bool|null True when the file could be read, false when it could
- *                   not, or null when there is no folder yet or no answer came.
+ * @return bool|null True when the file could be read, false when it was
+ *                   refused, or null when there is no folder yet or the
+ *                   answer proves neither.
  */
 function undergrowth_check_memory_folder(): ?bool {
 	$root       = undergrowth_memory_root();
 	$filesystem = undergrowth_filesystem();
 
 	if ( '' === $root || null === $filesystem || ! $filesystem->is_dir( $root . '/posts' ) ) {
+		return null;
+	}
+
+	$exposed = undergrowth_ask_for_memory_file( $filesystem, $root );
+
+	if ( null !== $exposed || false === get_option( 'undergrowth_memory_exposed' ) ) {
+		update_option(
+			'undergrowth_memory_exposed',
+			array(
+				'exposed' => $exposed,
+				'time'    => time(),
+			),
+			false
+		);
+	}
+
+	if ( ! undergrowth_memory_private() ) {
+		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );
+	}
+
+	return $exposed;
+}
+
+/**
+ * Writes a file into the per-post folder, asks for it at the site's own
+ * address, and deletes it again.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $root       The plugin's folder.
+ * @return bool|null True when the file came back, false when it was refused,
+ *                   or null when the answer proves neither.
+ */
+function undergrowth_ask_for_memory_file( WP_Filesystem_Base $filesystem, string $root ): ?bool {
+	$uploads = wp_upload_dir( null, false );
+
+	// Uploads served from another host, by an offload plugin say, would never
+	// hold this file, so its absence there would prove nothing.
+	if ( wp_parse_url( $uploads['baseurl'], PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST ) ) {
 		return null;
 	}
 
@@ -522,7 +581,6 @@ function undergrowth_check_memory_folder(): ?bool {
 		return null;
 	}
 
-	$uploads  = wp_upload_dir( null, false );
 	$response = wp_remote_get(
 		$uploads['baseurl'] . '/' . undergrowth_memory_folder() . '/posts/' . $name,
 		array(
@@ -539,23 +597,15 @@ function undergrowth_check_memory_folder(): ?bool {
 		return null;
 	}
 
-	$exposed = 200 === (int) wp_remote_retrieve_response_code( $response ) && false !== strpos( wp_remote_retrieve_body( $response ), $token );
-	$was     = undergrowth_memory_exposed();
+	$code = (int) wp_remote_retrieve_response_code( $response );
 
-	update_option(
-		'undergrowth_memory_exposed',
-		array(
-			'exposed' => $exposed,
-			'time'    => time(),
-		),
-		false
-	);
-
-	if ( $exposed && ! $was ) {
-		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );
+	if ( 200 === $code ) {
+		return false !== strpos( wp_remote_retrieve_body( $response ), $token ) ? true : null;
 	}
 
-	return $exposed;
+	// A redirect, a password prompt or a server error says nothing about
+	// what a visitor would get. Only a plain refusal does.
+	return in_array( $code, array( 403, 404, 410 ), true ) ? false : null;
 }
 
 /**

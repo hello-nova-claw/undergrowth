@@ -76,4 +76,4 @@ Each action passes the post ID first.
 
 Each is unscheduled on deactivation and on uninstall (`tests/phpunit/test-uninstall.php` checks both against `src/`). They are listed here so a site can see them in a cron viewer. They are not for hooking.
 
-`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`.
+`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_memory_folder_check`, `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`.
