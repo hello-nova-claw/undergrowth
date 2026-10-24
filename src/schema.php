@@ -334,6 +334,15 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_memory_folder' );
 	delete_transient( 'undergrowth_old_folder_retry' );
 
+	// A stage lock is released as soon as the stage is written, so one is
+	// left only by a request that died while holding it.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock names include each post's ID, so there is no list to delete by name.
+	$locks = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( 'undergrowth_stage_' ) . '%' . $wpdb->esc_like( '.lock' ) ) );
+
+	foreach ( $locks as $lock ) {
+		delete_option( $lock );
+	}
+
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );

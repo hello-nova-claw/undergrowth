@@ -281,6 +281,72 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 		return false;
 	}
 
+	// Every write of a stage holds this lock, so the cycle can never write
+	// between an author's pin and its stage. The cycle gives way to a
+	// change in progress, and an author's change waits for the cycle.
+	if ( ! undergrowth_lock_stage( $post_id, 'cycle' !== $reason ) ) {
+		return false;
+	}
+
+	try {
+		$changed = undergrowth_store_stage( $post_id, $stage, $reason );
+	} finally {
+		WP_Upgrader::release_lock( "undergrowth_stage_{$post_id}" );
+	}
+
+	if ( null === $changed ) {
+		return false;
+	}
+
+	if ( $changed ) {
+		/**
+		 * Fires after a post's stage changes or an author acts on it.
+		 *
+		 * @param int $post_id Post ID.
+		 */
+		do_action( 'undergrowth_stage_changed', $post_id );
+	}
+
+	return true;
+}
+
+/**
+ * Takes the lock on a post's stage.
+ *
+ * A lock left by a request that died is taken over after a minute.
+ *
+ * @param int  $post_id Post ID.
+ * @param bool $wait    Whether to wait up to half a second for another write to finish.
+ * @return bool True when this request holds the lock.
+ */
+function undergrowth_lock_stage( int $post_id, bool $wait ): bool {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	$tries = $wait ? 20 : 1;
+
+	for ( $try = 1; $try <= $tries; $try++ ) {
+		if ( WP_Upgrader::create_lock( "undergrowth_stage_{$post_id}", MINUTE_IN_SECONDS ) ) {
+			return true;
+		}
+
+		if ( $try < $tries ) {
+			usleep( 25000 );
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Stores a post's stage and records the change, while holding its lock.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $stage   One of UNDERGROWTH_STAGES.
+ * @param string $reason  What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @return bool|null True when the change was recorded, false when the cycle
+ *                   stored a stage that did not change, null when nothing was stored.
+ */
+function undergrowth_store_stage( int $post_id, string $stage, string $reason ): ?bool {
 	// The cycle checked the pin before measuring, and the author may have
 	// pinned the post since, in another request. The meta cached for this
 	// one would not show it, so the pin is read again from the database.
@@ -288,37 +354,17 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 		wp_cache_delete( $post_id, 'post_meta' );
 
 		if ( undergrowth_is_stage_pinned( $post_id ) ) {
-			return false;
+			return null;
 		}
 	}
 
 	$from   = undergrowth_get_stage( $post_id );
 	$stored = metadata_exists( 'post', $post_id, 'undergrowth_stage' );
 
-	if ( 'cycle' === $reason ) {
-		// A pin can still complete between that check and this write. One
-		// to another stage has replaced the value read here, or added the
-		// first one, so the cycle writes only over that value, or only
-		// where there is none. A pin that came in the meantime is found
-		// again below, and the cycle's own write undone.
-		$raw     = (string) get_post_meta( $post_id, 'undergrowth_stage', true );
-		$written = $stored ? update_post_meta( $post_id, 'undergrowth_stage', $stage, $raw ) : add_post_meta( $post_id, 'undergrowth_stage', $stage, true );
-
-		wp_cache_delete( $post_id, 'post_meta' );
-
-		if ( undergrowth_is_stage_pinned( $post_id ) ) {
-			if ( false !== $written ) {
-				undergrowth_undo_stage( $post_id, $stage, $raw, $stored );
-			}
-
-			return false;
-		}
-	} else {
-		update_post_meta( $post_id, 'undergrowth_stage', $stage );
-	}
+	update_post_meta( $post_id, 'undergrowth_stage', $stage );
 
 	if ( undergrowth_get_stage( $post_id ) !== $stage ) {
-		return false;
+		return null;
 	}
 
 	if ( $from !== $stage || 'cycle' !== $reason ) {
@@ -339,37 +385,19 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 		// its record always agree. Only the value written here is undone,
 		// never one another request stored since.
 		if ( false === $logged ) {
-			undergrowth_undo_stage( $post_id, $stage, $from, $stored );
+			if ( $stored ) {
+				update_post_meta( $post_id, 'undergrowth_stage', $from, $stage );
+			} else {
+				delete_post_meta( $post_id, 'undergrowth_stage', $stage );
+			}
 
-			return false;
+			return null;
 		}
 
-		/**
-		 * Fires after a post's stage changes or an author acts on it.
-		 *
-		 * @param int $post_id Post ID.
-		 */
-		do_action( 'undergrowth_stage_changed', $post_id );
+		return true;
 	}
 
-	return true;
-}
-
-/**
- * Puts back the stage a post had, but only over the value this request
- * wrote, never one another request stored since.
- *
- * @param int    $post_id  Post ID.
- * @param string $stage    Stage this request wrote.
- * @param string $previous Value the post had before.
- * @param bool   $stored   Whether the post had a stored value before.
- */
-function undergrowth_undo_stage( int $post_id, string $stage, string $previous, bool $stored ): void {
-	if ( $stored ) {
-		update_post_meta( $post_id, 'undergrowth_stage', $previous, $stage );
-	} else {
-		delete_post_meta( $post_id, 'undergrowth_stage', $stage );
-	}
+	return false;
 }
 
 /**
