@@ -46,3 +46,12 @@ if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
 if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
 	require __DIR__ . '/includes/class-wpcom-stats.php';
 }
+
+// Composer loads WP-CLI's class with the i18n command, but not WP-CLI
+// itself. Its helper functions and the commands file are loaded here, so the
+// commands can be run with a logger that keeps what they print.
+if ( class_exists( 'WP_CLI' ) ) {
+	require_once dirname( __DIR__, 2 ) . '/vendor/wp-cli/wp-cli/php/utils.php';
+	require __DIR__ . '/includes/class-undergrowth-test-cli-logger.php';
+	require dirname( __DIR__, 2 ) . '/src/cli.php';
+}
