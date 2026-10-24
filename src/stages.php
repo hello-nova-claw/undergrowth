@@ -295,7 +295,23 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 	$from   = undergrowth_get_stage( $post_id );
 	$stored = metadata_exists( 'post', $post_id, 'undergrowth_stage' );
 
-	update_post_meta( $post_id, 'undergrowth_stage', $stage );
+	// A pin can still complete between that check and this write. One to
+	// another stage has replaced the stage this request read, so the cycle
+	// writes only over that one, and a pin that came in the meantime is
+	// found again below and the cycle's write undone.
+	$written = update_post_meta( $post_id, 'undergrowth_stage', $stage, 'cycle' === $reason && $stored ? $from : '' );
+
+	if ( 'cycle' === $reason ) {
+		wp_cache_delete( $post_id, 'post_meta' );
+
+		if ( undergrowth_is_stage_pinned( $post_id ) ) {
+			if ( false !== $written && $from !== $stage ) {
+				undergrowth_undo_stage( $post_id, $stage, $from, $stored );
+			}
+
+			return false;
+		}
+	}
 
 	if ( undergrowth_get_stage( $post_id ) !== $stage ) {
 		return false;
@@ -319,11 +335,7 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 		// its record always agree. Only the value written here is undone,
 		// never one another request stored since.
 		if ( false === $logged ) {
-			if ( $stored ) {
-				update_post_meta( $post_id, 'undergrowth_stage', $from, $stage );
-			} else {
-				delete_post_meta( $post_id, 'undergrowth_stage', $stage );
-			}
+			undergrowth_undo_stage( $post_id, $stage, $from, $stored );
 
 			return false;
 		}
@@ -337,6 +349,23 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 	}
 
 	return true;
+}
+
+/**
+ * Puts back the stage a post had, but only over the value this request
+ * wrote, never one another request stored since.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $stage   Stage this request wrote.
+ * @param string $from    Stage the post had before.
+ * @param bool   $stored  Whether the post had a stored stage before.
+ */
+function undergrowth_undo_stage( int $post_id, string $stage, string $from, bool $stored ): void {
+	if ( $stored ) {
+		update_post_meta( $post_id, 'undergrowth_stage', $from, $stage );
+	} else {
+		delete_post_meta( $post_id, 'undergrowth_stage', $stage );
+	}
 }
 
 /**
