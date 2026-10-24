@@ -285,6 +285,41 @@ class Test_Uninstall extends WP_UnitTestCase {
 		return $matches[1];
 	}
 
+	/**
+	 * Removes every hook callback the plugin added, as on a site where it is
+	 * inactive.
+	 *
+	 * @return int How many callbacks were removed.
+	 */
+	private function remove_plugin_hooks(): int {
+		global $wp_filter;
+
+		$src     = realpath( dirname( __DIR__, 2 ) ) . '/';
+		$removed = 0;
+
+		foreach ( $wp_filter as $hook => $filter ) {
+			foreach ( $filter->callbacks as $priority => $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					$function = $callback['function'];
+
+					if ( ! ( $function instanceof Closure ) && ! ( is_string( $function ) && 0 === strpos( $function, 'undergrowth_' ) ) ) {
+						continue;
+					}
+
+					$file = ( new ReflectionFunction( $function ) )->getFileName();
+
+					// Closures the test suite added are left alone.
+					if ( 0 === strpos( (string) realpath( (string) $file ), $src ) && false === strpos( (string) $file, '/tests/' ) ) {
+						remove_filter( $hook, $function, $priority );
+						++$removed;
+					}
+				}
+			}
+		}
+
+		return $removed;
+	}
+
 	public function test_uninstall_file_deletes_every_option() {
 		foreach ( $this->options() as $option ) {
 			update_option( $option, 'x', false );
@@ -293,6 +328,11 @@ class Test_Uninstall extends WP_UnitTestCase {
 		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 			define( 'WP_UNINSTALL_PLUGIN', plugin_basename( UNDERGROWTH_FILE ) );
 		}
+
+		// WordPress runs uninstall.php with the plugin inactive, so none of its
+		// hooks are there. The suite puts every hook back after the test.
+		$removed = $this->remove_plugin_hooks();
+		$this->assertGreaterThan( 0, $removed );
 
 		// The plugin is already loaded, so the file's require_once lines add
 		// nothing; a scope of its own keeps its variables out of this one.
