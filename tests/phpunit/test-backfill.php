@@ -653,6 +653,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		do_action( 'undergrowth_backfill_check' );
 		$this->run_cron();
 
+		$this->assertSame( 3, undergrowth_index_counts()['indexed'] );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
 	}
 
@@ -666,6 +667,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		undergrowth_start_backfill();
 		$this->run_cron();
 
+		$this->assertSame( 1, undergrowth_index_counts()['indexed'] );
 		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
 	}
