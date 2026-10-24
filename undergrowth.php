@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Undergrowth
  * Plugin URI:        https://github.com/hello-nova-claw/undergrowth
- * Description:       Uses AI to read your site and ask you questions. It never writes a word your readers will see.
+ * Description:       Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.
  * Version:           0.1.0
  * Requires at least: 6.9
  * Requires PHP:      7.4
