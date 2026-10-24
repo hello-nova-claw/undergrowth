@@ -52,6 +52,7 @@ require_once __DIR__ . '/src/dashboard.php';
 require_once __DIR__ . '/src/meter.php';
 require_once __DIR__ . '/src/posts-screen.php';
 require_once __DIR__ . '/src/help.php';
+require_once __DIR__ . '/src/site-health.php';
 require_once __DIR__ . '/src/blocks.php';
 require_once __DIR__ . '/src/editor.php';
 require_once __DIR__ . '/src/editor-links.php';

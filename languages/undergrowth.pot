@@ -1544,6 +1544,40 @@ msgstr ""
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
+#: src/site-health.php
+msgid "Undergrowth reads your posts"
+msgstr ""
+
+#. translators: %1$s: DISABLE_WP_CRON, the name of a setting in wp-config.php.
+#: src/site-health.php
+#, php-format
+msgid "No post has been read for a day, which usually means WP-Cron is not running: it runs only when someone visits the site, and not at all when %1$s is set and no server cron job calls it."
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth is reading your posts"
+msgstr ""
+
+#: src/site-health.php
+msgid "Performance"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth reads your published posts in the background, with WP-Cron."
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth has not read a post for a day"
+msgstr ""
+
+#: src/site-health.php
+msgid "https://developer.wordpress.org/plugins/cron/hooking-wp-cron-into-the-system-task-scheduler/"
+msgstr ""
+
+#: src/site-health.php
+msgid "How to run WP-Cron from a server cron job"
+msgstr ""
+
 #: src/stages.php
 msgid "Growth stage, measured from the links between posts or chosen by the author."
 msgstr ""
