@@ -21,6 +21,7 @@ function undergrowth_protected_meta_keys(): array {
 	return array(
 		'undergrowth_cluster',
 		'undergrowth_discord_messages',
+		'undergrowth_pending_links',
 		'undergrowth_prompt_keys',
 		'undergrowth_prompt_log',
 		'undergrowth_resurfacing',
@@ -273,6 +274,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_resurfacing' );
 	delete_post_meta_by_key( 'undergrowth_resurfacing_log' );
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
+	delete_post_meta_by_key( 'undergrowth_pending_links' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	undergrowth_delete_memory_folder();
 	delete_option( 'undergrowth_memory_folder' );

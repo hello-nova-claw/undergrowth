@@ -413,6 +413,22 @@ const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
 	} )
 );
 
+// Filled in once the sidebar's posts exist, since the shots need their IDs.
+const sidebarPosts = {};
+
+// The Undergrowth sidebar in the editor: a post with suggestions of its own,
+// and a post others could link to.
+const WITH_SIDEBAR = [ 'suggestions', 'incoming' ].map( ( state ) => ( {
+	screen: 'editor-sidebar',
+	state,
+	sidebar: () => sidebarPosts[ state ],
+	// A build from before the sidebar has none to show.
+	open: ( page ) =>
+		page.evaluate( () =>
+			Boolean( window.wp.plugins?.getPlugin( 'undergrowth-links' ) )
+		),
+} ) );
+
 // Posts share fixture words, so the e2e provider suggests links between them.
 const POSTS = [
 	{ title: 'Oca', content: '<p>Oca grows here. I keep yacon nearby.</p>' },
@@ -489,6 +505,27 @@ async function showPanel( page ) {
 }
 
 /**
+ * Shows the Undergrowth sidebar in the editor.
+ *
+ * The editor closes its sidebar when the window narrows, so this runs again
+ * at each width.
+ *
+ * @param {import('@playwright/test').Page} page Editor page.
+ */
+async function showSidebar( page ) {
+	// Through the editor's store, since the toolbar button is named in the
+	// site's language.
+	await page.evaluate( () =>
+		window.wp.data
+			.dispatch( 'core/edit-post' )
+			.openGeneralSidebar( 'undergrowth-links/undergrowth-links' )
+	);
+	await page
+		.locator( '.undergrowth-links-sidebar .undergrowth-links-loaded' )
+		.waitFor();
+}
+
+/**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
  *
  * The comparison pairs before and after shots by file name alone, so the name
@@ -555,6 +592,8 @@ function capture( states ) {
 						.waitFor();
 				} else if ( entry.panel ) {
 					await admin.editPost( entry.panel() );
+				} else if ( entry.sidebar ) {
+					await admin.editPost( entry.sidebar() );
 				} else {
 					await admin.visitAdminPage( ...entry.page );
 				}
@@ -619,6 +658,10 @@ function capture( states ) {
 
 					if ( entry.panel ) {
 						await showPanel( page );
+					}
+
+					if ( entry.sidebar ) {
+						await showSidebar( page );
 					}
 					await page.screenshot( {
 						path: shot,
@@ -965,5 +1008,32 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_PANEL );
+	} );
+
+	test.describe( 'with the editor sidebar', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// Oca suggests a link to Yacon, so Yacon has one that could link to it.
+			sidebarPosts.suggestions = (
+				await requestUtils.createPost( {
+					title: 'Oca',
+					content:
+						'<!-- wp:paragraph --><p>Oca grows here. I keep yacon nearby.</p><!-- /wp:paragraph -->',
+					status: 'publish',
+				} )
+			).id;
+			sidebarPosts.incoming = (
+				await requestUtils.createPost( {
+					title: 'Yacon',
+					content:
+						'<!-- wp:paragraph --><p>Yacon syrup is sweet.</p><!-- /wp:paragraph -->',
+					status: 'publish',
+				} )
+			).id;
+		} );
+
+		capture( WITH_SIDEBAR );
 	} );
 } );
