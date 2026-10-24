@@ -13,7 +13,7 @@ Undergrowth's rules are fixed in code (handover section 2, principle 6). These h
 | `undergrowth_embed_provider` | `src/embed.php` | Supplies the vector for a text yourself, for example from a model on the same server. Return a list of numbers, or `null` to let the next provider run. Hook `undergrowth_embed_identity` as well. A vector without its own identity is never stored, and while an OpenAI key is saved it is replaced by OpenAI's. See `docs/examples/local-embeddings.php`. |
 | `undergrowth_embed_identity` | `src/embed.php` | The provider and model names stored with every vector, as `array( 'provider' => …, 'model' => … )`. Vectors from different models are never compared. Changing either name re-embeds the whole index from cron, a batch at a time. |
 | `undergrowth_post_language` | `src/indexer.php` | The language stored with a post's vector, the site locale by default. Multilingual plugins return each post's own language, and posts in different languages are never compared. While nothing hooks this, a change of site locale re-embeds the whole index. |
-| `undergrowth_post_types` | `src/indexer.php` | The post types whose published posts are read. Default `array( 'post' )`. |
+| `undergrowth_post_types` | `src/indexer.php` | The post types whose published posts are read. Default the ones ticked under Post types on Settings > Undergrowth, `array( 'post' )` until then. While it is used, those boxes cannot be changed. |
 | `undergrowth_backfill_batch_size` | `src/indexer.php` | How many posts one backfill run embeds. Default 20. |
 | `undergrowth_backfill_time_budget` | `src/indexer.php` | How many seconds one backfill run may keep starting new posts. Default 15. |
 
