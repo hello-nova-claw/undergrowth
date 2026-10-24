@@ -33,7 +33,7 @@ msgstr ""
 
 #. Description of the plugin
 #: undergrowth.php
-msgid "Uses AI to read your site and ask you questions. It never writes a word your readers will see."
+msgid "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide."
 msgstr ""
 
 #. Author of the plugin

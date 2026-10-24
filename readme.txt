@@ -8,19 +8,27 @@ Stable tag: 0.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Uses AI to read your site and ask you questions. It never writes a word your readers will see.
+Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.
 
 == Description ==
 
-Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and it changes a post's text only when you accept a suggestion.
+* **Your old posts get read again.** Each post gets up to three links to your closest other posts, each at a sentence you already wrote.
+* **You see what you have been circling.** Once a month the Map groups your posts by meaning, names each group from your own words, and shows the gaps between them.
+* **A question to start your next post.** With an Anthropic key, Claude now and then asks you one on your Dashboard, drawn from your posts and your readers' comments. Never a draft, never a streak.
 
-The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and approved comments, which it treats as data, never as instructions.
+You stay in charge:
 
-* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence of your own. Accept one and Undergrowth links a few of your words in that sentence to the other post, keeping a revision. Veto one and it is never suggested again.
-* **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never go down, and you can pin one.
+* **One link per Accept, with a revision.** Nothing in a post changes until you accept a suggestion.
+* **A veto is remembered.** A suggestion you veto is never made again.
+* **Nothing leaves your site until you set up a service**, and nothing goes to the plugin's developers.
+
+Internal links are SEO from a different direction: they come from what you actually wrote, between posts that belong together, so readers and search engines find your best work. The AI may speak to you, but never for you: nothing a model writes is shown to your readers, and approved comments are read as data, never as instructions.
+
+Also in this version:
+
+* **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured monthly from your accepted links and clusters. Stages never go down, and you can pin one.
 * **Composting.** Let a post rest. It stays published and keeps its links, but gets no new suggestions. When it sits close to what you are writing now, Undergrowth tells you once.
-* **One question at a time.** With an Anthropic key, Claude writes an occasional question on your Dashboard, from a gap between your posts, a reader's question in an approved comment, or a composting post. It is always a question, never a draft, and it quotes nobody but you. There are no streaks and no reminders.
-* **A plain-text file for each post**, recording its stage, its suggestions, your vetoes and the questions you were asked.
+* **A plain-text file for each post**, recording its stage, suggestions, vetoes and questions.
 * **A Growth stage block** that shows readers a post's stage as a line of text your theme styles.
 * **Discord, optionally.** Each new suggestion can be posted to a private channel in your own Discord server, with Accept and Veto buttons.
 * **A readers meter.** With Jetpack Stats on, your page views in the last 30 days against a milestone of 1,000.
