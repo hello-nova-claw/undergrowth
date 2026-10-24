@@ -242,17 +242,19 @@ echo wp_json_encode( array( 'ready' => $counts['total'] > 0 && $counts['indexed'
 const acceptCode = `<?php
 require '/wordpress/wp-load.php';
 wp_set_current_user( 1 );
-$counts = array();
-if ( undergrowth_start_dev_job( 'accept' ) ) {
-	$job    = undergrowth_run_dev_job( null );
-	$counts = null === $job ? array() : $job['counts'];
+if ( ! undergrowth_start_dev_job( 'accept' ) ) {
+	echo wp_json_encode( array( 'busy' => true ) );
+	return;
 }
+$job    = undergrowth_run_dev_job( null );
+$counts = null === $job ? array() : $job['counts'];
 undergrowth_dev_run_cycle();
 echo wp_json_encode( array( 'counts' => (object) $counts, 'groups' => count( undergrowth_cluster_map() ) ) );
 `;
 
 /**
  * Once every post is read, accepts every suggestion and runs the cycle, once.
+ * While a job started from the Dev tools tab is running, it waits for it.
  */
 async function acceptWhenRead() {
 	try {
@@ -265,8 +267,12 @@ async function acceptWhenRead() {
 				( await server.playground.run( { code: acceptCode } ) ).text
 			);
 
-			process.stdout.write( autoAcceptMessage( result ) );
-			return;
+			// Another dev tools job, started from the tab, holds the site:
+			// nothing was accepted or run, so try again once it is done.
+			if ( ! result.busy ) {
+				process.stdout.write( autoAcceptMessage( result ) );
+				return;
+			}
 		}
 	} catch ( error ) {
 		process.stderr.write(
