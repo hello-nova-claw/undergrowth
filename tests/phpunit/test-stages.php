@@ -1281,6 +1281,7 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertSame( $messages['stage_pin_lost'], undergrowth_pin_lost()->get_error_message() );
 		$this->assertSame( $messages['stage_pin_left'], undergrowth_pin_left()->get_error_message() );
+		$this->assertSame( $messages['stage_not_saved'], undergrowth_stage_not_saved()->get_error_message() );
 	}
 
 	public function test_pin_that_cannot_be_restored_says_so() {
