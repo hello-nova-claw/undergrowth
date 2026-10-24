@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 5;
+const UNDERGROWTH_SCHEMA_VERSION = 6;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -106,7 +106,6 @@ function undergrowth_install_schema(): bool {
 			state varchar(20) NOT NULL,
 			score double NOT NULL,
 			sentence text NOT NULL,
-			sentence_index int(11) NOT NULL DEFAULT -1,
 			anchor varchar(255) NOT NULL DEFAULT '',
 			anchor_offset int(11) NOT NULL DEFAULT -1,
 			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
@@ -118,6 +117,17 @@ function undergrowth_install_schema(): bool {
 			) {$charset_collate};",
 		)
 	);
+
+	// dbDelta() never drops a column, so one that nothing reads any more is
+	// dropped here. Version 6 dropped sentence_index. A drop that fails
+	// leaves the version unrecorded, so the next load tries again.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table.
+	if ( array() !== (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $links, 'sentence_index' ) ) ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrading the plugin's own table.
+		if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN sentence_index', $links ) ) ) {
+			return false;
+		}
+	}
 
 	// dbDelta() reports no errors, so check the result. Recording the version
 	// after a failed CREATE would stop every later load from retrying it.

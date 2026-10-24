@@ -653,15 +653,14 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 		$state                 = undergrowth_link_state( $post_id, $target_id );
 		$anchor                = undergrowth_proposal_anchor( $post_id, $target_id, $sentence['text'], $corpus );
 		$fields                = array(
-			'score'          => $score,
-			'sentence'       => $sentence['text'],
-			'sentence_index' => $sentence['index'],
-			'anchor'         => $anchor['anchor'],
-			'anchor_offset'  => $anchor['offset'],
-			'anchor_chosen'  => 0,
-			'updated_at'     => $now,
+			'score'         => $score,
+			'sentence'      => $sentence['text'],
+			'anchor'        => $anchor['anchor'],
+			'anchor_offset' => $anchor['offset'],
+			'anchor_chosen' => 0,
+			'updated_at'    => $now,
 		);
-		$formats               = array( '%f', '%s', '%d', '%s', '%d', '%d', '%s' );
+		$formats               = array( '%f', '%s', '%s', '%d', '%d', '%s' );
 
 		if ( 'proposed' === $state ) {
 			// Words the author chose stay theirs while the sentence they
@@ -671,7 +670,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 			if ( $sentence['text'] === $chosen ) {
 				unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
-				$formats = array( '%f', '%s', '%d', '%s' );
+				$formats = array( '%f', '%s', '%s' );
 			}
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.

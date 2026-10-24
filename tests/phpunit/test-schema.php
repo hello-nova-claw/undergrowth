@@ -262,7 +262,6 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( 0.75, (float) $link['score'], 0.0001 );
 		$this->assertSame( 'An old sentence.', $link['sentence'] );
 		$this->assertSame( '2026-01-03 03:04:05', $link['updated_at'] );
-		$this->assertSame( -1, (int) $link['sentence_index'] );
 		$this->assertSame( '', $link['anchor'] );
 		$this->assertSame( -1, (int) $link['anchor_offset'] );
 		$this->assertSame( 0, (int) $link['anchor_chosen'] );
@@ -299,6 +298,46 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( str_repeat( 'a', 64 ), $vector['content_hash'] );
 		$this->assertSame( '2026-01-02 03:04:05', $vector['embedded_at'] );
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
+	}
+
+	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
+		global $wpdb;
+
+		$current = $this->install_version_one();
+		$links   = undergrowth_links_table();
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
+		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
+		update_option( 'undergrowth_schema_version', 5 );
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assert_current_columns( $current );
+	}
+
+	public function test_version_is_not_recorded_when_the_sentence_index_stays() {
+		global $wpdb;
+
+		$this->install_version_one();
+		$links = undergrowth_links_table();
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
+		update_option( 'undergrowth_schema_version', 5 );
+		// wpdb sends no empty query and reports it as failed, as for a refused ALTER.
+		$refuse = static function ( $query ) {
+			return false !== stripos( $query, 'DROP COLUMN sentence_index' ) ? '' : $query;
+		};
+		add_filter( 'query', $refuse );
+
+		$this->assertFalse( undergrowth_install_schema() );
+		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( 5, (int) get_option( 'undergrowth_schema_version' ) );
+
+		// The next load tries again. On MySQL the table changes commit the
+		// option too, so a version left behind would reach later tests.
+		remove_filter( 'query', $refuse );
+		$this->assertTrue( undergrowth_install_schema() );
+		$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
 	public function test_current_schema_version_skips_install() {
