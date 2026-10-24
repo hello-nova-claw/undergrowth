@@ -10,7 +10,8 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'site_status_tests', 'undergrowth_add_site_health_tests' );
 
 /**
- * Adds the backfill test to Site Health while there is a provider to read with.
+ * Adds the backfill test to Site Health while there is a provider to read
+ * with and posts are left to read.
  *
  * @param array $tests Site Health tests, by type.
  * @return array The tests, with the backfill test among the direct ones.
@@ -20,6 +21,12 @@ add_filter( 'site_status_tests', 'undergrowth_add_site_health_tests' );
  */
 function undergrowth_add_site_health_tests( array $tests ): array {
 	if ( ! undergrowth_has_embed_provider() ) {
+		return $tests;
+	}
+
+	$counts = undergrowth_index_counts();
+
+	if ( $counts['indexed'] >= $counts['total'] ) {
 		return $tests;
 	}
 
