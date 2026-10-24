@@ -1,0 +1,1 @@
+Settings > Privacy > Policy Guide has a section on what Undergrowth sends to OpenAI, Anthropic and Discord, and Tools > Export Personal Data and Erase Personal Data now include a Discord user ID linked on a profile.
