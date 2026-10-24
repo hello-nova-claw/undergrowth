@@ -14,13 +14,13 @@ Links your posts to each other in your own words, and shows you what your archiv
 
 * **Your old posts get read again.** Each post gets up to three links to your closest other posts, each at a sentence you already wrote.
 * **You see what you have been circling.** Once a month the Map groups your posts by meaning, names each group from your own words, and shows the gaps between them.
-* **Your next post starts with a question.** With an Anthropic key, Claude asks you one question at a time on your Dashboard, drawn from your posts and your readers' comments. Never a draft, never a streak.
+* **A question to start your next post.** With an Anthropic key, Claude now and then asks you one on your Dashboard, drawn from your posts and your readers' comments. Never a draft, never a streak.
 
 You stay in charge:
 
 * **One link per Accept, with a revision.** Nothing in a post changes until you accept a suggestion.
 * **A veto is remembered.** A suggestion you veto is never made again.
-* **Nothing leaves your site until you add a key**, and nothing goes to the plugin's developers.
+* **Nothing leaves your site until you set up a service**, and nothing goes to the plugin's developers.
 
 Internal links are SEO from a different direction: they come from what you actually wrote, between posts that belong together, so readers and search engines find your best work. The AI may speak to you, but never for you: nothing a model writes is shown to your readers, and approved comments are read as data, never as instructions.
 
