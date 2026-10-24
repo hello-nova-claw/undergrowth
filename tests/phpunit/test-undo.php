@@ -496,7 +496,6 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->assertSame( admin_url( 'plugins.php?undergrowth_notice=first_run_restored' ), $this->call( 'undergrowth_restore_first_run' ) );
 		$this->assertSame( 'waiting', get_option( 'undergrowth_first_run' ) );
 
-		// The result is announced and takes focus, and the notice is back below it.
 		$html = $this->plugins_notice( 'first_run_restored' );
 
 		$this->assertStringContainsString( 'role="status"', $html );
@@ -507,7 +506,7 @@ class Test_Undo extends WP_UnitTestCase {
 	public function test_the_first_run_notice_is_not_restored_after_a_key_was_saved_and_removed() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->without_provider();
-		update_option( 'undergrowth_first_run', 'waiting' );
+		update_option( 'undergrowth_first_run', 'dismissed' );
 		update_option( 'undergrowth_openai_api_key', 'sk-test-0123456789abcd' );
 		update_option( 'undergrowth_openai_api_key', '' );
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_restore_first_run' );
@@ -531,6 +530,16 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth_restore_first_run', $this->plugins_notice( 'first_run_dismissed' ) );
 
 		$this->call( 'undergrowth_restore_first_run' );
+
+		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+	}
+
+	public function test_a_stale_dismiss_link_leaves_a_saved_key_s_end_in_place() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		update_option( 'undergrowth_first_run', 'done' );
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_dismiss_first_run' );
+
+		$this->call( 'undergrowth_dismiss_first_run' );
 
 		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
 	}

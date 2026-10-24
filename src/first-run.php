@@ -95,8 +95,11 @@ function undergrowth_dismiss_first_run(): void {
 	}
 
 	// Dismissed rather than done, so only a dismissal can be undone, never
-	// the end that saving a key brings.
-	update_option( 'undergrowth_first_run', 'dismissed', false );
+	// the end that saving a key brings. A Dismiss link left open while a key
+	// was saved in another tab finds the first run done, and leaves it so.
+	if ( 'waiting' === get_option( 'undergrowth_first_run' ) ) {
+		update_option( 'undergrowth_first_run', 'dismissed', false );
+	}
 
 	wp_safe_redirect( add_query_arg( 'undergrowth_notice', 'first_run_dismissed', admin_url( 'plugins.php' ) ) );
 	exit;
