@@ -431,14 +431,16 @@ function undergrowth_editor_link_error( string $result ): WP_Error {
  * same post kept elsewhere, leaves its suggestion as it was. Either way the
  * note is cleared, so a link added later by hand is not counted as one
  * accepted through Undergrowth, unless the link is saved and only storing
- * the acceptance failed. Revisions and autosaves are not the post, so they
- * leave the note for the real save.
+ * the acceptance failed. Revisions and autosaves, including a draft's
+ * autosave to the post itself, leave the note for the real save.
  *
  * @param int     $post_id Post ID.
  * @param WP_Post $post    Post as saved.
  */
 function undergrowth_accept_saved_links( $post_id, $post ): void {
-	if ( ! $post instanceof WP_Post || 'revision' === $post->post_type ) {
+	// A draft's autosave writes to the post itself rather than to a revision,
+	// and may hold the editor's content from before a Redo.
+	if ( ! $post instanceof WP_Post || 'revision' === $post->post_type || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) {
 		return;
 	}
 
