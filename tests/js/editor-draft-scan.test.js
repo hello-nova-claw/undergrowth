@@ -212,6 +212,40 @@ describe( 'Scan this draft', () => {
 		).toContain( 'Seed ledger' );
 	} );
 
+	test( 'moves focus to the note that replaces the pressed Accept', async () => {
+		const linkedHtml = `I keep the <a href="${ URL }">seed ledger</a> by the door.`;
+		replies = [
+			{ available: true, destination: DESTINATION, unavailable: '' },
+			scanned(),
+			{ id: 'p1', content: linkedHtml, message: 'Linked, scan focus.' },
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+		const render = ( content ) =>
+			root.render(
+				<DraftScan
+					postId={ 42 }
+					getDraft={ () => DRAFT }
+					paragraphs={ [ { id: 'p1', content } ] }
+					onLink={ ( id, html ) => render( html ) }
+				/>
+			);
+
+		flushSync( () => render( SENTENCE ) );
+		await waitFor( () => button( container, 'Scan this draft' ) );
+		button( container, 'Scan this draft' ).click();
+		await waitFor( () => button( container, 'Accept' ) );
+		button( container, 'Accept' ).click();
+		await waitFor( () => ! button( container, 'Accept' ) );
+		await new Promise( ( resolve ) => setTimeout( resolve, 10 ) );
+
+		expect( document.activeElement ).toBe(
+			container.querySelector( '.undergrowth-suggestion .description' )
+		);
+	} );
+
 	test( 'says when nothing is close enough', async () => {
 		replies = [
 			{ available: true, destination: DESTINATION, unavailable: '' },
