@@ -41,3 +41,4 @@ playwright.screenshots.config.js
 .*
 /.wordpress-org
 CLAUDE.md
+webpack.config.js
