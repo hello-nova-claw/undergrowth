@@ -222,6 +222,8 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 	const outgoing = useRef();
 	const chooseButtons = useRef( {} );
 	const refocus = useRef( 0 );
+	const linkedNotes = useRef( {} );
+	const justLinked = useRef( 0 );
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const path = `/undergrowth/v1/posts/${ postId }/links`;
 
@@ -278,6 +280,18 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 		if ( refocus.current && ! choosing ) {
 			chooseButtons.current[ refocus.current ]?.focus();
 			refocus.current = 0;
+		}
+	} );
+
+	// Accept's buttons go once the paragraph holds the link, which can be a
+	// render after the answer, so focus moves to the note that replaces them
+	// as soon as it is there.
+	useLayoutEffect( () => {
+		const note = linkedNotes.current[ justLinked.current ];
+
+		if ( note ) {
+			note.focus();
+			justLinked.current = 0;
 		}
 	} );
 
@@ -355,7 +369,14 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 									</Notice>
 								) }
 								{ linked && (
-									<p className="description">
+									<p
+										className="description"
+										tabIndex={ -1 }
+										ref={ ( element ) => {
+											linkedNotes.current[ item.target ] =
+												element;
+										} }
+									>
 										{ __(
 											'Linked. The suggestion is accepted when you save the post.',
 											'undergrowth'
@@ -439,11 +460,14 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 													act(
 														item.target,
 														'accept',
-														( answer ) =>
+														( answer ) => {
+															justLinked.current =
+																item.target;
 															onLink(
 																answer.id,
 																answer.content
-															),
+															);
+														},
 														{ paragraphs }
 													)
 												}
