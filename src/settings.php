@@ -390,6 +390,12 @@ function undergrowth_render_key_field( array $args ): void {
 		</p>
 	<?php endif; ?>
 
+	<?php if ( 'anthropic' === $provider && '' !== $key && ! undergrowth_has_written_prompt() ) : ?>
+		<p class="description" id="undergrowth-anthropic-no-question">
+			<?php esc_html_e( 'No question yet. Undergrowth asks one when a reader asks a question in an approved comment, a gap appears on the Map, or you move a post to compost.', 'undergrowth' ); ?>
+		</p>
+	<?php endif; ?>
+
 	<?php
 	if ( is_array( $error ) && isset( $error['time'] ) ) {
 		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) );
@@ -571,6 +577,9 @@ function undergrowth_render_posts_read_field(): void {
 		</p>
 	<?php endif; ?>
 	<?php
+	if ( undergrowth_backfill_stalled() ) {
+		undergrowth_print_failure_notice( undergrowth_backfill_stalled_text(), 'undergrowth-backfill-stalled' );
+	}
 }
 
 /**

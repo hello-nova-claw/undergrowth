@@ -100,6 +100,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'prompt-asked',
+		page: SETTINGS,
+		fixture: 'prompt-asked',
+	},
+	{
+		screen: 'settings',
 		state: 'prompt-last-error',
 		page: SETTINGS,
 		fixture: 'prompt-last-error',
@@ -214,6 +220,12 @@ const WITH_POSTS = [
 		state: 'index-partial',
 		page: SETTINGS,
 		fixture: 'index-partial',
+	},
+	{
+		screen: 'settings',
+		state: 'backfill-stalled',
+		page: SETTINGS,
+		fixture: 'backfill-stalled',
 	},
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
 	{

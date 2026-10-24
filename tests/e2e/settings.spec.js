@@ -280,6 +280,26 @@ test.describe( 'Settings page', () => {
 		await expect( remove ).toHaveCount( 0 );
 	} );
 
+	test( 'says why there is no question yet once an Anthropic key is saved', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		const sentence = page.locator( '#undergrowth-anthropic-no-question' );
+
+		await expect( sentence ).toHaveCount( 0 );
+
+		await useFixture( context, baseURL, 'prompt-key-saved' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+		await expect( sentence ).toBeVisible();
+
+		await useFixture( context, baseURL, 'prompt-asked' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+		await expect( sentence ).toHaveCount( 0 );
+		await expect( page.locator( '.wrap' ) ).toContainText( 'mnop' );
+	} );
+
 	test( 'has no WCAG 2.2 AA violations with a failing Anthropic key', async ( {
 		admin,
 		page,
@@ -473,6 +493,52 @@ test.describe( 'Settings page', () => {
 				.evaluate( ( wrap ) => wrap.scrollWidth );
 
 			expect( width ).toBeLessThanOrEqual( 390 );
+		} );
+
+		test( 'says when no post has been read for a day', async ( {
+			admin,
+			page,
+			context,
+			baseURL,
+		} ) => {
+			await context.addCookies( [
+				{
+					name: 'undergrowth_e2e_fixture',
+					value: 'backfill-stalled',
+					url: baseURL,
+				},
+			] );
+			await admin.visitAdminPage(
+				'options-general.php',
+				'page=undergrowth'
+			);
+
+			const notice = page.locator( '#undergrowth-backfill-stalled' );
+
+			await expect( notice ).toContainText( 'WP-Cron' );
+			await expect( notice ).toContainText( 'DISABLE_WP_CRON' );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			await admin.visitAdminPage( 'site-health.php' );
+
+			await expect(
+				page.getByText( 'Undergrowth has not read a post for a day' )
+			).toBeVisible();
+		} );
+
+		test( 'says nothing of a stall once every post is read', async ( {
+			admin,
+			page,
+		} ) => {
+			await expect(
+				page.locator( '#undergrowth-backfill-stalled' )
+			).toHaveCount( 0 );
+
+			await admin.visitAdminPage( 'site-health.php' );
+
+			await expect(
+				page.getByText( 'Undergrowth has not read a post for a day' )
+			).toHaveCount( 0 );
 		} );
 	} );
 

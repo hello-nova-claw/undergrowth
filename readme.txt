@@ -45,7 +45,7 @@ Suggestions appear on Posts > Undergrowth shortly after a post is read. Clusters
 
 * WordPress 6.9 or later, for the Abilities API.
 * PHP 7.4 or later, with the mbstring extension.
-* WP-Cron, or a real cron job calling it.
+* WP-Cron, or a real cron job calling it. Every request to an outside service runs from cron, so the editor never waits for one. On a site with few visitors, or with `DISABLE_WP_CRON` set and no server cron job, older posts may take days to be read, and Settings and Site Health say so when WP-Cron has not run the reading for a day.
 * For Discord only: a site reachable from the internet over HTTPS.
 
 == Frequently Asked Questions ==
@@ -73,6 +73,10 @@ Undergrowth is free. The services bill your own accounts. At OpenAI's published 
 = Does it need a key to work at all? =
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [An example](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php) uses a model on your own server, such as Ollama, so nothing leaves it. Questions need an Anthropic key. With neither, Undergrowth sends nothing and waits.
+
+= Why is there no question on my Dashboard yet? =
+
+No question yet. Undergrowth asks one when a reader asks a question in an approved comment, a gap appears on the Map, or you move a post to compost. On a new site there may be none of these for a while, so the first look after you save the Anthropic key can find nothing to ask about. Settings > Undergrowth says so under the key until the first question is written, and the monthly cycle keeps looking.
 
 = Who can read my keys? =
 
