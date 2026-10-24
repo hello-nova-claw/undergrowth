@@ -156,6 +156,42 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotContains( $yacon, $this->proposed( $oca ) );
 	}
 
+	public function test_link_without_quotes_is_found() {
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+
+		// Saving would add the quotes, so the post is read as it was written.
+		$post = new WP_Post( (object) array( 'post_content' => 'See <a href=' . get_permalink( $yacon ) . '>yacon</a>.' ) );
+
+		$this->assertSame( array( $yacon ), undergrowth_linked_post_ids( $post ) );
+	}
+
+	public function test_link_inside_a_comment_or_an_attribute_is_no_link() {
+		// An author with unfiltered HTML keeps the comment as written.
+		kses_remove_filters();
+
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$url   = esc_url( get_permalink( $yacon ) );
+		$oca   = $this->plant(
+			'Oca',
+			array( 1.0, 0.0, 0.0 ),
+			array( 'post_content' => '<!-- <a href="' . $url . '">old</a> --><p data-note=\'href="' . $url . '"\'>Oca and yacon.</p>' )
+		);
+
+		$this->assertSame( array(), undergrowth_linked_post_ids( get_post( $oca ) ) );
+		$this->assertContains( $yacon, $this->proposed( $oca ) );
+	}
+
+	public function test_link_address_with_entities_is_decoded_once() {
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$oca   = self::factory()->post->create(
+			array(
+				'post_content' => '<a href="' . str_replace( '?', '&#63;', get_permalink( $yacon ) ) . '">yacon</a>',
+			)
+		);
+
+		$this->assertSame( array( $yacon ), undergrowth_linked_post_ids( get_post( $oca ) ) );
+	}
+
 	public function test_vetoed_pair_is_never_proposed_again() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );

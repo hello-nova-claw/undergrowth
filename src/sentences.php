@@ -480,15 +480,32 @@ function undergrowth_word_stem( string $token ): string {
 /**
  * Lists the plain text of a post's headings.
  *
+ * The tag processor leaves out comments and markup inside attributes, and
+ * decodes the text. A heading whose closing tag is missing is left out.
+ *
  * @param string $content Post content.
  * @return string[] Each heading's text, in order.
  */
 function undergrowth_headings( string $content ): array {
-	if ( ! preg_match_all( '#<h[1-6]\b[^>]*>(.*?)</h[1-6]\s*>#is', $content, $matches ) ) {
-		return array();
+	$html     = new WP_HTML_Tag_Processor( $content );
+	$headings = array();
+	$text     = null;
+
+	while ( $html->next_token() ) {
+		$tag = (string) $html->get_tag();
+
+		if ( 1 === preg_match( '/^H[1-6]$/', $tag ) ) {
+			if ( $html->is_tag_closer() && null !== $text ) {
+				$headings[] = $text;
+			}
+
+			$text = $html->is_tag_closer() ? null : '';
+		} elseif ( null !== $text && '#text' === $html->get_token_type() ) {
+			$text .= $html->get_modifiable_text();
+		}
 	}
 
-	return array_map( 'wp_strip_all_tags', $matches[1] );
+	return $headings;
 }
 
 /**
