@@ -267,6 +267,7 @@ function undergrowth_deactivate_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
@@ -318,6 +319,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );

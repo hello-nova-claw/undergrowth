@@ -382,21 +382,53 @@ function undergrowth_measure_cluster( array $members ): ?array {
  *
  * The first batch gives the pass an ID, which every later batch carries.
  * A pass started while another is under way replaces it: a batch of the
- * older pass stops before it changes anything.
+ * older pass stops before it changes anything. Batches run one at a time,
+ * under a lock, so a new pass waits for the batch that is running.
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
- * @param string     $pass     ID of the pass the batch belongs to. Empty for the
- *                            first batch, and for a batch queued before passes had IDs.
+ * @param string     $pass     ID of the pass the batch belongs to. Empty for a new
+ *                            pass, and for a batch queued before passes had IDs.
  */
 function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
-	global $wpdb;
-
 	$after_id = (int) $after_id;
 	$pass     = (string) $pass;
 
-	if ( 0 === $after_id ) {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	// The lock is taken atomically, so checking the pass, resetting the
+	// clusters and storing a batch's own never interleave with another batch.
+	// One left by a batch that died expires when the hourly check would run
+	// that batch again. A batch that finds it taken tries again in a minute.
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', UNDERGROWTH_PASS_STALL ) ) {
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_cluster_cycle', undergrowth_pass_args( $after_id, $pass ) );
+		return;
+	}
+
+	try {
+		undergrowth_run_cluster_batch( $after_id, $pass );
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+	}
+}
+
+/**
+ * Clusters one batch, while holding the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ */
+function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
+	global $wpdb;
+
+	if ( 0 === $after_id && '' === $pass ) {
 		$pass = wp_generate_uuid4();
+	} elseif ( 0 === $after_id ) {
+		// A first batch the hourly check queued again stops when a newer
+		// pass has started since.
+		if ( undergrowth_current_pass( 'undergrowth_cluster_cycle' ) !== $pass ) {
+			return;
+		}
 	} else {
 		$current = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
 

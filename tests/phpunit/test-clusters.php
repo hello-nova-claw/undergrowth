@@ -766,7 +766,7 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
 	}
 
-	public function test_batch_of_a_pass_replaced_while_it_compares_posts_stores_nothing() {
+	public function test_pass_started_while_a_batch_runs_waits_for_it_then_replaces_the_pass() {
 		$posts = array();
 
 		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
@@ -776,7 +776,7 @@ class Test_Clusters extends WP_UnitTestCase {
 		undergrowth_run_cluster_cycle();
 		$pass_a = $this->take_next_batch_args();
 
-		// Pass B starts while A's next batch is reading its first post.
+		// Pass B is started while A's next batch is reading its first post.
 		$started = false;
 		$start_b = static function ( $types ) use ( &$started ) {
 			if ( ! $started ) {
@@ -792,10 +792,41 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		remove_filter( 'undergrowth_post_types', $start_b );
 
+		// A's batch ran undisturbed, and B waits a minute for the lock.
 		$this->assertTrue( $started );
-		$this->assertSame( 0, undergrowth_cluster_leader( end( $posts ) ) );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
-		$this->assertFalse( get_option( 'undergrowth_previous_clusters' ) );
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertGreaterThan( time(), wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+
+		wp_clear_scheduled_hook( 'undergrowth_cluster_cycle', array( 0 ) );
+		undergrowth_run_cluster_cycle( 0 );
+
+		$this->assertNotSame( $pass_a[1], undergrowth_current_pass( 'undergrowth_cluster_cycle' ) );
+	}
+
+	public function test_batch_that_finds_the_lock_taken_tries_again_in_a_minute() {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+		WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', HOUR_IN_SECONDS );
+
+		undergrowth_run_cluster_cycle( 0 );
+
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+
+		$this->assertSame( 0, undergrowth_cluster_leader( $post_id ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertGreaterThan( time(), wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_first_batch_queued_again_for_a_replaced_pass_changes_nothing() {
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
+		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 0, 'pass-b' );
+
+		undergrowth_run_cluster_cycle( 0, 'pass-a' );
+
+		$this->assertSame( $post_id, undergrowth_cluster_leader( $post_id ) );
+		$this->assertSame( 'pass-b', undergrowth_current_pass( 'undergrowth_cluster_cycle' ) );
 	}
 
 	public function test_resumed_batch_keeps_its_pass() {
