@@ -108,7 +108,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+">Oca</a></strong>#', $html );
+		$this->assertMatchesRegularExpression( '#<t[hd] class=.post column-post has-row-actions column-primary. data-colname="Post"[^>]*><strong><a class="row-title" href="[^"]+"><bdi>Oca</bdi></a></strong>#', $html );
 		$this->assertStringNotContainsString( 'post-state', $html );
 		$this->assertStringNotContainsString( 'column-actions', $html );
 	}
@@ -137,7 +137,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<a class="row-title" href="[^"]+">\(no title\)</a>#', $html );
+		$this->assertMatchesRegularExpression( '#<a class="row-title" href="[^"]+"><bdi>\(no title\)</bdi></a>#', $html );
 		$this->assertStringContainsString( 'aria-label="Pin the stage of (no title)"', $html );
 	}
 

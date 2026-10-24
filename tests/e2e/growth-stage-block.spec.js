@@ -118,6 +118,19 @@ test.describe( 'Growth stage block', () => {
 		await expect( badge.locator( '.screen-reader-text' ) ).toHaveCount( 1 );
 		await expectNoA11yViolations( page, BADGE );
 
+		// A classic theme may drop the block library's styles, and with them
+		// the rule that hides .screen-reader-text. The label still stays hidden.
+		await page.evaluate( () =>
+			document
+				.querySelectorAll( 'link[rel="stylesheet"], style' )
+				.forEach( ( sheet ) => sheet.remove() )
+		);
+		const label = await badge
+			.locator( '.screen-reader-text' )
+			.boundingBox();
+		expect( label.width ).toBeLessThanOrEqual( 1 );
+		expect( label.height ).toBeLessThanOrEqual( 1 );
+
 		// Composted the way an author would, from the Posts screen.
 		await admin.visitAdminPage( 'edit.php' );
 		const compost = page.locator(

@@ -115,9 +115,9 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertSame( 2, substr_count( $html, '<ul class="undergrowth-cluster"' ) );
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Around “Yacon”</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Yacon'] . '">Around “<bdi>Yacon</bdi>”</h2>', $html );
 		$this->assertStringContainsString( 'aria-labelledby="undergrowth-cluster-' . $posts['Yacon'] . '"', $html );
-		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post\\.php\\?post=' . $posts['Yacon syrup'] . '&[^"]*action=edit">Yacon syrup<\\/a> \\(Budding\\)<\\/li>/', $html );
+		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post\\.php\\?post=' . $posts['Yacon syrup'] . '&[^"]*action=edit"><bdi>Yacon syrup<\\/bdi><\\/a> \\(Budding\\)<\\/li>/', $html );
 
 		foreach ( $posts as $title => $post_id ) {
 			$this->assertStringContainsString( '>' . $title . '</a> (', $html );
@@ -143,7 +143,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$posts = $this->plant_clusters();
 		$html  = $this->render();
 
-		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Around “Oca”, with a gap</h2>', $html );
+		$this->assertStringContainsString( '<h2 id="undergrowth-cluster-' . $posts['Oca'] . '">Around “<bdi>Oca</bdi>”, with a gap</h2>', $html );
 		$this->assertSame( 1, substr_count( $html, 'class="undergrowth-gap"' ) );
 		$this->assertMatchesRegularExpression( '/<p class="undergrowth-gap"><span class="dashicons dashicons-flag" aria-hidden="true"><\/span> [^<]+<\/p>/', $html );
 	}
@@ -176,14 +176,14 @@ class Test_Admin_Map extends WP_UnitTestCase {
 			4
 		);
 
-		$this->assertStringContainsString( '<li>Mashua (Seedling)</li>', $this->render() );
+		$this->assertStringContainsString( '<li><bdi>Mashua</bdi> (Seedling)</li>', $this->render() );
 	}
 
 	public function test_group_is_named_after_its_post_nearest_the_middle() {
 		$posts = $this->plant_clusters();
 		$this->member( 'Yacon pickles', array( 0.05, 0.05, 0.99 ), $posts['Yacon'] );
 
-		$this->assertStringContainsString( '>Around “Yacon pickles”</h2>', $this->render() );
+		$this->assertStringContainsString( '>Around “<bdi>Yacon pickles</bdi>”</h2>', $this->render() );
 	}
 
 	public function test_each_group_says_its_size() {
@@ -262,8 +262,8 @@ class Test_Admin_Map extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '<h2 id="undergrowth-ungrouped">Not in a group yet</h2>', $html );
 		$this->assertStringContainsString( '<ul class="undergrowth-ungrouped" aria-labelledby="undergrowth-ungrouped">', $html );
-		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $bread . '&[^"]*">Bread<\/a> \(Not read yet\)<\/li>/', $html );
-		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $cycle . '&[^"]*">Cycling<\/a> \(Not close enough to other posts yet\)<\/li>/', $html );
+		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $bread . '&[^"]*"><bdi>Bread<\/bdi><\/a> \(Not read yet\)<\/li>/', $html );
+		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post=' . $cycle . '&[^"]*"><bdi>Cycling<\/bdi><\/a> \(Not close enough to other posts yet\)<\/li>/', $html );
 		$this->assertStringNotContainsString( 'Resting', $html );
 		$this->assertStringNotContainsString( '<details', $html );
 	}

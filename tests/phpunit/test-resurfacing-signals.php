@@ -661,9 +661,9 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '/<div class="notice notice-info inline undergrowth-resurfacing">/', $html );
-		$this->assertStringContainsString( 'Oca in winter', $html );
+		$this->assertStringContainsString( '<bdi>Oca in winter</bdi></a>', $html );
 		// The cluster is named by its newest post, the one written most recently.
-		$this->assertStringContainsString( 'Oca seed', $html );
+		$this->assertStringContainsString( '<bdi>Oca seed</bdi></a>', $html );
 		$this->assertStringContainsString( 'near what you are writing now', $html );
 		$this->assertStringContainsString( 'in the group with', $html );
 		$this->assertStringContainsString( 'value="undergrowth_dismiss_resurfacing"', $html );

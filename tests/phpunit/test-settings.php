@@ -324,6 +324,24 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( '529', $this->render() );
 	}
 
+	public function test_saved_key_and_last_failure_describe_the_key_field() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		update_option(
+			'undergrowth_last_prompt_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 529,
+				'time'   => time(),
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/id="undergrowth_anthropic_api_key"[^>]*aria-describedby="undergrowth-anthropic-notice undergrowth-anthropic-saved undergrowth-anthropic-error"/', $html );
+		$this->assertMatchesRegularExpression( '#id="undergrowth-anthropic-saved">\s*A key ending in \w{4} is saved\. Leave the field blank to keep it\.#', $html );
+		$this->assertMatchesRegularExpression( '#id="undergrowth-anthropic-error"><p>[^<]*529#', $html );
+	}
+
 	public function test_page_says_why_there_is_no_question_yet() {
 		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
 

@@ -82,7 +82,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$html = $this->render( $this->post_at( $stage ) );
 
 		$this->assertStringContainsString( 'class="is-stage-' . $stage . ' wp-block-undergrowth-growth-stage"', $html );
-		$this->assertStringContainsString( '<span class="screen-reader-text">Growth stage: ' . $name . '</span>', $html );
+		$this->assertMatchesRegularExpression( '#<span class="screen-reader-text" style="[^"]*clip:[^"]*">Growth stage: ' . $name . '</span>#', $html );
 		$this->assertStringContainsString( '<span aria-hidden="true">' . $name . '</span>', $html );
 		$this->assertStringStartsWith( '<p ', $html );
 	}
