@@ -214,4 +214,12 @@ class Test_Anchor_Words extends WP_UnitTestCase {
 		$this->assertSame( array( 'Yacon roots', 'Oca' ), undergrowth_headings( '<h2 class="x">Yacon <em>roots</em></h2><p>Text.</p><h3>Oca</h3>' ) );
 		$this->assertSame( array(), undergrowth_headings( '<p>No headings.</p>' ) );
 	}
+
+	public function test_headings_skip_comments_and_decode_entities() {
+		$this->assertSame( array( 'Oca  & yacon' ), undergrowth_headings( '<h2>Oca <!-- draft: mashua --> &amp; yacon</h2>' ) );
+	}
+
+	public function test_heading_markup_inside_a_comment_or_an_attribute_is_no_heading() {
+		$this->assertSame( array(), undergrowth_headings( '<!-- <h2>Old</h2> --><p title="<h3>Not</h3>">Text.</p>' ) );
+	}
 }
