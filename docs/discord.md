@@ -1,6 +1,6 @@
 # Setting up Discord
 
-Discord is optional. Posts › Undergrowth does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. A veto from Discord is permanent: only the Suggestions screen offers an Undo. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
+Discord is optional. Posts › Undergrowth does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. A veto from Discord is permanent. The Undo on Posts › Undergrowth is only in the notice right after a veto made there. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
 
 1. In the Discord developer portal, create a new application just for Undergrowth. Do not reuse an existing bot: once an application has an Interactions Endpoint URL, Discord sends its interactions to that address instead of over the gateway, which can stop an existing bot from working.
 2. Copy the Application ID and the Public Key from its General Information page into Settings › Undergrowth.

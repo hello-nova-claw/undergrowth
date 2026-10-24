@@ -199,6 +199,15 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->assertSame( 'accepted', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_a_user_who_cannot_edit_the_post_cannot_undo_its_veto() {
+		list( $oca, $yacon ) = $this->pair();
+		undergrowth_veto_link( $oca, $yacon );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
+
+		$this->assertFalse( undergrowth_unveto_link( $oca, $yacon ) );
+		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
 	public function test_the_veto_notice_offers_an_undo_that_restores_the_proposal() {
 		list( $oca, $yacon ) = $this->pair();
 

@@ -338,12 +338,14 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
  *
  * @param int $source_id Post the link would sit in.
  * @param int $target_id Post the link would point to.
- * @return bool True when the pair was vetoed and no longer is.
+ * @return bool True when the pair was vetoed and no longer is, and false
+ *              when the current user cannot edit the source post.
  */
 function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 	global $wpdb;
 
-	if ( 'vetoed' !== undergrowth_link_state( $source_id, $target_id ) ) {
+	// Every caller checks this too, but a new one must not be able to forget.
+	if ( ! current_user_can( 'edit_post', $source_id ) || 'vetoed' !== undergrowth_link_state( $source_id, $target_id ) ) {
 		return false;
 	}
 
