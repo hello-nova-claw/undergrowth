@@ -1794,6 +1794,11 @@ msgstr ""
 
 #: build/editor/index.js
 #: src/editor/stage-panel.js
+msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
 msgid "This post gets a growth stage once it is published."
 msgstr ""
 
