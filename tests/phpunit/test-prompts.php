@@ -614,6 +614,10 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertSame( get_locale(), undergrowth_prompt_language( 0 ) );
 	}
 
+	public function test_post_without_an_author_is_asked_about_in_the_site_language() {
+		$this->assertSame( get_locale(), undergrowth_prompt_language( $this->post( 'Oca.', array( 'post_author' => 0 ) ) ) );
+	}
+
 	/**
 	 * A reader's question in a script with its own question mark is found.
 	 *
@@ -652,10 +656,10 @@ class Test_Prompts extends WP_UnitTestCase {
 	 */
 	public function data_questions_in_other_scripts(): array {
 		return array(
-			'greek semicolon'         => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
-			'greek question mark'     => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
-			'armenian, mid-word'      => array( 'hy', 'Ինչո՞ւ եք օկա աճեցնում։' ),
-			'ethiopic question mark'  => array( 'am', 'ኦካን በክረምት እንዴት ታስቀምጣለህ፧' ),
+			'greek semicolon'        => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
+			'greek question mark'    => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
+			'armenian, mid-word'     => array( 'hy', 'Ինչո՞ւ եք օկա աճեցնում։' ),
+			'ethiopic question mark' => array( 'am', 'ኦካን በክረምት እንዴት ታስቀምጣለህ፧' ),
 		);
 	}
 
