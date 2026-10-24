@@ -119,11 +119,14 @@ function undergrowth_install_schema(): bool {
 	);
 
 	// dbDelta() never drops a column, so one that nothing reads any more is
-	// dropped here. Version 6 dropped sentence_index.
+	// dropped here. Version 6 dropped sentence_index. A drop that fails
+	// leaves the version unrecorded, so the next load tries again.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table.
 	if ( array() !== (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $links, 'sentence_index' ) ) ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrading the plugin's own table.
-		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN sentence_index', $links ) );
+		if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN sentence_index', $links ) ) ) {
+			return false;
+		}
 	}
 
 	// dbDelta() reports no errors, so check the result. Recording the version
