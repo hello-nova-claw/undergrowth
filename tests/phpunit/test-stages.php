@@ -971,6 +971,113 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_cycle_keeps_a_pin_set_after_its_check_and_before_its_write() {
+		global $wpdb;
+
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+		undergrowth_set_stage( $post_id, 'seedling' );
+
+		// Another request pins the post the moment the cycle has read the
+		// marker, so this request's meta cache still says it is not pinned.
+		$pin = static function ( $value, $object_id, $meta_key ) use ( &$pin, $wpdb, $post_id ) {
+			if ( $object_id === $post_id && 'undergrowth_stage_pinned' === $meta_key ) {
+				remove_filter( 'get_post_metadata', $pin );
+				$wpdb->insert(
+					$wpdb->postmeta,
+					array(
+						'post_id'    => $post_id,
+						'meta_key'   => 'undergrowth_stage_pinned', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+						'meta_value' => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+					)
+				);
+
+				return array( '' );
+			}
+
+			return $value;
+		};
+		add_filter( 'get_post_metadata', $pin, 10, 3 );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_cycle_write_is_refused_for_a_pinned_post() {
+		list( $post_id ) = $this->publish( 1 );
+		undergrowth_set_stage( $post_id, 'seedling' );
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		$this->assertFalse( undergrowth_set_stage( $post_id, 'evergreen' ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_set_stage( $post_id, 'evergreen', 'pin' ) );
+	}
+
+	public function test_pin_made_while_the_cycle_writes_waits_for_it() {
+		list( $post_id ) = $this->linked_seedling();
+		$this->log_in_editor();
+		$measured = undergrowth_measure_stage( $post_id );
+		$during   = null;
+
+		// The author pins while the cycle holds the lock. In one process the
+		// pin cannot outwait the cycle, so it is refused rather than lost.
+		$pin = static function ( $check, $object_id, $meta_key ) use ( &$pin, &$during, $post_id ) {
+			if ( $object_id === $post_id && 'undergrowth_stage' === $meta_key ) {
+				remove_filter( 'update_post_metadata', $pin );
+				$during = undergrowth_pin_stage( $post_id, 'evergreen' );
+			}
+
+			return $check;
+		};
+		add_filter( 'update_post_metadata', $pin, 10, 3 );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertWPError( $during );
+		$this->assertSame( $measured, undergrowth_get_stage( $post_id ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'evergreen' ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_cycle_gives_way_to_a_stage_change_in_progress() {
+		list( $post_id ) = $this->linked_seedling();
+		update_option( "undergrowth_stage_{$post_id}.lock", time(), false );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_author_action_takes_over_a_lock_left_by_a_request_that_died() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		update_option( "undergrowth_stage_{$post_id}.lock", time() - HOUR_IN_SECONDS, false );
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'evergreen' ) );
+		$this->assertFalse( get_option( "undergrowth_stage_{$post_id}.lock" ) );
+	}
+
+	/**
+	 * Publishes a post stored as a seedling, with links that measure it higher.
+	 *
+	 * @return int[] The post, then the two posts it links with.
+	 */
+	private function linked_seedling(): array {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+		undergrowth_set_stage( $post_id, 'seedling' );
+
+		$this->assertNotSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+
+		return array( $post_id, $a, $b );
+	}
+
 	public function test_unpinning_measures_the_stage_at_once() {
 		list( $post_id, $a, $b ) = $this->publish( 3 );
 		$this->log_in_editor();

@@ -1,0 +1,1 @@
+Pinning a post while the monthly cycle is running no longer risks the cycle overwriting the pinned stage.
