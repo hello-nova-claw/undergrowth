@@ -1,0 +1,1 @@
+On a multisite network, activating Undergrowth across the network now sets it up on every site, and on each site created afterwards, so their posts are read and their stages change each month.
