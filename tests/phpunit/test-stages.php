@@ -961,6 +961,29 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
 	}
 
+	public function test_cycle_keeps_a_pin_completed_just_before_its_first_write() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
+
+		$this->pin_behind_the_cycle( $post_id, 'evergreen' );
+		undergrowth_cycle_post( $post_id );
+
+		wp_cache_delete( $post_id, 'post_meta' );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_cycle_replaces_a_stored_stage_it_does_not_know() {
+		list( $post_id ) = $this->linked_seedling();
+		update_post_meta( $post_id, 'undergrowth_stage', 'mushroom' );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertSame( undergrowth_measure_stage( $post_id ), get_post_meta( $post_id, 'undergrowth_stage', true ) );
+	}
+
 	public function test_cycle_keeps_a_pin_at_the_current_stage_completed_just_before_its_write() {
 		list( $post_id ) = $this->linked_seedling();
 		$logged          = count( undergrowth_stage_log( $post_id ) );
@@ -1003,7 +1026,8 @@ class Test_Stages extends WP_UnitTestCase {
 		$pin = static function ( $check, $object_id, $meta_key ) use ( &$pin, $wpdb, $post_id, $stage ) {
 			if ( $object_id === $post_id && 'undergrowth_stage' === $meta_key ) {
 				remove_filter( 'update_post_metadata', $pin );
-				// phpcs:disable WordPress.DB.SlowDBQuery -- Another request's writes, behind this one's cache.
+				remove_filter( 'add_post_metadata', $pin );
+				// phpcs:disable WordPress.DB.SlowDBQuery, WordPress.DB.DirectDatabaseQuery -- Another request's writes, behind this one's cache.
 				$wpdb->insert(
 					$wpdb->postmeta,
 					array(
@@ -1013,15 +1037,13 @@ class Test_Stages extends WP_UnitTestCase {
 					)
 				);
 
-				if ( '' !== $stage ) {
-					$wpdb->update(
-						$wpdb->postmeta,
-						array( 'meta_value' => $stage ),
-						array(
-							'post_id'  => $post_id,
-							'meta_key' => 'undergrowth_stage',
-						)
-					);
+				$where = array(
+					'post_id'  => $post_id,
+					'meta_key' => 'undergrowth_stage',
+				);
+
+				if ( '' !== $stage && ! $wpdb->update( $wpdb->postmeta, array( 'meta_value' => $stage ), $where ) ) {
+					$wpdb->insert( $wpdb->postmeta, array_merge( $where, array( 'meta_value' => $stage ) ) );
 				}
 				// phpcs:enable
 			}
@@ -1029,6 +1051,7 @@ class Test_Stages extends WP_UnitTestCase {
 			return $check;
 		};
 		add_filter( 'update_post_metadata', $pin, 10, 3 );
+		add_filter( 'add_post_metadata', $pin, 10, 3 );
 	}
 
 	public function test_cycle_write_is_refused_for_a_pinned_post() {
