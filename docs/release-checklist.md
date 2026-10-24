@@ -32,7 +32,7 @@ Then check the other readme headers:
 
 - [ ] Run `npm run changelog`. It appends every fragment in `changelog/` under `= Unreleased =` in `readme.txt`, in issue order, and deletes the fragments. When there is no `= Unreleased =` yet, it opens one at the top of `== Changelog ==`.
 - [ ] Rename `= Unreleased =` to the version, for example `= 0.2.0 =`. Don't leave an empty `= Unreleased =` behind: the directory would show it.
-- [x] 0.1.0 has a single line, `* First release.`: the development history describes steps no user ever installed. Fragments that land before 0.1.0 is submitted are development history too, so delete them instead of folding them, and keep the full list in the GitHub release notes.
+- [x] 0.1.0 has a single line, `* First release.`: the development history describes steps no user ever installed. Fragments that land before 0.1.0 is tagged are development history too: add their lines to the end of [docs/release-notes-0.1.0.md](release-notes-0.1.0.md) and delete them instead of folding them.
 - [ ] Add an `== Upgrade Notice ==` entry from 0.2.0 on, when there is something an existing user should know before updating.
 
 ## 4. Regenerate the POT
@@ -61,7 +61,7 @@ Every push to `main` and every tag runs the **Build** workflow, which uploads `u
 ## 7. Tag and release
 
 - [ ] Tag the merged release commit on `main` with the bare version, no `v`: `git tag 0.1.0 && git push origin 0.1.0`. The deploy workflow checks the tag matches `Version:` and `Stable tag:`.
-- [ ] The tag push runs **Build** again; attach its `undergrowth.zip` to a GitHub release named after the version, with the changelog lines as its notes.
+- [ ] The tag push runs **Build** again; attach its `undergrowth.zip` to a GitHub release named after the version, with the changelog lines as its notes. For 0.1.0, use [docs/release-notes-0.1.0.md](release-notes-0.1.0.md) instead.
 
 ## 8. Submit to the directory (first release only)
 
