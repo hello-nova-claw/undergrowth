@@ -131,7 +131,7 @@ class Test_First_Run extends WP_UnitTestCase {
 		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
 	}
 
-	public function test_dismissing_ends_the_first_run_and_returns_to_plugins() {
+	public function test_dismissing_ends_the_first_run_and_returns_to_plugins_with_a_notice() {
 		undergrowth_activate();
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_dismiss_first_run' );
 
@@ -146,7 +146,7 @@ class Test_First_Run extends WP_UnitTestCase {
 			undergrowth_dismiss_first_run();
 			$this->fail( 'Expected a redirect.' );
 		} catch ( Exception $redirect ) {
-			$this->assertSame( admin_url( 'plugins.php' ), $redirect->getMessage() );
+			$this->assertSame( admin_url( 'plugins.php?undergrowth_notice=first_run_dismissed' ), $redirect->getMessage() );
 		} finally {
 			unset( $_REQUEST['_wpnonce'] );
 		}
