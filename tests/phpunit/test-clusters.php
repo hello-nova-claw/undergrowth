@@ -405,6 +405,47 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
 	}
 
+	public function test_threshold_read_when_the_pass_starts_holds_for_every_batch() {
+		$identity = static function () {
+			return array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model',
+			);
+		};
+		$measured = static function () {
+			return array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model',
+				'posts'    => UNDERGROWTH_DERIVED_MIN_POSTS,
+				'cluster'  => 0.9,
+			);
+		};
+		$posts    = array();
+
+		add_filter( 'undergrowth_embed_identity', $identity );
+		add_filter( 'pre_option_undergrowth_scores', $measured );
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		// 0.8 from the first post: in its cluster at the fixed 0.5, not at the measured 0.9.
+		$later = $this->post_with_vector( array( 0.8, 0.6 ) );
+
+		undergrowth_run_cluster_cycle();
+
+		// A post leaving the index between batches can forget the scores.
+		remove_filter( 'pre_option_undergrowth_scores', $measured );
+		delete_option( 'undergrowth_scores' );
+		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_cluster_similarity() );
+
+		undergrowth_run_cluster_cycle( $this->take_next_batch() );
+
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertSame( $later, undergrowth_cluster_leader( $later ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_similarity' ) );
+	}
+
 	public function test_pass_whose_next_batch_is_lost_is_resumed_by_the_hourly_check() {
 		$posts = array();
 

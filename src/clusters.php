@@ -378,6 +378,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * stage cycle, looks for composting posts near the new clusters, and then
  * stores the words that name each cluster on the Map. A batch that dies is
  * run again by the hourly check; see undergrowth_resume_stalled_passes().
+ * Every batch clusters with the threshold read when the pass started.
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
@@ -395,6 +396,10 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		undergrowth_measure_scores();
 		delete_post_meta_by_key( 'undergrowth_cluster' );
 		update_option( 'undergrowth_cluster_leaders', array(), false );
+		// Kept for the whole pass: the scores can be forgotten between two
+		// batches when a post leaves the index, and clusters made with two
+		// thresholds would not compare.
+		update_option( 'undergrowth_cluster_similarity', undergrowth_min_cluster_similarity(), false );
 		undergrowth_forget_resurfacing_signals();
 		undergrowth_start_cluster_labels();
 	}
@@ -417,7 +422,8 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	$fetched = count( $rows );
 	$leaders = (array) get_option( 'undergrowth_cluster_leaders', array() );
 	$pools   = array();
-	$minimum = undergrowth_min_cluster_similarity();
+	$minimum = get_option( 'undergrowth_cluster_similarity' );
+	$minimum = is_numeric( $minimum ) ? (float) $minimum : undergrowth_min_cluster_similarity();
 	$last_id = $after_id;
 
 	while ( array() !== $rows ) {
@@ -467,6 +473,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	// Only now is the pass complete. Until here, a batch that died is run
 	// again by the hourly check, with the leaders it started with.
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_similarity' );
 	undergrowth_end_pass( 'undergrowth_cluster_cycle' );
 	// Last, because it reads every post: the words only label the Map, so
 	// running out of time here must not hold up stages or resurfacing.
