@@ -309,6 +309,26 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assert_current_columns( $current );
 	}
 
+	public function test_version_is_not_recorded_when_the_sentence_index_stays() {
+		global $wpdb;
+
+		$this->install_version_one();
+		$links = undergrowth_links_table();
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
+		update_option( 'undergrowth_schema_version', 5 );
+		// wpdb sends no empty query and reports it as failed, as for a refused ALTER.
+		add_filter(
+			'query',
+			static function ( $query ) {
+				return false !== stripos( $query, 'DROP COLUMN sentence_index' ) ? '' : $query;
+			}
+		);
+
+		$this->assertFalse( undergrowth_install_schema() );
+		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( 5, (int) get_option( 'undergrowth_schema_version' ) );
+	}
+
 	public function test_current_schema_version_skips_install() {
 		$queries = array();
 		$record  = static function ( $query ) use ( &$queries ) {
