@@ -1,1 +1,0 @@
-Link suggestions, clusters and gaps now follow how your own posts score against each other once a site has 20 posts, so a local embedding model works without tuning. Sites using OpenAI keep the current numbers for now. New command: wp undergrowth scores.

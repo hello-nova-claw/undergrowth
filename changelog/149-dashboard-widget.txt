@@ -1,1 +1,0 @@
-The question and the page views meter now share one Undergrowth widget on the Dashboard, each under its own heading. The widget appears only when it has something to show.

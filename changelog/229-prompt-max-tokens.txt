@@ -1,1 +1,0 @@
-A writing-prompt source whose reply was cut off at the token limit is now skipped, as a refused one is, so it no longer holds up every other source and is not paid for again each month.

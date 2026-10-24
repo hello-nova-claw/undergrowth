@@ -201,7 +201,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 function undergrowth_comparable_post_ids( int $post_id ): array {
 	global $wpdb;
 
-	$source = undergrowth_get_vector( $post_id );
+	$source = undergrowth_get_vector_space( $post_id );
 
 	if ( null === $source ) {
 		return array();

@@ -1,1 +1,0 @@
-Accepting a suggestion made while the site was still being indexed no longer fails with no word to link.

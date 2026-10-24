@@ -107,6 +107,48 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertFileExists( undergrowth_memory_root() . '/posts/index.php' );
 	}
 
+	public function test_writing_a_file_reads_no_stored_vectors() {
+		$ids = array();
+
+		for ( $i = 0; $i < 10; $i++ ) {
+			$ids[] = $this->plant( 'Root ' . $i, array( 1.0, $i / 10, 0.0 ) );
+		}
+
+		$queries = array();
+		$record  = static function ( $query ) use ( &$queries ) {
+			$queries[] = $query;
+
+			return $query;
+		};
+
+		add_filter( 'query', $record );
+		$written = undergrowth_write_memory( $ids[0] );
+		remove_filter( 'query', $record );
+
+		$this->assertTrue( $written );
+
+		$table   = undergrowth_vectors_table();
+		$selects = array_values(
+			array_filter(
+				$queries,
+				static function ( $query ) use ( $table ) {
+					return false !== strpos( $query, $table ) && preg_match( '/^\s*SELECT\b/i', $query );
+				}
+			)
+		);
+		$reads   = array_filter(
+			$selects,
+			static function ( $query ) {
+				return preg_match( '/^\s*SELECT\b.*(\*|\bembedding\b).*\bFROM\b/is', $query );
+			}
+		);
+
+		$this->assertSame( array(), array_values( $reads ) );
+
+		// A query per comparable post would grow with the ten planted here.
+		$this->assertLessThanOrEqual( 3, count( $selects ), implode( "\n", $selects ) );
+	}
+
 	public function test_files_at_the_old_address_move_to_the_new_folder() {
 		$uploads = wp_upload_dir();
 		$legacy  = $uploads['basedir'] . '/undergrowth';

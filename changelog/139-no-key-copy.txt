@@ -1,1 +1,0 @@
-Posts > Undergrowth on a site without a key now says it needs an OpenAI API key, and no longer shows a suggestions switch that could not do anything yet.

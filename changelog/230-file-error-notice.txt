@@ -1,1 +1,0 @@
-Settings › Undergrowth now says when the per-post files could not be written, and why, under the per-post files folder. Until now the failure was recorded but never shown.

@@ -426,7 +426,7 @@ function undergrowth_memory_target( int $target_id ): string {
 function undergrowth_write_memory( int $post_id ): bool {
 	$post = get_post( $post_id );
 
-	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || ( null === undergrowth_get_vector( $post_id ) && array() === undergrowth_prompt_log( $post_id ) ) ) {
+	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || ( null === undergrowth_get_vector_space( $post_id ) && array() === undergrowth_prompt_log( $post_id ) ) ) {
 		undergrowth_delete_memory( $post_id );
 		return false;
 	}

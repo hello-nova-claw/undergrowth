@@ -18,6 +18,7 @@ const {
 const { join } = require( 'path' );
 
 const UNRELEASED = '= Unreleased =';
+const CHANGELOG = '== Changelog ==';
 
 /**
  * Splits a fragment into changelog entries, one per non-empty line.
@@ -51,7 +52,8 @@ function readFragments( dir ) {
 }
 
 /**
- * Appends entries to the end of the Unreleased section of a readme.
+ * Appends entries to the end of the Unreleased section of a readme. Right
+ * after a release there is none, so it opens one at the top of the changelog.
  *
  * @param {string}   readme  The readme.txt contents.
  * @param {string[]} entries Entries to add.
@@ -63,10 +65,24 @@ function foldInto( readme, entries ) {
 	}
 
 	const lines = readme.split( '\n' );
-	const start = lines.findIndex( ( line ) => line.trim() === UNRELEASED );
+	let start = lines.findIndex( ( line ) => line.trim() === UNRELEASED );
 
 	if ( start === -1 ) {
-		throw new Error( `readme.txt has no "${ UNRELEASED }" section.` );
+		const changelog = lines.findIndex(
+			( line ) => line.trim() === CHANGELOG
+		);
+
+		if ( changelog === -1 ) {
+			throw new Error( `readme.txt has no "${ CHANGELOG }" section.` );
+		}
+
+		let next = changelog + 1;
+		while ( next < lines.length && lines[ next ].trim() === '' ) {
+			next++;
+		}
+
+		lines.splice( changelog + 1, next - changelog - 1, '', UNRELEASED, '' );
+		start = changelog + 2;
 	}
 
 	let at = start + 1;

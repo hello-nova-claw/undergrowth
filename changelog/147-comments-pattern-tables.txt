@@ -1,1 +1,0 @@
-Posts > Link suggestions now leads each suggestion with your sentence, as the Comments screen leads with each comment: the word Accept will link is highlighted, the post it would link to is named under it, and Accept | Veto sit below, so a phone shows all of it. Growth stages shows each post's stage beside its title, with Pin and Unpin under it.
