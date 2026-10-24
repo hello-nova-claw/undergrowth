@@ -291,16 +291,21 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 		setChoosing( 0 );
 	}
 
+	// A failed refresh after a save leaves the old lists, which may be out of
+	// date, so the failure shows above them.
+	const failure = error && (
+		<Notice status="error" isDismissible={ false }>
+			{ error }
+		</Notice>
+	);
+
 	if ( ! lists ) {
-		return error ? (
-			<Notice status="error" isDismissible={ false }>
-				{ error }
-			</Notice>
-		) : null;
+		return failure || null;
 	}
 
 	return (
 		<div className="undergrowth-links-loaded">
+			{ failure }
 			<PanelBody title={ __( 'Suggested links', 'undergrowth' ) }>
 				<div
 					className="undergrowth-outgoing"
@@ -418,6 +423,15 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 												__next40pxDefaultSize
 												variant="secondary"
 												className="undergrowth-accept"
+												label={ sprintf(
+													/* translators: 1: title of the post the link would point to. */
+													__(
+														'Accept the link to %1$s',
+														'undergrowth'
+													),
+													item.title
+												) }
+												showTooltip={ false }
 												isBusy={ busy === item.target }
 												disabled={ busy !== 0 }
 												accessibleWhenDisabled
@@ -443,6 +457,15 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 												__next40pxDefaultSize
 												variant="tertiary"
 												className="undergrowth-veto"
+												label={ sprintf(
+													/* translators: 1: title of the post the link would point to. */
+													__(
+														'Veto the link to %1$s',
+														'undergrowth'
+													),
+													item.title
+												) }
+												showTooltip={ false }
 												disabled={ busy !== 0 }
 												accessibleWhenDisabled
 												onClick={ () =>
@@ -475,6 +498,15 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 													__next40pxDefaultSize
 													variant="tertiary"
 													className="undergrowth-choose"
+													label={ sprintf(
+														/* translators: 1: title of the post the link would point to. */
+														__(
+															'Choose words for the link to %1$s',
+															'undergrowth'
+														),
+														item.title
+													) }
+													showTooltip={ false }
 													ref={ ( element ) => {
 														chooseButtons.current[
 															item.target
