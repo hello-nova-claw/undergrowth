@@ -33,7 +33,9 @@ jobs:
     # run with write access anyway.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Two runs of the whole catalogue take about 20 minutes, and installing
+    # Chromium's system packages has taken up to 8 more.
+    timeout-minutes: 45
     # This job runs the pull request's code, so it gets no write access. The
     # publish job below writes, and runs none of it.
     permissions:

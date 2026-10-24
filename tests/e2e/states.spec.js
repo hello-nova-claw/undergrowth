@@ -7,6 +7,7 @@
 const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
+const { skipWelcomeGuide } = require( './preferences' );
 
 const OUTPUT = path.resolve(
 	process.env.UNDERGROWTH_SCREENSHOTS_DIR || 'artifacts/screenshots'
@@ -372,6 +373,24 @@ const WITH_BADGE = [
 	},
 ];
 
+// Filled in once the panel's posts exist, since the shots need their IDs.
+const panelPosts = {};
+
+// The Undergrowth panel in the editor's Post tab, in each state the author
+// can leave a post in, and for a draft, which has no stage yet.
+const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
+	( state ) => ( {
+		screen: 'editor-panel',
+		state,
+		panel: () => panelPosts[ state ],
+		// A build from before the panel has none to show.
+		open: ( page ) =>
+			page.evaluate( () =>
+				Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) )
+			),
+	} )
+);
+
 // Posts share fixture words, so the e2e provider suggests links between them.
 const POSTS = [
 	{ title: 'Oca', content: '<p>Oca grows here. I keep yacon nearby.</p>' },
@@ -413,6 +432,39 @@ const HIDE_UPDATES = `
 		display: none !important;
 	}
 `;
+
+/**
+ * Shows the Undergrowth panel in the editor's Post tab.
+ *
+ * The editor closes its sidebar when the window narrows, so this runs again
+ * at each width. The panel is last in the sidebar, which scrolls on its own,
+ * so it is scrolled into view.
+ *
+ * @param {import('@playwright/test').Page} page Editor page.
+ */
+async function showPanel( page ) {
+	// Through the editor's store, since the toolbar button is named in the
+	// site's language.
+	await page.evaluate( () =>
+		window.wp.data
+			.dispatch( 'core/edit-post' )
+			.openGeneralSidebar( 'edit-post/document' )
+	);
+
+	const panel = page.locator( '.undergrowth-editor-panel' );
+	const toggle = panel.locator( '.components-panel__body-toggle' );
+
+	if ( ( await toggle.getAttribute( 'aria-expanded' ) ) !== 'true' ) {
+		await toggle.click();
+	}
+
+	// The stage comes from the server after the panel opens.
+	await panel
+		.locator( '.undergrowth-stage, .undergrowth-not-in-garden' )
+		.first()
+		.waitFor();
+	await panel.locator( '> :last-child' ).scrollIntoViewIfNeeded();
+}
 
 /**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
@@ -475,6 +527,8 @@ function capture( states ) {
 						)
 						.first()
 						.waitFor();
+				} else if ( entry.panel ) {
+					await admin.editPost( entry.panel() );
 				} else {
 					await admin.visitAdminPage( ...entry.page );
 				}
@@ -536,6 +590,10 @@ function capture( states ) {
 					fs.rmSync( `${ shot }.skipped`, { force: true } );
 
 					await page.setViewportSize( { width, height: 800 } );
+
+					if ( entry.panel ) {
+						await showPanel( page );
+					}
 					await page.screenshot( {
 						path: shot,
 						fullPage: true,
@@ -828,5 +886,58 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_BADGE );
+	} );
+
+	test.describe( 'with the editor panel', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			await skipWelcomeGuide( requestUtils );
+
+			for ( const [ state, title, action ] of [
+				[ 'seedling', 'Oca', null ],
+				[ 'pinned', 'Yacon', { action: 'pin', stage: 'budding' } ],
+				[ 'composting', 'Seed ledger', { action: 'compost' } ],
+				[ 'draft', 'Mashua', null ],
+			] ) {
+				panelPosts[ state ] = (
+					await requestUtils.createPost( {
+						title,
+						content: '<p>Oca grows here.</p>',
+						status: 'draft' === state ? 'draft' : 'publish',
+					} )
+				).id;
+
+				if ( ! action ) {
+					continue;
+				}
+
+				// Through the panel's own route, as the author would. A build
+				// from before the panel has no route, and its shots are
+				// listed as skipped. Any other failure would capture the
+				// post unchanged under this state's name, so it stops the run.
+				const route = `/undergrowth/v1/posts/${ panelPosts[ state ] }/stage`;
+				const answer = await requestUtils
+					.rest( { method: 'POST', path: route, data: action } )
+					.catch( ( error ) => {
+						if ( error?.code === 'rest_no_route' ) {
+							return null;
+						}
+
+						throw error;
+					} );
+
+				if (
+					answer &&
+					( 'pinned' === state
+						? ! answer.pinned
+						: 'composting' !== answer.stage )
+				) {
+					throw new Error( `The ${ state } post did not change.` );
+				}
+			}
+		} );
+
+		capture( WITH_PANEL );
 	} );
 } );
