@@ -11,6 +11,10 @@
 	},
 	"steps": [
 		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The per-post files folder ends in random characters on a real site. A\n// fixed name here keeps Settings the same from one run to the next.\nadd_option( 'undergrowth_memory_folder', 'undergrowth-0123456789ab' );\n"
+		},
+		{
 			"step": "defineWpConfigConsts",
 			"consts": {
 				"WP_ENVIRONMENT_TYPE": "local"
