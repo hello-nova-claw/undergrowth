@@ -626,20 +626,20 @@ function undergrowth_compost_prompt_sources( $records ): array {
 	// has enough new ones, within a fixed number of pages.
 	for ( $page = 1; $page <= UNDERGROWTH_PROMPT_PAGES; $page++ ) {
 		$posts = get_posts(
-			array(
-				'post_type'        => undergrowth_indexed_post_types(),
-				'post_status'      => 'publish',
-				'has_password'     => false,
-				// Run once a month, for a handful of posts.
-				'meta_key'         => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value'       => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-				'orderby'          => array(
-					'date' => 'ASC',
-					'ID'   => 'ASC',
-				),
-				'numberposts'      => UNDERGROWTH_PROMPT_COMPOSTED,
-				'paged'            => $page,
-				'suppress_filters' => false,
+			undergrowth_garden_query_args(
+				array(
+					// Run once a month, for a handful of posts.
+					'meta_query'             => undergrowth_composting_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					'orderby'                => array(
+						'date' => 'ASC',
+						'ID'   => 'ASC',
+					),
+					'numberposts'            => UNDERGROWTH_PROMPT_COMPOSTED,
+					'paged'                  => $page,
+					'fields'                 => 'all',
+					'update_post_term_cache' => true,
+					'suppress_filters'       => false,
+				)
 			)
 		);
 
