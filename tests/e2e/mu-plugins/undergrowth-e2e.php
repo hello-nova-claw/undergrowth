@@ -400,7 +400,6 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 		);
 		break;
 
-	// A key saved, and a question already asked and snoozed.
 	case 'prompt-asked':
 		add_filter(
 			'pre_option_undergrowth_anthropic_api_key',
