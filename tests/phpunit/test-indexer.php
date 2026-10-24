@@ -99,6 +99,15 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertSame( array( $published ), array_map( 'intval', $query->posts ) );
 	}
 
+	public function test_garden_query_finds_nothing_when_no_type_is_indexed() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$query = new WP_Query( undergrowth_garden_query_args() );
+
+		$this->assertSame( array(), $query->posts );
+	}
+
 	public function test_garden_query_arguments_can_be_replaced() {
 		$args = undergrowth_garden_query_args(
 			array(

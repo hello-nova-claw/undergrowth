@@ -110,7 +110,7 @@ function undergrowth_garden_query_vars(): array {
  * @return array<string, mixed> WP_Query arguments.
  */
 function undergrowth_garden_query_args( array $extra = array() ): array {
-	return array_merge(
+	$args = array_merge(
 		array( 'post_type' => undergrowth_indexed_post_types() ),
 		undergrowth_garden_query_vars(),
 		array(
@@ -120,6 +120,13 @@ function undergrowth_garden_query_args( array $extra = array() ): array {
 		),
 		$extra
 	);
+
+	// WP_Query reads an empty list of types as posts, but no type is indexed.
+	if ( array() === $args['post_type'] ) {
+		$args['post__in'] = array( 0 );
+	}
+
+	return $args;
 }
 
 /**
