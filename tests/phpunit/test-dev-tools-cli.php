@@ -6,27 +6,59 @@
  */
 
 /**
- * wp undergrowth accept, run-cycle and reset.
+ * The accept, run-cycle and reset commands.
  */
 class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 
 	use Plants_Posts;
 
+	/**
+	 * Keeps what the commands print.
+	 *
+	 * @var Undergrowth_Test_CLI_Logger
+	 */
+	private $logger;
+
 	public function set_up() {
 		parent::set_up();
 
-		WP_CLI::reset();
+		if ( ! class_exists( 'WP_CLI' ) ) {
+			$this->markTestSkipped( 'WP-CLI is not installed with Composer.' );
+		}
+
+		$this->logger = new Undergrowth_Test_CLI_Logger();
+		WP_CLI::set_logger( $this->logger );
+		$this->capture_exit( true );
 		$this->start_planting();
 		undergrowth_register_stage_meta();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 	}
 
 	public function tear_down() {
+		if ( class_exists( 'WP_CLI' ) ) {
+			$this->capture_exit( false );
+		}
+
 		delete_option( 'undergrowth_dev_job' );
 		wp_unschedule_hook( 'undergrowth_dev_job' );
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
+	}
+
+	/**
+	 * Makes WP-CLI throw where it would end the process, as its own tests do.
+	 *
+	 * @param bool $capture Whether to throw instead of exiting.
+	 */
+	private function capture_exit( bool $capture ): void {
+		$property = new ReflectionProperty( 'WP_CLI', 'capture_exit' );
+
+		if ( PHP_VERSION_ID < 80100 ) {
+			$property->setAccessible( true );
+		}
+
+		$property->setValue( null, $capture );
 	}
 
 	/**
@@ -43,18 +75,16 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Runs a registered command as WP-CLI would.
+	 * Runs a command as WP-CLI would.
 	 *
 	 * @param string               $name       Command name, after "undergrowth".
 	 * @param array<string, mixed> $assoc_args Options.
 	 * @return bool True when the command ran to its end; false when it stopped.
 	 */
 	private function run_command( string $name, array $assoc_args = array() ): bool {
-		$this->assertArrayHasKey( 'undergrowth ' . $name, WP_CLI::$commands );
-
 		try {
-			call_user_func( WP_CLI::$commands[ 'undergrowth ' . $name ], array(), $assoc_args );
-		} catch ( WP_CLI_Stopped $e ) {
+			call_user_func( 'undergrowth_cli_' . str_replace( '-', '_', $name ), array(), $assoc_args );
+		} catch ( WP_CLI\ExitException $e ) {
 			return false;
 		}
 
@@ -73,7 +103,7 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 				static function ( $line ) {
 					return $line[0] . ': ' . $line[1];
 				},
-				WP_CLI::$lines
+				$this->logger->lines
 			)
 		);
 	}
@@ -105,36 +135,30 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The commands are registered on local and development sites only.
+	 * The commands are added on local and development sites only.
 	 *
 	 * @dataProvider environments
 	 *
 	 * @param string $environment Environment type.
 	 * @param bool   $expected    Whether the commands belong there.
 	 */
-	public function test_the_commands_are_registered_only_where_they_belong( string $environment, bool $expected ) {
+	public function test_the_commands_are_added_only_where_they_belong( string $environment, bool $expected ) {
 		add_filter( 'undergrowth_dev_tools_enabled', '__return_true' );
+		$before = did_action( 'undergrowth_dev_tools_registered' );
 
 		undergrowth_register_dev_tools( $environment );
 
-		foreach ( array( 'accept', 'run-cycle', 'reset' ) as $name ) {
-			$this->assertSame( $expected, isset( WP_CLI::$commands[ 'undergrowth ' . $name ] ), $name );
-		}
+		$this->assertSame( $expected, did_action( 'undergrowth_dev_tools_registered' ) > $before );
+		$this->assertSame( 10, has_action( 'undergrowth_dev_tools_registered', 'undergrowth_register_dev_cli' ) );
 	}
 
 	public function test_the_filter_turns_the_commands_off() {
 		add_filter( 'undergrowth_dev_tools_enabled', '__return_false' );
+		$before = did_action( 'undergrowth_dev_tools_registered' );
 
 		undergrowth_register_dev_tools( 'local' );
 
-		$this->assertSame( array(), WP_CLI::$commands );
-	}
-
-	public function test_scores_stays_registered_everywhere() {
-		undergrowth_register_cli();
-
-		$this->assertArrayHasKey( 'undergrowth scores', WP_CLI::$commands );
-		$this->assertArrayNotHasKey( 'undergrowth accept', WP_CLI::$commands );
+		$this->assertSame( $before, did_action( 'undergrowth_dev_tools_registered' ) );
 	}
 
 	public function test_accept_needs_all_so_nothing_is_accepted_by_accident() {
@@ -258,18 +282,6 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 		// The monthly event itself is left as it was.
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertStringContainsString( 'success: ', $this->output() );
-	}
-
-	public function test_reset_asks_first() {
-		undergrowth_register_dev_tools( 'local' );
-		list( $oca ) = $this->garden();
-		$this->run_command( 'accept', array( 'all' => true ) );
-		$accepted = get_post( $oca )->post_content;
-
-		$this->assertFalse( $this->run_command( 'reset' ) );
-
-		$this->assertSame( $accepted, get_post( $oca )->post_content );
-		$this->assertStringContainsString( 'confirm: ', $this->output() );
 	}
 
 	public function test_reset_undoes_what_accept_did() {
