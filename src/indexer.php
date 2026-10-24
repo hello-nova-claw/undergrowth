@@ -450,7 +450,9 @@ function undergrowth_start_backfill(): void {
  * @phpstan-param array{provider: string, model: string, language: string} $identity
  */
 function undergrowth_record_index_identity( array $identity ): void {
-	if ( get_option( 'undergrowth_index_identity' ) === $identity ) {
+	// The counts are for the current target, which a batch that read the
+	// identity before a model or language switch no longer matches.
+	if ( get_option( 'undergrowth_index_identity' ) === $identity || undergrowth_index_target() !== $identity ) {
 		return;
 	}
 
