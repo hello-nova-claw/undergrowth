@@ -310,6 +310,23 @@ function undergrowth_current_prompt(): ?array {
 }
 
 /**
+ * Tells whether a question has ever been written for the author: one is
+ * waiting, one is snoozed, or one is in a post's prompt log.
+ *
+ * @return bool True once a question has been written.
+ */
+function undergrowth_has_written_prompt(): bool {
+	global $wpdb;
+
+	if ( null !== undergrowth_current_prompt() || array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() ) ) {
+		return true;
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One row is enough, read only on the settings page.
+	return null !== $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE meta_key = %s LIMIT 1', $wpdb->postmeta, 'undergrowth_prompt_log' ) );
+}
+
+/**
  * Tells whether an error from the Messages API is the model's answer rather
  * than a failed request.
  *
