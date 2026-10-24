@@ -1639,10 +1639,6 @@ msgid "You cannot change the growth stage of this post."
 msgstr ""
 
 #: src/stages.php
-msgid "The stage could not be saved, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
 msgid "Stage pinned. The monthly cycle will leave it as it is."
 msgstr ""
 
