@@ -249,6 +249,41 @@ class Test_Schema extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs a callback and returns every query it made.
+	 *
+	 * @param callable $callback The code under test.
+	 * @return array{0: mixed, 1: string[]} The callback's result and the queries.
+	 */
+	private function record_queries( callable $callback ): array {
+		$queries = array();
+		$record  = static function ( $query ) use ( &$queries ) {
+			$queries[] = $query;
+			return $query;
+		};
+		add_filter( 'query', $record, 1 );
+		$result = $callback();
+		remove_filter( 'query', $record, 1 );
+
+		return array( $result, $queries );
+	}
+
+	/**
+	 * Picks out the queries that create a plugin table on one site.
+	 *
+	 * Site IDs come round again between tests, so a table left by an earlier
+	 * test would pass a check of the table itself.
+	 *
+	 * @param string[] $queries Recorded queries.
+	 * @param int      $site_id The site.
+	 * @return string[]
+	 */
+	private function plugin_creates( array $queries, int $site_id ): array {
+		global $wpdb;
+
+		return preg_grep( '/^\s*CREATE TABLE ' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . 'undergrowth_/i', $queries );
+	}
+
+	/**
 	 * Asserts the current site has both tables and both recurring events.
 	 *
 	 * The test suite makes every table it creates temporary, and SHOW TABLES
@@ -276,7 +311,8 @@ class Test_Schema extends WP_UnitTestCase {
 	 * @group ms-required
 	 */
 	public function test_network_activation_sets_up_every_site() {
-		$site_ids = array_merge( array( get_current_blog_id() ), self::factory()->blog->create_many( 2 ) );
+		$new_ids  = self::factory()->blog->create_many( 2 );
+		$site_ids = array_merge( array( get_current_blog_id() ), $new_ids );
 
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
@@ -284,7 +320,17 @@ class Test_Schema extends WP_UnitTestCase {
 			restore_current_blog();
 		}
 
-		undergrowth_activate( true );
+		list( , $queries ) = $this->record_queries(
+			static function () {
+				undergrowth_activate( true );
+			}
+		);
+
+		// The main site's tables are lasting ones from the bootstrap, so dbDelta
+		// has nothing to create there.
+		foreach ( $new_ids as $site_id ) {
+			$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ), (string) $site_id );
+		}
 
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
@@ -306,9 +352,14 @@ class Test_Schema extends WP_UnitTestCase {
 		restore_current_blog();
 		$this->forget_activation();
 
-		undergrowth_activate( false );
+		list( , $queries ) = $this->record_queries(
+			static function () {
+				undergrowth_activate( false );
+			}
+		);
 
 		$this->assert_site_is_set_up();
+		$this->assertSame( array(), $this->plugin_creates( $queries, $other_id ) );
 		switch_to_blog( $other_id );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
@@ -322,26 +373,15 @@ class Test_Schema extends WP_UnitTestCase {
 	 * @group ms-required
 	 */
 	public function test_new_site_is_set_up_when_network_active() {
-		global $wpdb;
-
 		update_site_option( 'active_sitewide_plugins', array( plugin_basename( UNDERGROWTH_FILE ) => time() ) );
 
-		$queries = array();
-		$record  = static function ( $query ) use ( &$queries ) {
-			$queries[] = $query;
-			return $query;
-		};
-		add_filter( 'query', $record, 1 );
+		list( $site_id, $queries ) = $this->record_queries(
+			static function () {
+				return self::factory()->blog->create();
+			}
+		);
 
-		$site_id = self::factory()->blog->create();
-
-		remove_filter( 'query', $record, 1 );
-
-		// Site IDs come round again between tests, so a table left by an
-		// earlier test would pass the checks below without the hook.
-		$creates = preg_grep( '/^\s*CREATE TABLE ' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . 'undergrowth_/i', $queries );
-		$this->assertCount( 2, $creates );
-
+		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
 		switch_to_blog( $site_id );
 		$this->assert_site_is_set_up();
 		restore_current_blog();
@@ -355,7 +395,17 @@ class Test_Schema extends WP_UnitTestCase {
 	 */
 	public function test_new_site_is_left_alone_when_not_network_active() {
 		update_site_option( 'active_sitewide_plugins', array() );
-		$site_id = self::factory()->blog->create();
+
+		list( $site_id, $queries ) = $this->record_queries(
+			static function () {
+				return self::factory()->blog->create();
+			}
+		);
+
+		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+
+		// Events left on a reused site ID would hide any the hook scheduled,
+		// so the hook is also run again on a cleared site.
 		switch_to_blog( $site_id );
 		$this->forget_activation();
 		restore_current_blog();
@@ -366,5 +416,35 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		restore_current_blog();
+	}
+
+	/**
+	 * A site on another network is set up only when the plugin is active
+	 * across that network, whichever network handles the request.
+	 *
+	 * @group ms-required
+	 */
+	public function test_new_site_follows_its_own_network() {
+		update_site_option( 'active_sitewide_plugins', array( plugin_basename( UNDERGROWTH_FILE ) => time() ) );
+		$network_id = self::factory()->network->create();
+
+		list( $site_id, $queries ) = $this->record_queries(
+			static function () use ( $network_id ) {
+				return self::factory()->blog->create( array( 'network_id' => $network_id ) );
+			}
+		);
+
+		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+
+		update_site_option( 'active_sitewide_plugins', array() );
+		update_network_option( $network_id, 'active_sitewide_plugins', array( plugin_basename( UNDERGROWTH_FILE ) => time() ) );
+
+		list( , $queries ) = $this->record_queries(
+			static function () use ( $site_id ) {
+				undergrowth_initialize_site( get_site( $site_id ) );
+			}
+		);
+
+		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
 	}
 }

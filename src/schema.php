@@ -187,11 +187,10 @@ function undergrowth_activate_site(): void {
  * @param WP_Site $site The new site.
  */
 function undergrowth_initialize_site( WP_Site $site ): void {
-	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	}
+	// The new site's network, which need not be the one handling the request.
+	$active = (array) get_network_option( $site->network_id, 'active_sitewide_plugins', array() );
 
-	if ( ! is_plugin_active_for_network( plugin_basename( UNDERGROWTH_FILE ) ) ) {
+	if ( ! isset( $active[ plugin_basename( UNDERGROWTH_FILE ) ] ) ) {
 		return;
 	}
 
