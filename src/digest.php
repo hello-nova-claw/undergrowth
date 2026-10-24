@@ -200,7 +200,7 @@ function undergrowth_send_digest( WP_User $user ): bool {
 	}
 
 	$since = max( $sent, (int) get_user_meta( $user->ID, 'undergrowth_digest', true ) );
-	$rows  = undergrowth_digest_suggestions( $since );
+	$rows  = undergrowth_digest_suggestions( $since, $user );
 
 	if ( array() === $rows ) {
 		return false;
@@ -238,22 +238,26 @@ function undergrowth_send_digest( WP_User $user ): bool {
 }
 
 /**
- * Lists the best suggestions still waiting that were made after a time.
+ * Lists the best suggestions still waiting that were made after a time, on
+ * posts that still exist and that the user can edit.
  *
- * @param int $since Unix time.
+ * Rows are filtered before the list is cut to its length, so a suggestion
+ * the user cannot act on never takes the place of one they can.
+ *
+ * @param int     $since Unix time.
+ * @param WP_User $user  The user the email is for.
  * @return array<int, array{source_id: int, target_id: int, sentence: string, anchor: string, anchor_offset: int}> Rows, best first.
  */
-function undergrowth_digest_suggestions( int $since ): array {
+function undergrowth_digest_suggestions( int $since, WP_User $user ): array {
 	global $wpdb;
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s AND created_at > %s ORDER BY score DESC, id ASC LIMIT %d',
+			'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s AND created_at > %s ORDER BY score DESC, id ASC',
 			undergrowth_links_table(),
 			'proposed',
-			gmdate( 'Y-m-d H:i:s', $since ),
-			UNDERGROWTH_DIGEST_SUGGESTIONS
+			gmdate( 'Y-m-d H:i:s', $since )
 		),
 		ARRAY_A
 	);
@@ -261,13 +265,24 @@ function undergrowth_digest_suggestions( int $since ): array {
 	$clean = array();
 
 	foreach ( $rows as $row ) {
+		$source_id = (int) $row['source_id'];
+		$target_id = (int) $row['target_id'];
+
+		if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post || ! user_can( $user, 'edit_post', $source_id ) ) {
+			continue;
+		}
+
 		$clean[] = array(
-			'source_id'     => (int) $row['source_id'],
-			'target_id'     => (int) $row['target_id'],
+			'source_id'     => $source_id,
+			'target_id'     => $target_id,
 			'sentence'      => (string) $row['sentence'],
 			'anchor'        => (string) $row['anchor'],
 			'anchor_offset' => (int) $row['anchor_offset'],
 		);
+
+		if ( count( $clean ) === UNDERGROWTH_DIGEST_SUGGESTIONS ) {
+			break;
+		}
 	}
 
 	return $clean;
