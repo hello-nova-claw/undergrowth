@@ -19,7 +19,7 @@ The rule behind every feature: the AI may speak **to** the author, never **for**
 - **A Growth stage block** that shows readers a post's stage as one line of text your theme styles.
 - **A plain-text file for each post** in the uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
 
-Settings › Undergrowth has three sections (Link suggestions, Questions on your Dashboard, and Discord) and Help tabs that say what is sent where. Nothing is sent anywhere until you save a key. The full user documentation, including what each service receives and what it costs, is in [readme.txt](readme.txt).
+Settings › Undergrowth has three sections (Link suggestions, Questions on your Dashboard, and Discord) and Help tabs that say what is sent where. Nothing is sent anywhere until you add a key. The user documentation, including what each service receives and what it costs, is in [readme.txt](readme.txt), with the per-post file format in [docs/per-post-files.md](docs/per-post-files.md) and the Discord steps in [docs/discord.md](docs/discord.md).
 
 ## Requirements
 

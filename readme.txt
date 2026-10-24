@@ -35,7 +35,7 @@ Undergrowth contacts three services, each only once you set it up: OpenAI, to re
 == Installation ==
 
 1. Install and activate the plugin.
-2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. Without a key, or your own provider through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
+2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. With neither a key nor your own provider through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
 3. Posts you published earlier are read in the background as WP-Cron runs. The settings page shows how many are done.
 4. Optionally, add an Anthropic API key for the Dashboard question, and set up Discord (see the FAQ).
 
@@ -85,7 +85,7 @@ The settings page then says the key is in `wp-config.php` and never shows it.
 
 = Where does Undergrowth keep its notes about each post? =
 
-In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Files are written in English, with dates in UTC, whatever the site's language and time zone, so the plugin can read them back. On Apache an `.htaccess` file refuses web access, and the folder's random name cannot be guessed. On nginx, add the deny rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
+In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so the plugin can read them back. On Apache an `.htaccess` file refuses web access, and the folder's random name is hard to guess. On nginx, add the deny rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
 
 = What does deleting the plugin remove? =
 

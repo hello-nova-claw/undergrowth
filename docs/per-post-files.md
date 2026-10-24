@@ -8,7 +8,7 @@ Each published post that has been indexed gets a plain-text file in the site's u
 
 ## What a file holds
 
-Every file is written in English, with dates in UTC, whatever the site's language and time zone. It is a record in one fixed format, so the plugin can read it back.
+Every file is a record in one fixed format, so the plugin can read it back: its headings and labels are in English and its dates in UTC, whatever the site's language and time zone. Titles, words and sentences from your posts stay as you wrote them.
 
 ```text
 # Storing oca
@@ -48,7 +48,7 @@ The stage section names the post's growth stage, marked `(pinned)` when you have
 
 ## Keeping the folder private
 
-On Apache, the folder holds an `.htaccess` file that refuses web access. On any server, the folder's name ends in random characters that only Settings › Undergrowth shows, so its address cannot be guessed, and each folder holds an `index.php` so it is never listed.
+On Apache, the folder holds an `.htaccess` file that refuses web access. On any server, the folder's name ends in random characters that only Settings › Undergrowth shows, which makes its address hard to guess, and each folder holds an `index.php` so it is never listed. The random name is not access control: the `.htaccess` file, or the nginx rule below, is.
 
 nginx ignores `.htaccess`. On nginx, add this rule to your server block to refuse the files outright:
 
