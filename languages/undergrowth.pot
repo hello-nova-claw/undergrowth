@@ -1161,6 +1161,10 @@ msgid "Those words can’t be linked safely, for example because formatting or a
 msgstr ""
 
 #: src/links.php
+msgid "You cannot edit that post, so nothing was changed."
+msgstr ""
+
+#: src/links.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
@@ -1790,6 +1794,11 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/draft-scan.js
 msgid "Linked. Save the post to keep the link."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
 msgstr ""
 
 #: build/editor/index.js

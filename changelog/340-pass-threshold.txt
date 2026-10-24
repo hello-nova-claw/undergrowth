@@ -1,0 +1,1 @@
+Every batch of a monthly clustering pass now groups posts with the same threshold, even when a post leaves the index while the pass runs.
