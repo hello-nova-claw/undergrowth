@@ -4,6 +4,7 @@
 /bin
 /changelog
 /coverage
+/demo
 /docs
 /node_modules
 /tests
