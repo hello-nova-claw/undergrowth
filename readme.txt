@@ -65,7 +65,7 @@ With an Anthropic key saved, each request to Claude sends one post's title and a
 
 = What is sent to Discord? =
 
-Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Messages are sent to `discord.com` from WP-Cron, a few moments after each suggestion is made. Button clicks come back to your site signed by Discord, and are checked against your application's public key. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
+Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Messages are sent to `discord.com` from WP-Cron, a few moments after each suggestion is made. Button clicks come back to your site signed by Discord, and are checked against your application's public key. Each click is acted on in WP-Cron, which then updates the clicked message on `discord.com`. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
 
 = What does the readers meter read from Jetpack? =
 

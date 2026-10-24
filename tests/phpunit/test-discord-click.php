@@ -16,6 +16,22 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 	const DISCORD_USER = '445566778899001122';
 
+	const APPLICATION = '112233445566778899';
+
+	/**
+	 * Requests sent to Discord, oldest first.
+	 *
+	 * @var array<int, array{method: string, url: string, body: array}>
+	 */
+	private $requests = array();
+
+	/**
+	 * Responses the fake Discord gives, in order; then 200 each time.
+	 *
+	 * @var array<int, array>
+	 */
+	private $responses = array();
+
 	/**
 	 * WordPress user linked to the Discord user.
 	 *
@@ -31,6 +47,8 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 		$this->editor = self::factory()->user->create( array( 'role' => 'editor' ) );
 		update_user_meta( $this->editor, 'undergrowth_discord_user_id', self::DISCORD_USER );
+		update_option( 'undergrowth_discord_application_id', self::APPLICATION );
+		add_filter( 'pre_http_request', array( $this, 'fake_discord' ), 10, 3 );
 	}
 
 	public function tear_down() {
@@ -39,9 +57,111 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$wp_rest_server = null;
 		unset( $_POST['undergrowth_discord_user_id'] );
 		delete_option( 'undergrowth_discord_public_key' );
+		delete_option( 'undergrowth_discord_application_id' );
+		delete_option( 'undergrowth_last_discord_error' );
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
+	}
+
+	/**
+	 * Answers every outgoing request, and records the ones to Discord.
+	 *
+	 * @param false|array $preempt Earlier response.
+	 * @param array       $args    Request arguments.
+	 * @param string      $url     Request URL.
+	 * @return array
+	 */
+	public function fake_discord( $preempt, $args, $url ) {
+		$ok = array(
+			'headers'  => array(),
+			'body'     => '{"id":"1001"}',
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+		);
+
+		if ( 0 !== strpos( $url, UNDERGROWTH_DISCORD_API ) ) {
+			return $ok;
+		}
+
+		$this->requests[] = array(
+			'method' => $args['method'],
+			'url'    => $url,
+			'body'   => json_decode( $args['body'], true ),
+		);
+
+		return array_shift( $this->responses ) ?? $ok;
+	}
+
+	/**
+	 * Builds a response the fake Discord gives.
+	 *
+	 * @param int                   $status  HTTP status.
+	 * @param array<string, string> $headers Response headers.
+	 * @return array
+	 */
+	private function discord_response( int $status, array $headers = array() ): array {
+		return array(
+			'headers'  => $headers,
+			'body'     => '{}',
+			'response' => array(
+				'code'    => $status,
+				'message' => '',
+			),
+			'cookies'  => array(),
+		);
+	}
+
+	/**
+	 * Runs the click jobs WP-Cron would run.
+	 */
+	private function finish(): void {
+		foreach ( (array) _get_cron_array() as $timestamp => $hooks ) {
+			foreach ( $hooks['undergrowth_discord_finish_click'] ?? array() as $event ) {
+				wp_unschedule_event( $timestamp, 'undergrowth_discord_finish_click', $event['args'] );
+				do_action_ref_array( 'undergrowth_discord_finish_click', $event['args'] );
+			}
+		}
+	}
+
+	/**
+	 * Clicks a button, checks Discord was answered at once, runs the job and
+	 * returns the one request it sent to Discord.
+	 *
+	 * @param string $custom_id Button ID.
+	 * @return array{method: string, url: string, body: array}
+	 */
+	private function clicked( string $custom_id ): array {
+		$this->assertSame( array( 'type' => 6 ), $this->click( $custom_id )->get_data() );
+
+		$this->finish();
+		$this->assertCount( 1, $this->requests );
+
+		return $this->requests[0];
+	}
+
+	/**
+	 * Asserts a request edited the clicked message.
+	 *
+	 * @param array $sent Request sent to Discord.
+	 */
+	private function assertEdited( array $sent ): void {
+		$this->assertSame( 'PATCH', $sent['method'] );
+		$this->assertSame( UNDERGROWTH_DISCORD_API . '/webhooks/' . self::APPLICATION . '/fake-token/messages/@original', $sent['url'] );
+	}
+
+	/**
+	 * Asserts a request told only the person who clicked.
+	 *
+	 * @param array $sent Request sent to Discord.
+	 */
+	private function assertToldPrivately( array $sent ): void {
+		$this->assertSame( 'POST', $sent['method'] );
+		$this->assertSame( UNDERGROWTH_DISCORD_API . '/webhooks/' . self::APPLICATION . '/fake-token', $sent['url'] );
+		$this->assertSame( 64, $sent['body']['flags'] );
 	}
 
 	/**
@@ -70,7 +190,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 			array(
 				'type'    => 3,
 				'id'      => '1',
-				'token'   => 'fake',
+				'token'   => 'fake-token',
 				'member'  => array(
 					'user' => array(
 						'id'       => $user_id,
@@ -115,29 +235,140 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$this->assertSame( 64, $data['data']['flags'] );
 	}
 
+	public function data_actions() {
+		return array(
+			'accept' => array( 'accept' ),
+			'veto'   => array( 'veto' ),
+		);
+	}
+
+	/**
+	 * Discord gives up after three seconds, so a click is answered before
+	 * any post is saved.
+	 *
+	 * @dataProvider data_actions
+	 *
+	 * @param string $action Button action.
+	 */
+	public function test_click_is_answered_before_anything_changes( $action ) {
+		list( $oca, $yacon ) = $this->pair();
+		$saved               = false;
+
+		add_action(
+			'post_updated',
+			static function () use ( &$saved ) {
+				$saved = true;
+			}
+		);
+
+		$response = $this->click( 'undergrowth:' . $action . ':' . $oca . ':' . $yacon );
+
+		$this->assertSame( array( 'type' => 6 ), $response->get_data() );
+		$this->assertFalse( $saved );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+		$this->assertSame( array(), $this->requests );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_discord_finish_click', array( $action, $oca, $yacon, $this->editor, 'fake-token' ) ) );
+	}
+
 	public function test_accept_links_the_word_and_updates_the_message() {
 		list( $oca, $yacon ) = $this->pair();
 
-		$data = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon )->get_data();
+		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
+		$data = $sent['body'];
 
+		$this->assertEdited( $sent );
 		$this->assertSame( 'accepted', undergrowth_link_state( $oca, $yacon ) );
 		$this->assertStringContainsString( get_permalink( $yacon ), get_post( $oca )->post_content );
-		$this->assertSame( 7, $data['type'] );
-		$this->assertSame( array(), $data['data']['components'] );
-		$this->assertStringContainsString( 'Linked.', $data['data']['content'] );
-		$this->assertStringContainsString( 'Like yacon, it is a tuber.', $data['data']['content'] );
-		$this->assertSame( array(), $data['data']['allowed_mentions']['parse'] );
+		$this->assertSame( array(), $data['components'] );
+		$this->assertStringContainsString( 'Linked.', $data['content'] );
+		$this->assertStringContainsString( 'Like yacon, it is a tuber.', $data['content'] );
+		$this->assertSame( array(), $data['allowed_mentions']['parse'] );
 	}
 
 	public function test_veto_is_stored_and_updates_the_message() {
 		list( $oca, $yacon ) = $this->pair();
 
-		$data = $this->click( 'undergrowth:veto:' . $oca . ':' . $yacon )->get_data();
+		$sent = $this->clicked( 'undergrowth:veto:' . $oca . ':' . $yacon );
+
+		$this->assertEdited( $sent );
+		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
+		$this->assertSame( array(), $sent['body']['components'] );
+		$this->assertStringContainsString( 'won’t be suggested again', $sent['body']['content'] );
+	}
+
+	public function test_edit_that_fails_is_recorded_and_not_tried_again() {
+		list( $oca, $yacon ) = $this->pair();
+		$this->responses     = array( $this->discord_response( 500 ) );
+
+		$this->clicked( 'undergrowth:veto:' . $oca . ':' . $yacon );
 
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
-		$this->assertSame( 7, $data['type'] );
-		$this->assertSame( array(), $data['data']['components'] );
-		$this->assertStringContainsString( 'won’t be suggested again', $data['data']['content'] );
+		$this->assertSame( 500, get_option( 'undergrowth_last_discord_error' )['status'] );
+		$this->assertSame( array( $oca . ':' . $yacon ), undergrowth_discord_pending() );
+	}
+
+	public function test_edit_waits_out_a_short_rate_limit_once() {
+		list( $oca, $yacon ) = $this->pair();
+		$this->responses     = array( $this->discord_response( 429, array( 'retry-after' => '0' ) ) );
+
+		$this->click( 'undergrowth:veto:' . $oca . ':' . $yacon );
+		$this->finish();
+
+		$this->assertCount( 2, $this->requests );
+		$this->assertSame( $this->requests[0], $this->requests[1] );
+		$this->assertFalse( get_option( 'undergrowth_last_discord_error' ) );
+	}
+
+	public function test_edit_does_not_wait_out_a_long_rate_limit() {
+		list( $oca, $yacon ) = $this->pair();
+		$this->responses     = array( $this->discord_response( 429, array( 'retry-after' => '60' ) ) );
+
+		$this->clicked( 'undergrowth:veto:' . $oca . ':' . $yacon );
+
+		$this->assertSame( 429, get_option( 'undergrowth_last_discord_error' )['status'] );
+	}
+
+	public function test_click_without_a_token_is_refused_privately() {
+		list( $oca, $yacon ) = $this->pair();
+
+		$response = $this->send(
+			array(
+				'type' => 3,
+				'user' => array( 'id' => self::DISCORD_USER ),
+				'data' => array( 'custom_id' => 'undergrowth:veto:' . $oca . ':' . $yacon ),
+			)
+		);
+
+		$this->assertEphemeral( $response );
+		$this->finish();
+		$this->assertSame( array(), $this->requests );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_click_that_cannot_be_queued_is_refused_privately() {
+		list( $oca, $yacon ) = $this->pair();
+		add_filter( 'pre_schedule_event', '__return_false' );
+
+		$response = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon );
+
+		remove_filter( 'pre_schedule_event', '__return_false' );
+		$this->assertEphemeral( $response );
+		$this->assertStringContainsString( 'could not queue', $response->get_data()['data']['content'] );
+		$this->finish();
+		$this->assertSame( array(), $this->requests );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_user_who_can_no_longer_edit_the_post_is_told_privately() {
+		list( $oca, $yacon ) = $this->pair();
+
+		$this->click( 'undergrowth:accept:' . $oca . ':' . $yacon );
+		get_userdata( $this->editor )->set_role( 'subscriber' );
+		$this->finish();
+
+		$this->assertCount( 1, $this->requests );
+		$this->assertToldPrivately( $this->requests[0] );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
 	public function test_click_runs_as_the_linked_user_and_restores_the_current_user() {
@@ -153,6 +384,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		);
 
 		$this->click( 'undergrowth:accept:' . $oca . ':' . $yacon );
+		$this->finish();
 
 		$this->assertSame( $this->editor, $saved_by );
 		$this->assertSame( 0, get_current_user_id() );
@@ -171,18 +403,16 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$thrown = false;
 
 		try {
-			undergrowth_discord_click(
-				array(
-					'user' => array( 'id' => self::DISCORD_USER ),
-					'data' => array( 'custom_id' => 'undergrowth:accept:' . $oca . ':' . $yacon ),
-				)
-			);
+			undergrowth_discord_finish_click( 'accept', $oca, $yacon, $this->editor, 'fake-token' );
 		} catch ( RuntimeException $e ) {
 			$thrown = true;
 		}
 
 		$this->assertTrue( $thrown );
 		$this->assertSame( 0, get_current_user_id() );
+		$this->assertCount( 1, $this->requests );
+		$this->assertToldPrivately( $this->requests[0] );
+		$this->assertStringContainsString( 'Something went wrong', $this->requests[0]['body']['content'] );
 	}
 
 	public function test_click_from_an_unlinked_user_is_refused_privately() {
@@ -210,11 +440,13 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 		$this->send(
 			array(
-				'type' => 3,
-				'user' => array( 'id' => self::DISCORD_USER ),
-				'data' => array( 'custom_id' => 'undergrowth:veto:' . $oca . ':' . $yacon ),
+				'type'  => 3,
+				'token' => 'fake-token',
+				'user'  => array( 'id' => self::DISCORD_USER ),
+				'data'  => array( 'custom_id' => 'undergrowth:veto:' . $oca . ':' . $yacon ),
 			)
 		);
+		$this->finish();
 
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
 	}
@@ -274,10 +506,10 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		list( $oca, $yacon ) = $this->pair();
 		undergrowth_veto_link( $oca, $yacon );
 
-		$data = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon )->get_data();
+		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
 
-		$this->assertSame( 7, $data['type'] );
-		$this->assertStringContainsString( 'no longer on the list', $data['data']['content'] );
+		$this->assertEdited( $sent );
+		$this->assertStringContainsString( 'no longer on the list', $sent['body']['content'] );
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
@@ -287,21 +519,21 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		undergrowth_accept_link( $oca, $yacon );
 		wp_set_current_user( 0 );
 
-		$data = $this->click( 'undergrowth:veto:' . $oca . ':' . $yacon )->get_data();
+		$sent = $this->clicked( 'undergrowth:veto:' . $oca . ':' . $yacon );
 
 		$this->assertSame( 'accepted', undergrowth_link_state( $oca, $yacon ) );
-		$this->assertStringContainsString( 'already accepted', $data['data']['content'] );
+		$this->assertStringContainsString( 'already accepted', $sent['body']['content'] );
 	}
 
 	public function test_click_for_a_deleted_post_changes_nothing() {
 		list( $oca, $yacon ) = $this->pair();
 		wp_delete_post( $yacon, true );
 
-		$data = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon )->get_data();
+		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
 
-		$this->assertSame( 7, $data['type'] );
-		$this->assertSame( array(), $data['data']['components'] );
-		$this->assertStringContainsString( 'no longer exists', $data['data']['content'] );
+		$this->assertEdited( $sent );
+		$this->assertSame( array(), $sent['body']['components'] );
+		$this->assertStringContainsString( 'no longer exists', $sent['body']['content'] );
 	}
 
 	public function test_accept_that_cannot_be_done_keeps_the_buttons() {
@@ -314,10 +546,10 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		);
 		update_option( 'undergrowth_suggest_links', '0' );
 
-		$response = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon );
+		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
 
-		$this->assertEphemeral( $response );
-		$this->assertStringContainsString( 'sentence has changed', $response->get_data()['data']['content'] );
+		$this->assertToldPrivately( $sent );
+		$this->assertStringContainsString( 'sentence has changed', $sent['body']['content'] );
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 		delete_option( 'undergrowth_suggest_links' );
 	}
@@ -325,7 +557,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 	public function test_nothing_from_the_payload_is_echoed() {
 		list( $oca, $yacon ) = $this->pair();
 
-		$content = $this->click( 'undergrowth:veto:' . $oca . ':' . $yacon )->get_data()['data']['content'];
+		$content = $this->clicked( 'undergrowth:veto:' . $oca . ':' . $yacon )['body']['content'];
 
 		$this->assertStringNotContainsString( 'Ignore the rules', $content );
 		$this->assertStringNotContainsString( '@everyone', $content );
