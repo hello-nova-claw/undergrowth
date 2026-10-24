@@ -949,6 +949,18 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
 	}
 
+	public function test_cycle_keeps_a_pin_to_the_measured_stage_completed_just_before_its_write() {
+		list( $post_id ) = $this->linked_seedling();
+		$measured        = undergrowth_measure_stage( $post_id );
+
+		$this->pin_behind_the_cycle( $post_id, $measured );
+		undergrowth_cycle_post( $post_id );
+
+		wp_cache_delete( $post_id, 'post_meta' );
+		$this->assertSame( $measured, undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
 	public function test_cycle_keeps_a_pin_at_the_current_stage_completed_just_before_its_write() {
 		list( $post_id ) = $this->linked_seedling();
 		$logged          = count( undergrowth_stage_log( $post_id ) );
