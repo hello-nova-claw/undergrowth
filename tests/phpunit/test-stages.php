@@ -938,6 +938,87 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
 	}
 
+	public function test_cycle_keeps_a_pin_to_another_stage_completed_just_before_its_write() {
+		list( $post_id ) = $this->linked_seedling();
+
+		$this->pin_behind_the_cycle( $post_id, 'evergreen' );
+		undergrowth_cycle_post( $post_id );
+
+		wp_cache_delete( $post_id, 'post_meta' );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_cycle_keeps_a_pin_at_the_current_stage_completed_just_before_its_write() {
+		list( $post_id ) = $this->linked_seedling();
+		$logged          = count( undergrowth_stage_log( $post_id ) );
+
+		$this->pin_behind_the_cycle( $post_id, '' );
+		undergrowth_cycle_post( $post_id );
+
+		wp_cache_delete( $post_id, 'post_meta' );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+		$this->assertCount( $logged, undergrowth_stage_log( $post_id ) );
+	}
+
+	/**
+	 * Publishes a post stored as a seedling, with links that measure it higher.
+	 *
+	 * @return int[] The post, then the two posts it links with.
+	 */
+	private function linked_seedling(): array {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+		$this->link( $post_id, $a );
+		$this->link( $b, $post_id );
+		undergrowth_set_stage( $post_id, 'seedling' );
+
+		$this->assertNotSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+
+		return array( $post_id, $a, $b );
+	}
+
+	/**
+	 * Has another request pin the post just as the cycle is about to write
+	 * its stage: after every check the cycle makes beforehand.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $stage   Stage the author pins, or empty to pin the stage it has.
+	 */
+	private function pin_behind_the_cycle( int $post_id, string $stage ): void {
+		global $wpdb;
+
+		$pin = static function ( $check, $object_id, $meta_key ) use ( &$pin, $wpdb, $post_id, $stage ) {
+			if ( $object_id === $post_id && 'undergrowth_stage' === $meta_key ) {
+				remove_filter( 'update_post_metadata', $pin );
+				// phpcs:disable WordPress.DB.SlowDBQuery -- Another request's writes, behind this one's cache.
+				$wpdb->insert(
+					$wpdb->postmeta,
+					array(
+						'post_id'    => $post_id,
+						'meta_key'   => 'undergrowth_stage_pinned',
+						'meta_value' => '1',
+					)
+				);
+
+				if ( '' !== $stage ) {
+					$wpdb->update(
+						$wpdb->postmeta,
+						array( 'meta_value' => $stage ),
+						array(
+							'post_id'  => $post_id,
+							'meta_key' => 'undergrowth_stage',
+						)
+					);
+				}
+				// phpcs:enable
+			}
+
+			return $check;
+		};
+		add_filter( 'update_post_metadata', $pin, 10, 3 );
+	}
+
 	public function test_cycle_write_is_refused_for_a_pinned_post() {
 		list( $post_id ) = $this->publish( 1 );
 		undergrowth_set_stage( $post_id, 'seedling' );
