@@ -836,6 +836,10 @@ msgid "Only someone the site owner has linked to a WordPress account that can ed
 msgstr ""
 
 #: src/discord-clicks.php
+msgid "Something went wrong while acting on this click. Check the suggestion on Posts > Undergrowth."
+msgstr ""
+
+#: src/discord-clicks.php
 msgid "Discord user ID"
 msgstr ""
 

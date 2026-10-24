@@ -87,6 +87,8 @@ function undergrowth_discord_refused_message(): string {
  * @param int    $target_id Post the link points to.
  * @param int    $user_id   WordPress user the clicking Discord user is linked to.
  * @param string $token     Interaction token.
+ *
+ * @throws Throwable What acting on the click threw, once the clicker is told.
  */
 function undergrowth_discord_finish_click( $action, $source_id, $target_id, $user_id, $token ): void {
 	$source_id = (int) $source_id;
@@ -109,6 +111,11 @@ function undergrowth_discord_finish_click( $action, $source_id, $target_id, $use
 		} else {
 			$result = undergrowth_veto_result( $source_id, $target_id );
 		}
+	} catch ( Throwable $e ) {
+		// WP-Cron does not run the job again, so the clicker hears of it now
+		// and the error still reaches the log.
+		undergrowth_discord_answer_click( (string) $token, $source_id, $target_id, undergrowth_discord_ephemeral( __( 'Something went wrong while acting on this click. Check the suggestion on Posts > Undergrowth.', 'undergrowth' ) ) );
+		throw $e;
 	} finally {
 		wp_set_current_user( $previous_user );
 	}

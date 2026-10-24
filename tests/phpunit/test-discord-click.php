@@ -340,7 +340,9 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		);
 
 		$this->assertEphemeral( $response );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_discord_finish_click' ) );
+		$this->finish();
+		$this->assertSame( array(), $this->requests );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
 	public function test_user_who_can_no_longer_edit_the_post_is_told_privately() {
@@ -394,6 +396,9 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 		$this->assertTrue( $thrown );
 		$this->assertSame( 0, get_current_user_id() );
+		$this->assertCount( 1, $this->requests );
+		$this->assertToldPrivately( $this->requests[0] );
+		$this->assertStringContainsString( 'Something went wrong', $this->requests[0]['body']['content'] );
 	}
 
 	public function test_click_from_an_unlinked_user_is_refused_privately() {
