@@ -23,9 +23,9 @@ function undergrowth_add_privacy_policy_content(): void {
 
 	$paragraphs = array(
 		__( 'Undergrowth sends text to outside services only once the site owner sets each one up, and each is used under its own terms and privacy policy.', 'undergrowth' ),
-		__( 'With an OpenAI key, the title and text of each published post without a password are sent to OpenAI to find related posts. Code added to the site can send them to another service instead.', 'undergrowth' ),
+		__( 'To find related posts, the title and text of each published post without a password are sent to OpenAI, once an OpenAI key is saved, or to the service that code added to the site names instead. Settings > Undergrowth says which.', 'undergrowth' ),
 		__( 'With an Anthropic key, Anthropic is sent a post’s title and a few sentences quoted from the site’s posts to write the site owner a question. When the question comes from a reader’s approved comment, the text of that comment is sent too, without the commenter’s name, email address or IP address.', 'undergrowth' ),
-		__( 'With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to a private Discord channel.', 'undergrowth' ),
+		__( 'With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to the Discord channel the site owner chose.', 'undergrowth' ),
 		__( 'A site user who links their Discord account on their profile has their Discord user ID stored with their account, so that clicks in Discord can be matched to them. It is included in personal data exports and removed by personal data erasure.', 'undergrowth' ),
 	);
 
@@ -120,12 +120,14 @@ function undergrowth_export_personal_data( string $email_address ): array {
  * @return array{items_removed: bool, items_retained: bool, messages: string[], done: bool} Result.
  */
 function undergrowth_erase_personal_data( string $email_address ): array {
-	$user = get_user_by( 'email', $email_address );
+	$user   = get_user_by( 'email', $email_address );
+	$linked = $user instanceof WP_User && '' !== (string) get_user_meta( $user->ID, 'undergrowth_discord_user_id', true );
+	$erased = $linked && delete_user_meta( $user->ID, 'undergrowth_discord_user_id' );
 
 	return array(
-		'items_removed'  => $user instanceof WP_User && delete_user_meta( $user->ID, 'undergrowth_discord_user_id' ),
-		'items_retained' => false,
-		'messages'       => array(),
+		'items_removed'  => $erased,
+		'items_retained' => $linked && ! $erased,
+		'messages'       => $linked && ! $erased ? array( __( 'The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile.', 'undergrowth' ) ) : array(),
 		'done'           => true,
 	);
 }

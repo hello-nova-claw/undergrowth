@@ -1289,7 +1289,7 @@ msgid "Undergrowth sends text to outside services only once the site owner sets 
 msgstr ""
 
 #: src/privacy.php
-msgid "With an OpenAI key, the title and text of each published post without a password are sent to OpenAI to find related posts. Code added to the site can send them to another service instead."
+msgid "To find related posts, the title and text of each published post without a password are sent to OpenAI, once an OpenAI key is saved, or to the service that code added to the site names instead. Settings > Undergrowth says which."
 msgstr ""
 
 #: src/privacy.php
@@ -1297,7 +1297,7 @@ msgid "With an Anthropic key, Anthropic is sent a post’s title and a few sente
 msgstr ""
 
 #: src/privacy.php
-msgid "With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to a private Discord channel."
+msgid "With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to the Discord channel the site owner chose."
 msgstr ""
 
 #: src/privacy.php
@@ -1314,6 +1314,10 @@ msgstr ""
 
 #: src/privacy.php
 msgid "The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord."
+msgstr ""
+
+#: src/privacy.php
+msgid "The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile."
 msgstr ""
 
 #: src/settings.php
