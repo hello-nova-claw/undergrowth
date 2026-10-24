@@ -69,20 +69,20 @@ class Test_Corpus extends WP_UnitTestCase {
 		// "גן" is a garden.
 		$garden = self::factory()->post->create(
 			array(
-				'post_title'   => 'גן',
-				'post_content' => 'שתלתי אוקה בגן.',
+				'post_title'   => 'שתילה',
+				'post_content' => 'שתלתי אוקה, גן קטן.',
 			)
 		);
 		$roots  = self::factory()->post->create(
 			array(
 				'post_title'   => 'שורשים',
-				'post_content' => 'האוקה בגן גדלה.',
+				'post_content' => 'האוקה גדלה, גן ירוק.',
 			)
 		);
 
 		$corpus = undergrowth_build_corpus( array( $garden, $roots ) );
 
-		$this->assertSame( 1, $corpus['frequency']['גן'] );
+		$this->assertSame( 2, $corpus['frequency']['גן'] );
 	}
 
 	/**
