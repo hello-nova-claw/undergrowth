@@ -1233,6 +1233,13 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
 	}
 
+	public function test_pin_errors_read_their_sentences_from_the_stage_result_table() {
+		$messages = undergrowth_stage_result_messages();
+
+		$this->assertSame( $messages['stage_pin_lost'], undergrowth_pin_lost()->get_error_message() );
+		$this->assertSame( $messages['stage_pin_left'], undergrowth_pin_left()->get_error_message() );
+	}
+
 	public function test_pin_that_cannot_be_restored_says_so() {
 		list( $post_id ) = $this->publish( 1 );
 		$this->fail_pin_flag( 'add' );
