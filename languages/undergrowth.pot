@@ -1433,6 +1433,27 @@ msgstr ""
 msgid "That sentence has changed."
 msgstr ""
 
+#. translators: 1: title of the post the link would point to.
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+#, js-format
+msgid "Accept the link to %1$s"
+msgstr ""
+
+#. translators: 1: title of the post the link would point to.
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+#, js-format
+msgid "Veto the link to %1$s"
+msgstr ""
+
+#. translators: 1: title of the post the link would point to.
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+#, js-format
+msgid "Choose words for the link to %1$s"
+msgstr ""
+
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Posts that could link here"
