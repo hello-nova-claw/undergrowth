@@ -366,12 +366,6 @@ msgid "The stage could not be saved, and the pin marker could not be removed. Un
 msgstr ""
 
 #: src/admin.php
-#: src/memory.php
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
-msgstr ""
-
-#: src/admin.php
 msgid "Dismissed. The post stays composting."
 msgstr ""
 
@@ -1685,6 +1679,10 @@ msgstr ""
 
 #: src/stages.php
 msgid "The stage could not be saved, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
 msgstr ""
 
 #: src/stages.php
