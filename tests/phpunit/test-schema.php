@@ -35,15 +35,22 @@ class Test_Schema extends WP_UnitTestCase {
 	public function tear_down() {
 		global $wpdb;
 
+		$restored = true;
+
 		if ( $this->replaced_tables ) {
 			foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 				$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
 			}
-			undergrowth_install_schema();
+			$restored              = undergrowth_install_schema();
 			$this->replaced_tables = false;
 		}
 
+		// Failing before the parent's cleanup would skip its rollback.
 		parent::tear_down();
+
+		if ( ! $restored ) {
+			$this->fail( 'The plugin tables could not be put back, so later tests will fail too.' );
+		}
 	}
 
 	/**
@@ -280,7 +287,9 @@ class Test_Schema extends WP_UnitTestCase {
 		$vector = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $vectors, 7 ), ARRAY_A );
 		$this->assertSame( 'openai', $vector['provider'] );
 		$this->assertSame( 'text-embedding-3-small', $vector['model'] );
+		$this->assertSame( 2, (int) $vector['dimensions'] );
 		$this->assertSame( '[0.6,0.8]', $vector['embedding'] );
+		$this->assertSame( str_repeat( 'a', 64 ), $vector['content_hash'] );
 		$this->assertSame( '2026-01-02 03:04:05', $vector['embedded_at'] );
 		// A vector without a language is never compared, so it is embedded again.
 		$this->assertSame( '', $vector['language'] );
