@@ -14,6 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DIGEST_SUGGESTIONS = 5;
+const UNDERGROWTH_DIGEST_BATCH       = 50;
 
 // A cycle can end early after a new provider or model is set up, so a second
 // email waits until most of a month has gone by.
@@ -251,39 +252,47 @@ function undergrowth_send_digest( WP_User $user ): bool {
 function undergrowth_digest_suggestions( int $since, WP_User $user ): array {
 	global $wpdb;
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-	$rows = (array) $wpdb->get_results(
-		$wpdb->prepare(
-			'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s AND created_at > %s ORDER BY score DESC, id ASC',
-			undergrowth_links_table(),
-			'proposed',
-			gmdate( 'Y-m-d H:i:s', $since )
-		),
-		ARRAY_A
-	);
+	$clean  = array();
+	$offset = 0;
 
-	$clean = array();
-
-	foreach ( $rows as $row ) {
-		$source_id = (int) $row['source_id'];
-		$target_id = (int) $row['target_id'];
-
-		if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post || ! user_can( $user, 'edit_post', $source_id ) ) {
-			continue;
-		}
-
-		$clean[] = array(
-			'source_id'     => $source_id,
-			'target_id'     => $target_id,
-			'sentence'      => (string) $row['sentence'],
-			'anchor'        => (string) $row['anchor'],
-			'anchor_offset' => (int) $row['anchor_offset'],
+	do {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$rows = (array) $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s AND created_at > %s ORDER BY score DESC, id ASC LIMIT %d OFFSET %d',
+				undergrowth_links_table(),
+				'proposed',
+				gmdate( 'Y-m-d H:i:s', $since ),
+				UNDERGROWTH_DIGEST_BATCH,
+				$offset
+			),
+			ARRAY_A
 		);
 
-		if ( count( $clean ) === UNDERGROWTH_DIGEST_SUGGESTIONS ) {
-			break;
+		foreach ( $rows as $row ) {
+			$source_id = (int) $row['source_id'];
+			$target_id = (int) $row['target_id'];
+
+			if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post || ! user_can( $user, 'edit_post', $source_id ) ) {
+				continue;
+			}
+
+			$clean[] = array(
+				'source_id'     => $source_id,
+				'target_id'     => $target_id,
+				'sentence'      => (string) $row['sentence'],
+				'anchor'        => (string) $row['anchor'],
+				'anchor_offset' => (int) $row['anchor_offset'],
+			);
+
+			if ( count( $clean ) === UNDERGROWTH_DIGEST_SUGGESTIONS ) {
+				return $clean;
+			}
 		}
-	}
+
+		$offset += UNDERGROWTH_DIGEST_BATCH;
+		$more    = count( $rows ) === UNDERGROWTH_DIGEST_BATCH;
+	} while ( $more );
 
 	return $clean;
 }
