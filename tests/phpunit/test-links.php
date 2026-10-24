@@ -173,6 +173,7 @@ class Test_Links extends WP_UnitTestCase {
 		$ulluco = $this->plant( 'Ulluco', array( 0.8, 0.2, 0.0 ) );
 		$this->set_state( $oca, $yacon, 'proposed' );
 		$this->set_state( $oca, $ulluco, 'accepted' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertSame( 'vetoed', undergrowth_veto_result( $oca, $yacon ) );
 		$this->assertSame( 'unchanged', undergrowth_veto_result( $oca, $ulluco ) );
