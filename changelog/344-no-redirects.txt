@@ -1,0 +1,1 @@
+Requests to OpenAI and Anthropic, which carry your key, no longer follow redirects, matching the requests to Discord.

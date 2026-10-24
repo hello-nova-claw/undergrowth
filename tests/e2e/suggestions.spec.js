@@ -300,4 +300,69 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expect( toggle ).toBeChecked();
 		} );
 	} );
+
+	test.describe( 'in scripts beyond Latin and CJK', () => {
+		/**
+		 * Publishes Oca with the given content, and Yacon, then opens Suggestions.
+		 *
+		 * @param {Object} fixtures              Test fixtures.
+		 * @param {Object} fixtures.requestUtils Request utils.
+		 * @param {Object} fixtures.admin        Admin utils.
+		 * @param {Object} fixtures.page         Page.
+		 * @param {string} content               Oca's content.
+		 * @return {Promise<import('@playwright/test').Locator>} Oca's row.
+		 */
+		async function ocaRow( { requestUtils, admin, page }, content ) {
+			await requestUtils.createPost( {
+				title: 'Oca',
+				content,
+				status: 'publish',
+			} );
+			await requestUtils.createPost( {
+				title: 'Yacon',
+				content: '<p>Yacon syrup is sweet.</p>',
+				status: 'publish',
+			} );
+			await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
+
+			return page.locator( 'table.undergrowth-links tbody tr' ).filter( {
+				has: page.locator( '.column-source a', { hasText: 'Oca' } ),
+			} );
+		}
+
+		test( 'quotes one Hindi sentence, not the paragraph', async ( {
+			requestUtils,
+			admin,
+			page,
+		} ) => {
+			const row = await ocaRow(
+				{ requestUtils, admin, page },
+				'<p>मैं oca उगाती हूँ। मेरे पास yacon भी है। वह मीठा है।</p>'
+			);
+
+			await expect( row.locator( 'q' ) ).toHaveText(
+				'मेरे पास yacon भी है।'
+			);
+			await expect( row.locator( '.row-actions .choose a' ) ).toHaveCount(
+				1
+			);
+		} );
+
+		test( 'offers no words to choose in Thai', async ( {
+			requestUtils,
+			admin,
+			page,
+		} ) => {
+			const row = await ocaRow(
+				{ requestUtils, admin, page },
+				'<p>ฉันปลูก oca ที่บ้าน และมี yacon อยู่ใกล้ๆ</p>'
+			);
+
+			await expect( row.locator( 'q' ) ).toBeVisible();
+			await expect( row.locator( '.row-actions .choose a' ) ).toHaveCount(
+				0
+			);
+			await expectNoA11yViolations( page, '.wrap' );
+		} );
+	} );
 } );
