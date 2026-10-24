@@ -1,0 +1,1 @@
+When OpenAI says requests come too fast, or has trouble on its side, Undergrowth now stops sending posts and waits five minutes, or as long as OpenAI asks, up to an hour. Settings > Undergrowth says when it will try again.

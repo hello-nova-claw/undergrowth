@@ -15,6 +15,12 @@ const UNDERGROWTH_OPENAI_URL   = 'https://api.openai.com/v1/embeddings'; // phpc
 const UNDERGROWTH_OPENAI_MAX_BYTES   = 24000;
 const UNDERGROWTH_OPENAI_RETRY_BYTES = 8000;
 
+// After a 429 or 5xx, nothing is sent until Retry-After has passed, or five
+// minutes without one. A longer Retry-After is cut to an hour, the backfill
+// check's own interval.
+const UNDERGROWTH_OPENAI_WAIT     = 300;
+const UNDERGROWTH_OPENAI_MAX_WAIT = 3600;
+
 /**
  * Returns the OpenAI API key: the UNDERGROWTH_OPENAI_API_KEY constant when
  * wp-config.php defines it, otherwise the saved option.
@@ -31,7 +37,8 @@ function undergrowth_openai_key(): string {
  * Asks OpenAI for the vector of a piece of text.
  *
  * Text the model rejects as too long is sent once more, cut to a length
- * that always fits.
+ * that always fits. Nothing is sent while OpenAI has asked Undergrowth to
+ * wait, see undergrowth_openai_retry_time().
  *
  * @param string $text Text to embed.
  * @return float[] The vector, or an empty array when the request failed.
@@ -39,7 +46,7 @@ function undergrowth_openai_key(): string {
 function undergrowth_openai_embed( string $text ): array {
 	$key = undergrowth_openai_key();
 
-	if ( '' === $key ) {
+	if ( '' === $key || 0 !== undergrowth_openai_retry_time() ) {
 		return array();
 	}
 
@@ -53,6 +60,15 @@ function undergrowth_openai_embed( string $text ): array {
 
 	if ( array() === $vector ) {
 		undergrowth_record_failure( 'undergrowth_last_embed_error', '' !== $result['error'] ? $result['error'] : 'invalid_response', $result['status'] );
+
+		// Too many requests, or trouble on OpenAI's side: sending the next
+		// post at once would only be turned away too.
+		if ( 429 === $result['status'] || $result['status'] >= 500 ) {
+			$error          = get_option( 'undergrowth_last_embed_error' );
+			$error['retry'] = time() + undergrowth_openai_wait( $result['retry_after'] );
+			update_option( 'undergrowth_last_embed_error', $error, false );
+		}
+
 		return array();
 	}
 
@@ -62,17 +78,50 @@ function undergrowth_openai_embed( string $text ): array {
 }
 
 /**
+ * Returns when OpenAI may be asked again, after it turned a request away
+ * with a 429 or 5xx.
+ *
+ * @return int Unix time, or 0 when requests may be sent now.
+ */
+function undergrowth_openai_retry_time(): int {
+	$error = get_option( 'undergrowth_last_embed_error' );
+	$retry = is_array( $error ) ? (int) ( $error['retry'] ?? 0 ) : 0;
+
+	return $retry > time() ? $retry : 0;
+}
+
+/**
+ * Turns a Retry-After header into seconds to wait.
+ *
+ * @param string $retry_after Seconds, or an HTTP date, or empty when there was none.
+ * @return int Seconds, five minutes when the header is missing or unreadable, an hour at most.
+ */
+function undergrowth_openai_wait( string $retry_after ): int {
+	$retry_after = trim( $retry_after );
+
+	if ( ctype_digit( $retry_after ) ) {
+		$seconds = (int) $retry_after;
+	} else {
+		$date    = '' !== $retry_after ? strtotime( $retry_after ) : false;
+		$seconds = false !== $date ? $date - time() : 0;
+	}
+
+	return $seconds > 0 ? min( $seconds, UNDERGROWTH_OPENAI_MAX_WAIT ) : UNDERGROWTH_OPENAI_WAIT;
+}
+
+/**
  * Sends one embeddings request.
  *
  * @param string $key  API key.
  * @param string $text Text to embed, already cut to length.
  * @return array {
- *     @type int    $status HTTP status, or 0 when the request did not complete.
- *     @type string $error  Error code, or an empty string.
- *     @type mixed  $vector The embedding as returned, before validation.
+ *     @type int    $status      HTTP status, or 0 when the request did not complete.
+ *     @type string $error       Error code, or an empty string.
+ *     @type mixed  $vector      The embedding as returned, before validation.
+ *     @type string $retry_after The Retry-After header, or an empty string.
  * }
  *
- * @phpstan-return array{status: int, error: string, vector: mixed}
+ * @phpstan-return array{status: int, error: string, vector: mixed, retry_after: string}
  */
 function undergrowth_openai_request( string $key, string $text ): array {
 	$response = wp_remote_post(
@@ -94,19 +143,22 @@ function undergrowth_openai_request( string $key, string $text ): array {
 
 	if ( is_wp_error( $response ) ) {
 		return array(
-			'status' => 0,
-			'error'  => sanitize_key( $response->get_error_code() ),
-			'vector' => null,
+			'status'      => 0,
+			'error'       => sanitize_key( $response->get_error_code() ),
+			'vector'      => null,
+			'retry_after' => '',
 		);
 	}
 
 	$status = (int) wp_remote_retrieve_response_code( $response );
 	$body   = json_decode( wp_remote_retrieve_body( $response ), true );
+	$retry  = wp_remote_retrieve_header( $response, 'retry-after' );
 
 	return array(
-		'status' => $status,
-		'error'  => 200 === $status ? '' : 'http_status',
-		'vector' => 200 === $status && is_array( $body ) ? ( $body['data'][0]['embedding'] ?? null ) : null,
+		'status'      => $status,
+		'error'       => 200 === $status ? '' : 'http_status',
+		'vector'      => 200 === $status && is_array( $body ) ? ( $body['data'][0]['embedding'] ?? null ) : null,
+		'retry_after' => is_string( $retry ) ? $retry : '',
 	);
 }
 

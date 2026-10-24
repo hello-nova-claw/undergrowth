@@ -1327,6 +1327,12 @@ msgstr ""
 msgid "Remove the saved key and stop sending posts to OpenAI"
 msgstr ""
 
+#. translators: %1$s: date and time.
+#: src/settings.php
+#, php-format
+msgid "Undergrowth waits until %1$s, then sends the posts that were not read."
+msgstr ""
+
 #: src/settings.php
 msgid "Posts that were not read are tried again within the hour."
 msgstr ""
