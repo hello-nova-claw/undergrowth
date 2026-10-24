@@ -1261,6 +1261,33 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_restoring_a_pin_puts_the_marker_back() {
+		list( $post_id ) = $this->publish( 1 );
+
+		$this->assertNull( undergrowth_restore_pin( $post_id, true ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_restoring_no_pin_takes_the_marker_away() {
+		list( $post_id ) = $this->publish( 1 );
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		$this->assertNull( undergrowth_restore_pin( $post_id, false ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_pin_that_cannot_be_restored_says_so() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_restore_pin( $post_id, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
+		$this->assertSame( undergrowth_pin_lost()->get_error_message(), $result->get_error_message() );
+	}
+
 	/**
 	 * Makes a metadata write to the pin flag fail.
 	 *
