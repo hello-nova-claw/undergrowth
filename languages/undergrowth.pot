@@ -1537,10 +1537,10 @@ msgstr ""
 msgid "Undergrowth reads your posts"
 msgstr ""
 
-#. translators: %s: DISABLE_WP_CRON, the name of a setting in wp-config.php.
+#. translators: %1$s: DISABLE_WP_CRON, the name of a setting in wp-config.php.
 #: src/site-health.php
 #, php-format
-msgid "No post has been read for a day, which usually means WP-Cron is not running: it runs only when someone visits the site, and not at all when %s is set and no server cron job calls it."
+msgid "No post has been read for a day, which usually means WP-Cron is not running: it runs only when someone visits the site, and not at all when %1$s is set and no server cron job calls it."
 msgstr ""
 
 #: src/site-health.php

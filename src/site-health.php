@@ -38,8 +38,8 @@ function undergrowth_add_site_health_tests( array $tests ): array {
  */
 function undergrowth_backfill_stalled_text(): string {
 	return sprintf(
-		/* translators: %s: DISABLE_WP_CRON, the name of a setting in wp-config.php. */
-		__( 'No post has been read for a day, which usually means WP-Cron is not running: it runs only when someone visits the site, and not at all when %s is set and no server cron job calls it.', 'undergrowth' ),
+		/* translators: %1$s: DISABLE_WP_CRON, the name of a setting in wp-config.php. */
+		__( 'No post has been read for a day, which usually means WP-Cron is not running: it runs only when someone visits the site, and not at all when %1$s is set and no server cron job calls it.', 'undergrowth' ),
 		'DISABLE_WP_CRON'
 	);
 }
