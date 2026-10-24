@@ -359,10 +359,10 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 
 	if ( '' === $sentence ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-		$wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d' ) );
+		$done = $wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d' ) );
 	} else {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-		$wpdb->update(
+		$done = $wpdb->update(
 			undergrowth_links_table(),
 			array(
 				'state'      => 'proposed',
@@ -376,7 +376,7 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 
 	undergrowth_write_memory( $source_id );
 
-	return 'vetoed' !== undergrowth_link_state( $source_id, $target_id );
+	return is_int( $done ) && $done > 0;
 }
 
 /**
