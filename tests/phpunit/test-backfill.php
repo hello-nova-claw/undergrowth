@@ -50,6 +50,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		delete_option( 'undergrowth_backfill' );
 		delete_option( 'undergrowth_backfill.lock' );
 		delete_option( 'undergrowth_index_identity' );
+		delete_option( 'undergrowth_backfill_progress' );
 		wp_unschedule_hook( 'undergrowth_backfill' );
 		wp_unschedule_hook( 'undergrowth_backfill_check' );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
@@ -576,6 +577,104 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
+	}
+
+	public function test_deactivation_forgets_when_the_backfill_last_ran() {
+		update_option( 'undergrowth_backfill_progress', array( 'time' => time() ), false );
+
+		undergrowth_deactivate();
+
+		$this->assertFalse( get_option( 'undergrowth_backfill_progress' ) );
+	}
+
+	public function test_run_records_when_it_ran_and_how_far_it_got() {
+		$this->batch_size( 1 );
+		$this->archive( 2 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 1, $progress['indexed'] );
+		$this->assertSame( 2, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_run_whose_embeds_all_fail_still_records_that_it_ran() {
+		$ids             = $this->archive( 1 );
+		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		$this->set_progress( 0, 1, DAY_IN_SECONDS * 2 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_stalled_when_nothing_moved_for_a_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		$this->assertTrue( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_not_stalled_within_a_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 23 * HOUR_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_not_stalled_once_every_post_is_read() {
+		$this->archive( 1 );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->set_progress( 1, 1, 30 * DAY_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_a_count_that_moved_starts_the_day_again() {
+		$this->archive( 3 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 3, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_first_check_starts_the_day() {
+		$this->archive( 2 );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+		$this->assertEqualsWithDelta( time(), get_option( 'undergrowth_backfill_progress' )['time'], 5 );
+	}
+
+	public function test_backfill_is_not_stalled_without_a_provider() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	/**
+	 * Records the backfill's progress as a run that long ago would have.
+	 *
+	 * @param int $indexed Posts read then.
+	 * @param int $total   Posts that could be read then.
+	 * @param int $ago     Seconds since.
+	 */
+	private function set_progress( int $indexed, int $total, int $ago ): void {
+		update_option(
+			'undergrowth_backfill_progress',
+			array(
+				'time'    => time() - $ago,
+				'indexed' => $indexed,
+				'total'   => $total,
+			),
+			false
+		);
 	}
 
 	/**
