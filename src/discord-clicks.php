@@ -188,7 +188,7 @@ function undergrowth_discord_click_reply( int $source_id, int $target_id, string
 	$messages = undergrowth_link_result_messages();
 	$message  = $messages[ $result ] ?? $messages['gone'];
 
-	if ( in_array( $result, array( 'edited', 'no_word', 'not_saved', 'needs_admin' ), true ) ) {
+	if ( in_array( $result, array( 'edited', 'no_word', 'not_saved', 'needs_admin', 'forbidden' ), true ) ) {
 		return undergrowth_discord_ephemeral( $message );
 	}
 

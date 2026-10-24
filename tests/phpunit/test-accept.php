@@ -332,6 +332,25 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_accept_by_a_user_who_cannot_edit_the_post_changes_nothing() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$before              = get_post( $oca )->post_content;
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->assertSame( 'forbidden', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_veto_by_a_user_who_cannot_edit_the_post_changes_nothing() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->assertFalse( undergrowth_veto_link( $oca, $yacon ) );
+		$this->assertSame( 'forbidden', undergrowth_veto_result( $oca, $yacon ) );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
 	public function test_a_post_that_cannot_be_saved_is_reported_as_not_saved() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		$before              = get_post( $oca )->post_content;

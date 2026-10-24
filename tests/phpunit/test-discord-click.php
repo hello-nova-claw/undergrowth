@@ -504,6 +504,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 	public function test_accepting_a_withdrawn_suggestion_updates_the_message_and_changes_nothing() {
 		list( $oca, $yacon ) = $this->pair();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		undergrowth_veto_link( $oca, $yacon );
 
 		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
