@@ -134,19 +134,69 @@ function undergrowth_install_schema(): bool {
 }
 
 /**
- * Installs the schema on activation, schedules the monthly cycle and the
- * hourly backfill check, starts a backfill when posts are waiting to be
- * read, and queues the first-run notice.
+ * Sets up the plugin on activation, on every site when it is activated
+ * across a network.
  *
- * Activation hooks expect no return value, so this wraps the installer
- * rather than registering it directly.
+ * Each site keeps its own tables and cron queue, and network activation
+ * runs this once, on the main site. Activation hooks expect no return
+ * value, so this wraps the installer rather than registering it directly.
+ *
+ * @param bool $network_wide Whether the plugin is activated across the network.
  */
-function undergrowth_activate(): void {
+function undergrowth_activate( $network_wide = false ): void {
+	if ( ! $network_wide || ! is_multisite() ) {
+		undergrowth_activate_site();
+		return;
+	}
+
+	// get_sites() stops at 100 sites unless told otherwise, and reads every
+	// network unless given one. The plugin is only active on this network.
+	$site_ids = get_sites(
+		array(
+			'fields'     => 'ids',
+			'number'     => 0,
+			'network_id' => get_current_network_id(),
+		)
+	);
+
+	foreach ( $site_ids as $site_id ) {
+		switch_to_blog( (int) $site_id );
+		undergrowth_activate_site();
+		restore_current_blog();
+	}
+}
+
+/**
+ * Installs the schema on the current site, schedules the monthly cycle and
+ * the hourly backfill check, starts a backfill when posts are waiting to be
+ * read, and queues the first-run notice.
+ */
+function undergrowth_activate_site(): void {
 	undergrowth_install_schema();
 	undergrowth_schedule_stage_cycle();
 	undergrowth_schedule_backfill_check();
 	undergrowth_start_backfill();
 	undergrowth_queue_first_run();
+}
+
+/**
+ * Sets up a new site of a network the plugin is active across.
+ *
+ * Runs after core has created the site's own tables.
+ *
+ * @param WP_Site $site The new site.
+ */
+function undergrowth_initialize_site( WP_Site $site ): void {
+	// The new site's network, which need not be the one handling the request.
+	$active = (array) get_network_option( $site->network_id, 'active_sitewide_plugins', array() );
+
+	if ( ! isset( $active[ plugin_basename( UNDERGROWTH_FILE ) ] ) ) {
+		return;
+	}
+
+	switch_to_blog( $site->id );
+	undergrowth_activate_site();
+	restore_current_blog();
 }
 
 /**
