@@ -1,0 +1,1 @@
+When WordPress refuses to save a post while you accept a link, Undergrowth now says the post could not be saved, on the Suggestions tab, through the ability and in Discord, instead of saying no words could be linked.

@@ -26,8 +26,9 @@ const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody
  * @return string 'accepted', or why nothing changed: 'gone', 'forbidden'
  *                (the user cannot edit the source post), 'not_proposed',
  *                'edited' (the sentence is no longer in the post), 'no_word'
- *                (no word could be linked safely) or 'needs_admin' (saving
- *                would also strip content the user may not save).
+ *                (no word could be linked safely), 'not_saved' (WordPress
+ *                refused to save the post) or 'needs_admin' (saving would
+ *                also strip content the user may not save).
  */
 function undergrowth_accept_link( int $source_id, int $target_id ): string {
 	global $wpdb;
@@ -146,7 +147,7 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 		true
 	);
 
-	return is_wp_error( $updated ) || 0 === $updated ? 'no_word' : 'accepted';
+	return is_wp_error( $updated ) || 0 === $updated ? 'not_saved' : 'accepted';
 }
 
 /**

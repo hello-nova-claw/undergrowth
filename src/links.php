@@ -344,7 +344,7 @@ function undergrowth_veto_result( int $source_id, int $target_id ): string {
  * Words the result of accepting or vetoing a link, so the author reads the
  * same reason on the screen, through an ability and in Discord.
  *
- * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
+ * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'not_saved', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
  */
 function undergrowth_link_result_messages(): array {
 	return array(
@@ -355,6 +355,7 @@ function undergrowth_link_result_messages(): array {
 		'not_proposed'  => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
 		'edited'        => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
 		'no_word'       => __( 'No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_saved'     => __( 'The post could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 		'words_saved'   => __( 'Saved. Accept will link the words now highlighted.', 'undergrowth' ),
 		'words_invalid' => __( 'Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it.', 'undergrowth' ),
 		'words_unsafe'  => __( 'Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words.', 'undergrowth' ),
