@@ -432,7 +432,8 @@ function undergrowth_index_counts(): array {
  * check, which also retries posts whose embed failed. WP-Cron refuses a
  * second identical event within ten minutes, so calling this while a run
  * is queued adds nothing. While OpenAI has asked Undergrowth to wait, the
- * run is queued for when the wait is over.
+ * run is queued for when the wait is over. When every post has a vector,
+ * it clusters an index that no pass has recorded yet.
  */
 function undergrowth_start_backfill(): void {
 	$identity = undergrowth_index_target();
@@ -446,7 +447,46 @@ function undergrowth_start_backfill(): void {
 		// Saving a key runs this in the request, so a run that never comes
 		// is still noticed a day later.
 		undergrowth_backfill_moved( undergrowth_index_counts() );
+		return;
 	}
+
+	undergrowth_record_index_identity( $identity );
+}
+
+/**
+ * Records the identity of a filled index and clusters it.
+ *
+ * Does nothing while some indexable post has no vector for this identity,
+ * so a pass whose embeds mostly failed does not cluster a nearly empty
+ * index, or while there is no indexable post yet, so the first posts on a
+ * new site are still clustered early. Once the identity is recorded,
+ * clustering is left to the monthly cycle.
+ *
+ * @param array $identity {
+ *     The current provider and model, and the site language when posts take theirs from the site.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_record_index_identity( array $identity ): void {
+	// The counts are for the current target, which a batch that read the
+	// identity before a model or language switch no longer matches.
+	if ( get_option( 'undergrowth_index_identity' ) === $identity || undergrowth_index_target() !== $identity ) {
+		return;
+	}
+
+	$counts = undergrowth_index_counts();
+
+	if ( 0 === $counts['total'] || $counts['indexed'] < $counts['total'] ) {
+		return;
+	}
+
+	update_option( 'undergrowth_index_identity', $identity, false );
+	wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
 }
 
 /**
@@ -484,9 +524,10 @@ function undergrowth_schedule_backfill_check(): void {
  * site language, count as having none, so the same passes re-embed the
  * whole index when the model or the site's language changes. A pass that
  * was under way for another model or language starts again from the first
- * post. The first pass to finish with a provider, model and language
- * clusters the new index, which would otherwise wait a month for the next
- * cycle.
+ * post. The first pass to finish with every post embedded for a provider,
+ * model and language clusters the new index, which would otherwise wait a
+ * month for the next cycle. When some embeds failed, the hourly check
+ * clusters it once they have been retried.
  */
 function undergrowth_run_backfill(): void {
 	$identity = undergrowth_index_target();
@@ -637,9 +678,5 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	}
 
 	delete_option( 'undergrowth_backfill' );
-
-	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
-		update_option( 'undergrowth_index_identity', $identity, false );
-		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
-	}
+	undergrowth_record_index_identity( $identity );
 }
