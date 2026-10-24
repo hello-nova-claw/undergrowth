@@ -238,6 +238,29 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
 	}
 
+	public function test_a_copy_of_the_sentence_after_one_already_linked_is_linked() {
+		list( $oca, $yacon ) = $this->pair( '<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep yacon plants nearby.</p>' );
+		global $wpdb;
+		$wpdb->replace(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => 'I keep yacon plants nearby.',
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame(
+			'<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants nearby.</p>',
+			get_post( $oca )->post_content
+		);
+	}
+
 	public function test_paragraphs_without_the_sentence_are_skipped() {
 		list( $oca, $yacon ) = $this->pair( '<p>Yacon is a cousin of the sunflower.</p><p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		$this->set_sentence( $oca, $yacon, 'I keep yacon plants nearby for their syrup.' );

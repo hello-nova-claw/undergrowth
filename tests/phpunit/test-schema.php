@@ -98,6 +98,17 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
+	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', undergrowth_links_table() ) );
+		update_option( 'undergrowth_schema_version', 5 );
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assertNotContains( 'sentence_index', $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', undergrowth_links_table() ) ) );
+		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
+	}
+
 	public function test_current_schema_version_skips_install() {
 		$queries = array();
 		$record  = static function ( $query ) use ( &$queries ) {
