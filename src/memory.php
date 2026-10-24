@@ -548,7 +548,8 @@ function undergrowth_check_memory_folder(): ?bool {
 		false
 	);
 
-	if ( ! undergrowth_memory_private() ) {
+	// The fresh answer decides, in case the stored one could not be replaced.
+	if ( false !== $exposed ) {
 		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );
 	}
 
