@@ -450,8 +450,9 @@ function undergrowth_editor_link_error( string $result ): WP_Error {
  *
  * A link the author took out again before saving leaves its suggestion as
  * it was. Either way the note is cleared, so a link added later by hand is
- * not counted as one accepted through Undergrowth. Revisions and autosaves
- * are not the post, so they leave the note for the real save.
+ * not counted as one accepted through Undergrowth, unless the link is saved
+ * and only storing the acceptance failed. Revisions and autosaves are not the
+ * post, so they leave the note for the real save.
  *
  * @param int     $post_id Post ID.
  * @param WP_Post $post    Post as saved.
@@ -472,8 +473,16 @@ function undergrowth_accept_saved_links( $post_id, $post ): void {
 	$accepted = false;
 
 	foreach ( array_unique( array_map( 'intval', $pending ) ) as $target_id ) {
-		if ( undergrowth_content_links_to( $post->post_content, (string) get_permalink( $target_id ) ) && undergrowth_claim_link( $post->ID, $target_id, 'proposed', 'accepted' ) ) {
+		if ( ! undergrowth_content_links_to( $post->post_content, (string) get_permalink( $target_id ) ) ) {
+			continue;
+		}
+
+		if ( undergrowth_claim_link( $post->ID, $target_id, 'proposed', 'accepted' ) ) {
 			$accepted = true;
+		} elseif ( 'proposed' === undergrowth_link_state( $post->ID, $target_id ) ) {
+			// Still proposed, so the claim itself failed, as on a database
+			// error. The link is saved, so the next save tries again.
+			add_post_meta( $post->ID, 'undergrowth_pending_links', (string) $target_id );
 		}
 	}
 
