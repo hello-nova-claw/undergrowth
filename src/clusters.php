@@ -21,7 +21,7 @@ const UNDERGROWTH_MAX_CLUSTERS           = 100;
 // src/thresholds.php.
 const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 
-add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
+add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle', 10, 2 );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
 
@@ -380,15 +380,34 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * run again by the hourly check; see undergrowth_resume_stalled_passes().
  * Every batch clusters with the threshold read when the pass started.
  *
+ * The first batch gives the pass an ID, which every later batch carries.
+ * A pass started while another is under way replaces it: a batch of the
+ * older pass stops before it changes anything.
+ *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
+ * @param string     $pass     ID of the pass the batch belongs to. Empty for the
+ *                            first batch, and for a batch queued before passes had IDs.
  */
-function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
+function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
 	global $wpdb;
 
 	$after_id = (int) $after_id;
+	$pass     = (string) $pass;
 
-	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
+	if ( 0 === $after_id ) {
+		$pass = wp_generate_uuid4();
+	} else {
+		$current = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
+
+		if ( '' !== $pass && $pass !== $current ) {
+			return;
+		}
+
+		$pass = $current;
+	}
+
+	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id, $pass );
 
 	// The first batch measures the site's scores, so the whole pass clusters
 	// with the threshold they give.
@@ -463,7 +482,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
 		update_option( 'undergrowth_cluster_leaders', $leaders, false );
-		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id );
+		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id, $pass );
 		return;
 	}
 
