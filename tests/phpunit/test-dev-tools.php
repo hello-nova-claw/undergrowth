@@ -16,6 +16,9 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// A local test site, such as wp-env's, registers the tools on init.
+		// Each test starts without them; the base class puts them back after.
+		$this->unregister_dev_tools();
 		$this->start_planting();
 		undergrowth_register_stage_meta();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
@@ -29,6 +32,18 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
+	}
+
+	/**
+	 * Removes every hook undergrowth_register_dev_tools() adds.
+	 */
+	private function unregister_dev_tools(): void {
+		remove_filter( 'undergrowth_screen_tabs', 'undergrowth_add_dev_tab' );
+		remove_action( 'undergrowth_render_dev_tab', 'undergrowth_render_dev_tab' );
+		remove_action( 'admin_post_undergrowth_dev_accept', 'undergrowth_handle_dev_accept' );
+		remove_action( 'admin_post_undergrowth_dev_cycle', 'undergrowth_handle_dev_cycle' );
+		remove_action( 'admin_post_undergrowth_dev_reset', 'undergrowth_handle_dev_reset' );
+		remove_action( 'undergrowth_dev_job', 'undergrowth_continue_dev_job' );
 	}
 
 	/**
@@ -275,14 +290,10 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth_dev_', $this->render( 'dev' ) );
 	}
 
-	public function test_nothing_is_registered_on_this_test_site_by_itself() {
-		if ( undergrowth_dev_tools_enabled() ) {
-			$this->markTestSkipped( 'This test site is a local one.' );
-		}
-
+	public function test_this_test_site_registers_the_tools_only_if_it_is_local() {
 		undergrowth_load_dev_tools();
 
-		$this->assertSame( array(), $this->dev_hooks() );
+		$this->assertSame( undergrowth_dev_tools_enabled(), array() !== $this->dev_hooks() );
 	}
 
 	/**
