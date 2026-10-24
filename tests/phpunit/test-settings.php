@@ -366,6 +366,23 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'No question yet', $this->render() );
 	}
 
+	public function test_page_stops_saying_there_is_no_question_after_the_post_it_was_about_is_deleted() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		$post_id = self::factory()->post->create();
+		undergrowth_log_prompt(
+			$post_id,
+			'asked',
+			array(
+				'source'   => 'comment',
+				'question' => 'What made you stop there?',
+			)
+		);
+		wp_delete_post( $post_id, true );
+
+		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_log', false ) );
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
 	public function test_page_stops_saying_there_is_no_question_while_one_is_snoozed() {
 		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
 		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:1' ) ), false );
