@@ -766,6 +766,38 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
 	}
 
+	public function test_batch_of_a_pass_replaced_while_it_compares_posts_stores_nothing() {
+		$posts = array();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$pass_a = $this->take_next_batch_args();
+
+		// Pass B starts while A's next batch is reading its first post.
+		$started = false;
+		$start_b = static function ( $types ) use ( &$started ) {
+			if ( ! $started ) {
+				$started = true;
+				undergrowth_run_cluster_cycle( 0 );
+			}
+
+			return $types;
+		};
+		add_filter( 'undergrowth_post_types', $start_b );
+
+		do_action_ref_array( 'undergrowth_cluster_cycle', $pass_a );
+
+		remove_filter( 'undergrowth_post_types', $start_b );
+
+		$this->assertTrue( $started );
+		$this->assertSame( 0, undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_previous_clusters' ) );
+	}
+
 	public function test_resumed_batch_keeps_its_pass() {
 		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
 			$this->post_with_vector( array( 1.0, 0.0 ) );

@@ -652,7 +652,7 @@ function undergrowth_current_pass( string $hook ): string {
  *
  * @param int    $after_id Post ID the batch starts after.
  * @param string $pass     ID of the pass, or an empty string for a pass without one.
- * @return array Event arguments.
+ * @return array<int, int|string> Event arguments.
  */
 function undergrowth_pass_args( int $after_id, string $pass ): array {
 	return '' === $pass ? array( $after_id ) : array( $after_id, $pass );

@@ -444,6 +444,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
 	$minimum = get_option( 'undergrowth_cluster_similarity' );
 	$minimum = is_numeric( $minimum ) ? (float) $minimum : undergrowth_min_cluster_similarity();
 	$last_id = $after_id;
+	$joined  = array();
 
 	while ( array() !== $rows ) {
 		$row     = array_shift( $rows );
@@ -470,14 +471,19 @@ function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
 		}
 
 		if ( 0 !== $leader ) {
-			update_post_meta( $last_id, 'undergrowth_cluster', $leader );
+			$joined[ $last_id ] = $leader;
 		}
 	}
 
-	// The hourly check queued this batch again while it ran, so the new run
-	// finishes the pass.
+	// Another run took the pass over while this one compared posts: the
+	// hourly check queued this batch again, or a new pass started. Nothing is
+	// stored, so the clusters are all that run's.
 	if ( ! undergrowth_owns_pass( 'undergrowth_cluster_cycle', $run ) ) {
 		return;
+	}
+
+	foreach ( $joined as $post_id => $leader ) {
+		update_post_meta( $post_id, 'undergrowth_cluster', $leader );
 	}
 
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
