@@ -1116,7 +1116,9 @@ function undergrowth_compost_post( int $post_id ) {
 	}
 
 	if ( ! undergrowth_set_stage( $post_id, 'composting', 'compost' ) ) {
-		return undergrowth_restore_pin( $post_id, $pinned ) ?? undergrowth_stage_not_saved();
+		// Only a marker taken away here is put back. A post that was not
+		// pinned is left alone, so a pin made meanwhile stays.
+		return ( $pinned ? undergrowth_restore_pin( $post_id, true ) : null ) ?? undergrowth_stage_not_saved();
 	}
 
 	undergrowth_forget_post_links( $post_id );
