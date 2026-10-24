@@ -718,4 +718,117 @@ class Test_Dev_Tools extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Accepted links forgotten: ' . $accepted . '<', $html );
 		$this->assertStringContainsString( 'id="undergrowth-notice"', $html );
 	}
+
+	public function test_with_no_job_nothing_runs() {
+		$this->assertNull( undergrowth_dev_job() );
+		$this->assertNull( undergrowth_run_dev_job( null ) );
+
+		undergrowth_continue_dev_job();
+
+		$this->assertNull( undergrowth_dev_job() );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_dev_job' ) );
+	}
+
+	public function test_the_tab_says_a_job_is_still_running_and_links_to_its_progress() {
+		undergrowth_register_dev_tools( 'local' );
+		$this->garden();
+		add_filter( 'undergrowth_dev_job_budget', '__return_zero' );
+		undergrowth_start_dev_job( 'reset' );
+
+		$this->assertStringContainsString( 'Nothing to count yet.', $this->render() );
+
+		undergrowth_run_dev_job( 0.0 );
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'Still running in WP-Cron.', $html );
+		$this->assertStringContainsString( 'Last undo', $html );
+	}
+
+	public function test_the_tab_prints_nothing_for_an_editor_who_reaches_it() {
+		undergrowth_register_dev_tools( 'local' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		ob_start();
+		do_action( 'undergrowth_render_dev_tab' );
+
+		$this->assertSame( '', ob_get_clean() );
+	}
+
+	public function test_a_job_that_stopped_moving_can_be_replaced() {
+		$this->assertTrue( undergrowth_start_dev_job( 'accept' ) );
+		$this->assertFalse( undergrowth_start_dev_job( 'reset' ) );
+
+		$job            = undergrowth_dev_job();
+		$job['updated'] = time() - 11 * MINUTE_IN_SECONDS;
+		update_option( 'undergrowth_dev_job', $job, false );
+
+		$this->assertTrue( undergrowth_start_dev_job( 'reset', array( 'forget_vectors' => true ) ) );
+		$this->assertSame( 'reset', undergrowth_dev_job()['type'] );
+		$this->assertTrue( undergrowth_dev_job()['forget_vectors'] );
+	}
+
+	public function test_the_undo_leaves_links_in_a_post_the_user_cannot_edit() {
+		list( $oca, $yacon ) = $this->garden();
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$accepted = get_post( $oca )->post_content;
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->assertSame( array( 'links_left' => 1 ), undergrowth_dev_unlink_source( $oca ) );
+		$this->assertSame( $accepted, get_post( $oca )->post_content );
+	}
+
+	public function test_no_link_is_removed_without_its_sentence() {
+		$this->assertNull( undergrowth_dev_remove_link( '<p>I keep <a href="https://example.com/">yacon</a> plants.</p>', 'https://example.com/', '' ) );
+	}
+
+	public function test_a_link_in_the_second_copy_of_its_sentence_is_found() {
+		$url      = 'https://example.com/yacon/';
+		$sentence = 'I keep yacon plants.';
+		$content  = '<p>I keep yacon plants.</p><p>I keep <a href="' . $url . '">yacon</a> plants.</p>';
+
+		$this->assertSame( '<p>I keep yacon plants.</p><p>I keep yacon plants.</p>', undergrowth_dev_remove_link( $content, $url, $sentence ) );
+	}
+
+	public function test_run_cycle_queues_one_cycle_however_often_it_is_clicked() {
+		undergrowth_register_dev_tools( 'local' );
+
+		$this->submit( 'cycle' );
+		$this->submit( 'cycle' );
+
+		$queued = 0;
+
+		foreach ( (array) _get_cron_array() as $events ) {
+			foreach ( $events['undergrowth_cluster_cycle'] ?? array() as $event ) {
+				$queued += false === $event['schedule'] ? 1 : 0;
+			}
+		}
+
+		$this->assertSame( 1, $queued );
+	}
+
+	public function test_accept_all_is_refused_while_a_job_is_running() {
+		undergrowth_register_dev_tools( 'local' );
+		undergrowth_start_dev_job( 'reset' );
+
+		$this->assertStringContainsString( 'undergrowth_notice=dev_busy', $this->submit( 'accept' ) );
+		$this->assertSame( 'reset', undergrowth_dev_job()['type'] );
+	}
+
+	public function test_a_link_is_found_in_a_sentence_that_overlaps_itself() {
+		$url = 'https://example.com/yacon/';
+
+		$this->assertSame( '<p>yacon yacon yacon.</p>', undergrowth_dev_remove_link( '<p>yacon yacon <a href="' . $url . '">yacon</a>.</p>', $url, 'yacon yacon.' ) );
+	}
+
+	public function test_the_undo_counts_a_link_left_when_the_post_cannot_be_saved() {
+		list( $oca, $yacon ) = $this->garden();
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$accepted = get_post( $oca )->post_content;
+
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$this->assertSame( array( 'links_left' => 1 ), undergrowth_dev_unlink_source( $oca ) );
+		$this->assertSame( $accepted, get_post( $oca )->post_content );
+	}
 }
