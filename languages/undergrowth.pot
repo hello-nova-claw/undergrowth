@@ -975,6 +975,10 @@ msgid "A scan has just run. Wait a few seconds, then try again."
 msgstr ""
 
 #: src/draft-scan.php
+msgid "There is nothing in this draft to scan yet."
+msgstr ""
+
+#: src/draft-scan.php
 msgid "The draft could not be read just now, so there are no suggestions. Try again later."
 msgstr ""
 
