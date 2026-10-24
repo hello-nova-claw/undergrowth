@@ -18,6 +18,7 @@ msgstr ""
 #: src/abilities.php
 #: src/admin.php
 #: src/dashboard.php
+#: src/digest.php
 #: src/discord-clicks.php
 #: src/privacy.php
 #: src/settings.php
@@ -789,6 +790,80 @@ msgstr ""
 
 #: src/dev-tools.php
 msgid "Yes, undo everything"
+msgstr ""
+
+#: src/digest.php
+msgid "Undergrowth monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "The monthly email is off. You can turn it back on from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "This link no longer works. You can turn the monthly email off from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "Stop the monthly email of new link suggestions?"
+msgstr ""
+
+#: src/digest.php
+msgid "Turn off the monthly email"
+msgstr ""
+
+#. translators: %s: site title.
+#: src/digest.php
+#, php-format
+msgid "[%s] Link suggestions worth a look"
+msgstr ""
+
+#: src/digest.php
+msgid "These are the strongest link suggestions Undergrowth made since its last email. Nothing changes on your site until you accept one."
+msgstr ""
+
+#. translators: 1: number of the suggestion in the list, 2: title of the post the link would point to.
+#: src/digest.php
+#, php-format
+msgid "%1$s. A link to “%2$s”"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: the sentence, with the words to link in square brackets.
+#: src/digest.php
+#, php-format
+msgid "In “%1$s”: %2$s"
+msgstr ""
+
+#: src/digest.php
+msgid "Accept or veto them on Posts > Undergrowth:"
+msgstr ""
+
+#: src/digest.php
+msgid "You get this email because you turned it on in your profile. To stop it:"
+msgstr ""
+
+#. translators: %s: title of the post nearest the middle of the group.
+#: src/digest.php
+#, php-format
+msgid "Both posts are in the group around “%s” on the Map."
+msgstr ""
+
+#. translators: %s: words from the sentence that the other post uses too.
+#: src/digest.php
+#, php-format
+msgid "Both posts use the words “%s”."
+msgstr ""
+
+#: src/digest.php
+msgid "Monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "Email me the best new link suggestions once a month"
+msgstr ""
+
+#: src/digest.php
+msgid "At most five, after the monthly cycle, and only when there are new ones. Each email has a link to turn it off."
 msgstr ""
 
 #: src/discord-clicks.php
