@@ -68,6 +68,18 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Makes a pass's record look as if its last batch started an hour ago.
+	 *
+	 * @param string $hook Cron hook of the pass.
+	 */
+	private function age_pass( string $hook ): void {
+		$pass        = get_option( $hook . '_pass' );
+		$pass['at'] -= HOUR_IN_SECONDS;
+
+		update_option( $hook . '_pass', $pass, false );
+	}
+
+	/**
 	 * Builds a unit vector along one axis.
 	 *
 	 * @param int $axis       Axis to point along.
@@ -391,6 +403,118 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+	}
+
+	public function test_pass_whose_next_batch_is_lost_is_resumed_by_the_hourly_check() {
+		$posts = array();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$last_in_batch = $this->take_next_batch();
+		$this->age_pass( 'undergrowth_cluster_cycle' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( $posts[ UNDERGROWTH_CLUSTER_BATCH - 1 ], $last_in_batch );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+
+		$this->assertSame( $last_in_batch, $this->take_next_batch() );
+		undergrowth_run_cluster_cycle( $last_in_batch );
+
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+	}
+
+	public function test_pass_whose_batch_may_still_be_running_is_not_restarted() {
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$last_in_batch = $this->take_next_batch();
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+	}
+
+	public function test_pass_with_its_next_batch_queued_is_left_alone() {
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$this->age_pass( 'undergrowth_cluster_cycle' );
+		$pass = get_option( 'undergrowth_cluster_cycle_pass' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( $pass, get_option( 'undergrowth_cluster_cycle_pass' ) );
+	}
+
+	public function test_new_pass_queued_from_the_first_post_is_not_interleaved_with_a_stalled_one() {
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$last_in_batch = $this->take_next_batch();
+		$this->age_pass( 'undergrowth_cluster_cycle' );
+		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+	}
+
+	public function test_last_batch_that_dies_before_it_finishes_runs_again_with_its_leaders() {
+		$posts = array(
+			$this->post_with_vector( array( 1.0, 0.0 ) ),
+			$this->post_with_vector( array( 1.0, 0.0 ) ),
+			$this->post_with_vector( array( 1.0, 0.0 ) ),
+		);
+		$die   = static function () {
+			throw new RuntimeException( 'Timed out.' );
+		};
+
+		add_filter( 'pre_option_undergrowth_previous_clusters', $die );
+
+		try {
+			undergrowth_run_cluster_cycle();
+		} catch ( RuntimeException $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'pre_option_undergrowth_previous_clusters', $die );
+
+		$this->assertSame( array( 'after' => 0 ), array_intersect_key( get_option( 'undergrowth_cluster_cycle_pass' ), array( 'after' => true ) ) );
+		$this->assertNotFalse( get_option( 'undergrowth_cluster_leaders' ) );
+
+		$this->age_pass( 'undergrowth_cluster_cycle' );
+		do_action( 'undergrowth_backfill_check' );
+		$this->assertSame( 0, $this->take_next_batch() );
+		undergrowth_run_cluster_cycle( 0 );
+
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( $posts[2] ) );
+		$this->assertNotFalse( get_option( 'undergrowth_previous_clusters' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+	}
+
+	public function test_stage_cycle_lost_after_the_last_batch_is_queued_again() {
+		$this->post_with_vector( array( 1.0, 0.0 ) );
+
+		undergrowth_run_cluster_cycle();
+		wp_clear_scheduled_hook( 'undergrowth_stage_cycle', array( 0 ) );
+		$this->age_pass( 'undergrowth_stage_cycle' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
 	}
 
 	public function test_batch_leaves_no_rows_in_wpdb() {
