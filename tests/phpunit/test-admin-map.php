@@ -18,7 +18,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		unset( $_GET['tab'] );
+		unset( $_GET['tab'], $_POST['format'], $_POST['_wpnonce'], $_REQUEST['_wpnonce'] );
 
 		parent::tear_down();
 	}
@@ -333,5 +333,199 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->plant_clusters();
 
 		$this->assertStringNotContainsString( 'undergrowth-ungrouped', $this->render() );
+	}
+
+	public function test_map_ends_with_an_export_form_with_a_labelled_format() {
+		$this->plant_clusters();
+
+		$html = $this->render();
+		$form = substr( $html, (int) strpos( $html, '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="undergrowth-map-export">' ) );
+
+		$this->assertStringStartsWith( '<form', $form );
+		$this->assertStringContainsString( '<input type="hidden" name="action" value="undergrowth_export_map"', $form );
+		$this->assertStringContainsString( 'name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_export_map' ) . '"', $form );
+		$this->assertStringContainsString( '<label for="undergrowth-export-format">Export the Map as</label>', $form );
+		$this->assertStringContainsString( '<select id="undergrowth-export-format" name="format">', $form );
+		$this->assertStringContainsString( '<option value="csv">CSV, for a spreadsheet</option>', $form );
+		$this->assertStringContainsString( '<option value="markdown">Markdown, for notes</option>', $form );
+		$this->assertMatchesRegularExpression( '/<input type="submit"[^>]* value="Export"/', $form );
+		// After every group and post, so the keyboard reaches the posts first.
+		$this->assertGreaterThan( strrpos( $html, 'undergrowth-cluster' ), strpos( $html, 'undergrowth-map-export' ) );
+	}
+
+	public function test_export_lists_every_post_the_map_shows() {
+		$posts = $this->plant_clusters();
+		$bread = self::factory()->post->create(
+			array(
+				'post_title'  => 'Bread',
+				'post_status' => 'publish',
+			)
+		);
+		update_post_meta( $this->member( 'Resting', array( 1.0, 0.0, 0.0 ), $posts['Oca'] ), 'undergrowth_stage', 'composting' );
+		undergrowth_set_stage( $posts['Yacon syrup'], 'budding' );
+
+		$rows = array_column( undergrowth_map_export_rows(), null, 'title' );
+
+		$this->assertSame( array( 'Bread', 'Mashua', 'Oca', 'Ulluco', 'Yacon', 'Yacon leaves', 'Yacon syrup' ), $this->sorted( array_keys( $rows ) ) );
+		$this->assertSame(
+			array(
+				'group'     => 'Yacon',
+				'words'     => '',
+				'title'     => 'Yacon syrup',
+				'permalink' => get_permalink( $posts['Yacon syrup'] ),
+				'stage'     => 'Budding',
+				'gap'       => false,
+			),
+			$rows['Yacon syrup']
+		);
+		$this->assertSame( 'Oca', $rows['Mashua']['group'] );
+		$this->assertTrue( $rows['Mashua']['gap'] );
+		$this->assertSame(
+			array(
+				'group'     => 'Not in a group yet',
+				'words'     => '',
+				'title'     => 'Bread',
+				'permalink' => get_permalink( $bread ),
+				'stage'     => 'Seedling',
+				'gap'       => false,
+			),
+			$rows['Bread']
+		);
+		// The posts not in a group come last, as on the Map.
+		$this->assertSame( 'Bread', array_key_last( $rows ) );
+	}
+
+	/**
+	 * Sorts strings.
+	 *
+	 * @param string[] $strings Strings.
+	 * @return string[] The strings, sorted.
+	 */
+	private function sorted( array $strings ): array {
+		sort( $strings );
+
+		return $strings;
+	}
+
+	public function test_export_carries_the_words_the_map_shows() {
+		$posts = $this->plant_clusters();
+		update_option(
+			'undergrowth_cluster_labels',
+			array(
+				'made'  => current_time( 'mysql', true ),
+				'terms' => array( $posts['Yacon'] => array( 'yacon', 'syrup', 'frost' ) ),
+			),
+			false
+		);
+
+		$rows = undergrowth_map_export_rows();
+
+		// As on screen, a word the group's name already holds is left out.
+		$rows = array_column( $rows, 'words', 'title' );
+
+		$this->assertSame( 'syrup, frost', $rows['Yacon leaves'] );
+		$this->assertSame( '', $rows['Oca'] );
+	}
+
+	public function test_csv_has_a_header_and_one_row_per_post_and_disarms_formulas() {
+		$rows = array(
+			array(
+				'group'     => 'Oca',
+				'words'     => 'tubers, frost',
+				'title'     => '=HYPERLINK("http://example.org")',
+				'permalink' => 'http://example.org/?p=1',
+				'stage'     => 'Seedling',
+				'gap'       => true,
+			),
+		);
+
+		$lines = array_map( 'str_getcsv', explode( "\n", trim( undergrowth_map_export_csv( $rows ) ) ) );
+
+		$this->assertSame( array( 'Group', 'Words', 'Post', 'Link', 'Stage', 'Gap' ), $lines[0] );
+		$this->assertSame( array( 'Oca', 'tubers, frost', "'=HYPERLINK(\"http://example.org\")", 'http://example.org/?p=1', 'Seedling', 'Yes' ), $lines[1] );
+		$this->assertCount( 2, $lines );
+	}
+
+	public function test_markdown_is_a_table_with_one_row_per_post() {
+		$rows = array(
+			array(
+				'group'     => 'Oca | ulluco',
+				'words'     => '',
+				'title'     => "Two\nlines",
+				'permalink' => 'http://example.org/?p=1',
+				'stage'     => 'Sprout',
+				'gap'       => false,
+			),
+		);
+
+		$lines = explode( "\n", trim( undergrowth_map_export_markdown( $rows ) ) );
+
+		$this->assertSame( '| Group | Words | Post | Link | Stage | Gap |', $lines[0] );
+		$this->assertSame( '| --- | --- | --- | --- | --- | --- |', $lines[1] );
+		$this->assertSame( '| Oca \\| ulluco |  | Two lines | <http://example.org/?p=1> | Sprout | No |', $lines[2] );
+		$this->assertCount( 3, $lines );
+	}
+
+	/**
+	 * Posts the export form with a valid nonce and returns what it sends.
+	 *
+	 * @param string $format Format posted.
+	 * @return string The file.
+	 * @throws WPDieException When the handler refuses the request.
+	 */
+	private function export( string $format ): string {
+		$nonce                = wp_create_nonce( 'undergrowth_export_map' );
+		$_POST['_wpnonce']    = $nonce;
+		$_REQUEST['_wpnonce'] = $nonce;
+		$_POST['format']      = $format;
+
+		ob_start();
+
+		try {
+			undergrowth_handle_export_map();
+		} finally {
+			$file = (string) ob_get_clean();
+		}
+
+		return $file;
+	}
+
+	public function test_export_sends_the_format_asked_for_and_csv_otherwise() {
+		$this->plant_clusters();
+		$rows = undergrowth_map_export_rows();
+
+		$this->assertSame( undergrowth_map_export_markdown( $rows ), $this->export( 'markdown' ) );
+		$this->assertSame( undergrowth_map_export_csv( $rows ), $this->export( 'csv' ) );
+		$this->assertSame( undergrowth_map_export_csv( $rows ), $this->export( 'pdf' ) );
+	}
+
+	public function test_export_is_a_dated_download_that_is_never_cached() {
+		$markdown = undergrowth_map_export_headers( true );
+		$csv      = undergrowth_map_export_headers( false );
+
+		$this->assertSame( 'text/markdown; charset=utf-8', $markdown['Content-Type'] );
+		$this->assertSame( 'attachment; filename="undergrowth-map-' . gmdate( 'Y-m-d' ) . '.md"', $markdown['Content-Disposition'] );
+		$this->assertSame( 'text/csv; charset=utf-8', $csv['Content-Type'] );
+		$this->assertStringEndsWith( '.csv"', $csv['Content-Disposition'] );
+		$this->assertStringContainsString( 'no-cache', $csv['Cache-Control'] );
+		$this->assertContainsOnly( 'string', $csv );
+	}
+
+	public function test_export_refuses_a_wrong_nonce() {
+		$this->plant_clusters();
+		$_POST['_wpnonce']    = 'wrong';
+		$_REQUEST['_wpnonce'] = 'wrong';
+
+		$this->expectException( WPDieException::class );
+
+		undergrowth_handle_export_map();
+	}
+
+	public function test_export_refuses_a_user_who_cannot_see_the_map() {
+		$this->plant_clusters();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
+		$this->expectException( WPDieException::class );
+
+		$this->export( 'csv' );
 	}
 }
