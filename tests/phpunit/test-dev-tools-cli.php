@@ -261,6 +261,8 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 
 	public function test_run_cycle_runs_the_cycle_and_what_it_chains_to_the_end() {
 		undergrowth_register_dev_tools( 'local' );
+		// The monthly event is scheduled on init, which an earlier test may have undone.
+		undergrowth_schedule_stage_cycle();
 		list( $oca, $yacon, $mashua ) = $this->garden();
 
 		$this->assertTrue( $this->run_command( 'run-cycle' ) );

@@ -7,6 +7,9 @@
  * in their status package. This one answers from a property a test sets.
  * PHPStan reads it for the signatures too.
  *
+ * Mirrors is_active() as of automattic/jetpack-status v7.1.1, which also
+ * takes an optional $available_only that the meter never passes.
+ *
  * @package Undergrowth
  */
 

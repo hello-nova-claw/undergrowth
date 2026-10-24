@@ -272,19 +272,29 @@ class Test_Schema extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Picks out the queries that create a plugin table on one site.
+	 * Names the plugin tables dbDelta() installed on one site, from its
+	 * DESCRIBE, run on every table, and CREATE TABLE, run on a missing one.
 	 *
 	 * Site IDs come round again between tests, so a table left by an earlier
 	 * test would pass a check of the table itself.
 	 *
 	 * @param string[] $queries Recorded queries.
 	 * @param int      $site_id The site.
-	 * @return string[]
+	 * @return string[] Table names without the prefix, sorted.
 	 */
-	private function plugin_creates( array $queries, int $site_id ): array {
+	private function plugin_installs( array $queries, int $site_id ): array {
 		global $wpdb;
 
-		return preg_grep( '/^\s*CREATE TABLE ' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . 'undergrowth_/i', $queries );
+		$tables = array();
+		foreach ( $queries as $query ) {
+			if ( preg_match( '/^\s*(?:CREATE TABLE|DESCRIBE) `?' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . '(undergrowth_(?:vectors|links))\b/i', $query, $match ) ) {
+				$tables[ $match[1] ] = true;
+			}
+		}
+		$tables = array_keys( $tables );
+		sort( $tables );
+
+		return $tables;
 	}
 
 	/**
@@ -330,10 +340,8 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		// The main site's tables are lasting ones from the bootstrap, so dbDelta
-		// has nothing to create there.
-		foreach ( $new_ids as $site_id ) {
-			$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ), (string) $site_id );
+		foreach ( $site_ids as $site_id ) {
+			$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ), (string) $site_id );
 		}
 
 		foreach ( $site_ids as $site_id ) {
@@ -363,7 +371,7 @@ class Test_Schema extends WP_UnitTestCase {
 		);
 
 		$this->assert_site_is_set_up();
-		$this->assertSame( array(), $this->plugin_creates( $queries, $other_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $other_id ) );
 		switch_to_blog( $other_id );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
@@ -385,7 +393,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ) );
 		switch_to_blog( $site_id );
 		$this->assert_site_is_set_up();
 		restore_current_blog();
@@ -406,7 +414,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $site_id ) );
 
 		// Events left on a reused site ID would hide any the hook scheduled,
 		// so the hook is also run again on a cleared site.
@@ -438,7 +446,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $site_id ) );
 
 		update_site_option( 'active_sitewide_plugins', array() );
 		update_network_option( $network_id, 'active_sitewide_plugins', array( plugin_basename( UNDERGROWTH_FILE ) => time() ) );
@@ -449,6 +457,6 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ) );
 	}
 }
