@@ -1,1 +1,0 @@
-The Plugins screen now has a Settings link in Undergrowth's row, so a new owner can find where to add a key.

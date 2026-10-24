@@ -1,1 +1,0 @@
-An old composting post is now shown as close to a new cluster when it is as close as a post must be to join that cluster. Where Undergrowth has measured that threshold from your own posts, the measured value is used. With OpenAI, or below 20 posts, it stays at 0.5, as before. The undergrowth_min_resurfacing_similarity filter can still set it.

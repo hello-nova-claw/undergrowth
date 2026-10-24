@@ -1,1 +1,0 @@
-The Map tab and the resurfacing notice now speak of groups of posts rather than clusters.

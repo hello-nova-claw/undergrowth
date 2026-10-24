@@ -1,1 +1,0 @@
-Changing the site language now reads every post again in the new language, as changing the embedding model does, so new posts are compared with the whole archive. Sites where a multilingual plugin sets each post's language are unchanged.
