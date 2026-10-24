@@ -411,7 +411,8 @@ function undergrowth_index_counts(): array {
  * Runs on activation, when an OpenAI key is saved and from the hourly
  * check, which also retries posts whose embed failed. WP-Cron refuses a
  * second identical event within ten minutes, so calling this while a run
- * is queued adds nothing.
+ * is queued adds nothing. While OpenAI has asked Undergrowth to wait, the
+ * run is queued for when the wait is over.
  */
 function undergrowth_start_backfill(): void {
 	$identity = undergrowth_index_target();
@@ -421,8 +422,21 @@ function undergrowth_start_backfill(): void {
 	}
 
 	if ( array() !== undergrowth_unindexed_post_ids( $identity, 0, 1 ) ) {
-		wp_schedule_single_event( time(), 'undergrowth_backfill' );
+		wp_schedule_single_event( max( time(), undergrowth_backfill_retry_time( $identity ) ), 'undergrowth_backfill' );
 	}
+}
+
+/**
+ * Returns when the backfill may send posts again, after OpenAI turned a
+ * request away. Code that reads the posts itself never waits for OpenAI.
+ *
+ * @param array $identity The current provider and model.
+ * @return int Unix time, or 0 when posts may be sent now.
+ *
+ * @phpstan-param array{provider: string, model: string} $identity
+ */
+function undergrowth_backfill_retry_time( array $identity ): int {
+	return undergrowth_embed_identity_is_built_in( $identity ) ? undergrowth_openai_retry_time() : 0;
 }
 
 /**
@@ -440,6 +454,8 @@ function undergrowth_schedule_backfill_check(): void {
  * A pass walks the posts by ID, and each full batch, or one cut short by
  * the time budget, queues the next run after the last post it tried, so a
  * post whose embed failed does not hold up the rest. The hourly check starts a new pass for the posts left over.
+ * When OpenAI turns a request away with a 429 or 5xx, the batch stops and
+ * the next run waits as long as OpenAI asked, starting with that post.
  *
  * Posts whose vector came from another provider or model, or in another
  * site language, count as having none, so the same passes re-embed the
@@ -493,14 +509,26 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$started  = microtime( true );
 	$post_ids = undergrowth_unindexed_post_ids( $identity, $after, $size );
 	$tried    = array();
+	$retry    = undergrowth_backfill_retry_time( $identity );
 
 	foreach ( $post_ids as $post_id ) {
-		if ( array() !== $tried && microtime( true ) - $started >= $budget ) {
+		if ( 0 !== $retry || ( array() !== $tried && microtime( true ) - $started >= $budget ) ) {
 			break;
 		}
 
 		undergrowth_embed_post( $post_id );
-		$tried[] = $post_id;
+		$retry = undergrowth_backfill_retry_time( $identity );
+
+		// A post OpenAI turned away is tried again first after the wait.
+		if ( 0 === $retry ) {
+			$tried[] = $post_id;
+		}
+	}
+
+	if ( 0 !== $retry ) {
+		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => array() !== $tried ? end( $tried ) : $after ) ), false );
+		wp_schedule_single_event( $retry, 'undergrowth_backfill' );
+		return;
 	}
 
 	// A batch cut short by the budget left posts behind, like a full batch may.
