@@ -161,11 +161,59 @@ test.describe( 'First run', () => {
 				)
 			).toBeFocused();
 			await page.keyboard.press( 'Enter' );
-			await page.waitForURL( /plugins\.php$/ );
+			await page.waitForURL( /plugins\.php\?undergrowth_notice=/ );
 
 			await expect( page.locator( NOTICE ) ).toHaveCount( 0 );
+			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
 			await page.reload();
 			await expect( page.locator( NOTICE ) ).toHaveCount( 0 );
+		} finally {
+			await requestUtils.activatePlugin( 'undergrowth' );
+		}
+	} );
+
+	test( 'by keyboard, Undo after Dismiss for good brings the notice back', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+		requestUtils,
+	} ) => {
+		await useFixture( context, baseURL, 'no-provider' );
+		await requestUtils.rest( {
+			method: 'DELETE',
+			path: '/undergrowth-e2e/v1/first-run',
+		} );
+		await requestUtils.deactivatePlugin( 'undergrowth' );
+
+		try {
+			await admin.visitAdminPage( 'plugins.php' );
+			await page.locator( '#activate-undergrowth' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( /plugins\.php\?activate=true/ );
+
+			await page
+				.locator(
+					`${ NOTICE } a[href*="action=undergrowth_dismiss_first_run"]`
+				)
+				.focus();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( /plugins\.php\?undergrowth_notice=/ );
+
+			const result = page.locator( '#undergrowth-notice' );
+
+			await expect( result ).toBeFocused();
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				result.locator(
+					'a[href*="action=undergrowth_restore_first_run"]'
+				)
+			).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+
+			await expect( page.locator( NOTICE ) ).toHaveCount( 1 );
+			await expectNoA11yViolations( page, NOTICE );
 		} finally {
 			await requestUtils.activatePlugin( 'undergrowth' );
 		}

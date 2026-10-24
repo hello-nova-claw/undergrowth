@@ -327,6 +327,9 @@ function undergrowth_discord_proposal_message( WP_Post $source, WP_Post $target,
 
 		if ( '' !== $result ) {
 			$lines[] = $result;
+		} else {
+			// The Suggestions screen offers an Undo after a veto; Discord cannot.
+			$lines[] = __( 'A veto is permanent.', 'undergrowth' );
 		}
 
 		$content      = implode( "\n", $lines );

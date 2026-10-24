@@ -319,6 +319,54 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 }
 
 /**
+ * Takes back a veto made by mistake, from the Undo in the veto's notice.
+ *
+ * A vetoed suggestion keeps its sentence, so it is suggested again as it
+ * was. A veto of a pair that was no longer suggested is forgotten, and the
+ * next refresh around the post may suggest the pair again.
+ *
+ * @param int $source_id Post the link would sit in.
+ * @param int $target_id Post the link would point to.
+ * @return bool True when the pair was vetoed and no longer is.
+ */
+function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
+	global $wpdb;
+
+	if ( 'vetoed' !== undergrowth_link_state( $source_id, $target_id ) ) {
+		return false;
+	}
+
+	$where = array(
+		'source_id' => $source_id,
+		'target_id' => $target_id,
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+	$sentence = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d', undergrowth_links_table(), $source_id, $target_id ) );
+
+	if ( '' === $sentence ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d' ) );
+	} else {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$wpdb->update(
+			undergrowth_links_table(),
+			array(
+				'state'      => 'proposed',
+				'updated_at' => current_time( 'mysql', true ),
+			),
+			$where,
+			array( '%s', '%s' ),
+			array( '%d', '%d' )
+		);
+	}
+
+	undergrowth_write_memory( $source_id );
+
+	return 'vetoed' !== undergrowth_link_state( $source_id, $target_id );
+}
+
+/**
  * Vetoes a link and names what happened, as every place that offers a veto
  * reports it.
  *

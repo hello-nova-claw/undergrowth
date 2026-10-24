@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
 add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
+add_action( 'admin_post_undergrowth_unveto', 'undergrowth_handle_unveto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_words' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
@@ -55,6 +56,7 @@ function undergrowth_notice_removable_query_args( $args ) {
 
 	if ( null !== $screen && 'posts_page_undergrowth-links' === $screen->id ) {
 		$args[] = 'revision';
+		$args[] = 'undergrowth_undo';
 	}
 
 	return $args;
@@ -130,8 +132,71 @@ function undergrowth_handle_veto(): void {
 		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_veto_result( $source, $target ) ) );
+	$result = undergrowth_veto_result( $source, $target );
+	$url    = undergrowth_suggestions_url( $result );
+
+	// The notice offers an Undo for this pair, since one keypress is not
+	// always a decision.
+	if ( 'vetoed' === $result ) {
+		$url = add_query_arg( 'undergrowth_undo', $source . '-' . $target, $url );
+	}
+
+	wp_safe_redirect( $url );
 	exit;
+}
+
+/**
+ * Takes back the veto named by the Undo link in the veto's notice, then
+ * returns to the screen.
+ */
+function undergrowth_handle_unveto(): void {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- check_admin_referer() runs before anything changes.
+	$source = isset( $_GET['source'] ) ? absint( wp_unslash( $_GET['source'] ) ) : 0;
+	$target = isset( $_GET['target'] ) ? absint( wp_unslash( $_GET['target'] ) ) : 0;
+	// phpcs:enable
+
+	check_admin_referer( 'undergrowth_unveto_' . $source . '_' . $target );
+
+	if ( ! current_user_can( 'edit_post', $source ) ) {
+		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_unveto_link( $source, $target ) ? 'unvetoed' : 'unveto_gone' ) );
+	exit;
+}
+
+/**
+ * Builds the Undo link for a veto just made, for a user who may take it back.
+ *
+ * @param string $pair Source and target IDs joined by a hyphen, from the address.
+ * @return string Escaped link, or an empty string when there is nothing to undo.
+ */
+function undergrowth_unveto_link_html( string $pair ): string {
+	if ( 1 !== preg_match( '/^([0-9]{1,20})-([0-9]{1,20})$/D', $pair, $ids ) ) {
+		return '';
+	}
+
+	$source = (int) $ids[1];
+	$target = (int) $ids[2];
+
+	if ( ! current_user_can( 'edit_post', $source ) || 'vetoed' !== undergrowth_link_state( $source, $target ) ) {
+		return '';
+	}
+
+	$url = add_query_arg(
+		array(
+			'action' => 'undergrowth_unveto',
+			'source' => $source,
+			'target' => $target,
+		),
+		admin_url( 'admin-post.php' )
+	);
+
+	return sprintf(
+		' <a href="%1$s">%2$s</a>',
+		esc_url( wp_nonce_url( $url, 'undergrowth_unveto_' . $source . '_' . $target ) ),
+		esc_html__( 'Undo', 'undergrowth' )
+	);
 }
 
 /**
@@ -929,6 +994,8 @@ function undergrowth_render_suggestions_notice(): void {
 		'stage_pin_lost'        => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
+		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
+		'unveto_gone'           => __( 'That link is not vetoed, so nothing was changed.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
@@ -939,6 +1006,11 @@ function undergrowth_render_suggestions_notice(): void {
 	$revision = isset( $_GET['revision'] ) ? absint( wp_unslash( $_GET['revision'] ) ) : 0;
 	$see      = '';
 
+	if ( 'vetoed' === $notice ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$see = undergrowth_unveto_link_html( isset( $_GET['undergrowth_undo'] ) ? sanitize_text_field( wp_unslash( $_GET['undergrowth_undo'] ) ) : '' );
+	}
+
 	if ( 'accepted' === $notice && $revision > 0 ) {
 		$see = sprintf(
 			' <a href="%1$s">%2$s</a>',
@@ -947,7 +1019,7 @@ function undergrowth_render_suggestions_notice(): void {
 		);
 	}
 
-	$class = in_array( $notice, array( 'vetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
+	$class = in_array( $notice, array( 'vetoed', 'unvetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
 
 	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }

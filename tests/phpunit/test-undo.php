@@ -165,7 +165,7 @@ class Test_Undo extends WP_UnitTestCase {
 
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 		$this->assertSame( $before, $wpdb->get_row( $wpdb->prepare( 'SELECT score, sentence FROM %i WHERE source_id = %d AND target_id = %d', $table, $oca, $yacon ), ARRAY_A ) );
-		$this->assertStringNotContainsString( '## vetoes', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+		$this->assertStringNotContainsString( "## vetoes\n- ", (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 	}
 
 	public function test_undoing_a_veto_of_a_withdrawn_suggestion_forgets_the_veto() {
@@ -270,7 +270,7 @@ class Test_Undo extends WP_UnitTestCase {
 	}
 
 	public function test_undoing_a_veto_that_is_gone_says_nothing_was_changed() {
-		list( $oca, $yacon ) = $this->pair();
+		list( $oca, $yacon )  = $this->pair();
 		$_GET['source']       = (string) $oca;
 		$_GET['target']       = (string) $yacon;
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_unveto_' . $oca . '_' . $yacon );

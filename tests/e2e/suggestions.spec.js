@@ -89,7 +89,14 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
 			await expect( rows ).toHaveCount( 1 );
 
-			// The result can be dismissed, as core's own notices can.
+			// The Undo comes first, then the result can be dismissed, as
+			// core's own notices can.
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				page.locator(
+					'#undergrowth-notice a[href*="action=undergrowth_unveto"]'
+				)
+			).toBeFocused();
 			await page.keyboard.press( 'Tab' );
 			await expect(
 				page.locator( '#undergrowth-notice .notice-dismiss' )
@@ -98,6 +105,28 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expect( page.locator( '#undergrowth-notice' ) ).toHaveCount(
 				0
 			);
+		} );
+
+		test( 'undoes a veto by keyboard and suggests the link again', async ( {
+			page,
+		} ) => {
+			const rows = page.locator( 'table.undergrowth-links tbody tr' );
+
+			await actionButton( rows.first(), 'veto' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( rows ).toHaveCount( 1 );
+
+			const notice = page.locator( '#undergrowth-notice' );
+
+			await expect( notice ).toBeFocused();
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
+			await page.keyboard.press( 'Tab' );
+			await page.keyboard.press( 'Enter' );
+
+			await expect( notice ).toBeFocused();
+			await expect( notice ).toHaveClass( /notice-success/ );
+			await expect( rows ).toHaveCount( 2 );
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
 		} );
 
 		test( 'accepts one by keyboard and links a word in the post', async ( {

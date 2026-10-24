@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_notices', 'undergrowth_render_first_run_notice' );
 add_action( 'admin_post_undergrowth_dismiss_first_run', 'undergrowth_dismiss_first_run' );
+add_action( 'admin_post_undergrowth_restore_first_run', 'undergrowth_restore_first_run' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_first_key_added', 10, 2 );
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_first_key_saved', 10, 2 );
 
@@ -41,6 +42,12 @@ function undergrowth_render_first_run_notice(): void {
 
 	if ( ! $screen instanceof WP_Screen || 'plugins' !== $screen->id || ! current_user_can( 'manage_options' ) ) {
 		return;
+	}
+
+	// The notice only selects which fixed message to show; nothing is changed.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( isset( $_GET['undergrowth_notice'] ) && 'first_run_dismissed' === $_GET['undergrowth_notice'] ) {
+		undergrowth_render_first_run_dismissed_notice();
 	}
 
 	if ( 'waiting' !== get_option( 'undergrowth_first_run' ) ) {
@@ -82,6 +89,42 @@ function undergrowth_dismiss_first_run(): void {
 	}
 
 	undergrowth_end_first_run();
+
+	wp_safe_redirect( add_query_arg( 'undergrowth_notice', 'first_run_dismissed', admin_url( 'plugins.php' ) ) );
+	exit;
+}
+
+/**
+ * Says the first-run notice is dismissed, with an Undo while no key is saved.
+ */
+function undergrowth_render_first_run_dismissed_notice(): void {
+	$undo = '';
+
+	if ( 'done' === get_option( 'undergrowth_first_run' ) && ! undergrowth_has_embed_provider() ) {
+		$undo = sprintf(
+			' <a href="%1$s">%2$s</a>',
+			esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=undergrowth_restore_first_run' ), 'undergrowth_restore_first_run' ) ),
+			esc_html__( 'Undo', 'undergrowth' )
+		);
+	}
+
+	undergrowth_print_result_notices( array( 'notice-success' => '<p>' . esc_html__( 'Dismissed. This notice won’t come back.', 'undergrowth' ) . $undo . '</p>' ) );
+}
+
+/**
+ * Brings the first-run notice back, from the Undo in the dismissed notice,
+ * while no key is saved. Then returns to Plugins.
+ */
+function undergrowth_restore_first_run(): void {
+	check_admin_referer( 'undergrowth_restore_first_run' );
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You cannot change Undergrowth’s settings.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	if ( 'done' === get_option( 'undergrowth_first_run' ) && ! undergrowth_has_embed_provider() ) {
+		update_option( 'undergrowth_first_run', 'waiting', false );
+	}
 
 	wp_safe_redirect( admin_url( 'plugins.php' ) );
 	exit;
