@@ -73,7 +73,7 @@ Only the site's total page views for each of the last 30 days, which it adds up 
 
 = What does it cost? =
 
-Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually a few cents each, and at most a handful are written each month.
+Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually one or two cents each, and at most a handful are written each month.
 
 = Does it need a key to work at all? =
 
