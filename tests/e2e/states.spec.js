@@ -407,6 +407,33 @@ const WITH_SIDEBAR = [ 'suggestions', 'incoming' ].map( ( state ) => ( {
 		),
 } ) );
 
+// Filled in once the draft exists, since the shots need its ID.
+const scanPosts = {};
+
+// Scan this draft in the sidebar, before anything is sent: with the provider
+// named beside the button, and with no provider to send to. The results go
+// when the sidebar closes, which it does at each width, so they are not shot.
+const WITH_SCAN = [
+	{ state: 'offer' },
+	{ state: 'no-provider', fixture: 'no-provider' },
+].map( ( entry ) => ( {
+	...entry,
+	screen: 'editor-scan',
+	sidebar: () => scanPosts.draft,
+	// A build from before the scan has no route for it.
+	open: ( page ) =>
+		page.evaluate(
+			( id ) =>
+				window.wp
+					.apiFetch( { path: `/undergrowth/v1/posts/${ id }/scan` } )
+					.then(
+						() => true,
+						() => false
+					),
+			scanPosts.draft
+		),
+} ) );
+
 // Posts share fixture words, so the e2e provider suggests links between them.
 const POSTS = [
 	{ title: 'Oca', content: '<p>Oca grows here. I keep yacon nearby.</p>' },
@@ -501,6 +528,21 @@ async function showSidebar( page ) {
 	await page
 		.locator( '.undergrowth-links-sidebar .undergrowth-links-loaded' )
 		.waitFor();
+
+	// A draft's sidebar also offers a scan, described once it has asked.
+	if (
+		await page.evaluate(
+			() =>
+				'publish' !==
+				window.wp.data
+					.select( 'core/editor' )
+					.getCurrentPostAttribute( 'status' )
+		)
+	) {
+		await page
+			.locator( '.undergrowth-links-sidebar .undergrowth-scan' )
+			.waitFor();
+	}
 }
 
 /**
@@ -1009,5 +1051,29 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_SIDEBAR );
+	} );
+
+	test.describe( 'with a draft to scan', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			await requestUtils.createPost( {
+				title: 'Yacon',
+				content:
+					'<!-- wp:paragraph --><p>Yacon syrup is sweet.</p><!-- /wp:paragraph -->',
+				status: 'publish',
+			} );
+			scanPosts.draft = (
+				await requestUtils.createPost( {
+					title: 'Planting notes',
+					content:
+						'<!-- wp:paragraph --><p>I keep yacon syrup by the door.</p><!-- /wp:paragraph -->',
+					status: 'draft',
+				} )
+			).id;
+		} );
+
+		capture( WITH_SCAN );
 	} );
 } );
