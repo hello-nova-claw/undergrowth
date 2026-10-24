@@ -76,7 +76,7 @@ Test methods are the exception: a test's name says what it checks, so a DocBlock
 - A pull request that touches `src/` must also touch a file under `tests/`. CI checks this.
 - PHP tests use PHPUnit with the WordPress test suite, run through `wp-env`, across the supported WordPress versions.
 - JavaScript unit tests use Jest. End-to-end tests use Playwright.
-- Line coverage must not drop below the figure in `.github/coverage-baseline`. When your change raises coverage, raise the baseline in the same pull request.
+- Statement coverage must match the figure in `.github/coverage-baseline`, to two decimals, and must not drop below that figure on the branch you merge into. When your change raises coverage, set the baseline to the figure the Coverage gate prints, in the same pull request. Lowering the baseline fails the gate.
 
 Run everything locally (needs Docker for `wp-env`):
 

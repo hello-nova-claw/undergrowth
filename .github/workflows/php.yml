@@ -155,4 +155,12 @@ jobs:
       - run: vendor/bin/phpunit --coverage-php coverage/single-site.cov
       - run: vendor/bin/phpunit -c phpunit-multisite.xml.dist --coverage-php coverage/multisite.cov
       - run: vendor/bin/phpcov merge --clover coverage/clover.xml coverage
-      - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline
+      # The bar comes from the branch this merges into, so a pull request
+      # cannot lower it in the same commit that lowers the coverage.
+      - name: Read the base branch's baseline
+        env:
+          BASE_REF: ${{ github.base_ref || github.ref_name }}
+        run: |
+          git fetch --quiet --depth=1 origin "$BASE_REF"
+          git show FETCH_HEAD:.github/coverage-baseline > "$RUNNER_TEMP/coverage-baseline-base"
+      - run: php bin/coverage-gate.php coverage/clover.xml .github/coverage-baseline "$RUNNER_TEMP/coverage-baseline-base"
