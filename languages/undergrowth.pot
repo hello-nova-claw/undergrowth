@@ -409,6 +409,7 @@ msgstr ""
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
 #: build/editor/index.js
+#: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
 msgid "Accept"
 msgstr ""
@@ -754,6 +755,45 @@ msgstr ""
 msgid "Undergrowth only answers its own Accept and Veto buttons."
 msgstr ""
 
+#: src/draft-scan.php
+msgid "Scanning a draft needs something to read it with. Add an OpenAI key in Settings › Undergrowth."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "Link suggestions are turned off in Settings › Undergrowth, so drafts are not scanned."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "This post is private or has a password, so it is never sent anywhere."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "This post is published, so its suggestions are listed above."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "Undergrowth does not read this kind of post."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "A scan has just run. Wait a few seconds, then try again."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "The draft could not be read just now, so there are no suggestions. Try again later."
+msgstr ""
+
+#: src/draft-scan.php
+msgid "Sends this draft’s title and text to OpenAI once, to compare it with your published posts. Nothing about the draft is kept."
+msgstr ""
+
+#. translators: 1: provider name, such as ollama, 2: model name, such as nomic-embed-text.
+#: src/draft-scan.php
+#, php-format
+msgid "Gives this draft’s title and text once to %1$s (%2$s), set up by code on this site, to compare it with your published posts. Where that code sends it depends on how it was set up. Nothing about the draft is kept."
+msgstr ""
+
+#: src/draft-scan.php
 #: src/editor-links.php
 msgid "Linked in the editor. Save the post to keep the link."
 msgstr ""
@@ -1429,6 +1469,7 @@ msgid "Linked. The suggestion is accepted when you save the post."
 msgstr ""
 
 #: build/editor/index.js
+#: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
 msgid "That sentence has changed."
 msgstr ""
@@ -1446,6 +1487,27 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Open one of these posts to accept its link to this one."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/draft-scan.js
+#: src/editor/index.js
+msgid "Scan this draft"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/draft-scan.js
+msgid "Posts this draft could link to"
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/draft-scan.js
+msgid "No published post is close enough to suggest a link."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/draft-scan.js
+msgid "Linked. Save the post to keep the link."
 msgstr ""
 
 #: build/editor/index.js
