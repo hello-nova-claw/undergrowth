@@ -18,6 +18,7 @@ add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
+add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index' );
 
 /**
  * Tells whether two vectors can be compared at all.
@@ -885,12 +886,32 @@ function undergrowth_refresh_sources( $source_ids ): void {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $rest ) );
 	}
 
-	// Sources sharing a provider, model and language share one pool and one
-	// set of word counts, so neither is built again for each source.
-	$pools = array();
+	undergrowth_refresh_posts( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) );
+}
 
-	foreach ( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) as $source_id ) {
-		$source = get_post( $source_id );
+/**
+ * Refreshes the proposals of some posts, in order, until the time is spent.
+ *
+ * Posts sharing a provider, model and language share one pool and one set
+ * of word counts, so neither is built again for each post. A post that
+ * left the index or is composting is skipped.
+ *
+ * @param int[] $post_ids Posts to refresh.
+ * @param float $budget   Seconds after which no further post is started. One post is always refreshed.
+ * @return int[] The posts that were reached, refreshed or skipped.
+ */
+function undergrowth_refresh_posts( array $post_ids, float $budget = INF ): array {
+	$started = microtime( true );
+	$pools   = array();
+	$reached = array();
+
+	foreach ( $post_ids as $source_id ) {
+		if ( array() !== $reached && microtime( true ) - $started >= $budget ) {
+			break;
+		}
+
+		$reached[] = $source_id;
+		$source    = get_post( $source_id );
 
 		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) || 'composting' === undergrowth_get_stage( $source_id ) ) {
 			continue;
@@ -912,4 +933,71 @@ function undergrowth_refresh_sources( $source_ids ): void {
 
 		undergrowth_refresh_proposals( $source_id, $pools[ $key ][0], $pools[ $key ][1] );
 	}
+
+	return $reached;
+}
+
+/**
+ * Refreshes every indexed post's proposals once the backfill has read the
+ * whole site, a batch at a time.
+ *
+ * Proposals made while the backfill was running were chosen with the word
+ * counts of part of the site, so their sentence may no longer hold a word
+ * that can carry the link. Each run takes the backfill's batch size and
+ * time budget, then queues the next after the last post it reached.
+ *
+ * @param int $after Refresh posts with a higher ID than this.
+ */
+function undergrowth_refresh_index( $after = 0 ): void {
+	$identity = undergrowth_index_target();
+
+	// A switch of model or language since starts another backfill, which
+	// queues its own refresh once it has read the site.
+	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		return;
+	}
+
+	$size     = undergrowth_backfill_batch_size();
+	$post_ids = undergrowth_indexed_post_ids( $identity, (int) $after, $size );
+	$reached  = undergrowth_refresh_posts( $post_ids, undergrowth_backfill_time_budget() );
+
+	if ( array() !== $reached && ( count( $post_ids ) === $size || count( $reached ) < count( $post_ids ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( end( $reached ) ) );
+	}
+}
+
+/**
+ * Lists posts that have a vector for an identity, by ID.
+ *
+ * @param array $identity {
+ *     The provider and model, and the site language when posts take theirs from the site.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @param int   $after    Only posts with a higher ID than this.
+ * @param int   $limit    Most posts to list.
+ * @return int[] Post IDs in ascending order.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_indexed_post_ids( array $identity, int $after, int $limit ): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT post_id FROM %i WHERE provider = %s AND model = %s AND ( %s = '' OR language = %s ) AND post_id > %d ORDER BY post_id LIMIT %d",
+			undergrowth_vectors_table(),
+			$identity['provider'],
+			$identity['model'],
+			$identity['language'],
+			$identity['language'],
+			$after,
+			$limit
+		)
+	);
+
+	return array_map( 'intval', (array) $ids );
 }

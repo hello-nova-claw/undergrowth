@@ -460,7 +460,8 @@ function undergrowth_start_backfill(): void {
  * so a pass whose embeds mostly failed does not cluster a nearly empty
  * index, or while there is no indexable post yet, so the first posts on a
  * new site are still clustered early. Once the identity is recorded,
- * clustering is left to the monthly cycle.
+ * clustering is left to the monthly cycle. Every post's proposals are
+ * refreshed once too, with the word counts of the whole site.
  *
  * @param array $identity {
  *     The current provider and model, and the site language when posts take theirs from the site.
@@ -487,6 +488,7 @@ function undergrowth_record_index_identity( array $identity ): void {
 
 	update_option( 'undergrowth_index_identity', $identity, false );
 	wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
+	wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );
 }
 
 /**
