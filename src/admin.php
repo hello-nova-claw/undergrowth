@@ -694,9 +694,12 @@ function undergrowth_visible_resurfacing_signals(): array {
 	$signals = array();
 
 	foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
-		$members = undergrowth_cluster_members( undergrowth_resurfacing_signal( $post_id ) );
+		// The signal holds the leader's ID, which the other members keep as
+		// their label after the leader itself leaves the garden. The group
+		// shows while the Map shows it: while three or more posts carry it.
+		$members = undergrowth_cluster_posts( undergrowth_resurfacing_signal( $post_id ) );
 
-		if ( array() !== $members && 'composting' === undergrowth_get_stage( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
+		if ( count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE && 'composting' === undergrowth_get_stage( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
 			$signals[ $post_id ] = max( $members );
 		}
 	}
