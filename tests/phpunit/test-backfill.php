@@ -723,6 +723,18 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->cluster_cycles() );
 	}
 
+	public function test_identity_that_is_no_longer_the_target_is_not_recorded() {
+		$ids = $this->archive( 1 );
+		undergrowth_embed_post( $ids[0] );
+		$stale = array_merge( undergrowth_index_target(), array( 'model' => 'test-model-v0' ) );
+
+		// A batch that read the old model finishes after the switch, when every post has a current vector.
+		undergrowth_record_index_identity( $stale );
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
 	public function test_check_does_not_cluster_a_recorded_index_again() {
 		$this->indexed_archive( 2 );
 
