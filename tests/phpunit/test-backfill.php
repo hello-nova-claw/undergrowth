@@ -520,17 +520,89 @@ class Test_Backfill extends WP_UnitTestCase {
 	}
 
 	public function test_later_passes_leave_clustering_to_the_monthly_cycle() {
-		$ids             = $this->archive( 2 );
-		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		$this->archive( 2 );
 		undergrowth_start_backfill();
 		$this->run_cron();
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+
+		$this->archive( 1 );
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_pass_where_most_embeds_failed_leaves_the_index_unclustered() {
+		$ids = $this->archive( 4 );
+
+		foreach ( array_slice( $ids, 0, 3 ) as $id ) {
+			$this->failing[] = undergrowth_post_text( get_post( $id ) );
+		}
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_check_clusters_the_index_once_the_failed_posts_are_embedded() {
+		$ids = $this->archive( 4 );
+
+		foreach ( array_slice( $ids, 0, 2 ) as $id ) {
+			$this->failing[] = undergrowth_post_text( get_post( $id ) );
+		}
+
+		undergrowth_start_backfill();
+		$this->run_cron();
 
 		$this->failing = array();
 		do_action( 'undergrowth_backfill_check' );
 		$this->run_cron();
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
+	public function test_check_clusters_an_index_filled_outside_the_backfill() {
+		$ids             = $this->archive( 2 );
+		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		// The post's own embed on save, rather than a backfill pass, fills the index.
+		$this->failing = array();
+		undergrowth_embed_post( $ids[0] );
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
+	public function test_check_does_not_cluster_a_recorded_index_again() {
+		$this->indexed_archive( 2 );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
+	/**
+	 * Lists the queued cluster cycles.
+	 *
+	 * @return array<int, mixed> One entry per queued event.
+	 */
+	private function cluster_cycles(): array {
+		$cycles = array();
+
+		foreach ( _get_cron_array() as $hooks ) {
+			foreach ( $hooks['undergrowth_cluster_cycle'] ?? array() as $event ) {
+				$cycles[] = $event['args'];
+			}
+		}
+
+		return $cycles;
 	}
 
 	public function test_index_counts_compare_current_vectors_with_indexable_posts() {
