@@ -35,6 +35,8 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 	const [ accepting, setAccepting ] = useState( 0 );
 	const found = useRef();
 	const moved = useRef( false );
+	const linkedNotes = useRef( {} );
+	const justLinked = useRef( 0 );
 	const describedBy = `undergrowth-scan-destination-${ useId() }`;
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const path = `/undergrowth/v1/posts/${ postId }/scan`;
@@ -59,6 +61,17 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 			found.current?.focus();
 		}
 	}, [ results ] );
+
+	// Accept's button goes once the paragraph holds the link, which can be a
+	// render after the answer, so focus moves to the note that replaces it.
+	useLayoutEffect( () => {
+		const note = linkedNotes.current[ justLinked.current ];
+
+		if ( note ) {
+			note.focus();
+			justLinked.current = 0;
+		}
+	} );
 
 	/**
 	 * Sends the draft once and shows what it could link to.
@@ -100,6 +113,7 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 		} )
 			.then(
 				( answer ) => {
+					justLinked.current = item.target;
 					onLink( answer.id, answer.content );
 					createSuccessNotice( answer.message, {
 						type: 'snackbar',
@@ -193,7 +207,14 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 									span={ item.span }
 								/>
 								{ linked && (
-									<p className="description">
+									<p
+										className="description"
+										tabIndex={ -1 }
+										ref={ ( element ) => {
+											linkedNotes.current[ item.target ] =
+												element;
+										} }
+									>
 										{ __(
 											'Linked. Save the post to keep the link.',
 											'undergrowth'
