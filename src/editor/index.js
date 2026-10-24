@@ -39,21 +39,49 @@ function UndergrowthPanel() {
 }
 
 /**
+ * Lists the post's link suggestions, with the paragraphs the editor holds.
+ *
+ * Mounted only while the sidebar is open, so the block tree is not walked
+ * on every keystroke while it is closed.
+ *
+ * @param {Object} props        Component props.
+ * @param {number} props.postId Post being edited.
+ * @param {string} props.saved  Changes on every save.
+ * @return {Element} Suggestions.
+ */
+function OpenLinksSidebar( { postId, saved } ) {
+	const blocks = useSelect(
+		( select ) => select( blockEditorStore ).getBlocks(),
+		[]
+	);
+	const paragraphs = useMemo( () => editorParagraphs( blocks ), [ blocks ] );
+	const { updateBlockAttributes } = useDispatch( blockEditorStore );
+
+	return (
+		<LinksSidebar
+			postId={ postId }
+			saved={ saved }
+			paragraphs={ paragraphs }
+			onLink={ ( id, content ) =>
+				updateBlockAttributes( id, { content } )
+			}
+		/>
+	);
+}
+
+/**
  * Adds the Undergrowth sidebar, with the post's link suggestions.
  *
  * @return {Element} Sidebar.
  */
 function UndergrowthSidebar() {
-	const { postId, saved, blocks } = useSelect(
+	const { postId, saved } = useSelect(
 		( select ) => ( {
 			postId: select( editorStore ).getCurrentPostId(),
 			saved: select( editorStore ).getCurrentPostAttribute( 'modified' ),
-			blocks: select( blockEditorStore ).getBlocks(),
 		} ),
 		[]
 	);
-	const paragraphs = useMemo( () => editorParagraphs( blocks ), [ blocks ] );
-	const { updateBlockAttributes } = useDispatch( blockEditorStore );
 	const title = __( 'Undergrowth', 'undergrowth' );
 
 	return (
@@ -71,14 +99,7 @@ function UndergrowthSidebar() {
 				icon="admin-links"
 			>
 				{ postId && (
-					<LinksSidebar
-						postId={ postId }
-						saved={ saved }
-						paragraphs={ paragraphs }
-						onLink={ ( id, content ) =>
-							updateBlockAttributes( id, { content } )
-						}
-					/>
+					<OpenLinksSidebar postId={ postId } saved={ saved } />
 				) }
 			</PluginSidebar>
 		</>
