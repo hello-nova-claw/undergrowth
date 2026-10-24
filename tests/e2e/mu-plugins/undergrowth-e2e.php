@@ -52,7 +52,8 @@ function undergrowth_e2e_demo_vector( string $text ): array {
 	preg_match_all( '/\p{L}{5,}/u', mb_strtolower( $text ), $words );
 
 	foreach ( array_diff( $words[0], $common ) as $word ) {
-		$vector[ crc32( $word ) % 2048 ] += 1.0;
+		// Masked, because crc32() is negative for some words where integers are 32 bits.
+		$vector[ crc32( $word ) & 2047 ] += 1.0;
 	}
 
 	// Square roots keep a few repeated words from outweighing the rest.
