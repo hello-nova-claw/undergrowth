@@ -13,6 +13,10 @@ const UNDERGROWTH_STAGES        = array( 'seedling', 'sprout', 'budding', 'everg
 const UNDERGROWTH_GARDEN_STAGES = array( 'seedling', 'sprout', 'budding', 'evergreen' );
 const UNDERGROWTH_STAGE_BATCH   = 100;
 
+// A batch of a monthly pass that has not moved on this long after it
+// started, with no next batch queued, died and is run again.
+const UNDERGROWTH_PASS_STALL = 15 * MINUTE_IN_SECONDS;
+
 // How each reason for a change reads in the per-post file. The file is a
 // plain record in one fixed format, so these are not translated.
 const UNDERGROWTH_STAGE_REASONS = array(
@@ -30,6 +34,7 @@ add_filter( 'cron_schedules', 'undergrowth_cron_schedules' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_stage_cycle' );
 add_action( 'undergrowth_stage_cycle', 'undergrowth_run_stage_cycle' );
+add_action( 'undergrowth_backfill_check', 'undergrowth_resume_stalled_passes' );
 add_filter( 'posts_clauses', 'undergrowth_order_by_stage_clauses', 10, 2 );
 
 /**
@@ -476,8 +481,11 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 	$indexable = undergrowth_indexable_sql( '' );
 
 	if ( null === $indexable ) {
+		undergrowth_end_pass( 'undergrowth_stage_cycle' );
 		return;
 	}
+
+	undergrowth_mark_pass( 'undergrowth_stage_cycle', $after_id );
 
 	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot page by ID, which keeps batches stable while posts are published mid-cycle.
@@ -503,7 +511,78 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 	}
 
 	if ( count( $post_ids ) === UNDERGROWTH_STAGE_BATCH ) {
-		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( end( $post_ids ) ) );
+		undergrowth_queue_pass_batch( 'undergrowth_stage_cycle', end( $post_ids ) );
+		return;
+	}
+
+	undergrowth_end_pass( 'undergrowth_stage_cycle' );
+}
+
+/**
+ * Records that a batch of a monthly pass has started.
+ *
+ * WP-Cron takes an event off the queue before running it, so a batch that
+ * dies from a timeout or a fatal error leaves nothing queued. The record
+ * names the post the batch started after, so the hourly check can run it
+ * again.
+ *
+ * @param string $hook     Cron hook of the pass.
+ * @param int    $after_id Post ID the batch starts after.
+ */
+function undergrowth_mark_pass( string $hook, int $after_id ): void {
+	update_option(
+		$hook . '_pass',
+		array(
+			'after' => $after_id,
+			'at'    => time(),
+		),
+		false
+	);
+}
+
+/**
+ * Queues the next batch of a monthly pass, and records it.
+ *
+ * @param string $hook     Cron hook of the pass.
+ * @param int    $after_id Post ID the batch starts after.
+ */
+function undergrowth_queue_pass_batch( string $hook, int $after_id ): void {
+	undergrowth_mark_pass( $hook, $after_id );
+	wp_schedule_single_event( time(), $hook, array( $after_id ) );
+}
+
+/**
+ * Forgets the record of a monthly pass once it is complete.
+ *
+ * @param string $hook Cron hook of the pass.
+ */
+function undergrowth_end_pass( string $hook ): void {
+	delete_option( $hook . '_pass' );
+}
+
+/**
+ * Runs again the batch of a clustering or stage pass that died.
+ *
+ * Runs from the hourly check. A pass is resumed only when its batch started
+ * at least UNDERGROWTH_PASS_STALL ago and neither that batch nor a new pass
+ * from the first post is queued, so a batch that is still running is never
+ * started twice.
+ */
+function undergrowth_resume_stalled_passes(): void {
+	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle' ) as $hook ) {
+		$pass = get_option( $hook . '_pass' );
+
+		if ( ! is_array( $pass ) || ! isset( $pass['after'], $pass['at'] ) || time() - (int) $pass['at'] < UNDERGROWTH_PASS_STALL ) {
+			continue;
+		}
+
+		$after_id = (int) $pass['after'];
+
+		if ( false !== wp_next_scheduled( $hook, array( $after_id ) ) || false !== wp_next_scheduled( $hook, array( 0 ) ) ) {
+			continue;
+		}
+
+		undergrowth_queue_pass_batch( $hook, $after_id );
 	}
 }
 
