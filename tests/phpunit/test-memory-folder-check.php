@@ -133,15 +133,19 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 		$this->assertSame( array(), glob( wp_upload_dir( null, false )['basedir'] . '/undergrowth-check-*' ) );
 	}
 
-	public function test_check_that_gets_no_answer_keeps_the_last_result() {
-		$this->written();
-		$this->server = 'serve';
+	public function test_check_that_gets_no_answer_forgets_that_the_folder_was_refused() {
+		$oca = $this->written();
 		undergrowth_check_memory_folder();
+		$this->assertTrue( undergrowth_memory_private() );
 
 		$this->server = 'fail';
 
 		$this->assertNull( undergrowth_check_memory_folder() );
-		$this->assertTrue( undergrowth_memory_exposed() );
+		$this->assertFalse( undergrowth_memory_private() );
+		$this->assertFalse( undergrowth_memory_exposed() );
+
+		undergrowth_write_memory( $oca );
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 	}
 
 	public function test_nothing_is_asked_before_the_folder_exists() {

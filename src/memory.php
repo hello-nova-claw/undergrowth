@@ -518,9 +518,10 @@ function undergrowth_memory_private(): bool {
  * Checks whether visitors can read the per-post files, by writing a file
  * into the folder and asking for it at the site's own address.
  *
- * An answer is kept until the next check. While the folder is not known to
- * be refused, the questions are taken out of the files already there, so
- * a file that could not be rewritten last time is tried again.
+ * Each answer is kept until the next check, including one that proves
+ * nothing. While the folder is not known to be refused, the questions are
+ * taken out of the files already there, so a file that could not be
+ * rewritten last time is tried again.
  *
  * @return bool|null True when the file could be read, false when it was
  *                   refused, or null when there is no folder yet or the
@@ -536,16 +537,16 @@ function undergrowth_check_memory_folder(): ?bool {
 
 	$exposed = undergrowth_ask_for_memory_file( $filesystem, $root );
 
-	if ( null !== $exposed || false === get_option( 'undergrowth_memory_exposed' ) ) {
-		update_option(
-			'undergrowth_memory_exposed',
-			array(
-				'exposed' => $exposed,
-				'time'    => time(),
-			),
-			false
-		);
-	}
+	// An answer that proves nothing replaces the last one too: a folder found
+	// refused once may not be refused now.
+	update_option(
+		'undergrowth_memory_exposed',
+		array(
+			'exposed' => $exposed,
+			'time'    => time(),
+		),
+		false
+	);
 
 	if ( ! undergrowth_memory_private() ) {
 		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );

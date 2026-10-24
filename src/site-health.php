@@ -103,8 +103,8 @@ function undergrowth_site_health_backfill(): array {
 /**
  * Tests whether visitors can read the per-post files, for Site Health.
  *
- * Each run checks again. When no answer proves anything, the last answer
- * that did stands, and with none the result says the check could not tell.
+ * Each run checks again. When the answer proves nothing, the result says
+ * the check could not tell.
  *
  * @return array Site Health result.
  *
