@@ -181,4 +181,29 @@ class Test_Post_Lifecycle extends WP_UnitTestCase {
 
 		$this->assertFileExists( undergrowth_memory_path( $oca ) );
 	}
+
+	/**
+	 * A post indexed before its type was filtered out, with a file but no
+	 * vector, loses its file on its next save.
+	 */
+	public function test_saving_a_post_whose_type_is_no_longer_indexed_removes_its_file() {
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->assertFileExists( undergrowth_memory_path( $yacon ) );
+		undergrowth_delete_vector( $yacon );
+
+		$pages_only = static function () {
+			return array( 'page' );
+		};
+		add_filter( 'undergrowth_post_types', $pages_only );
+
+		wp_update_post(
+			array(
+				'ID'        => $yacon,
+				'post_name' => 'yacon-root',
+			)
+		);
+
+		remove_filter( 'undergrowth_post_types', $pages_only );
+		$this->assertFileDoesNotExist( undergrowth_memory_path( $yacon ) );
+	}
 }

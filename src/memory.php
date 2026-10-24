@@ -544,17 +544,23 @@ function undergrowth_update_memory_around( int $post_id, ?WP_Post $post = null )
 
 /**
  * Rewrites the files around a post after it is saved, when its type is
- * indexed.
+ * indexed or it still has a file.
  *
- * A post of another type has no file. One indexed under an earlier post
- * type filter leaves the index on this same save, and its files are
- * rewritten then.
+ * A post of another type has no file, unless it was indexed under an
+ * earlier post type filter. One that also kept a vector leaves the index
+ * on this same save, but one with only a file is caught here.
  *
  * @param int     $post_id Post that was updated.
  * @param WP_Post $post    The post as saved.
  */
 function undergrowth_update_memory_after_save( int $post_id, WP_Post $post ): void {
-	if ( in_array( $post->post_type, undergrowth_indexed_post_types(), true ) ) {
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
+
+	$path = undergrowth_memory_path( $post_id );
+
+	if ( in_array( $post->post_type, undergrowth_indexed_post_types(), true ) || ( '' !== $path && file_exists( $path ) ) ) {
 		undergrowth_update_memory_around( $post_id, $post );
 	}
 }
