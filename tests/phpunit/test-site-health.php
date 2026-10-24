@@ -52,6 +52,8 @@ class Test_Site_Health extends WP_UnitTestCase {
 	}
 
 	public function test_test_is_registered_as_a_direct_test() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
 		$tests = apply_filters( 'site_status_tests', array( 'direct' => array() ) );
 
 		$this->assertSame( 'undergrowth_site_health_backfill', $tests['direct']['undergrowth_backfill']['test'] );
@@ -89,7 +91,7 @@ class Test_Site_Health extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'No post has been read for a day', $result['description'] );
 	}
 
-	public function test_nothing_left_to_read_is_good() {
+	public function test_test_is_left_out_once_every_post_is_read() {
 		$id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		undergrowth_save_vector(
 			$id,
@@ -103,6 +105,8 @@ class Test_Site_Health extends WP_UnitTestCase {
 		);
 		$this->set_progress( 1, 1, 30 * DAY_IN_SECONDS );
 
-		$this->assertSame( 'good', $this->run_test()['status'] );
+		$tests = apply_filters( 'site_status_tests', array( 'direct' => array() ) );
+
+		$this->assertArrayNotHasKey( 'undergrowth_backfill', $tests['direct'] );
 	}
 }
