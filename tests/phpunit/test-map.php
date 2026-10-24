@@ -97,6 +97,10 @@ class Test_Map extends WP_UnitTestCase {
 		$this->assertSame( array( 'lisbon' => 'Lisbon' ), undergrowth_label_words( 'Lisbon lisbon', 'en_US' ) );
 	}
 
+	public function test_thai_label_words_keep_combining_marks_like_tokens() {
+		$this->assertSame( undergrowth_tokens( 'ก้ข' ), array_keys( undergrowth_label_words( 'ก้ข', 'th' ) ) );
+	}
+
 	public function test_label_terms_are_shared_in_the_group_and_rare_elsewhere() {
 		$terms = undergrowth_choose_label_terms(
 			array(
