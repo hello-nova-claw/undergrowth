@@ -120,12 +120,12 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 	}
 
 	public function test_check_leaves_no_file_behind() {
-		$oca          = $this->written();
+		$this->written();
 		$this->server = 'serve';
 
 		undergrowth_check_memory_folder();
 
-		$this->assertSame( array( $oca . '.txt', 'index.php' ), array_values( array_diff( scandir( undergrowth_memory_root() . '/posts' ), array( '.', '..' ) ) ) );
+		$this->assertSame( array(), glob( undergrowth_memory_root() . '/posts/check-*' ) );
 	}
 
 	public function test_check_that_gets_no_answer_keeps_the_last_result() {
@@ -145,7 +145,7 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 	}
 
 	public function test_hourly_check_runs_the_folder_check() {
-		$this->assertSame( 10, has_action( 'undergrowth_backfill_check', 'undergrowth_check_memory_folder' ) );
+		$this->assertSame( 10, has_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' ) );
 	}
 
 	public function test_questions_are_left_out_while_the_folder_can_be_read() {

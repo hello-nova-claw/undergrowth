@@ -1,6 +1,7 @@
 <?php
 /**
- * Says in Site Health when the backfill has stalled.
+ * Says in Site Health when the backfill has stalled, and when visitors can
+ * read the per-post files.
  *
  * @package Undergrowth
  */
@@ -10,8 +11,9 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'site_status_tests', 'undergrowth_add_site_health_tests' );
 
 /**
- * Adds the backfill test to Site Health while there is a provider to read
- * with and posts are left to read.
+ * Adds the per-post folder test to Site Health once the folder exists, and
+ * the backfill test while there is a provider to read with and posts are
+ * left to read.
  *
  * @param array $tests Site Health tests, by type.
  * @return array The tests, with the backfill test among the direct ones.
@@ -20,6 +22,15 @@ add_filter( 'site_status_tests', 'undergrowth_add_site_health_tests' );
  * @phpstan-return array<string, array<string, mixed>>
  */
 function undergrowth_add_site_health_tests( array $tests ): array {
+	$root = undergrowth_memory_root();
+
+	if ( '' !== $root && is_dir( $root . '/posts' ) ) {
+		$tests['direct']['undergrowth_memory_folder'] = array(
+			'label' => __( 'Undergrowth’s per-post files are private', 'undergrowth' ),
+			'test'  => 'undergrowth_site_health_memory_folder',
+		);
+	}
+
 	if ( ! undergrowth_has_embed_provider() ) {
 		return $tests;
 	}
@@ -84,6 +95,51 @@ function undergrowth_site_health_backfill(): array {
 		'<p><a href="%1$s">%2$s</a></p>',
 		esc_url( __( 'https://developer.wordpress.org/plugins/cron/hooking-wp-cron-into-the-system-task-scheduler/', 'undergrowth' ) ),
 		esc_html__( 'How to run WP-Cron from a server cron job', 'undergrowth' )
+	);
+
+	return $result;
+}
+
+/**
+ * Tests whether visitors can read the per-post files, for Site Health.
+ *
+ * Each run checks again. When no answer comes, the last result stands.
+ *
+ * @return array Site Health result.
+ *
+ * @phpstan-return array<string, mixed>
+ */
+function undergrowth_site_health_memory_folder(): array {
+	$exposed = undergrowth_check_memory_folder() ?? undergrowth_memory_exposed();
+	$result  = array(
+		'label'       => __( 'Undergrowth’s per-post files cannot be read from the web', 'undergrowth' ),
+		'status'      => 'good',
+		'badge'       => array(
+			'label' => __( 'Security', 'undergrowth' ),
+			'color' => 'blue',
+		),
+		'description' => '<p>' . esc_html__( 'Undergrowth keeps a plain-text file for each post in the uploads folder, and this server refuses visitors who ask for one.', 'undergrowth' ) . '</p>',
+		'actions'     => '',
+		'test'        => 'undergrowth_memory_folder',
+	);
+
+	if ( ! $exposed ) {
+		return $result;
+	}
+
+	$rules = '';
+
+	foreach ( undergrowth_memory_deny_rules() as $server => $rule ) {
+		$rules .= sprintf( '<p>%1$s</p><pre><code>%2$s</code></pre>', esc_html( $server ), esc_html( $rule ) );
+	}
+
+	$result['label']       = __( 'Undergrowth’s per-post files can be read from the web', 'undergrowth' );
+	$result['status']      = 'recommended';
+	$result['description'] = '<p>' . esc_html( undergrowth_memory_exposed_text() ) . '</p>' . $rules;
+	$result['actions']     = sprintf(
+		'<p><a href="%1$s">%2$s</a></p>',
+		esc_url( UNDERGROWTH_MEMORY_DOCS ),
+		esc_html__( 'How to keep the per-post files private', 'undergrowth' )
 	);
 
 	return $result;

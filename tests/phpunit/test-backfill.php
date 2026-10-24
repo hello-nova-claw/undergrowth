@@ -57,6 +57,10 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		add_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10, 2 );
 		add_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		// The hourly check also asks the site for a per-post file, which
+		// Test_Memory_Folder_Check covers. Here it would reach the network.
+		remove_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' );
 	}
 
 	/**

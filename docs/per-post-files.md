@@ -1,6 +1,6 @@
 # Per-post files
 
-Undergrowth keeps a plain-text file for each published post it has read. This page shows what one holds and how to keep the folder private on nginx. The plugin's readme has the short version.
+Undergrowth keeps a plain-text file for each published post it has read. This page shows what one holds and how to keep the folder private on nginx and Caddy. The plugin's readme has the short version.
 
 ## Where they are
 
@@ -48,10 +48,19 @@ The stage section names the post's growth stage, marked `(pinned)` when you have
 
 ## Keeping the folder private
 
-On Apache, the folder holds an `.htaccess` file that refuses web access. On any server, the folder's name ends in random characters that only Settings › Undergrowth shows, which makes its address hard to guess, and each folder holds an `index.php` so it is never listed. The random name is not access control: the `.htaccess` file, or the nginx rule below, is.
+The folder holds an `.htaccess` file, which refuses web access on Apache, and a `web.config` file, which does the same on IIS. On any server, the folder's name ends in random characters that only Settings › Undergrowth shows, which makes its address hard to guess, and each folder holds an `index.php` so it is never listed. The random name is not access control: those files, or one of the rules below, are.
 
-nginx ignores `.htaccess`. On nginx, add this rule to your server block to refuse the files outright:
+Undergrowth checks this for itself. Every hour, and whenever Site Health runs its tests, it writes a small file into the folder, asks for it at the site's own address and deletes it again. If the file comes back, Site Health shows a recommended improvement and Settings › Undergrowth shows a warning beside the folder. Until the check passes again, the prompts section, the questions Claude wrote, is left out of every file, and the files already there lose it at once. It comes back the next time each file is written after the check passes.
+
+nginx and Caddy ignore `.htaccess` and `web.config`. On nginx, add this rule to your server block:
 
 ```nginx
 location ~ "^/wp-content/uploads/(sites/[0-9]+/)?undergrowth(-[0-9a-f]{12})?/" { deny all; }
+```
+
+On Caddy, add these lines to your site block:
+
+```caddy
+@undergrowth path_regexp ^/wp-content/uploads/(sites/[0-9]+/)?undergrowth(-[0-9a-f]{12})?/
+respond @undergrowth 403
 ```
