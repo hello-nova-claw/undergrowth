@@ -110,10 +110,21 @@ function undergrowth_dev_job(): ?array {
 }
 
 /**
- * Starts Accept all or the undo, unless one is already running.
+ * Tells whether a dev tools job is still under way.
  *
  * A job that has not moved for ten minutes counts as stopped, so a site
  * whose cron never ran can start again.
+ *
+ * @return bool True while a job is unfinished and moving.
+ */
+function undergrowth_dev_job_running(): bool {
+	$job = undergrowth_dev_job();
+
+	return null !== $job && ! $job['done'] && time() - (int) $job['updated'] < 10 * MINUTE_IN_SECONDS;
+}
+
+/**
+ * Starts Accept all or the undo, unless a job is already running.
  *
  * @param string $type    'accept' or 'reset'.
  * @param array  $options per_post for Accept all, forget_vectors for the undo.
@@ -122,9 +133,7 @@ function undergrowth_dev_job(): ?array {
  * @phpstan-param array{per_post?: int, forget_vectors?: bool} $options
  */
 function undergrowth_start_dev_job( string $type, array $options = array() ): bool {
-	$job = undergrowth_dev_job();
-
-	if ( null !== $job && ! $job['done'] && time() - (int) $job['updated'] < 10 * MINUTE_IN_SECONDS ) {
+	if ( undergrowth_dev_job_running() ) {
 		return false;
 	}
 

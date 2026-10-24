@@ -327,4 +327,16 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 		$this->assertFalse( $this->run_command( 'reset', array( 'yes' => true ) ) );
 		$this->assertSame( 'accept', undergrowth_dev_job()['type'] );
 	}
+
+	public function test_run_cycle_is_refused_while_the_tab_runs_a_job() {
+		undergrowth_register_dev_tools( 'local' );
+		$this->garden();
+		add_filter( 'undergrowth_dev_job_budget', '__return_zero' );
+		undergrowth_start_dev_job( 'reset' );
+		undergrowth_run_dev_job( 0.0 );
+
+		$this->assertFalse( $this->run_command( 'run-cycle' ) );
+		$this->assertFalse( undergrowth_has_clusters() );
+		$this->assertStringContainsString( 'still running', $this->output() );
+	}
 }
