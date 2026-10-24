@@ -324,6 +324,73 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( '529', $this->render() );
 	}
 
+	public function test_page_says_why_there_is_no_question_yet() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+
+		$this->assertStringContainsString( 'No question yet. Undergrowth asks one when a reader asks a question in an approved comment, a gap appears on the Map, or you move a post to compost.', $this->render() );
+	}
+
+	public function test_page_says_nothing_of_a_question_without_an_anthropic_key() {
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
+	public function test_page_stops_saying_there_is_no_question_once_one_is_written() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		$post_id = self::factory()->post->create();
+		update_option(
+			'undergrowth_prompt',
+			array(
+				'key'      => 'comment:1',
+				'source'   => 'comment',
+				'post_id'  => $post_id,
+				'question' => 'What made you stop there?',
+				'time'     => time(),
+			),
+			false
+		);
+
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
+	public function test_page_stops_saying_there_is_no_question_once_one_was_dismissed() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		$post_id = self::factory()->post->create();
+		undergrowth_log_prompt(
+			$post_id,
+			'dismissed',
+			array(
+				'source'   => 'comment',
+				'question' => 'What made you stop there?',
+			)
+		);
+
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
+	public function test_page_stops_saying_there_is_no_question_after_the_post_it_was_about_is_deleted() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		$post_id = self::factory()->post->create();
+		undergrowth_log_prompt(
+			$post_id,
+			'asked',
+			array(
+				'source'   => 'comment',
+				'question' => 'What made you stop there?',
+			)
+		);
+		wp_delete_post( $post_id, true );
+
+		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_log', false ) );
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
+	public function test_page_stops_saying_there_is_no_question_while_one_is_snoozed() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:1' ) ), false );
+
+		$this->assertStringNotContainsString( 'No question yet', $this->render() );
+	}
+
 	public function test_page_counts_indexed_posts_out_of_indexable_ones() {
 		update_option( 'undergrowth_openai_api_key', self::KEY );
 		$ids = self::factory()->post->create_many( 3, array( 'post_status' => 'publish' ) );

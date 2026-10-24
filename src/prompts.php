@@ -241,6 +241,9 @@ function undergrowth_log_prompt( int $post_id, string $event, array $prompt ): v
 		)
 	);
 
+	// Deleting the post deletes its log, so the site remembers on its own.
+	update_option( 'undergrowth_prompt_written', 1, false );
+
 	/**
 	 * Fires after an event is added to a post's prompt log.
 	 *
@@ -307,6 +310,16 @@ function undergrowth_current_prompt(): ?array {
 		'question' => $prompt['question'],
 		'time'     => (int) ( $prompt['time'] ?? 0 ),
 	);
+}
+
+/**
+ * Tells whether a question has ever been written for the author: one is
+ * waiting, one is snoozed, or one was logged, even on a post since deleted.
+ *
+ * @return bool True once a question has been written.
+ */
+function undergrowth_has_written_prompt(): bool {
+	return false !== get_option( 'undergrowth_prompt_written' ) || null !== undergrowth_current_prompt() || array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() );
 }
 
 /**

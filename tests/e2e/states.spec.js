@@ -100,6 +100,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'prompt-asked',
+		page: SETTINGS,
+		fixture: 'prompt-asked',
+	},
+	{
+		screen: 'settings',
 		state: 'prompt-last-error',
 		page: SETTINGS,
 		fixture: 'prompt-last-error',
