@@ -67,8 +67,8 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 		return undergrowth_discord_ephemeral( __( 'Undergrowth could not queue this click, so nothing was changed. Try again, or use Posts > Undergrowth.', 'undergrowth' ) );
 	}
 
-	spawn_cron();
-
+	// WordPress starts WP-Cron at shutdown, once this reply has been sent, so
+	// the job never edits the message before Discord has the reply.
 	return new WP_REST_Response( array( 'type' => UNDERGROWTH_DISCORD_DEFERRED_UPDATE ) );
 }
 
