@@ -696,6 +696,45 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_cycle_never_lowers_a_budding_post_whose_cluster_dissolved() {
+		list( $post_id, $a, $b, $outside, $elsewhere ) = $this->publish( 5 );
+
+		$this->cluster( array( $post_id, $a, $b ) );
+		$this->link( $post_id, $outside );
+		$this->link( $elsewhere, $post_id );
+		undergrowth_run_stage_cycle();
+		$this->assertSame( 'budding', undergrowth_get_stage( $post_id ) );
+
+		wp_delete_post( $a, true );
+		wp_delete_post( $b, true );
+		$this->assertSame( 'sprout', undergrowth_measure_stage( $post_id ) );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'budding', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_cycle_never_lowers_a_sprout_whose_link_target_left_the_index() {
+		list( $post_id, $a, $b ) = $this->publish( 3 );
+
+		$this->link( $post_id, $a );
+		$this->link( $post_id, $b );
+		undergrowth_run_stage_cycle();
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+
+		wp_update_post(
+			array(
+				'ID'          => $a,
+				'post_status' => 'draft',
+			)
+		);
+		$this->assertSame( 'seedling', undergrowth_measure_stage( $post_id ) );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_id ) );
+	}
+
 	public function test_cycle_runs_in_batches_and_chains_the_next_one() {
 		$posts = $this->publish( UNDERGROWTH_STAGE_BATCH + 2 );
 		sort( $posts );

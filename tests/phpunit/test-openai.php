@@ -128,6 +128,7 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertSame( 'https://api.openai.com/v1/embeddings', $this->requests[0][0] );
 		$this->assertSame( 'POST', $this->requests[0][1]['method'] );
 		$this->assertSame( 'Bearer ' . self::KEY, $this->requests[0][1]['headers']['Authorization'] );
+		$this->assertSame( 0, $this->requests[0][1]['redirection'] );
 		$this->assertSame( 'text-embedding-3-small', $this->sent_body( 0 )['model'] );
 		$this->assertSame( 'Oca keeps well.', $this->sent_body( 0 )['input'] );
 	}
