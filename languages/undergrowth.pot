@@ -477,6 +477,7 @@ msgid "Save words"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/dev-tools.php
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Cancel"
@@ -620,6 +621,200 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Dev tools"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "You cannot use the dev tools."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accepted"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, sentence changed"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, no words could be linked safely"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, saving would change other content"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, no longer suggested"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, post gone"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, you cannot edit the post"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Links removed"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Links left, changed or moved since"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Links left, saving would change other content"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Suggestions cleared"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accepted links forgotten"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Vetoes cleared"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Stages cleared"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Per-post files removed"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Vectors forgotten"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accepting suggestions. The counts are below."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Undoing what Undergrowth changed. The counts are below."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "The monthly cycle is queued. It runs with the next cron run; stages and the Map change when it ends."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Another job is still running, so nothing was started. Wait for it to finish."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Last Accept all"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Last undo"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Finished."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Still running in WP-Cron."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Check progress"
+msgstr ""
+
+#. translators: %1$s: what was counted, such as "Accepted". %2$s: the number.
+#: src/dev-tools.php
+#, php-format
+msgid "%1$s: %2$s"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Nothing to count yet."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Local development only."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "These tools exist only on a local or development site, to fill a test site quickly and empty it again. On a real site every link is approved one at a time."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accept all suggestions"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accepts suggestions exactly as the Accept button does, one by one, as you. A suggestion Accept would refuse is refused here too, and counted."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Most per post"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Accepts only the best suggestions in each post. Leave empty to accept every one."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Run the monthly cycle now"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Groups the posts for the Map, then measures growth stages and looks for composting posts to resurface, as the monthly cycle does."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Undo everything Undergrowth changed"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Removes every link Undergrowth added and forgets every suggestion, veto, stage, pin, group and per-post file. You confirm on the next screen."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Undo everything…"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Undo everything Undergrowth changed?"
+msgstr ""
+
+#. translators: %s: number of links.
+#: src/dev-tools.php
+#, php-format
+msgid "Removes %s link Undergrowth added, keeping its words. Edits made to a post since stay. A link changed since is left."
+msgid_plural "Removes %s links Undergrowth added, keeping their words. Edits made to a post since stay. A link changed since is left."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/dev-tools.php
+msgid "Forgets every suggestion, veto, stage, pin, compost mark, group, resurfacing signal and per-post file."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Keeps what was read from each post, and suggests links again from it."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Forget what was read from each post too"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Every post is then read again, which sends it to the provider again."
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Yes, undo everything"
 msgstr ""
 
 #: src/discord-clicks.php

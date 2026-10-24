@@ -196,6 +196,16 @@ function undergrowth_e2e_cookie( string $name, array $allowed ): string {
 	return '';
 }
 
+// The dev tools are on in wp-env and the catalogue's Playground, which are
+// local sites, so every screen would show their tab. Only a request that
+// carries this cookie keeps them; the filter can only turn them off.
+add_filter(
+	'undergrowth_dev_tools_enabled',
+	static function ( $enabled ) {
+		return $enabled && '1' === undergrowth_e2e_cookie( 'undergrowth_e2e_dev_tools', array( '1' ) );
+	}
+);
+
 add_filter(
 	'determine_locale',
 	static function ( $locale ) {
