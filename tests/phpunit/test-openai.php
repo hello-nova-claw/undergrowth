@@ -277,6 +277,93 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_last_embed_error' ) );
 	}
 
+	/**
+	 * Builds a response that turns the request away, with a Retry-After header.
+	 *
+	 * @param int    $status      HTTP status code.
+	 * @param string $retry_after Header value, or empty for none.
+	 * @return array<string, mixed>
+	 */
+	private function turned_away( int $status, string $retry_after = '' ): array {
+		$response = $this->response( $status, '{"error":{"code":"rate_limit_exceeded"}}' );
+
+		if ( '' !== $retry_after ) {
+			$response['headers'] = array( 'retry-after' => $retry_after );
+		}
+
+		return $response;
+	}
+
+	public function test_too_many_requests_waits_as_long_as_retry_after_says() {
+		$this->responses = array( $this->turned_away( 429, '120' ) );
+		$before          = time();
+
+		$this->assertSame( array(), undergrowth_embed( 'Oca keeps well.' ) );
+
+		$retry = undergrowth_openai_retry_time();
+		$this->assertGreaterThanOrEqual( $before + 120, $retry );
+		$this->assertLessThanOrEqual( time() + 120, $retry );
+		$this->assertSame( $retry, get_option( 'undergrowth_last_embed_error' )['retry'] );
+	}
+
+	public function test_retry_after_as_a_date_is_honoured() {
+		$this->responses = array( $this->turned_away( 429, gmdate( 'D, d M Y H:i:s \G\M\T', time() + 600 ) ) );
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertEqualsWithDelta( time() + 600, undergrowth_openai_retry_time(), 2 );
+	}
+
+	public function test_server_error_without_retry_after_waits_five_minutes() {
+		$this->responses = array( $this->turned_away( 503 ) );
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertEqualsWithDelta( time() + 5 * MINUTE_IN_SECONDS, undergrowth_openai_retry_time(), 2 );
+	}
+
+	public function test_retry_after_longer_than_an_hour_waits_an_hour() {
+		$this->responses = array( $this->turned_away( 429, '86400' ) );
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertEqualsWithDelta( time() + HOUR_IN_SECONDS, undergrowth_openai_retry_time(), 2 );
+	}
+
+	public function test_rejected_request_does_not_wait() {
+		$this->responses = array( $this->turned_away( 400, '120' ) );
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertSame( 0, undergrowth_openai_retry_time() );
+		$this->assertArrayNotHasKey( 'retry', get_option( 'undergrowth_last_embed_error' ) );
+	}
+
+	public function test_nothing_is_sent_while_waiting() {
+		$this->responses = array( $this->turned_away( 429, '120' ), $this->ok( array( 1.0 ) ) );
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertSame( array(), undergrowth_embed( 'Oca keeps well.' ) );
+		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_requests_resume_once_the_wait_is_over() {
+		update_option(
+			'undergrowth_last_embed_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 429,
+				'time'   => time() - 200,
+				'retry'  => time() - 80,
+			)
+		);
+
+		$this->assertSame( 0, undergrowth_openai_retry_time() );
+		$this->assertNotSame( array(), undergrowth_embed( 'Oca keeps well.' ) );
+		$this->assertFalse( get_option( 'undergrowth_last_embed_error' ) );
+	}
+
 	public function test_long_text_is_cut_before_sending() {
 		undergrowth_embed( str_repeat( 'Oca keeps well. ', 10000 ) );
 
