@@ -1541,6 +1541,10 @@ msgid "With a key, the title and text of each published post without a password 
 msgstr ""
 
 #: src/settings.php
+msgid "With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other."
+msgstr ""
+
+#: src/settings.php
 msgid "Questions"
 msgstr ""
 

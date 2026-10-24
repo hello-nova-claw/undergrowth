@@ -28,7 +28,8 @@ class Test_Indexer extends WP_UnitTestCase {
 		parent::set_up();
 
 		$GLOBALS['undergrowth_test_post_languages'] = array();
-		$this->embedded                             = array();
+
+		$this->embedded = array();
 		$this->model    = 'test-model-v1';
 
 		add_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10, 2 );

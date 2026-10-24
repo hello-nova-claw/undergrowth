@@ -692,7 +692,10 @@ function undergrowth_add_settings_help(): void {
 	$tabs = array(
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
-			array( $links ),
+			array(
+				$links,
+				__( 'With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other.', 'undergrowth' ),
+			),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),

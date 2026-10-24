@@ -1,0 +1,1 @@
+On a site with Polylang or WPML, each post's vector now keeps the post's own language, so posts in different languages are never suggested to each other. The Link suggestions Help tab on Settings > Undergrowth says so.

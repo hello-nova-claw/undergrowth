@@ -18,6 +18,6 @@
  * @param string $field   slug, locale or name.
  * @return string|false The language, or false when the post has none.
  */
-function pll_get_post_language( $post_id, $field = 'slug' ) {
+function pll_get_post_language( $post_id, $field = 'slug' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Polylang's signature.
 	return $GLOBALS['undergrowth_test_post_languages'][ $post_id ] ?? false;
 }

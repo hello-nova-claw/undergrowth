@@ -19,6 +19,8 @@ add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 add_action( 'init', 'undergrowth_schedule_backfill_check' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 20, 0 );
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 10, 0 );
+// Polylang and WPML load their functions with the other plugins.
+add_action( 'init', 'undergrowth_hook_multilingual_language', 0 );
 
 /**
  * Lists the post types whose published posts are indexed.
@@ -263,6 +265,43 @@ function undergrowth_post_language( WP_Post $post ): string {
 	$locale = is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
 
 	return undergrowth_fit_language( $locale );
+}
+
+/**
+ * Takes each post's language from Polylang or WPML, when either is active.
+ *
+ * Only then is the filter added, so a site without one keeps comparing every
+ * post in the site language.
+ */
+function undergrowth_hook_multilingual_language(): void {
+	if ( function_exists( 'pll_get_post_language' ) || has_filter( 'wpml_post_language_details' ) ) {
+		add_filter( 'undergrowth_post_language', 'undergrowth_multilingual_language', 5, 2 );
+	}
+}
+
+/**
+ * Reads a post's language from Polylang or WPML.
+ *
+ * @param mixed   $locale Language so far.
+ * @param WP_Post $post   Post being embedded.
+ * @return mixed The post's locale, or the language so far when neither plugin gives one.
+ */
+function undergrowth_multilingual_language( $locale, $post ) {
+	if ( ! $post instanceof WP_Post ) {
+		return $locale;
+	}
+
+	if ( function_exists( 'pll_get_post_language' ) ) {
+		$language = pll_get_post_language( $post->ID, 'locale' );
+
+		if ( is_string( $language ) && '' !== $language ) {
+			return $language;
+		}
+	}
+
+	$details = apply_filters( 'wpml_post_language_details', null, $post->ID ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own hook.
+
+	return is_array( $details ) && is_string( $details['locale'] ?? null ) && '' !== $details['locale'] ? $details['locale'] : $locale;
 }
 
 /**
