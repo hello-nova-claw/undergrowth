@@ -741,7 +741,7 @@ function undergrowth_stage_action_error( int $post_id ): ?WP_Error {
  * @return WP_Error The error.
  */
 function undergrowth_stage_not_saved(): WP_Error {
-	return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, so nothing was changed.', 'undergrowth' ) );
+	return new WP_Error( 'undergrowth_not_saved', undergrowth_stage_result_messages()['stage_not_saved'] );
 }
 
 /**
