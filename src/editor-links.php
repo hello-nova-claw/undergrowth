@@ -321,12 +321,21 @@ function undergrowth_rest_accept_link( WP_REST_Request $request ) {
 		return undergrowth_editor_link_error( $linked );
 	}
 
-	if ( ! in_array( (string) $target_id, get_post_meta( $source_id, 'undergrowth_pending_links', false ), true ) ) {
-		add_post_meta( $source_id, 'undergrowth_pending_links', (string) $target_id );
+	// The words are kept with the note, so the save counts only a link
+	// around them, not another link to the same post.
+	$note = array(
+		'target' => $target_id,
+		'words'  => $linked['words'],
+	);
+
+	if ( ! in_array( $note, get_post_meta( $source_id, 'undergrowth_pending_links', false ), true ) ) {
+		add_post_meta( $source_id, 'undergrowth_pending_links', $note );
 	}
 
 	return new WP_REST_Response(
-		$linked + array(
+		array(
+			'id'      => $linked['id'],
+			'content' => $linked['content'],
 			'message' => __( 'Linked in the editor. Save the post to keep the link.', 'undergrowth' ),
 		)
 	);
@@ -370,7 +379,7 @@ function undergrowth_editor_paragraphs_arg(): array {
  * @param int                                            $offset     Character offset of the words in the sentence.
  * @param int                                            $length     Length of the words in characters.
  * @param string                                         $url        Address to link to.
- * @return array{id: string, content: string}|string The paragraph's block ID and new HTML, or 'edited' or 'no_word'.
+ * @return array{id: string, content: string, words: string}|string The paragraph's block ID, its new HTML and the linked words as a reader sees them, or 'edited' or 'no_word'.
  */
 function undergrowth_link_in_paragraphs( array $paragraphs, string $sentence, int $offset, int $length, string $url ) {
 	$open   = "<!-- wp:paragraph -->\n<p>";
@@ -394,6 +403,7 @@ function undergrowth_link_in_paragraphs( array $paragraphs, string $sentence, in
 		return array(
 			'id'      => $paragraph['id'],
 			'content' => substr( undergrowth_wrap_link_word( $content, $found, $url ), strlen( $open ), -strlen( $close ) ),
+			'words'   => undergrowth_plain_line( $found['word'] ),
 		);
 	}
 
@@ -448,11 +458,13 @@ function undergrowth_editor_link_error( string $result ): WP_Error {
 /**
  * Accepts the links the sidebar put in a post, once it is saved with them.
  *
- * A link the author took out again before saving leaves its suggestion as
- * it was. Either way the note is cleared, so a link added later by hand is
- * not counted as one accepted through Undergrowth, unless the link is saved
- * and only storing the acceptance failed. Revisions and autosaves are not the
- * post, so they leave the note for the real save.
+ * Only a link to the target around the words Accept linked counts. A link
+ * the author took out again before saving, even with another link to the
+ * same post kept elsewhere, leaves its suggestion as it was. Either way the
+ * note is cleared, so a link added later by hand is not counted as one
+ * accepted through Undergrowth, unless the link is saved and only storing
+ * the acceptance failed. Revisions and autosaves are not the post, so they
+ * leave the note for the real save.
  *
  * @param int     $post_id Post ID.
  * @param WP_Post $post    Post as saved.
@@ -472,8 +484,14 @@ function undergrowth_accept_saved_links( $post_id, $post ): void {
 
 	$accepted = false;
 
-	foreach ( array_unique( array_map( 'intval', $pending ) ) as $target_id ) {
-		if ( ! undergrowth_content_links_to( $post->post_content, (string) get_permalink( $target_id ) ) ) {
+	foreach ( $pending as $note ) {
+		if ( ! is_array( $note ) || ! isset( $note['target'], $note['words'] ) ) {
+			continue;
+		}
+
+		$target_id = (int) $note['target'];
+
+		if ( ! undergrowth_content_links_words( $post->post_content, (string) get_permalink( $target_id ), (string) $note['words'] ) ) {
 			continue;
 		}
 
@@ -482,7 +500,7 @@ function undergrowth_accept_saved_links( $post_id, $post ): void {
 		} elseif ( 'proposed' === undergrowth_link_state( $post->ID, $target_id ) ) {
 			// Still proposed, so the claim itself failed, as on a database
 			// error. The link is saved, so the next save tries again.
-			add_post_meta( $post->ID, 'undergrowth_pending_links', (string) $target_id );
+			add_post_meta( $post->ID, 'undergrowth_pending_links', $note );
 		}
 	}
 
@@ -492,21 +510,22 @@ function undergrowth_accept_saved_links( $post_id, $post ): void {
 }
 
 /**
- * Tells whether content holds a link to an address.
+ * Tells whether content holds a link to an address around exactly some words.
  *
  * @param string $content Post content.
  * @param string $url     Address.
- * @return bool True when a link points there.
+ * @param string $words   Words as a reader sees them.
+ * @return bool True when such a link is there.
  */
-function undergrowth_content_links_to( string $content, string $url ): bool {
-	if ( '' === $url ) {
+function undergrowth_content_links_words( string $content, string $url, string $words ): bool {
+	if ( '' === $url || '' === $words || ! preg_match_all( '#<a\b[^>]*>(.*?)</a\s*>#is', $content, $links, PREG_SET_ORDER ) ) {
 		return false;
 	}
 
-	$tags = new WP_HTML_Tag_Processor( $content );
+	foreach ( $links as $link ) {
+		$tag = new WP_HTML_Tag_Processor( $link[0] );
 
-	while ( $tags->next_tag( array( 'tag_name' => 'A' ) ) ) {
-		if ( $tags->get_attribute( 'href' ) === $url ) {
+		if ( $tag->next_tag( array( 'tag_name' => 'A' ) ) && $tag->get_attribute( 'href' ) === $url && undergrowth_plain_line( $link[1] ) === $words ) {
 			return true;
 		}
 	}

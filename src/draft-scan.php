@@ -345,7 +345,9 @@ function undergrowth_rest_accept_scanned_link( WP_REST_Request $request ) {
 	}
 
 	return new WP_REST_Response(
-		$linked + array(
+		array(
+			'id'      => $linked['id'],
+			'content' => $linked['content'],
 			'message' => __( 'Linked in the editor. Save the post to keep the link.', 'undergrowth' ),
 		)
 	);

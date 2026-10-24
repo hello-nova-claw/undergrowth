@@ -159,6 +159,15 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		);
 	}
 
+	/**
+	 * Lists the targets whose links wait for the source post to be saved.
+	 *
+	 * @return int[]
+	 */
+	private function pending_targets(): array {
+		return array_map( 'intval', array_column( get_post_meta( $this->source, 'undergrowth_pending_links', false ), 'target' ) );
+	}
+
 	public function test_lists_this_posts_suggestions_with_their_words() {
 		$response = $this->call( 'GET' );
 		$data     = $response->get_data();
@@ -322,7 +331,26 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		remove_filter( 'query', $fail );
 
 		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
-		$this->assertSame( array( (string) $this->target ), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
+		$this->assertSame( array( $this->target ), $this->pending_targets() );
+
+		$this->save( $this->paragraph( $content ) );
+
+		$this->assertSame( 'accepted', undergrowth_link_state( $this->source, $this->target ) );
+	}
+
+	public function test_undo_with_another_link_to_the_target_leaves_it_proposed() {
+		$this->accept( array( 'p' => self::SENTENCE ) );
+
+		// The suggested words stay unlinked, but the author links the target
+		// from words of their own.
+		$this->save( $this->paragraph( self::SENTENCE . ' See <a href="' . esc_url( get_permalink( $this->target ) ) . '">my notes</a>.' ) );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
+		$this->assertSame( array(), $this->pending_targets() );
+	}
+
+	public function test_saving_the_accepted_words_with_their_formatting_accepts_it() {
+		$content = $this->accept( array( 'p' => 'I keep <em>yacon</em> syrup beside the seed ledger.' ) )->get_data()['content'];
 
 		$this->save( $this->paragraph( $content ) );
 
@@ -349,7 +377,7 @@ class Test_Editor_Links extends WP_UnitTestCase {
 
 		_wp_put_post_revision( get_post( $this->source ), true );
 
-		$this->assertSame( array( (string) $this->target ), get_post_meta( $this->source, 'undergrowth_pending_links', false ) );
+		$this->assertSame( array( $this->target ), $this->pending_targets() );
 	}
 
 	/**
