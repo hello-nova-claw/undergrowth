@@ -72,6 +72,12 @@ function undergrowth_register_dev_tools( ?string $environment = null ): bool {
 	add_action( 'admin_post_undergrowth_dev_reset', 'undergrowth_handle_dev_reset' );
 	add_action( 'undergrowth_dev_job', 'undergrowth_continue_dev_job' );
 
+	/**
+	 * Fires once the dev tools are registered, which happens only on a local
+	 * or development site. src/cli.php adds the WP-CLI commands here.
+	 */
+	do_action( 'undergrowth_dev_tools_registered' );
+
 	return true;
 }
 
@@ -243,8 +249,7 @@ function undergrowth_dev_job_step( array $job ): array {
 	} else {
 		$state = 'accept' === $job['phase'] ? 'proposed' : 'accepted';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change as the job runs.
-		$source_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MIN(source_id) FROM %i WHERE state = %s AND source_id > %d', undergrowth_links_table(), $state, (int) $job['cursor'] ) );
+		$source_id = undergrowth_dev_next_source( $state, (int) $job['cursor'] );
 
 		if ( 0 === $source_id ) {
 			$job['phase'] = 'accept' === $job['phase'] ? 'done' : 'clear';
@@ -258,6 +263,76 @@ function undergrowth_dev_job_step( array $job ): array {
 	$job['done']   = 'done' === $job['phase'];
 
 	return $job;
+}
+
+/**
+ * Finds the next post with a link in a state.
+ *
+ * @param string $state    'proposed' or 'accepted'.
+ * @param int    $after_id Look at posts with a higher ID than this.
+ * @return int Post ID, or 0 when there is none.
+ */
+function undergrowth_dev_next_source( string $state, int $after_id ): int {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; states change as the job runs.
+	return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MIN(source_id) FROM %i WHERE state = %s AND source_id > %d', undergrowth_links_table(), $state, $after_id ) );
+}
+
+/**
+ * Lists the posts that have suggestions, in the order Accept all takes them.
+ *
+ * @return int[] Post IDs.
+ */
+function undergrowth_dev_suggesting_posts(): array {
+	$posts  = array();
+	$source = undergrowth_dev_next_source( 'proposed', 0 );
+
+	while ( 0 !== $source ) {
+		$posts[] = $source;
+		$source  = undergrowth_dev_next_source( 'proposed', $source );
+	}
+
+	return $posts;
+}
+
+/**
+ * Runs the monthly cycle now, to its end, in this request: the cluster
+ * pass, then every batch it queues, and the stage cycle and resurfacing it
+ * chains. The monthly event itself is left where it is.
+ *
+ * @return int How many batches ran.
+ */
+function undergrowth_dev_run_cycle(): int {
+	$hooks = array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle', 'undergrowth_resurfacing_cycle' );
+
+	undergrowth_run_cluster_cycle( 0 );
+
+	$runs = 1;
+
+	// Each run may queue the next, so the queue is read again after each.
+	do {
+		$ran = false;
+
+		foreach ( wp_get_ready_cron_jobs() as $timestamp => $events ) {
+			foreach ( $hooks as $hook ) {
+				foreach ( $events[ $hook ] ?? array() as $event ) {
+					if ( false !== $event['schedule'] ) {
+						continue;
+					}
+
+					wp_unschedule_event( (int) $timestamp, $hook, $event['args'] );
+					do_action_ref_array( $hook, $event['args'] ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- One of the plugin's own cron hooks, listed above.
+					++$runs;
+					$ran = true;
+
+					continue 4;
+				}
+			}
+		}
+	} while ( $ran && $runs < 10000 );
+
+	return $runs;
 }
 
 /**
