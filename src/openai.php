@@ -147,12 +147,13 @@ function undergrowth_openai_request( string $key, string $text ): array {
 	$response = wp_remote_post(
 		UNDERGROWTH_OPENAI_URL,
 		array(
-			'timeout' => 20,
-			'headers' => array(
+			'timeout'     => 20,
+			'redirection' => 0,
+			'headers'     => array(
 				'Authorization' => 'Bearer ' . $key,
 				'Content-Type'  => 'application/json',
 			),
-			'body'    => (string) wp_json_encode(
+			'body'        => (string) wp_json_encode(
 				array(
 					'model' => UNDERGROWTH_OPENAI_MODEL,
 					'input' => $text,

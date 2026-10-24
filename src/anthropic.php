@@ -77,13 +77,14 @@ function undergrowth_anthropic_message( string $system, string $user ) {
 	$response = wp_remote_post(
 		UNDERGROWTH_ANTHROPIC_URL,
 		array(
-			'timeout' => 60,
-			'headers' => array(
+			'timeout'     => 60,
+			'redirection' => 0,
+			'headers'     => array(
 				'x-api-key'         => $key,
 				'anthropic-version' => UNDERGROWTH_ANTHROPIC_VERSION,
 				'content-type'      => 'application/json',
 			),
-			'body'    => (string) wp_json_encode(
+			'body'        => (string) wp_json_encode(
 				array(
 					'model'         => undergrowth_prompt_model(),
 					'max_tokens'    => UNDERGROWTH_ANTHROPIC_MAX_TOKENS,
