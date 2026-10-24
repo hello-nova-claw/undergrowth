@@ -81,6 +81,20 @@ class Test_Privacy extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_discord_linked_user( self::DISCORD_ID ) );
 	}
 
+	public function test_erase_says_so_when_the_discord_user_id_could_not_be_removed() {
+		$user_id = self::factory()->user->create( array( 'user_email' => 'linked@example.org' ) );
+		update_user_meta( $user_id, 'undergrowth_discord_user_id', self::DISCORD_ID );
+		add_filter( 'delete_user_metadata', '__return_false' );
+
+		$result = undergrowth_erase_personal_data( 'linked@example.org' );
+
+		remove_filter( 'delete_user_metadata', '__return_false' );
+		$this->assertFalse( $result['items_removed'] );
+		$this->assertTrue( $result['items_retained'] );
+		$this->assertCount( 1, $result['messages'] );
+		$this->assertSame( self::DISCORD_ID, get_user_meta( $user_id, 'undergrowth_discord_user_id', true ) );
+	}
+
 	public function test_erase_removes_nothing_without_a_linked_discord_user_id() {
 		self::factory()->user->create( array( 'user_email' => 'unlinked@example.org' ) );
 
