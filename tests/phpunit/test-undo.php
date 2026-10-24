@@ -539,8 +539,8 @@ class Test_Undo extends WP_UnitTestCase {
 		update_option( 'undergrowth_first_run', 'done' );
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_dismiss_first_run' );
 
-		$this->call( 'undergrowth_dismiss_first_run' );
-
+		// Nothing changed, so there is no result to announce.
+		$this->assertSame( admin_url( 'plugins.php' ), $this->call( 'undergrowth_dismiss_first_run' ) );
 		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
 	}
 
