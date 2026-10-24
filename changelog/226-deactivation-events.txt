@@ -1,1 +1,0 @@
-Deactivating the plugin now clears every event it scheduled, including queued embeds and Discord posts, and does so on every site when it is deactivated across a network.

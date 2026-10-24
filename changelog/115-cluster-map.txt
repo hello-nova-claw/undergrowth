@@ -1,1 +1,0 @@
-New Map tab on Posts > Undergrowth lists each cluster of your posts, nearest its middle first, with each post's growth stage, and marks the clusters whose middle no post covers yet.

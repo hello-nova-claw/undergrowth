@@ -1,1 +1,0 @@
-The Growth stages table on Posts > Undergrowth now has views for each stage, Pinned and Not pinned, with counts, columns for the stage and the pin that sort by stage rank and pinned first, and Pin stage, Unpin stage and Compost bulk actions. The Posts list's stage filter gains Not pinned, and both lists share the same rules.

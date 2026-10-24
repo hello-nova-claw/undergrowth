@@ -1,1 +1,0 @@
-New Scan this draft button in the editor's Undergrowth sidebar suggests links from a draft to your published posts. It runs only when you press it, the sentence beside it says where the draft's text is sent, and nothing about the draft is kept. Accept links your words in the editor.

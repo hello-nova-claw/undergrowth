@@ -1,1 +1,0 @@
-Link suggestions now always sit in a paragraph you can link from, never in a heading, list item, caption or table.

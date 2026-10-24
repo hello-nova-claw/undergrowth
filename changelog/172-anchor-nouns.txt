@@ -1,1 +1,0 @@
-Link suggestions now sit on a word that names what the target post is about, such as a word from its title or headings or a thing it often discusses, and never on a common word like "general" or "beyond" or a word the target only uses as a verb. When no such word is shared, that post is not suggested.
