@@ -570,6 +570,119 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_validate_prompt( 'You wrote "I lift the tubers" — why?', $this->record( array() ) ) );
 	}
 
+	/**
+	 * Gives every post the same language through the filter.
+	 *
+	 * @param string $locale Language for every post.
+	 */
+	private function post_language( string $locale ): void {
+		add_filter(
+			'undergrowth_post_language',
+			static function () use ( $locale ) {
+				return $locale;
+			}
+		);
+	}
+
+	public function test_question_is_asked_for_in_the_posts_language() {
+		$this->post_language( 'fr_FR' );
+		$this->comment( $this->post() );
+
+		undergrowth_write_prompt();
+
+		$this->assertSame( 'en_US', get_locale() );
+		$this->assertStringContainsString( 'WordPress locale fr_FR.', $this->requests[0]['system'] );
+	}
+
+	public function test_without_a_post_language_the_question_is_asked_for_in_the_authors_language() {
+		update_user_meta( $this->author, 'locale', 'de_DE' );
+		$this->comment( $this->post() );
+
+		undergrowth_write_prompt();
+
+		$this->assertStringContainsString( 'WordPress locale de_DE.', $this->requests[0]['system'] );
+	}
+
+	public function test_post_language_comes_before_the_authors_language() {
+		update_user_meta( $this->author, 'locale', 'de_DE' );
+		$this->post_language( 'fr_FR' );
+
+		$this->assertSame( 'fr_FR', undergrowth_prompt_language( $this->post() ) );
+	}
+
+	public function test_without_a_post_the_question_is_asked_for_in_the_site_language() {
+		$this->assertSame( get_locale(), undergrowth_prompt_language( 0 ) );
+	}
+
+	/**
+	 * A reader's question in a script with its own question mark is found.
+	 *
+	 * @dataProvider data_questions_in_other_scripts
+	 *
+	 * @param string $locale   Language of the post.
+	 * @param string $question The reader's question.
+	 */
+	public function test_comment_with_a_question_mark_of_its_script_is_a_source( string $locale, string $question ) {
+		$this->post_language( $locale );
+		$this->comment( $this->post(), $question );
+
+		$this->assertCount( 1, undergrowth_prompt_candidates() );
+	}
+
+	/**
+	 * A question in a script with its own question mark passes the check.
+	 *
+	 * @dataProvider data_questions_in_other_scripts
+	 *
+	 * @param string $locale   Language of the post.
+	 * @param string $question The question.
+	 */
+	public function test_validator_accepts_a_question_mark_of_its_script( string $locale, string $question ) {
+		$this->post_language( $locale );
+		$record            = $this->record();
+		$record['post_id'] = $this->post();
+
+		$this->assertSame( $question, undergrowth_validate_prompt( $question, $record ) );
+	}
+
+	/**
+	 * Questions in Greek, Armenian and Ethiopic.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function data_questions_in_other_scripts(): array {
+		return array(
+			'greek semicolon'         => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
+			'greek question mark'     => array( 'el', 'Πώς αποθηκεύετε τους κονδύλους τον χειμώνα;' ),
+			'armenian, mid-word'      => array( 'hy', 'Ինչո՞ւ եք օկա աճեցնում։' ),
+			'ethiopic question mark'  => array( 'am', 'ኦካን በክረምት እንዴት ታስቀምጣለህ፧' ),
+		);
+	}
+
+	public function test_a_greek_question_becomes_the_current_prompt() {
+		$this->post_language( 'el' );
+		$this->comment( $this->post(), 'Πώς αποθηκεύετε τους κονδύλους;' );
+		$this->replies = array( $this->reply( 'Τι κάνετε με τους κονδύλους τον χειμώνα;' ) );
+
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertSame( 'Τι κάνετε με τους κονδύλους τον χειμώνα;', undergrowth_current_prompt()['question'] );
+	}
+
+	public function test_semicolon_is_not_a_question_mark_outside_greek() {
+		$this->comment( $this->post(), 'Lovely oca; I grow it too.' );
+
+		$this->assertSame( array(), undergrowth_prompt_candidates() );
+		$this->assertNull( undergrowth_validate_prompt( 'Write about storing oca; tell me more;', $this->record() ) );
+	}
+
+	public function test_semicolon_inside_a_greek_question_is_a_second_question_mark() {
+		$this->post_language( 'el' );
+		$record            = $this->record();
+		$record['post_id'] = $this->post();
+
+		$this->assertNull( undergrowth_validate_prompt( 'Γιατί οκά; Γιατί τώρα;', $record ) );
+	}
+
 	public function test_saving_a_key_queues_a_first_prompt() {
 		delete_option( 'undergrowth_anthropic_api_key' );
 
