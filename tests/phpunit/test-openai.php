@@ -331,6 +331,26 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( time() + HOUR_IN_SECONDS, undergrowth_openai_retry_time(), 2 );
 	}
 
+	public function test_shorter_wait_never_replaces_a_longer_one_set_meanwhile() {
+		$this->responses = array( $this->turned_away( 503 ) );
+		$longer          = time() + HOUR_IN_SECONDS;
+
+		// Another request, in flight at the same time, was told to wait an hour.
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt ) use ( $longer ) {
+				update_option( 'undergrowth_embed_retry_at', $longer );
+
+				return $preempt;
+			},
+			5
+		);
+
+		undergrowth_embed( 'Oca keeps well.' );
+
+		$this->assertSame( $longer, undergrowth_openai_retry_time() );
+	}
+
 	public function test_rejected_request_does_not_wait() {
 		$this->responses = array( $this->turned_away( 400, '120' ) );
 

@@ -64,7 +64,8 @@ function undergrowth_openai_embed( string $text ): array {
 		// Too many requests, or trouble on OpenAI's side: sending the next
 		// post at once would only be turned away too.
 		if ( 429 === $result['status'] || $result['status'] >= 500 ) {
-			update_option( 'undergrowth_embed_retry_at', time() + undergrowth_openai_wait( $result['retry_after'] ), false );
+			// A request in flight meanwhile may have asked for a longer wait.
+			update_option( 'undergrowth_embed_retry_at', max( time() + undergrowth_openai_wait( $result['retry_after'] ), undergrowth_openai_retry_time() ), false );
 		}
 
 		return array();
