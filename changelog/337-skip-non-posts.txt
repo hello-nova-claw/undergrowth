@@ -1,1 +1,1 @@
-Saving a draft, an autosave or a media file, and deleting old revisions, no longer runs Undergrowth's database queries, which keeps busy editing sessions lighter.
+Saving a revision or an autosave, deleting old revisions, and saving or deleting a media file no longer runs Undergrowth's database queries, which keeps busy editing sessions lighter.

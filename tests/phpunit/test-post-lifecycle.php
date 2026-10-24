@@ -10,6 +10,32 @@
  */
 class Test_Post_Lifecycle extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
+	public function set_up() {
+		parent::set_up();
+
+		$this->start_planting();
+	}
+
+	public function tear_down() {
+		undergrowth_delete_memory_folder();
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Counts the link rows to or from a post, in any state.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return int
+	 */
+	private function link_rows( int $post_id ): int {
+		global $wpdb;
+
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE source_id = %d OR target_id = %d', undergrowth_links_table(), $post_id, $post_id ) );
+	}
+
 	/**
 	 * Runs a callback and returns the queries it made on the plugin's tables.
 	 *
@@ -106,49 +132,53 @@ class Test_Post_Lifecycle extends WP_UnitTestCase {
 		$this->assertSame( array(), $queries );
 	}
 
+	public function test_deleting_an_indexed_post_still_clears_its_vector_and_proposals() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->assertSame( array( $yacon ), $this->proposed( $oca ) );
+
+		wp_delete_post( $yacon, true );
+
+		$this->assertNull( undergrowth_get_vector( $yacon ) );
+		$this->assertSame( 0, $this->link_rows( $yacon ) );
+	}
+
 	/**
-	 * Saving a page still checks for a vector, in case its type was indexed
-	 * once, so only the deletion is recorded.
+	 * A post indexed before its type was filtered out keeps nothing behind
+	 * when it is deleted for good, without passing through the trash.
 	 */
-	public function test_deleting_a_page_touches_no_plugin_table() {
-		$page_id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+	public function test_deleting_a_post_whose_type_is_no_longer_indexed_still_clears_it() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->assertSame( array( $yacon ), $this->proposed( $oca ) );
 
-		$queries = $this->plugin_table_queries(
-			static function () use ( $page_id ) {
-				wp_delete_post( $page_id, true );
-			}
-		);
+		$pages_only = static function () {
+			return array( 'page' );
+		};
+		add_filter( 'undergrowth_post_types', $pages_only );
 
-		$this->assertSame( array(), $queries );
+		wp_delete_post( $yacon, true );
+
+		remove_filter( 'undergrowth_post_types', $pages_only );
+		$this->assertNull( undergrowth_get_vector( $yacon ) );
+		$this->assertSame( 0, $this->link_rows( $yacon ) );
 	}
 
-	public function test_deleting_an_indexed_post_still_clears_both_tables() {
-		$post_id = self::factory()->post->create();
+	public function test_updating_an_indexed_post_still_rewrites_the_files_that_link_to_it() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->assertSame( array( $yacon ), $this->proposed( $oca ) );
+		undergrowth_delete_memory( $oca );
+		$this->assertFileDoesNotExist( undergrowth_memory_path( $oca ) );
 
-		$queries = $this->plugin_table_queries(
-			static function () use ( $post_id ) {
-				wp_delete_post( $post_id, true );
-			}
+		// A new slug changes nothing that is embedded.
+		wp_update_post(
+			array(
+				'ID'        => $yacon,
+				'post_name' => 'yacon-root',
+			)
 		);
 
-		$this->assertNotSame( array(), preg_grep( '/^\s*DELETE FROM `?' . preg_quote( undergrowth_vectors_table(), '/' ) . '/', $queries ) );
-		$this->assertNotSame( array(), preg_grep( '/^\s*DELETE FROM `?' . preg_quote( undergrowth_links_table(), '/' ) . '/', $queries ) );
-	}
-
-	public function test_updating_an_indexed_post_still_rewrites_the_files_around_it() {
-		$post_id = self::factory()->post->create();
-
-		$queries = $this->plugin_table_queries(
-			static function () use ( $post_id ) {
-				wp_update_post(
-					array(
-						'ID'         => $post_id,
-						'post_title' => 'A new title',
-					)
-				);
-			}
-		);
-
-		$this->assertNotSame( array(), preg_grep( '/SELECT DISTINCT source_id FROM `?' . preg_quote( undergrowth_links_table(), '/' ) . '/', $queries ) );
+		$this->assertFileExists( undergrowth_memory_path( $oca ) );
 	}
 }

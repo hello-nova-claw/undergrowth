@@ -19,7 +19,7 @@ add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_cycled', 'undergrowth_update_memory' );
 add_action( 'undergrowth_resurfacing_logged', 'undergrowth_update_memory' );
 add_action( 'undergrowth_prompt_logged', 'undergrowth_update_memory' );
-add_action( 'post_updated', 'undergrowth_update_memory_around', 10, 2 );
+add_action( 'post_updated', 'undergrowth_update_memory_after_save', 10, 2 );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
 add_action( 'after_delete_post', 'undergrowth_update_memory_around', 10, 2 );
@@ -539,6 +539,23 @@ function undergrowth_update_memory_around( int $post_id, ?WP_Post $post = null )
 
 	foreach ( array_map( 'intval', $sources ) as $source_id ) {
 		undergrowth_write_memory( $source_id );
+	}
+}
+
+/**
+ * Rewrites the files around a post after it is saved, when its type is
+ * indexed.
+ *
+ * A post of another type has no file. One indexed under an earlier post
+ * type filter leaves the index on this same save, and its files are
+ * rewritten then.
+ *
+ * @param int     $post_id Post that was updated.
+ * @param WP_Post $post    The post as saved.
+ */
+function undergrowth_update_memory_after_save( int $post_id, WP_Post $post ): void {
+	if ( in_array( $post->post_type, undergrowth_indexed_post_types(), true ) ) {
+		undergrowth_update_memory_around( $post_id, $post );
 	}
 }
 

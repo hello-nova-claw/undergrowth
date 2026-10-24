@@ -55,14 +55,16 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
  * Decides whether a core post hook can be ignored for a post.
  *
  * Core fires its save and delete hooks for every revision it prunes, every
- * autosave and every attachment, none of which is ever indexed. A hook
- * that passes no post is never ignored.
+ * autosave and every attachment. None of them can ever have been published,
+ * so none has a vector, links or a file. Any other post may have been
+ * indexed under an earlier post type filter, and is never ignored. Nor is
+ * a hook that passes no post.
  *
  * @param WP_Post|null $post The post the hook fired for, if it passed one.
- * @return bool True when the post's type is not indexed.
+ * @return bool True for a revision, an autosave or an attachment.
  */
 function undergrowth_ignores_post( ?WP_Post $post ): bool {
-	return null !== $post && ! in_array( $post->post_type, undergrowth_indexed_post_types(), true );
+	return null !== $post && ( 'revision' === $post->post_type || 'inherit' === $post->post_status );
 }
 
 /**
