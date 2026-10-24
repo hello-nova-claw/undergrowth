@@ -650,18 +650,24 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$tried    = array();
 	$retry    = undergrowth_backfill_retry_time( $identity );
 
-	foreach ( $post_ids as $post_id ) {
-		if ( 0 !== $retry || ( array() !== $tried && microtime( true ) - $started >= $budget ) ) {
-			break;
-		}
+	undergrowth_openai_deadline( $started + $budget );
 
-		undergrowth_embed_post( $post_id );
-		$retry = undergrowth_backfill_retry_time( $identity );
+	try {
+		foreach ( $post_ids as $post_id ) {
+			if ( 0 !== $retry || ( array() !== $tried && microtime( true ) - $started >= $budget ) ) {
+				break;
+			}
 
-		// A post OpenAI turned away is tried again first after the wait.
-		if ( 0 === $retry ) {
-			$tried[] = $post_id;
+			undergrowth_embed_post( $post_id );
+			$retry = undergrowth_backfill_retry_time( $identity );
+
+			// A post OpenAI turned away is tried again first after the wait.
+			if ( 0 === $retry ) {
+				$tried[] = $post_id;
+			}
 		}
+	} finally {
+		undergrowth_openai_deadline( INF );
 	}
 
 	if ( 0 !== $retry ) {
