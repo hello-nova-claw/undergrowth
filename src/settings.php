@@ -564,6 +564,9 @@ function undergrowth_render_posts_read_field(): void {
 		</p>
 	<?php endif; ?>
 	<?php
+	if ( undergrowth_backfill_stalled() ) {
+		undergrowth_print_failure_notice( undergrowth_backfill_stalled_text(), 'undergrowth-backfill-stalled' );
+	}
 }
 
 /**
