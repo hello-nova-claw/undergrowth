@@ -580,6 +580,26 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->cluster_cycles() );
 	}
 
+	public function test_empty_index_is_not_recorded() {
+		undergrowth_start_backfill();
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
+	public function test_first_post_on_an_empty_site_clusters_the_index() {
+		undergrowth_start_backfill();
+		// Any cycle queued for the empty index has run by the time a post is published.
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+
+		$this->archive( 1 );
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
 	public function test_check_does_not_cluster_a_recorded_index_again() {
 		$this->indexed_archive( 2 );
 
