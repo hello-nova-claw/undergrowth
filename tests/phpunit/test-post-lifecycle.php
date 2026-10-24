@@ -132,6 +132,19 @@ class Test_Post_Lifecycle extends WP_UnitTestCase {
 		$this->assertSame( array(), $queries );
 	}
 
+	public function test_queueing_an_attachment_touches_no_plugin_table() {
+		$attachment_id = self::factory()->attachment->create( array( 'post_title' => 'A photo' ) );
+		$attachment    = get_post( $attachment_id );
+
+		$queries = $this->plugin_table_queries(
+			static function () use ( $attachment_id, $attachment ) {
+				undergrowth_queue_embed( $attachment_id, $attachment );
+			}
+		);
+
+		$this->assertSame( array(), $queries );
+	}
+
 	public function test_deleting_an_indexed_post_still_clears_its_vector_and_proposals() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );

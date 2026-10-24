@@ -110,6 +110,10 @@ function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 	if ( ! undergrowth_is_indexable( $post ) ) {
 		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
 
+		if ( undergrowth_ignores_post( $post ) ) {
+			return;
+		}
+
 		// Menu items, synced patterns and the like are never indexed and are
 		// saved often, so only a post that has a vector, or whose type is
 		// indexed, is announced as leaving.
