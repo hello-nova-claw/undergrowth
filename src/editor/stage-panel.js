@@ -26,18 +26,25 @@ export default function StagePanel( { postId, status } ) {
 	const [ choice, setChoice ] = useState( null );
 	const [ busy, setBusy ] = useState( false );
 	const [ error, setError ] = useState( '' );
+	const [ again, setAgain ] = useState( 0 );
 	const result = useRef();
 	const moved = useRef( false );
 	// Counts the times the panel asked again, so an action that settles
-	// after the post changed never overwrites the newer answer.
+	// after that never overwrites the newer answer.
 	const asked = useRef( 0 );
+	const latestPath = useRef( '' );
 	const { createSuccessNotice } = useDispatch( noticesStore );
 	const path = `/undergrowth/v1/posts/${ postId }/stage`;
 
+	// During the commit, so no answer to an earlier action handled after
+	// this point can pass for a current one.
+	useLayoutEffect( () => {
+		asked.current++;
+		latestPath.current = path;
+	}, [ path, status, again ] );
+
 	useEffect( () => {
 		let current = true;
-
-		asked.current++;
 
 		// Until the answer comes, the old stage and its controls may no longer
 		// hold, so neither is left on screen.
@@ -52,7 +59,7 @@ export default function StagePanel( { postId, status } ) {
 		return () => {
 			current = false;
 		};
-	}, [ path, status ] );
+	}, [ path, status, again ] );
 
 	// Before the browser paints, so focus never rests on the page's body.
 	useLayoutEffect( () => {
@@ -79,7 +86,14 @@ export default function StagePanel( { postId, status } ) {
 		apiFetch( { path, method: 'POST', data } )
 			.then(
 				( answer ) => {
+					// The stage the panel asked for meanwhile may predate this
+					// action, so it is read again. An action on another post
+					// says nothing about this one.
 					if ( ! current() ) {
+						if ( latestPath.current === path ) {
+							setAgain( ( count ) => count + 1 );
+						}
+
 						return;
 					}
 
