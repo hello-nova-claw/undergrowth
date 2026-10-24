@@ -1,0 +1,645 @@
+#!/usr/bin/env -S python3 -I
+"""Builds the demo blog: public-domain books split into posts, as WXR files.
+
+The demo blog is for demos, screenshots, Playground previews and testing, so
+that nobody's own writing is ever needed. Every word in it was written by the
+books' authors, long dead. Titles come from their own chapter headings and
+nothing is written, summarised or titled by a model. See docs/demo-content.md.
+
+Usage: python3 -I bin/build-demo-content [--cache DIR] [--out DIR]
+
+The plain-text books are downloaded from gutenberg.org into the cache
+directory, by default ~/.cache/undergrowth-demo-content, once. Each download
+is checked against the hash recorded below, so the same books always give
+the same files, byte for byte. The texts are read as plain text and nothing
+in them is run. Writes undergrowth-demo.xml and undergrowth-demo-small.xml
+to the output directory, by default demo/.
+"""
+import argparse
+import hashlib
+import html
+import math
+import os
+import re
+import sys
+import time
+import urllib.request
+from datetime import datetime, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# Each book: its Gutenberg number and the hash of the plain-text file used,
+# where its text starts and ends, and how its chapters are headed.
+#
+# start: a line where the text starts. start_hit picks which of the
+#   unindented lines matching it, for books whose contents list repeats it.
+# end: the first line after the text.
+# heading: a chapter heading. Its first group, if any, is the title.
+# title_next: the heading is a number, and the next line holds the title.
+# entry: for a diary, the dated start of an entry, which starts a section.
+# indented: headings may be indented, as some subheadings are.
+# drop: lines that are neither text nor a chapter, such as part numbers.
+# pages: front matter used as a page: (title, start, end).
+BOOKS = [
+    {
+        'number': 36279,
+        'sha256': '773bd6122d4d911a885ade47eff1f03a32a24aede1de1c4a537c78d36489cbbb',
+        'title': 'Wood and Garden',
+        'author': 'Gertrude Jekyll',
+        'year': 1899,
+        'category': 'Gardening',
+        'start': r'^CHAPTER I$',
+        'end': r'^INDEX$',
+        'heading': r'^CHAPTER [IVXL]+$',
+        'title_next': True,
+        'pages': [('Preface', r'^PREFACE$', r'^CONTENTS$')],
+    },
+    {
+        'number': 3135,
+        'sha256': '0474d184b818758bf47ed10d5cd92743422399c1bb4bad2b6e7f07b983a54b4c',
+        'title': 'My Summer in a Garden',
+        'author': 'Charles Dudley Warner',
+        'year': 1870,
+        'category': 'Gardening',
+        'start': r'^PRELIMINARY$',
+        'end': r'^\*\*\* END OF',
+        'heading': r'^(PRELIMINARY|[A-Z]+ WEEK|CALVIN)$',
+        'drop': r'^A STUDY OF CHARACTER$',
+        'pages': [('By Way of Dedication', r'^BY WAY OF DEDICATION$', r'^PRELIMINARY$')],
+    },
+    {
+        'number': 1327,
+        'sha256': '21ddf2b6623e685d2378aa1c0948cb4cd4f89fb2173595d3e8a73a6b075142c4',
+        'title': 'Elizabeth and Her German Garden',
+        'author': 'Elizabeth von Arnim',
+        'year': 1898,
+        'category': 'Gardening',
+        'start': r'^ELIZABETH AND HER GERMAN GARDEN$',
+        'start_hit': 1,
+        'end': r'^\*\*\* END OF',
+        'entry': r'^_([A-Z][a-z]+)_ (\d+)_(st|nd|rd|th)_\.?—',
+    },
+    {
+        'number': 205,
+        'sha256': '2d9a76a2e3e8195c69430516ebd33c4d0757a53ad432ff6186b7b794e6fe99f9',
+        'title': 'Walden',
+        'author': 'Henry David Thoreau',
+        'year': 1854,
+        'category': 'Nature',
+        'start': r'^Economy$',
+        'start_hit': -1,
+        'end': r'^(THE END|ON THE DUTY OF CIVIL DISOBEDIENCE)$',
+        'heading': r'^(Economy|Where I Lived, and What I Lived For|Reading|Sounds|Solitude|Visitors|The Bean-Field'
+                   r'|The Village|The Ponds|Baker Farm|Higher Laws|Brute Neighbors|House-Warming'
+                   r'|Former Inhabitants; and Winter Visitors|Winter Animals|The Pond in Winter|Spring|Conclusion)$',
+    },
+    {
+        'number': 1022,
+        'sha256': 'bb49dd34dac779d3198d944ae77691e1dba7ffbf663e994ed54db55ffa2a503f',
+        'title': 'Walking',
+        'author': 'Henry David Thoreau',
+        'year': 1862,
+        'category': 'Nature',
+        'start': r'^WALKING$',
+        'end': r'^\*\*\* END OF',
+        'heading': r'^(WALKING)$',
+    },
+    {
+        'number': 4203,
+        'sha256': '0f8f24b446b3e3cca9b08ce60bcd17c9c04fb1320fe5857547a10892df506c17',
+        'title': 'Wake-Robin',
+        'author': 'John Burroughs',
+        'year': 1871,
+        'category': 'Nature',
+        'start': r'^I$',
+        'end': r'^INDEX$',
+        'heading': r'^[IVX]+$',
+        'title_next': True,
+    },
+    {
+        'number': 4279,
+        'sha256': '7dfb83b81661061f54a7e819a5b3dcdd23f247a71cad26254ce681a992fe0934',
+        'title': 'Winter Sunshine',
+        'author': 'John Burroughs',
+        'year': 1875,
+        'category': 'Nature',
+        'start': r'^I\. WINTER SUNSHINE$',
+        'end': r'^INDEX$',
+        'heading': r'^(?:[IVX]+\. )?([A-Z][A-Z ,\'-]+)$',
+        'indented': True,
+    },
+    {
+        'number': 535,
+        'sha256': '97e3fb7d44fbe37fcd7a6d7ff7d4ad6f35f1b541cc81bbea13d8143a751241c0',
+        'title': 'Travels with a Donkey in the Cévennes',
+        'author': 'Robert Louis Stevenson',
+        'year': 1879,
+        'category': 'Travel',
+        'start': r'^VELAY$',
+        'end': r'^\*\*\* END OF',
+        'heading': r'^([A-Z][A-Z ,\'!-]+(?: \(continued\))?)$',
+    },
+    {
+        'number': 534,
+        'sha256': '9696b6c0434cdcc5d6bf55190c8a03f5ddb1b5097a6e2ffe17e199520b1ef7d7',
+        'title': 'An Inland Voyage',
+        'author': 'Robert Louis Stevenson',
+        'year': 1878,
+        'category': 'Travel',
+        'start': r'^ANTWERP TO BOOM$',
+        'start_hit': -1,
+        'end': r'^\*\*\* END OF',
+        'heading': r'^([A-ZÀ-Ý][A-ZÀ-Ý ,:\'-]+)$',
+    },
+    {
+        'number': 3134,
+        'sha256': 'd5b7f6c5d2cefaa696b49b5d47461f12040cbe22c82f72a04393065cbbae9d42',
+        'title': 'Backlog Studies',
+        'author': 'Charles Dudley Warner',
+        'year': 1873,
+        'category': 'Home',
+        'start': r'^FIRST STUDY$',
+        'end': r'^End of Project Gutenberg',
+        'heading': r'^[A-Z]+ STUDY$',
+        'drop': r'^([IVX]+|A NEW "VISION OF SIN"|MY UNCLE IN INDIA)$',
+    },
+    {
+        'number': 849,
+        'sha256': '57483a4712ab7de390bd4d220d1e09a1679e7212bcbcd11be6d3a202b8b1c2d7',
+        'title': 'The Idle Thoughts of an Idle Fellow',
+        'author': 'Jerome K. Jerome',
+        'year': 1886,
+        'category': 'Idle Thoughts',
+        'start': r'^ON BEING IDLE\.$',
+        'end': r'^\*\*\* END OF',
+        'heading': r'^(ON [A-Z ,]+)\.$',
+    },
+]
+
+# Posts aim for this many words, and are split to stay within the range.
+TARGET_WORDS = 1200
+MIN_WORDS = 600
+MAX_WORDS = 1600
+
+# Only a chapter's first few posts are kept, so no one book takes over.
+MAX_PARTS = 3
+
+# A heading with less than this under it, such as a part title over an
+# epigraph, joins the chapter after it.
+STUB_WORDS = 150
+
+# A few tags, from words the authors used often, so themes cross books.
+TAGS = {
+    'Birds': r'birds?|sparrows?|robins?|thrush(?:es)?|warblers?|owls?|crows?|hawks?|wrens?|swallows?|larks?',
+    'Winter': r'winter|snow|frost|ice|frozen',
+    'Trees': r'trees?|oaks?|pines?|birch(?:es)?|beech(?:es)?|firs?|hollies|holly|chestnuts?',
+    'Flowers': r'flowers?|roses?|lil(?:y|ies)|daffodils?|blossoms?|primroses?|tulips?',
+    'Water': r'rivers?|canals?|streams?|boats?|canoes?|ponds?|lakes?',
+    'Food': r'dinner|supper|breakfast|bread|wine|eat(?:ing)?|cook(?:ing)?|beans|peas',
+}
+TAG_RATE = 4  # Mentions per thousand words for a post to get a tag.
+TAG_LIMIT = 2
+
+FIRST_DATE = datetime(2019, 2, 4)
+LAST_DATE = datetime(2025, 11, 28)
+
+# Every SMALL_EVERY-th post, in date order, is in the small file.
+SMALL_EVERY = 6
+
+SITE = 'https://demo.example'
+CACHE = Path(os.environ.get('XDG_CACHE_HOME') or Path.home() / '.cache') / 'undergrowth-demo-content'
+
+
+def fail(message):
+    """Says what went wrong and stops."""
+    sys.stderr.write(message + '\n')
+    sys.exit(1)
+
+
+def verified(book, data):
+    """The book's bytes, once they match the hash recorded for it."""
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != book['sha256']:
+        fail(
+            f"pg{book['number']}.txt does not match its recorded hash (sha256 {digest}). If Gutenberg "
+            'has corrected the book, check the new text, then update its hash in BOOKS. The output will change.'
+        )
+    return data
+
+
+def download(book, cache):
+    """The book's text from the cache, downloaded first if it isn't there."""
+    path = cache / f"pg{book['number']}.txt"
+    if not path.exists():
+        url = f"https://www.gutenberg.org/cache/epub/{book['number']}/pg{book['number']}.txt"
+        request = urllib.request.Request(url, headers={'User-Agent': 'undergrowth-demo-content'})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            # A download that fails the check never reaches the cache, so the next run tries again.
+            path.write_bytes(verified(book, response.read()))
+        # Gutenberg asks automated downloads to go gently.
+        time.sleep(2)
+    return verified(book, path.read_bytes()).decode('utf-8').replace('\r', '')
+
+
+def text_lines(text):
+    """Lines after the Gutenberg header. Each book's end pattern stops before the footer."""
+    start = text.index('*** START OF')
+    start = text.index('\n', start) + 1
+    return text[start:].split('\n')
+
+
+def find(lines, pattern, after=0, hit=0):
+    """Index of an unindented line matching pattern."""
+    rx = re.compile(pattern)
+    hits = [i for i in range(after, len(lines)) if lines[i] == lines[i].lstrip() and rx.match(lines[i].strip())]
+    if not hits:
+        fail(f'No line matches {pattern}.')
+    return hits[hit]
+
+
+def title_case(text):
+    """Turns an all-capitals heading into a title, leaving other words alone."""
+    small = {'a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'of', 'on', 'or', 'the', 'to', 'with', 'de'}
+    text = text.strip().rstrip('.')
+    words = text.split(' ')
+    out = []
+    for i, word in enumerate(words):
+        if word != word.upper() or not re.search(r'[A-ZÀ-Ý]', word):
+            out.append(word)
+        elif i > 0 and word.lower() in small:
+            out.append(word.lower())
+        else:
+            out.append(re.sub(r"(^|[-\"'(])([^-\"'(])([^-\"'(]*)", lambda m: m[1] + m[2].upper() + m[3].lower(), word))
+    return ' '.join(out)
+
+
+def sections(book, lines):
+    """The book's chapters as (title, lines), in order."""
+    start = find(lines, book['start'], hit=book.get('start_hit', 0))
+    end = find(lines, book['end'], after=start + 1)
+    heading = re.compile(book['heading']) if 'heading' in book else None
+    entry = re.compile(book['entry']) if 'entry' in book else None
+    drop = re.compile(book['drop']) if 'drop' in book else None
+    out = []
+    i = start
+    while i < end:
+        line = lines[i]
+        s = line.strip()
+        fresh = i == start or not lines[i - 1].strip()
+        if i == start and not (heading and heading.match(s)):
+            pass  # the book's title over its first chapter
+        elif heading and fresh and (line == s or book.get('indented')) and heading.match(s):
+            m = heading.match(s)
+            title = m.group(1) if m.groups() else s
+            if book.get('title_next'):
+                i += 1
+                while not lines[i].strip():
+                    i += 1
+                title = lines[i].strip()
+            out.append([title_case(title), []])
+        elif entry and fresh and entry.match(s):
+            m = entry.match(s)
+            title = f'{m[1]} {m[2]}{m[3]}'
+            out.append([title, [entry.sub(title + '.—', line)]])
+        elif drop and fresh and drop.match(s):
+            out[-1][1].append('')
+        elif out:
+            out[-1][1].append(line)
+        else:
+            out.append([book['title'], [line]])
+        i += 1
+    return out
+
+
+def inline(text):
+    """Escapes text as HTML and turns _underscored_ words into <em>."""
+    text = html.escape(text, quote=False).replace('--', '—')
+    return re.sub(r'_([^_]+)_', r'<em>\1</em>', text)
+
+
+def blocks(lines):
+    """Groups lines into paragraphs, verse quotes and quote citations."""
+    paras, cur = [], []
+    for line in lines + ['']:
+        if line.strip() == '':
+            if cur:
+                paras.append(cur)
+            cur = []
+        else:
+            cur.append(line)
+    out = []
+    for p in paras:
+        stripped = [line.strip() for line in p]
+        joined = ' '.join(stripped)
+        if re.match(r'\[(Illustration|Footnote|\d+\])', joined) or joined == 'THE END.':
+            continue
+        joined = re.sub(r'\[\d+\]', '', joined)
+        indent = min(len(line) - len(line.lstrip()) for line in p)
+        if len(p) == 1 and len(joined) < 70 and out and out[-1][0] == 'quote' and (
+                joined.upper() == joined or joined.startswith(('--', '—'))):
+            out.append(('cite', joined))
+        elif len(p) == 1 and indent >= 20:
+            out.append(('p', joined))  # a signature, such as "G. J."
+        elif indent or (len(p) >= 2 and max(len(s) for s in stripped) < 58):
+            out.append(('quote', stripped))
+        else:
+            out.extend(('p', piece) for piece in split_long(joined))
+    return out
+
+
+def split_long(text, limit=400, size=200):
+    """Breaks a paragraph of more than limit words at sentence ends."""
+    if len(text.split()) <= limit:
+        return [text]
+    pieces, cur = [], []
+    for sentence in re.split(r'(?<=[.!?])\s+(?=[A-Z“"])', text):
+        cur.append(sentence)
+        if len(' '.join(cur).split()) >= size:
+            pieces.append(' '.join(cur))
+            cur = []
+    if cur:
+        pieces.append(' '.join(cur))
+    return pieces
+
+
+def words(part):
+    """Counts the words in one paragraph or quote."""
+    kind, val = part
+    return len((' '.join(val) if kind == 'quote' else val).split())
+
+
+def chunks(parts):
+    """Splits a chapter into posts of about the same length."""
+    total = len_words(parts)
+    n = max(math.ceil(total / MAX_WORDS), round(total / TARGET_WORDS), 1)
+    out, cur, done = [], [], 0
+    for part in parts:
+        # Each post ends at the paragraph boundary nearest its share; a citation stays with its quote.
+        if cur and len(out) < n - 1 and part[0] != 'cite' and done + words(part) / 2 >= total * (len(out) + 1) / n:
+            out.append(cur)
+            cur = []
+        cur.append(part)
+        done += words(part)
+    out.append(cur)
+    return out
+
+
+def len_words(chunk):
+    """Counts the words in a list of parts."""
+    return sum(words(p) for p in chunk)
+
+
+def render(parts):
+    """Renders paragraphs and quotes as block markup."""
+    out = []
+    i = 0
+    while i < len(parts):
+        kind, val = parts[i]
+        if kind == 'quote':
+            inner = '<br>'.join(inline(line) for line in val)
+            cite = ''
+            if i + 1 < len(parts) and parts[i + 1][0] == 'cite':
+                cite = f'<cite>{inline(parts[i + 1][1])}</cite>'
+                i += 1
+            out.append(
+                '<!-- wp:quote -->\n<blockquote class="wp-block-quote"><!-- wp:paragraph -->\n'
+                f'<p>{inner}</p>\n<!-- /wp:paragraph -->{cite}</blockquote>\n<!-- /wp:quote -->'
+            )
+        elif kind == 'cite':
+            out.append(f'<!-- wp:paragraph -->\n<p><em>{inline(val)}</em></p>\n<!-- /wp:paragraph -->')
+        else:
+            out.append(f'<!-- wp:paragraph -->\n<p>{inline(val)}</p>\n<!-- /wp:paragraph -->')
+        i += 1
+    return '\n\n'.join(out)
+
+
+def credit(book):
+    """The line that ends every post: book, author, year and where it came from."""
+    url = f"https://www.gutenberg.org/ebooks/{book['number']}"
+    return (
+        '<!-- wp:paragraph -->\n'
+        f"<p><em>From <cite>{html.escape(book['title'])}</cite> by {html.escape(book['author'])} ({book['year']}), "
+        f"via Project Gutenberg #{book['number']}: <a href=\"{url}\">{url}</a></em></p>\n"
+        '<!-- /wp:paragraph -->'
+    )
+
+
+def classic(content):
+    """Converts block markup to what the Classic editor stores."""
+    out = []
+    for block in (b.strip() for b in content.split('\n\n') if b.strip()):
+        if block.startswith('<!-- wp:paragraph'):
+            out.append(re.sub(r'(?s)^<!-- wp:paragraph -->\s*<p>(.*)</p>\s*<!-- /wp:paragraph -->$', r'\1', block))
+        else:
+            block = re.sub(r'<!-- /?wp:[^>]*-->\n?', '', block)
+            out.append(block.replace(' class="wp-block-quote"', '').strip())
+    return '\n\n'.join(out)
+
+
+def tags(parts):
+    """The tags whose words come up often in a post."""
+    text = ' '.join(' '.join(v) if k == 'quote' else v for k, v in parts).lower()
+    total = max(len(text.split()), 1)
+    rates = []
+    for tag, pattern in TAGS.items():
+        rate = len(re.findall(r'\b(?:' + pattern + r')\b', text)) * 1000 / total
+        if rate >= TAG_RATE:
+            rates.append((-rate, tag))
+    return [tag for _, tag in sorted(rates)[:TAG_LIMIT]]
+
+
+def stable(text):
+    """A number from text that is the same on every run."""
+    return int(hashlib.sha256(text.encode('utf-8')).hexdigest()[:8], 16)
+
+
+def build_posts(texts):
+    """Every post and page, with dates, statuses and terms."""
+    posts, pages = [], []
+    for b, book in enumerate(BOOKS):
+        lines = text_lines(texts[book['number']])
+        chapters = [[title, blocks(body)] for title, body in sections(book, lines)]
+        merged = []
+        for title, parts in chapters:
+            if merged and len_words(merged[-1][1]) < STUB_WORDS:
+                merged[-1] = [title, merged[-1][1] + parts]
+            elif merged and len_words(merged[-1][1]) < MIN_WORDS:
+                merged[-1][1] += parts
+            else:
+                merged.append([title, parts])
+        if len(merged) > 1 and len_words(merged[-1][1]) < MIN_WORDS:
+            merged[-2][1] += merged.pop()[1]
+        book_posts = []
+        for title, parts in merged:
+            split = chunks(parts)[:MAX_PARTS]
+            for n, chunk in enumerate(split, 1):
+                book_posts.append({
+                    'title': title if len(split) == 1 else f'{title}, part {n}',
+                    'parts': chunk,
+                    'book': book,
+                })
+        for k, post in enumerate(book_posts):
+            # Spreads each book over the whole blog, so themes interleave.
+            post['order'] = ((k + 0.5) / len(book_posts), b)
+        posts += book_posts
+        for title, start, end in book.get('pages', []):
+            first = find(lines, start)
+            last = find(lines, end, after=first + 1)
+            pages.append({'title': title, 'parts': blocks(lines[first + 1:last]), 'book': book})
+
+    posts.sort(key=lambda p: p['order'])
+    span = (LAST_DATE - FIRST_DATE).total_seconds()
+    for i, post in enumerate(posts):
+        day = FIRST_DATE + timedelta(seconds=span * i / (len(posts) - 1))
+        minutes = stable(post['title']) % (14 * 60)
+        post['date'] = day.replace(hour=7) + timedelta(minutes=minutes)
+        post['status'] = 'publish'
+        post['format'] = 'block'
+        post['password'] = ''
+        post['small'] = i % SMALL_EVERY == 0
+
+    # Edge cases, all in the small file too, so both exercise them.
+    small = [p for p in posts if p['small']]
+    for p in small[-3:] + small[len(small) // 2:len(small) // 2 + 1]:
+        p['status'] = 'draft'
+    small[len(small) // 3]['status'] = 'private'
+    small[2 * len(small) // 3]['password'] = 'demo'
+    for i, p in enumerate(posts):
+        if (p['small'] and small.index(p) % 15 == 7) or i % 50 == 25:
+            p['format'] = 'classic'
+
+    names = set()
+    for post in pages + posts:
+        name, n = slug(post['title']), 1
+        while name in names:
+            n += 1
+            name = f"{slug(post['title'])}-{n}"
+        names.add(name)
+        post['name'] = name
+
+    for i, page in enumerate(pages):
+        page.update(date=FIRST_DATE - timedelta(days=7 - i), status='publish', format='block', password='', small=True)
+    return posts, pages
+
+
+def cdata(text):
+    """Wraps text in CDATA, splitting any ]]> inside it."""
+    return '<![CDATA[' + text.replace(']]>', ']]]]><![CDATA[>') + ']]>'
+
+
+def slug(text):
+    """A lowercase, hyphenated slug."""
+    text = text.lower().replace('é', 'e').replace('è', 'e').replace('î', 'i').replace('ô', 'o')
+    return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
+
+
+def item(post, post_id, post_type):
+    """One post or page as a WXR item."""
+    book = post['book']
+    content = (render(post['parts']) + '\n\n' + credit(book)).strip()
+    if post['format'] == 'classic':
+        content = classic(content)
+    date = post['date'].strftime('%Y-%m-%d %H:%M:%S')
+    terms = []
+    if post_type == 'post':
+        category = book['category']
+        terms.append(f'\t\t<category domain="category" nicename="{slug(category)}">{cdata(category)}</category>')
+        for tag in tags(post['parts']):
+            terms.append(f'\t\t<category domain="post_tag" nicename="{slug(tag)}">{cdata(tag)}</category>')
+    published = post['status'] in ('publish', 'private')
+    return '\n'.join([
+        '\t<item>',
+        f"\t\t<title>{html.escape(post['title'], quote=False)}</title>",
+        f'\t\t<link>{SITE}/?p={post_id}</link>',
+        f"\t\t<pubDate>{post['date'].strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>",
+        '\t\t<dc:creator><![CDATA[admin]]></dc:creator>',
+        f'\t\t<guid isPermaLink="false">{SITE}/?p={post_id}</guid>',
+        '\t\t<description></description>',
+        f'\t\t<content:encoded>{cdata(content)}</content:encoded>',
+        '\t\t<excerpt:encoded><![CDATA[]]></excerpt:encoded>',
+        f'\t\t<wp:post_id>{post_id}</wp:post_id>',
+        f'\t\t<wp:post_date>{cdata(date)}</wp:post_date>',
+        f"\t\t<wp:post_date_gmt>{cdata(date if published else '0000-00-00 00:00:00')}</wp:post_date_gmt>",
+        '\t\t<wp:comment_status><![CDATA[open]]></wp:comment_status>',
+        '\t\t<wp:ping_status><![CDATA[closed]]></wp:ping_status>',
+        f"\t\t<wp:post_name>{cdata(post['name'] if published else '')}</wp:post_name>",
+        f"\t\t<wp:status>{cdata(post['status'])}</wp:status>",
+        '\t\t<wp:post_parent>0</wp:post_parent>',
+        '\t\t<wp:menu_order>0</wp:menu_order>',
+        f'\t\t<wp:post_type>{cdata(post_type)}</wp:post_type>',
+        f"\t\t<wp:post_password>{cdata(post['password'])}</wp:post_password>",
+        '\t\t<wp:is_sticky>0</wp:is_sticky>',
+        *terms,
+        '\t</item>',
+    ])
+
+
+def wxr(posts, pages, title):
+    """A whole WXR file."""
+    categories = sorted({p['book']['category'] for p in posts})
+    tag_names = sorted({t for p in posts for t in tags(p['parts'])})
+    head = [
+        '<?xml version="1.0" encoding="UTF-8" ?>',
+        '<!-- Undergrowth demo blog, built by bin/build-demo-content. Public-domain texts; see docs/demo-content.md. -->',
+        '<rss version="2.0" xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/" '
+        'xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" '
+        'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:wp="http://wordpress.org/export/1.2/">',
+        '<channel>',
+        f'\t<title>{title}</title>',
+        f'\t<link>{SITE}</link>',
+        '\t<description>Public-domain essays, for trying Undergrowth.</description>',
+        '\t<language>en-US</language>',
+        '\t<wp:wxr_version>1.2</wp:wxr_version>',
+        f'\t<wp:base_site_url>{SITE}</wp:base_site_url>',
+        f'\t<wp:base_blog_url>{SITE}</wp:base_blog_url>',
+        '\t<wp:author><wp:author_id>1</wp:author_id><wp:author_login><![CDATA[admin]]></wp:author_login>'
+        '<wp:author_email><![CDATA[admin@demo.example]]></wp:author_email>'
+        '<wp:author_display_name><![CDATA[admin]]></wp:author_display_name>'
+        '<wp:author_first_name><![CDATA[]]></wp:author_first_name>'
+        '<wp:author_last_name><![CDATA[]]></wp:author_last_name></wp:author>',
+    ]
+    for i, name in enumerate(categories, 1):
+        head.append(
+            f'\t<wp:category><wp:term_id>{i}</wp:term_id><wp:category_nicename>{cdata(slug(name))}</wp:category_nicename>'
+            f'<wp:category_parent><![CDATA[]]></wp:category_parent><wp:cat_name>{cdata(name)}</wp:cat_name></wp:category>'
+        )
+    for i, name in enumerate(tag_names, 100):
+        head.append(
+            f'\t<wp:tag><wp:term_id>{i}</wp:term_id><wp:tag_slug>{cdata(slug(name))}</wp:tag_slug>'
+            f'<wp:tag_name>{cdata(name)}</wp:tag_name></wp:tag>'
+        )
+    items = [item(page, 10 + i, 'page') for i, page in enumerate(pages)]
+    items += [item(post, post['id'], 'post') for post in posts]
+    return '\n'.join(head + items + ['</channel>', '</rss>', ''])
+
+
+def main():
+    """Downloads the books if needed and writes both WXR files."""
+    parser = argparse.ArgumentParser(description='Builds the Undergrowth demo blog.')
+    parser.add_argument('--cache', type=Path, default=CACHE, help='where the downloaded books are kept')
+    parser.add_argument('--out', type=Path, default=ROOT / 'demo', help='where the WXR files are written')
+    parser.add_argument('--list', action='store_true', help='print every post and its length')
+    args = parser.parse_args()
+    args.cache.mkdir(parents=True, exist_ok=True)
+    args.out.mkdir(parents=True, exist_ok=True)
+
+    texts = {book['number']: download(book, args.cache) for book in BOOKS}
+    posts, pages = build_posts(texts)
+    for i, post in enumerate(posts):
+        post['id'] = 100 + i
+
+    small = [p for p in posts if p['small']]
+    (args.out / 'undergrowth-demo.xml').write_text(wxr(posts, pages, 'Undergrowth demo'), encoding='utf-8')
+    (args.out / 'undergrowth-demo-small.xml').write_text(wxr(small, pages, 'Undergrowth demo (small)'), encoding='utf-8')
+
+    lengths = [len_words(p['parts']) for p in posts]
+    print(f'{len(posts)} posts ({len(small)} in the small file), {len(pages)} pages, {sum(lengths)} words, '
+          f'{min(lengths)}-{max(lengths)} words a post')
+    if args.list:
+        for post, length in zip(posts, lengths):
+            print(f"{post['date']:%Y-%m-%d} {length:5d} {post['status']:8s} {post['format']:7s} "
+                  f"{'S' if post['small'] else ' '} {post['title']} ({post['book']['title']}) {tags(post['parts'])}")
+
+
+main()
