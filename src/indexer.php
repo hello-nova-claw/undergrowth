@@ -467,9 +467,58 @@ function undergrowth_run_backfill(): void {
 
 	try {
 		undergrowth_run_backfill_batch( $identity );
+		undergrowth_note_backfill_progress( undergrowth_index_counts() );
 	} finally {
 		WP_Upgrader::release_lock( 'undergrowth_backfill' );
 	}
+}
+
+/**
+ * Records when the backfill was last seen working, with the counts it saw.
+ *
+ * @param array $counts {
+ *     Counts from undergrowth_index_counts().
+ *
+ *     @type int $indexed Posts with a current vector.
+ *     @type int $total   Posts that can be indexed.
+ * }
+ *
+ * @phpstan-param array{indexed: int, total: int} $counts
+ */
+function undergrowth_note_backfill_progress( array $counts ): void {
+	update_option( 'undergrowth_backfill_progress', array_merge( array( 'time' => time() ), $counts ), false );
+}
+
+/**
+ * Says whether posts are waiting to be read and nothing has moved for a day.
+ *
+ * Every backfill run records the time, so a run whose embeds all failed
+ * still counts as moving: the failure notices cover that case. Only cron
+ * that never fires leaves the time behind. Counts that differ from the
+ * recorded ones, after a post is published or read on save for example,
+ * start the day again, so new work is never taken for a stall.
+ *
+ * @return bool True when the backfill looks stalled.
+ */
+function undergrowth_backfill_stalled(): bool {
+	if ( ! undergrowth_has_embed_provider() ) {
+		return false;
+	}
+
+	$counts = undergrowth_index_counts();
+
+	if ( $counts['indexed'] >= $counts['total'] ) {
+		return false;
+	}
+
+	$progress = get_option( 'undergrowth_backfill_progress' );
+
+	if ( ! is_array( $progress ) || ( $progress['indexed'] ?? null ) !== $counts['indexed'] || ( $progress['total'] ?? null ) !== $counts['total'] ) {
+		undergrowth_note_backfill_progress( $counts );
+		return false;
+	}
+
+	return time() - (int) ( $progress['time'] ?? 0 ) >= DAY_IN_SECONDS;
 }
 
 /**
