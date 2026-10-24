@@ -226,18 +226,28 @@ function undergrowth_comparable_post_ids( int $post_id ): array {
 /**
  * Lists the posts a post already links to.
  *
+ * The tag processor reads links as a browser does: an address without
+ * quotes counts, and one inside a comment or another attribute does not.
+ *
  * @param WP_Post $post Post to read.
  * @return int[] Post IDs of internal link targets.
  */
 function undergrowth_linked_post_ids( WP_Post $post ): array {
-	if ( ! preg_match_all( '/href\s*=\s*["\']([^"\']+)["\']/i', $post->post_content, $matches ) ) {
-		return array();
+	$html = new WP_HTML_Tag_Processor( $post->post_content );
+	$urls = array();
+
+	while ( $html->next_tag( array( 'tag_name' => 'A' ) ) ) {
+		$href = $html->get_attribute( 'href' );
+
+		if ( is_string( $href ) && '' !== $href ) {
+			$urls[] = $href;
+		}
 	}
 
 	$ids = array();
 
-	foreach ( array_unique( $matches[1] ) as $url ) {
-		$id = url_to_postid( html_entity_decode( $url ) );
+	foreach ( array_unique( $urls ) as $url ) {
+		$id = url_to_postid( $url );
 
 		if ( $id > 0 ) {
 			$ids[] = $id;
