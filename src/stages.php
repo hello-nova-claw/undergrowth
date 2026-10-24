@@ -751,7 +751,40 @@ function undergrowth_stage_not_saved(): WP_Error {
  * @return WP_Error The error.
  */
 function undergrowth_pin_lost(): WP_Error {
-	return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+	return new WP_Error( 'undergrowth_pin_lost', undergrowth_stage_result_messages()['stage_pin_lost'] );
+}
+
+/**
+ * Returns the error for a pin that failed after its marker was stored, when
+ * the marker could not be taken away again.
+ *
+ * @return WP_Error The error.
+ */
+function undergrowth_pin_left(): WP_Error {
+	return new WP_Error( 'undergrowth_pin_left', undergrowth_stage_result_messages()['stage_pin_left'] );
+}
+
+/**
+ * Returns the sentence for each result of a stage action, by result.
+ *
+ * The admin notice and the editor's REST route both read from here, so each
+ * sentence is written once.
+ *
+ * @return array<string, string> Sentences, by result.
+ */
+function undergrowth_stage_result_messages(): array {
+	return array(
+		'pinned'           => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
+		'unpinned'         => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
+		'composted'        => __( 'Moved to compost. The post stays published, and no links are suggested to or from it.', 'undergrowth' ),
+		'returned'         => __( 'Returned to the garden. Its stage was measured again from the links you have accepted.', 'undergrowth' ),
+		'stage_refused'    => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_composting' => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'not_pinned'       => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_not_saved'  => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
+		'stage_pin_left'   => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
+		'stage_pin_lost'   => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+	);
 }
 
 /**
@@ -1041,7 +1074,7 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 
 			if ( undergrowth_is_stage_pinned( $post_id ) ) {
-				return new WP_Error( 'undergrowth_pin_left', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
+				return undergrowth_pin_left();
 			}
 		}
 
