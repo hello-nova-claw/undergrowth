@@ -8,7 +8,7 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
 
 import { Sentence, linksTo, plainText } from './links-sidebar';
@@ -214,6 +214,15 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 											__next40pxDefaultSize
 											variant="secondary"
 											className="undergrowth-accept"
+											label={ sprintf(
+												/* translators: 1: title of the post the link would point to. */
+												__(
+													'Accept the link to %1$s',
+													'undergrowth'
+												),
+												item.title
+											) }
+											showTooltip={ false }
 											isBusy={ accepting === item.target }
 											disabled={ accepting !== 0 }
 											accessibleWhenDisabled
