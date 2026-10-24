@@ -651,8 +651,12 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		$this->age_pass( 'undergrowth_cluster_cycle' );
 		do_action( 'undergrowth_backfill_check' );
-		$this->assertSame( 0, $this->take_next_batch() );
-		undergrowth_run_cluster_cycle( 0 );
+		$recovered = $this->take_next_batch_args();
+
+		// The batch run again keeps the pass it belonged to.
+		$this->assertSame( 0, $recovered[0] );
+		$this->assertSame( undergrowth_current_pass( 'undergrowth_cluster_cycle' ), $recovered[1] );
+		do_action_ref_array( 'undergrowth_cluster_cycle', $recovered );
 
 		$this->assertSame( $posts[0], undergrowth_cluster_leader( $posts[2] ) );
 		$this->assertNotFalse( get_option( 'undergrowth_previous_clusters' ) );
@@ -800,7 +804,10 @@ class Test_Clusters extends WP_UnitTestCase {
 		wp_clear_scheduled_hook( 'undergrowth_cluster_cycle', array( 0 ) );
 		undergrowth_run_cluster_cycle( 0 );
 
-		$this->assertNotSame( $pass_a[1], undergrowth_current_pass( 'undergrowth_cluster_cycle' ) );
+		$pass_b = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
+
+		$this->assertNotSame( '', $pass_b );
+		$this->assertNotSame( $pass_a[1], $pass_b );
 	}
 
 	public function test_batch_that_finds_the_lock_taken_tries_again_in_a_minute() {

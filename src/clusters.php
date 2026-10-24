@@ -391,9 +391,18 @@ function undergrowth_measure_cluster( array $members ): ?array {
  *                            pass, and for a batch queued before passes had IDs.
  */
 function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
-	$after_id = (int) $after_id;
-	$pass     = (string) $pass;
+	undergrowth_cluster_batch_under_lock( (int) $after_id, (string) $pass );
+}
 
+/**
+ * Runs one clustering batch once it holds the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ * @return bool False when another batch held the lock and this one was queued
+ *              for a minute later, true otherwise.
+ */
+function undergrowth_cluster_batch_under_lock( int $after_id, string $pass ): bool {
 	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
 	// The lock is taken atomically, so checking the pass, resetting the
@@ -402,7 +411,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
 	// that batch again. A batch that finds it taken tries again in a minute.
 	if ( ! WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', UNDERGROWTH_PASS_STALL ) ) {
 		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_cluster_cycle', undergrowth_pass_args( $after_id, $pass ) );
-		return;
+		return false;
 	}
 
 	try {
@@ -410,6 +419,8 @@ function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
 	} finally {
 		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
 	}
+
+	return true;
 }
 
 /**
