@@ -37,7 +37,7 @@ function undergrowth_openai_key(): string {
  * Asks OpenAI for the vector of a piece of text.
  *
  * Text the model rejects as too long is sent once more, cut to a length
- * that always fits. Nothing is sent while OpenAI has asked Undergrowth to
+ * that always fits, unless undergrowth_openai_deadline() has passed. Nothing is sent while OpenAI has asked Undergrowth to
  * wait, see undergrowth_openai_retry_time().
  *
  * @param string $text Text to embed.
@@ -52,7 +52,10 @@ function undergrowth_openai_embed( string $text ): array {
 
 	$result = undergrowth_openai_request( $key, undergrowth_openai_truncate( $text, UNDERGROWTH_OPENAI_MAX_BYTES ) );
 
-	if ( 400 === $result['status'] ) {
+	// A batch with a time budget sends the shorter text only while it has
+	// time left, so one slow post cannot hold it for two timeouts. The post is
+	// tried again on the next pass.
+	if ( 400 === $result['status'] && microtime( true ) < undergrowth_openai_deadline() ) {
 		$result = undergrowth_openai_request( $key, undergrowth_openai_truncate( $text, UNDERGROWTH_OPENAI_RETRY_BYTES ) );
 	}
 
@@ -74,6 +77,23 @@ function undergrowth_openai_embed( string $text ): array {
 	delete_option( 'undergrowth_last_embed_error' );
 
 	return $vector;
+}
+
+/**
+ * Sets or reads the time after which no text too long for the model is sent
+ * again shorter.
+ *
+ * @param float|null $deadline Unix time with microseconds, INF for none, or null to read it.
+ * @return float The deadline, INF when none is set.
+ */
+function undergrowth_openai_deadline( ?float $deadline = null ): float {
+	static $current = INF;
+
+	if ( null !== $deadline ) {
+		$current = $deadline;
+	}
+
+	return $current;
 }
 
 /**

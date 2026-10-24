@@ -1,0 +1,1 @@
+Reading old posts in the background no longer runs past its time limit when OpenAI is slow to turn away a post that is too long. The post is sent again, shorter, on the next pass.
