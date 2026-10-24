@@ -12,6 +12,7 @@ Undergrowth is a WordPress 6.9+ plugin (PHP 7.4+) for personal bloggers. Read [C
 - `tests/phpunit/` uses `test-*.php` files with `WP_UnitTestCase`. Jetpack stand-ins live in `tests/phpunit/includes/`.
 - `tests/e2e/` holds the Playwright specs. `tests/e2e/mu-plugins/undergrowth-e2e.php` is a fake embedding provider that counts fixture words, so no key is needed. `tests/e2e/states.spec.js` is the screenshot catalogue.
 - `tests/js/` holds the Jest tests. `bin/` holds the CI tools: coverage gate, native-WordPress check, changelog folding and POT tooling.
+- `demo/` holds the public-domain demo blog as WXR, built by `bin/build-demo-content` (Python). See `docs/demo-content.md`.
 - `changelog/` holds one fragment per PR. `docs/` holds the design record, the v1 reviews and reports, and `docs/examples/local-embeddings.php`.
 
 ## How it fits together
