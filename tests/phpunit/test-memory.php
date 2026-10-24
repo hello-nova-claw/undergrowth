@@ -127,15 +127,26 @@ class Test_Memory extends WP_UnitTestCase {
 
 		$this->assertTrue( $written );
 
-		$table = undergrowth_vectors_table();
-		$reads = array_filter(
-			$queries,
-			static function ( $query ) use ( $table ) {
-				return false !== strpos( $query, $table ) && preg_match( '/^\s*SELECT\b.*(\*|\bembedding\b).*\bFROM\b/is', $query );
+		$table   = undergrowth_vectors_table();
+		$selects = array_values(
+			array_filter(
+				$queries,
+				static function ( $query ) use ( $table ) {
+					return false !== strpos( $query, $table ) && preg_match( '/^\s*SELECT\b/i', $query );
+				}
+			)
+		);
+		$reads   = array_filter(
+			$selects,
+			static function ( $query ) {
+				return preg_match( '/^\s*SELECT\b.*(\*|\bembedding\b).*\bFROM\b/is', $query );
 			}
 		);
 
 		$this->assertSame( array(), array_values( $reads ) );
+
+		// A query per comparable post would grow with the ten planted here.
+		$this->assertLessThanOrEqual( 3, count( $selects ), implode( "\n", $selects ) );
 	}
 
 	public function test_files_at_the_old_address_move_to_the_new_folder() {
