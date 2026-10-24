@@ -1,0 +1,1 @@
+A composting post found near a new group on the Map no longer disappears, with no way to dismiss it, when the group's oldest post is composted or unpublished afterwards. It stays while the group still has three posts.
