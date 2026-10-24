@@ -262,7 +262,7 @@ function undergrowth_digest_suggestions( int $since, WP_User $user ): array {
 				'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE state = %s AND created_at > %s ORDER BY score DESC, id ASC LIMIT %d OFFSET %d',
 				undergrowth_links_table(),
 				'proposed',
-				gmdate( 'Y-m-d H:i:s', $since ),
+				(string) wp_date( 'Y-m-d H:i:s', $since, new DateTimeZone( 'UTC' ) ),
 				UNDERGROWTH_DIGEST_BATCH,
 				$offset
 			),
