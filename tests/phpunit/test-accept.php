@@ -332,6 +332,27 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_a_post_that_cannot_be_saved_is_reported_as_not_saved() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$before              = get_post( $oca )->post_content;
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$this->assertSame( 'not_saved', undergrowth_accept_link( $oca, $yacon ) );
+
+		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_screen_says_a_post_could_not_be_saved() {
+		$_GET['undergrowth_notice'] = 'not_saved';
+
+		ob_start();
+		undergrowth_render_suggestions_notice();
+
+		$this->assertStringContainsString( 'could not be saved', ob_get_clean() );
+	}
+
 	public function test_accept_is_refused_when_saving_would_strip_other_content() {
 		$before              = '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p><p><iframe src="https://example.test/video"></iframe></p>';
 		list( $oca, $yacon ) = $this->pair( $before );
