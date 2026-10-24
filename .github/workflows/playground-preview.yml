@@ -2,8 +2,8 @@ name: Playground preview
 
 # Adds a "Preview in WordPress Playground" comment to each pull request. The
 # preview runs tests/e2e/playground/preview.json, the same blueprint as
-# `npm run playground`, with the plugin and the e2e test provider installed
-# from the pull request's commit instead of mounted from disk.
+# `npm run playground`, with the plugin, the e2e test provider and the small
+# demo blog taken from the pull request's commit instead of mounted from disk.
 
 on:
   pull_request:
@@ -37,8 +37,11 @@ jobs:
         run: |
           {
             echo 'json<<BLUEPRINT'
+            # The plugin is installed from the whole commit, so the demo blog
+            # is read from its copy there.
             jq -c --arg url "https://github.com/${REPOSITORY}.git" --arg sha "$SHA" '
-              .steps = [
+              .steps |= map(if .step == "importWxr" then .file.path = "/wordpress/wp-content/plugins/undergrowth/demo/undergrowth-demo-small.xml" else . end)
+              | .steps = [
                 {
                   step: "installPlugin",
                   pluginData: { resource: "git:directory", url: $url, ref: $sha, refType: "commit", path: "/" },
