@@ -715,4 +715,32 @@ class Test_Sentences extends WP_UnitTestCase {
 		$this->assertSame( $first, $this->stored_sentence( $oca, $yacon ) );
 		$this->assertSame( 'Yacon grows here.', $first['sentence'] );
 	}
+
+	/**
+	 * Undergrowth_HTML_Text reads core's protected bookmarks and HTML to find
+	 * where a token sits. Core treats both as its own, so a change there
+	 * fails here by name rather than somewhere in Accept.
+	 */
+	public function test_core_bookmarks_still_hold_spans_with_start_and_length() {
+		$html      = '<p>Oca <a href="/yacon">yacon</a>.</p>';
+		$processor = new WP_HTML_Tag_Processor( $html );
+		$this->assertTrue( $processor->next_tag( 'a' ) );
+		$this->assertTrue( $processor->set_bookmark( 'here' ) );
+
+		$bookmarks = new ReflectionProperty( WP_HTML_Tag_Processor::class, 'bookmarks' );
+		$source    = new ReflectionProperty( WP_HTML_Tag_Processor::class, 'html' );
+		$this->assertFalse( $bookmarks->isPrivate(), 'A subclass can no longer read $bookmarks.' );
+		$this->assertFalse( $source->isPrivate(), 'A subclass can no longer read $html.' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$bookmarks->setAccessible( true );
+			$source->setAccessible( true );
+		}
+
+		$span = $bookmarks->getValue( $processor )['here'] ?? null;
+		$this->assertInstanceOf( WP_HTML_Span::class, $span );
+		$this->assertIsInt( $span->start );
+		$this->assertIsInt( $span->length );
+		$this->assertSame( '<a href="/yacon">', substr( $source->getValue( $processor ), $span->start, $span->length ) );
+		$this->assertSame( strpos( $html, '<a ' ), $span->start );
+	}
 }
