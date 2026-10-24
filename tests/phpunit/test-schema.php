@@ -143,16 +143,20 @@ class Test_Schema extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Replaces the plugin's tables with their version 1 shape, empty, and
-	 * records version 1.
+	 * Replaces the plugin's tables with the shape a released version left,
+	 * empty, and records that version.
+	 *
+	 * Version 1 had only the vectors table, already in its current shape.
+	 * Version 2 added the links table, which versions 3 to 5 widened.
 	 *
 	 * The test suite makes every table it creates temporary, and the SQLite
 	 * driver cannot alter a temporary table, so this replaces the real
 	 * tables and tear_down() puts them back.
 	 *
+	 * @param int $version 1 or 2.
 	 * @return array<string, string[]> The current column names, keyed by table.
 	 */
-	private function install_version_one(): array {
+	private function install_version( int $version ): array {
 		global $wpdb;
 
 		$vectors = undergrowth_vectors_table();
@@ -175,6 +179,7 @@ class Test_Schema extends WP_UnitTestCase {
 			post_id bigint(20) unsigned NOT NULL,
 			provider varchar(100) NOT NULL,
 			model varchar(191) NOT NULL,
+			language varchar(20) NOT NULL,
 			dimensions int(10) unsigned NOT NULL,
 			embedding longtext NOT NULL,
 			content_hash char(64) NOT NULL,
@@ -185,27 +190,32 @@ class Test_Schema extends WP_UnitTestCase {
 				$vectors
 			)
 		);
-		$wpdb->query(
-			$wpdb->prepare(
-				'CREATE TABLE %i (
-			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			source_id bigint(20) unsigned NOT NULL,
-			target_id bigint(20) unsigned NOT NULL,
-			state varchar(20) NOT NULL,
-			score double NOT NULL,
-			sentence text NOT NULL,
-			created_at datetime NOT NULL,
-			updated_at datetime NOT NULL,
-			PRIMARY KEY  (id),
-			UNIQUE KEY pair (source_id,target_id),
-			KEY target_id (target_id)
-			)',
-				$links
-			)
-		);
-		$this->assertNotContains( 'language', $this->column_names( $vectors ) );
-		$this->assertNotContains( 'anchor', $this->column_names( $links ) );
-		update_option( 'undergrowth_schema_version', 1 );
+
+		if ( $version >= 2 ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'CREATE TABLE %i (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				source_id bigint(20) unsigned NOT NULL,
+				target_id bigint(20) unsigned NOT NULL,
+				state varchar(20) NOT NULL,
+				score double NOT NULL,
+				sentence text NOT NULL,
+				created_at datetime NOT NULL,
+				updated_at datetime NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY pair (source_id,target_id),
+				KEY target_id (target_id)
+				)',
+					$links
+				)
+			);
+			$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		} else {
+			$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $links ) ) );
+		}
+
+		update_option( 'undergrowth_schema_version', $version );
 
 		return $current;
 	}
@@ -226,10 +236,10 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
-	public function test_upgrade_from_version_one_adds_the_link_columns_and_keeps_links() {
+	public function test_upgrade_from_version_two_adds_the_link_columns_and_keeps_links() {
 		global $wpdb;
 
-		$current = $this->install_version_one();
+		$current = $this->install_version( 2 );
 		$links   = undergrowth_links_table();
 		$wpdb->insert(
 			$links,
@@ -258,15 +268,10 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( 0, (int) $link['anchor_chosen'] );
 	}
 
-	public function test_upgrade_adds_the_language_column_and_keeps_vectors() {
+	public function test_upgrade_from_version_one_adds_the_links_table_and_keeps_vectors() {
 		global $wpdb;
 
-		if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
-			// SQLite cannot add a NOT NULL column without a default to a table with rows.
-			$this->markTestSkipped( 'The language column needs a default on SQLite; see #412.' );
-		}
-
-		$current = $this->install_version_one();
+		$current = $this->install_version( 1 );
 		$vectors = undergrowth_vectors_table();
 		$wpdb->insert(
 			$vectors,
@@ -274,6 +279,7 @@ class Test_Schema extends WP_UnitTestCase {
 				'post_id'      => 7,
 				'provider'     => 'openai',
 				'model'        => 'text-embedding-3-small',
+				'language'     => 'en_US',
 				'dimensions'   => 2,
 				'embedding'    => '[0.6,0.8]',
 				'content_hash' => str_repeat( 'a', 64 ),
@@ -287,12 +293,12 @@ class Test_Schema extends WP_UnitTestCase {
 		$vector = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $vectors, 7 ), ARRAY_A );
 		$this->assertSame( 'openai', $vector['provider'] );
 		$this->assertSame( 'text-embedding-3-small', $vector['model'] );
+		$this->assertSame( 'en_US', $vector['language'] );
 		$this->assertSame( 2, (int) $vector['dimensions'] );
 		$this->assertSame( '[0.6,0.8]', $vector['embedding'] );
 		$this->assertSame( str_repeat( 'a', 64 ), $vector['content_hash'] );
 		$this->assertSame( '2026-01-02 03:04:05', $vector['embedded_at'] );
-		// A vector without a language is never compared, so it is embedded again.
-		$this->assertSame( '', $vector['language'] );
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
 	}
 
 	public function test_current_schema_version_skips_install() {
