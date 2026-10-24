@@ -43,6 +43,14 @@ test.describe( 'Settings page', () => {
 			await page.locator( `#${ id }` ).fill( '' );
 		}
 
+		for ( const box of await page
+			.locator( 'input[name="undergrowth_post_types[]"]' )
+			.all() ) {
+			if ( await box.isEnabled() ) {
+				await box.setChecked( 'post' === ( await box.inputValue() ) );
+			}
+		}
+
 		await page.locator( '.wrap #submit' ).click();
 	} );
 
@@ -118,6 +126,14 @@ test.describe( 'Settings page', () => {
 
 		await first.focus();
 		await expect( first ).toBeFocused();
+
+		// The switch is followed by a checkbox for each post type.
+		for ( const box of await page
+			.locator( 'input[name="undergrowth_post_types[]"]' )
+			.all() ) {
+			await page.keyboard.press( 'Tab' );
+			await expect( box ).toBeFocused();
+		}
 
 		// The test site's provider is code, so there is no OpenAI key field.
 		// Each key field is followed by the link to the provider's key page.
@@ -278,6 +294,58 @@ test.describe( 'Settings page', () => {
 		await remove.check();
 		await page.locator( '.wrap #submit' ).click();
 		await expect( remove ).toHaveCount( 0 );
+	} );
+
+	test( 'saves the post types ticked by keyboard', async ( { page } ) => {
+		const pages = page.locator( '#undergrowth_post_type_page' );
+
+		await expect(
+			page.locator( '#undergrowth_post_type_post' )
+		).toBeChecked();
+		await expect( pages ).not.toBeChecked();
+
+		await pages.focus();
+		await page.keyboard.press( 'Space' );
+		await page.locator( '.wrap #submit' ).click();
+
+		await expect( pages ).toBeChecked();
+		await expectNoA11yViolations( page, '.wrap' );
+
+		await pages.uncheck();
+		await page.locator( '.wrap #submit' ).click();
+		await expect( pages ).not.toBeChecked();
+	} );
+
+	test( 'shows the post types chosen by code, which cannot be changed', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await useFixture( context, baseURL, 'post-types-by-code' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		await expect(
+			page.locator( '#undergrowth_post_type_page' )
+		).toBeChecked();
+		await expect(
+			page.locator( '#undergrowth_post_type_page' )
+		).toBeDisabled();
+		await expectNoA11yViolations( page, '.wrap' );
+	} );
+
+	test( 'keeps the post types when none is ticked, and says why', async ( {
+		page,
+	} ) => {
+		await page.locator( '#undergrowth_post_type_post' ).uncheck();
+		await page.locator( '.wrap #submit' ).click();
+
+		await expect(
+			page.locator( '#setting-error-undergrowth_post_types' )
+		).toBeVisible();
+		await expect(
+			page.locator( '#undergrowth_post_type_post' )
+		).toBeChecked();
 	} );
 
 	test( 'says why there is no question yet once an Anthropic key is saved', async ( {

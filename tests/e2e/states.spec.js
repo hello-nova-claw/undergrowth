@@ -94,6 +94,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'post-types-by-code',
+		page: SETTINGS,
+		fixture: 'post-types-by-code',
+	},
+	{
+		screen: 'settings',
 		state: 'prompt-key-saved',
 		page: SETTINGS,
 		fixture: 'prompt-key-saved',
