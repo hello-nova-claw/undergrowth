@@ -82,6 +82,7 @@ function undergrowth_add_screen_help(): void {
 			__( 'A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted.', 'undergrowth' ),
 			__( 'A group marked "with a gap" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you.', 'undergrowth' ),
 			__( 'When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine.', 'undergrowth' ),
+			__( 'Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group\'s words, its link, its stage and whether its group has a gap.', 'undergrowth' ),
 		)
 	);
 

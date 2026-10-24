@@ -163,6 +163,10 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot export the Map."
+msgstr ""
+
+#: src/admin.php
 #: src/help.php
 #: src/settings.php
 msgid "Suggestions"
@@ -232,6 +236,22 @@ msgstr[1] ""
 msgid "Words that set this group apart: %1$s."
 msgstr ""
 
+#: src/admin.php
+msgid "Export the Map as"
+msgstr ""
+
+#: src/admin.php
+msgid "CSV, for a spreadsheet"
+msgstr ""
+
+#: src/admin.php
+msgid "Markdown, for notes"
+msgstr ""
+
+#: src/admin.php
+msgid "Export"
+msgstr ""
+
 #. translators: 1: number of posts, 2: number of groups, such as "4 groups".
 #: src/admin.php
 #, php-format
@@ -269,6 +289,7 @@ msgid "Not close enough to other posts yet"
 msgstr ""
 
 #: src/admin.php
+#: src/map.php
 msgid "Not in a group yet"
 msgstr ""
 
@@ -485,6 +506,7 @@ msgid "Cancel"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
+#: src/map.php
 msgid "Post"
 msgstr ""
 
@@ -1105,6 +1127,10 @@ msgid "When a post you moved to compost sits near a group that is new this month
 msgstr ""
 
 #: src/help.php
+msgid "Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group's words, its link, its stage and whether its group has a gap."
+msgstr ""
+
+#: src/help.php
 msgid "Compost rests a post. It stays published, its links stay in place, and readers see no difference. Nothing is deleted."
 msgstr ""
 
@@ -1162,6 +1188,34 @@ msgstr ""
 
 #: src/links.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
+msgstr ""
+
+#: src/map.php
+msgid "Group"
+msgstr ""
+
+#: src/map.php
+msgid "Words"
+msgstr ""
+
+#: src/map.php
+msgid "Link"
+msgstr ""
+
+#: src/map.php
+msgid "Stage"
+msgstr ""
+
+#: src/map.php
+msgid "Gap"
+msgstr ""
+
+#: src/map.php
+msgid "Yes"
+msgstr ""
+
+#: src/map.php
+msgid "No"
 msgstr ""
 
 #: src/memory.php

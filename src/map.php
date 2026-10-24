@@ -346,3 +346,149 @@ function undergrowth_map_accounting( array $map ): array {
 		'composting' => undergrowth_count_stages()['composting'],
 	);
 }
+
+/**
+ * Lists every post the Map shows, one row each, for the author to take
+ * elsewhere: the groups in Map order, then the posts not in a group yet.
+ *
+ * Every value is the author's own or counted from their posts, as on the
+ * screen; nothing in it is written by a model.
+ *
+ * @return array<int, array{group: string, words: string, title: string, permalink: string, stage: string, gap: bool}> Rows,
+ *         each with the group's name, its words, the post's title and address, its growth stage, and whether its group has a gap.
+ */
+function undergrowth_map_export_rows(): array {
+	$map  = undergrowth_cluster_map();
+	$rows = array();
+
+	foreach ( $map as $cluster ) {
+		$name  = undergrowth_plain_line( undergrowth_post_title( $cluster['members'][0] ) );
+		$words = implode( ', ', undergrowth_cluster_terms( $cluster['leader'], $name ) );
+
+		foreach ( $cluster['members'] as $post_id ) {
+			$rows[] = undergrowth_map_export_row( $post_id, $name, $words, $cluster['gap'] );
+		}
+	}
+
+	$ungrouped = array_keys( undergrowth_map_accounting( $map )['ungrouped'] );
+
+	_prime_post_caches( $ungrouped, false, false );
+
+	foreach ( $ungrouped as $post_id ) {
+		$rows[] = undergrowth_map_export_row( $post_id, __( 'Not in a group yet', 'undergrowth' ), '', false );
+	}
+
+	return $rows;
+}
+
+/**
+ * Builds one post's row for the Map export.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $group   Name of the post's group.
+ * @param string $words   The group's words, separated by commas.
+ * @param bool   $gap     Whether the group has a gap.
+ * @return array{group: string, words: string, title: string, permalink: string, stage: string, gap: bool} The row.
+ */
+function undergrowth_map_export_row( int $post_id, string $group, string $words, bool $gap ): array {
+	return array(
+		'group'     => $group,
+		'words'     => $words,
+		'title'     => undergrowth_plain_line( undergrowth_post_title( $post_id ) ),
+		'permalink' => (string) get_permalink( $post_id ),
+		'stage'     => undergrowth_stage_label( undergrowth_get_stage( $post_id ) ),
+		'gap'       => $gap,
+	);
+}
+
+/**
+ * Returns the column headings and the cells of each row of the Map export.
+ *
+ * @param array<int, array{group: string, words: string, title: string, permalink: string, stage: string, gap: bool}> $rows Result of undergrowth_map_export_rows().
+ * @return string[][] The heading row, then one row of cells per post.
+ */
+function undergrowth_map_export_table( array $rows ): array {
+	$table = array(
+		array(
+			__( 'Group', 'undergrowth' ),
+			__( 'Words', 'undergrowth' ),
+			__( 'Post', 'undergrowth' ),
+			__( 'Link', 'undergrowth' ),
+			__( 'Stage', 'undergrowth' ),
+			__( 'Gap', 'undergrowth' ),
+		),
+	);
+
+	foreach ( $rows as $row ) {
+		$table[] = array(
+			$row['group'],
+			$row['words'],
+			$row['title'],
+			$row['permalink'],
+			$row['stage'],
+			$row['gap'] ? __( 'Yes', 'undergrowth' ) : __( 'No', 'undergrowth' ),
+		);
+	}
+
+	return $table;
+}
+
+/**
+ * Writes the Map export as CSV.
+ *
+ * A cell a spreadsheet would read as a formula starts with an apostrophe,
+ * so a post title can never run as one. Cells holding a comma, a quote or
+ * a line break are quoted, as RFC 4180 has it.
+ *
+ * @param array<int, array{group: string, words: string, title: string, permalink: string, stage: string, gap: bool}> $rows Result of undergrowth_map_export_rows().
+ * @return string The CSV, one line per row.
+ */
+function undergrowth_map_export_csv( array $rows ): string {
+	$lines = array();
+
+	foreach ( undergrowth_map_export_table( $rows ) as $cells ) {
+		$lines[] = implode(
+			',',
+			array_map(
+				static function ( $cell ) {
+					$cell = 1 === preg_match( '/^[=+\-@\t\r]/', $cell ) ? "'" . $cell : $cell;
+
+					return 1 === preg_match( '/[",\r\n]/', $cell ) ? '"' . str_replace( '"', '""', $cell ) . '"' : $cell;
+				},
+				$cells
+			)
+		);
+	}
+
+	return implode( "\n", $lines ) . "\n";
+}
+
+/**
+ * Writes the Map export as a Markdown table.
+ *
+ * @param array<int, array{group: string, words: string, title: string, permalink: string, stage: string, gap: bool}> $rows Result of undergrowth_map_export_rows().
+ * @return string The table, one line per row.
+ */
+function undergrowth_map_export_markdown( array $rows ): string {
+	$lines = array();
+
+	foreach ( undergrowth_map_export_table( $rows ) as $i => $cells ) {
+		if ( 0 !== $i ) {
+			$cells[3] = '' === $cells[3] ? '' : '<' . $cells[3] . '>';
+		}
+
+		$cells   = array_map(
+			static function ( $cell ) {
+				return str_replace( '|', '\|', trim( (string) preg_replace( '/\s+/', ' ', $cell ) ) );
+			},
+			$cells
+		);
+		$lines[] = '| ' . implode( ' | ', $cells ) . ' |';
+
+		if ( 0 === $i ) {
+			$lines[] = '|' . str_repeat( ' --- |', count( $cells ) );
+		}
+	}
+
+	return implode( "\n", $lines ) . "\n";
+}

@@ -17,6 +17,7 @@ add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_wo
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
+add_action( 'admin_post_undergrowth_export_map', 'undergrowth_handle_export_map' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_handle_stages_bulk' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' );
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
@@ -224,6 +225,46 @@ function undergrowth_handle_dismiss_resurfacing(): void {
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'map' ) );
 	exit;
+}
+
+/**
+ * Sends the Map as a file to download, in the format posted from the Map
+ * tab's export form: CSV, or a Markdown table.
+ */
+function undergrowth_handle_export_map(): void {
+	check_admin_referer( 'undergrowth_export_map' );
+
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		wp_die( esc_html__( 'You cannot export the Map.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$markdown = isset( $_POST['format'] ) && 'markdown' === sanitize_key( wp_unslash( $_POST['format'] ) );
+	$rows     = undergrowth_map_export_rows();
+
+	// Headers cannot follow output, which a test run has always printed.
+	foreach ( headers_sent() ? array() : undergrowth_map_export_headers( $markdown ) as $name => $value ) {
+		header( "{$name}: {$value}" );
+	}
+
+	// A file to download, not a page: escaping for HTML would change the text.
+	// admin-post.php ends after this action, so the file is the whole response.
+	echo $markdown ? undergrowth_map_export_markdown( $rows ) : undergrowth_map_export_csv( $rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * Returns the headers that send the Map export as a file to download.
+ *
+ * @param bool $markdown True for Markdown, false for CSV.
+ * @return array<string, string> Header values keyed by name, core's no-cache headers first.
+ */
+function undergrowth_map_export_headers( bool $markdown ): array {
+	return array_merge(
+		array_filter( wp_get_nocache_headers(), 'is_string' ),
+		array(
+			'Content-Type'        => ( $markdown ? 'text/markdown' : 'text/csv' ) . '; charset=utf-8',
+			'Content-Disposition' => 'attachment; filename="undergrowth-map-' . gmdate( 'Y-m-d' ) . ( $markdown ? '.md' : '.csv' ) . '"',
+		)
+	);
 }
 
 /**
@@ -552,6 +593,30 @@ function undergrowth_render_map_tab(): void {
 	}
 
 	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
+	undergrowth_render_map_export_form();
+}
+
+/**
+ * Prints the form that downloads the Map, every post on it one row, as CSV
+ * or Markdown, to take to a spreadsheet or a notes app.
+ *
+ * It comes last, so the keyboard reaches the groups' posts first.
+ */
+function undergrowth_render_map_export_form(): void {
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="undergrowth-map-export">
+		<input type="hidden" name="action" value="undergrowth_export_map" />
+		<?php wp_nonce_field( 'undergrowth_export_map', '_wpnonce', false ); ?>
+		<p>
+			<label for="undergrowth-export-format"><?php esc_html_e( 'Export the Map as', 'undergrowth' ); ?></label>
+			<select id="undergrowth-export-format" name="format">
+				<option value="csv"><?php esc_html_e( 'CSV, for a spreadsheet', 'undergrowth' ); ?></option>
+				<option value="markdown"><?php esc_html_e( 'Markdown, for notes', 'undergrowth' ); ?></option>
+			</select>
+			<?php submit_button( __( 'Export', 'undergrowth' ), 'secondary', 'submit', false ); ?>
+		</p>
+	</form>
+	<?php
 }
 
 /**
