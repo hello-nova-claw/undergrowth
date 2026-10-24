@@ -1335,6 +1335,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Post types"
+msgstr ""
+
+#: src/settings.php
 msgid "Per-post files"
 msgstr ""
 
@@ -1344,6 +1348,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Anthropic API key"
+msgstr ""
+
+#: src/settings.php
+msgid "Choose at least one post type for Undergrowth to read. The ones chosen before are kept."
 msgstr ""
 
 #: src/settings.php
@@ -1454,6 +1462,14 @@ msgstr ""
 
 #: src/settings.php
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
+msgstr ""
+
+#: src/settings.php
+msgid "Code on this site chooses which post types are read, so these boxes cannot be changed here."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map."
 msgstr ""
 
 #. translators: %1$s: service name, such as Anthropic.
