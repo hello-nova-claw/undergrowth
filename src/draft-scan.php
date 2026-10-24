@@ -107,6 +107,7 @@ function undergrowth_scan_messages(): array {
 		'scan_published'   => __( 'This post is published, so its suggestions are listed above.', 'undergrowth' ),
 		'scan_not_indexed' => __( 'Undergrowth does not read this kind of post.', 'undergrowth' ),
 		'scan_wait'        => __( 'A scan has just run. Wait a few seconds, then try again.', 'undergrowth' ),
+		'scan_empty'       => __( 'There is nothing in this draft to scan yet.', 'undergrowth' ),
 		'scan_failed'      => __( 'The draft could not be read just now, so there are no suggestions. Try again later.', 'undergrowth' ),
 	);
 }
@@ -205,17 +206,20 @@ function undergrowth_rest_scan_draft( WP_REST_Request $request ) {
 		return undergrowth_scan_error( $refusal, 409 );
 	}
 
-	$user = get_current_user_id();
-
-	if ( (int) get_user_meta( $user, 'undergrowth_scan_until', true ) > time() ) {
-		return undergrowth_scan_error( 'scan_wait', 429 );
-	}
-
-	update_user_meta( $user, 'undergrowth_scan_until', time() + UNDERGROWTH_SCAN_RUNNING );
-
 	$draft               = clone $post;
 	$draft->post_title   = (string) $request['title'];
 	$draft->post_content = (string) $request['content'];
+
+	// Nothing would be sent, so the author's turn is not used up.
+	if ( '' === trim( undergrowth_post_text( $draft ) ) ) {
+		return undergrowth_scan_error( 'scan_empty', 409 );
+	}
+
+	$user = get_current_user_id();
+
+	if ( ! undergrowth_claim_scan_turn( $user ) ) {
+		return undergrowth_scan_error( 'scan_wait', 429 );
+	}
 
 	try {
 		$outgoing = undergrowth_scan_draft( $draft );
@@ -228,6 +232,41 @@ function undergrowth_rest_scan_draft( WP_REST_Request $request ) {
 	}
 
 	return new WP_REST_Response( array( 'outgoing' => $outgoing ) );
+}
+
+/**
+ * Claims the author's turn to scan, unless a scan holds it or has just run.
+ *
+ * One conditional update both checks and claims the turn, so two requests
+ * arriving together can never both pass and both send the draft.
+ *
+ * @param int $user User ID.
+ * @return bool True when this request holds the turn.
+ */
+function undergrowth_claim_scan_turn( int $user ): bool {
+	global $wpdb;
+
+	add_user_meta( $user, 'undergrowth_scan_until', '0', true );
+
+	$now = time();
+
+	// Times have ten digits until the year 2286, and '0' sorts first, so
+	// comparing the stored text compares the times.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Only the database can check and claim the turn in one step; the cache is cleared below.
+	$claimed = $wpdb->query(
+		$wpdb->prepare(
+			'UPDATE %i SET meta_value = %s WHERE user_id = %d AND meta_key = %s AND meta_value <= %s',
+			$wpdb->usermeta,
+			(string) ( $now + UNDERGROWTH_SCAN_RUNNING ),
+			$user,
+			'undergrowth_scan_until',
+			(string) $now
+		)
+	);
+
+	wp_cache_delete( $user, 'user_meta' );
+
+	return is_int( $claimed ) && $claimed > 0;
 }
 
 /**
