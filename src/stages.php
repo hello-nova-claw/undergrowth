@@ -824,6 +824,20 @@ function undergrowth_garden_meta_query(): array {
 }
 
 /**
+ * Builds the meta query that keeps a query to composting posts.
+ *
+ * @return array<int, array<string, string>> Meta query.
+ */
+function undergrowth_composting_meta_query(): array {
+	return array(
+		array(
+			'key'   => 'undergrowth_stage',
+			'value' => 'composting',
+		),
+	);
+}
+
+/**
  * Builds the meta query clause for one of the stage filters.
  *
  * Each post is read as undergrowth_get_stage() reads it: one with no stage
@@ -887,15 +901,13 @@ function undergrowth_count_pinned(): int {
 	}
 
 	$query = new WP_Query(
-		array(
-			'post_type'              => $post_types,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_query'             => array( undergrowth_stage_filter_meta_query( 'pinned' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
-			'posts_per_page'         => 1,
-			'fields'                 => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'meta_query'             => array( undergrowth_stage_filter_meta_query( 'pinned' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
+				'posts_per_page'         => 1,
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+			)
 		)
 	);
 
