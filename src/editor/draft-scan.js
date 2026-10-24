@@ -154,6 +154,12 @@ export default function DraftScan( { postId, getDraft, paragraphs, onLink } ) {
 					ref={ found }
 					tabIndex={ -1 }
 				>
+					<h3>
+						{ __(
+							'Posts this draft could link to',
+							'undergrowth'
+						) }
+					</h3>
 					{ results.length === 0 && (
 						<p>
 							{ __(
