@@ -1,0 +1,1 @@
+Local and development sites get a Dev tools tab on Posts > Undergrowth, for testing: it accepts every suggestion, or the best few in each post, through the same Accept, runs the monthly cycle now, and undoes everything Undergrowth changed, removing only the links it added. It does not exist on staging or production sites.

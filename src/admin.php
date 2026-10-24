@@ -271,6 +271,14 @@ function undergrowth_render_suggestions_page(): void {
 		$tabs['map'] = __( 'Map', 'undergrowth' );
 	}
 
+	/**
+	 * Filters the screen's tabs. The dev tools add theirs on local sites;
+	 * each added tab is printed by the undergrowth_render_{$tab}_tab action.
+	 *
+	 * @param array<string, string> $tabs Tab labels keyed by tab.
+	 */
+	$tabs = (array) apply_filters( 'undergrowth_screen_tabs', $tabs );
+
 	// The tab only selects what to show; nothing is changed.
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
@@ -303,6 +311,11 @@ function undergrowth_render_suggestions_page(): void {
 		} elseif ( 'map' === $tab ) {
 			undergrowth_render_resurfacing_signals( undergrowth_visible_resurfacing_signals() );
 			undergrowth_render_map_tab();
+		} elseif ( '' !== $tab ) {
+			/**
+			 * Prints a tab added through the undergrowth_screen_tabs filter.
+			 */
+			do_action( 'undergrowth_render_' . $tab . '_tab' );
 		} else {
 			undergrowth_render_suggestions_tab();
 		}

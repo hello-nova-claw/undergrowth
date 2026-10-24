@@ -360,6 +360,56 @@ describe( 'Editor links sidebar', () => {
 		);
 	} );
 
+	test( 'names the target in each action, for screen readers', async () => {
+		replies = [ suggestions() ];
+
+		const { container } = await renderSidebar();
+
+		expect(
+			button( container, 'Accept' ).getAttribute( 'aria-label' )
+		).toContain( 'Seed ledger' );
+		expect(
+			button( container, 'Veto' ).getAttribute( 'aria-label' )
+		).toContain( 'Seed ledger' );
+		expect(
+			button( container, 'Choose words' ).getAttribute( 'aria-label' )
+		).toContain( 'Seed ledger' );
+	} );
+
+	test( 'shows a failed refresh above the lists it could not update', async () => {
+		replies = [
+			suggestions(),
+			Object.assign( new Error( 'The lists could not be read.' ), {
+				code: 'rest_error',
+			} ),
+		];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+		const render = ( saved ) =>
+			flushSync( () =>
+				root.render(
+					<LinksSidebar
+						postId={ 42 }
+						saved={ saved }
+						paragraphs={ [ { id: 'p1', content: SENTENCE } ] }
+						onLink={ () => {} }
+					/>
+				)
+			);
+
+		render( '1' );
+		await waitFor( () => container.querySelector( 'mark' ) );
+		render( '2' );
+		await waitFor( () => container.querySelector( '.components-notice' ) );
+
+		expect(
+			container.querySelector( '.components-notice' ).textContent
+		).toContain( 'The lists could not be read.' );
+		expect( container.querySelector( 'mark' ) ).not.toBeNull();
+	} );
+
 	test( 'asks again after each save', async () => {
 		replies = [ suggestions(), suggestions( { outgoing: [] } ) ];
 
