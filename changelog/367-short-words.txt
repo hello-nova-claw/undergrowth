@@ -1,0 +1,1 @@
+Two-letter words now count in Hebrew, Arabic, Korean and other scripts outside Latin and Cyrillic, for link suggestions, the words a link sits on and Map names. English and other Latin-script words still need three letters.
