@@ -650,6 +650,26 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( time(), get_option( 'undergrowth_backfill_progress' )['time'], 5 );
 	}
 
+	public function test_starting_the_backfill_starts_the_day() {
+		$this->archive( 2 );
+
+		undergrowth_start_backfill();
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 0, $progress['indexed'] );
+		$this->assertSame( 2, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_starting_again_with_the_same_counts_keeps_the_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		undergrowth_start_backfill();
+
+		$this->assertTrue( undergrowth_backfill_stalled() );
+	}
+
 	public function test_backfill_is_not_stalled_without_a_provider() {
 		$this->archive( 2 );
 		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
