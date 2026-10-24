@@ -21,6 +21,50 @@ class Test_Schema extends WP_UnitTestCase {
 		return $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', undergrowth_vectors_table() ) );
 	}
 
+	/**
+	 * Whether a test replaced the plugin's real tables.
+	 *
+	 * @var bool
+	 */
+	private $replaced_tables = false;
+
+	/**
+	 * Puts the plugin's real tables back in their current shape after a test
+	 * that replaced them.
+	 */
+	public function tear_down() {
+		global $wpdb;
+
+		$restored = true;
+
+		if ( $this->replaced_tables ) {
+			foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
+				$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
+			}
+			$restored              = undergrowth_install_schema();
+			$this->replaced_tables = false;
+		}
+
+		// Failing before the parent's cleanup would skip its rollback.
+		parent::tear_down();
+
+		if ( ! $restored ) {
+			$this->fail( 'The plugin tables could not be put back, so later tests will fail too.' );
+		}
+	}
+
+	/**
+	 * Column names of any table, in table order.
+	 *
+	 * @param string $table Table name.
+	 * @return string[]
+	 */
+	private function column_names( string $table ): array {
+		global $wpdb;
+
+		return $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ) );
+	}
+
 	public function test_table_name_uses_site_prefix() {
 		global $wpdb;
 
@@ -96,6 +140,165 @@ class Test_Schema extends WP_UnitTestCase {
 		undergrowth_maybe_upgrade_schema();
 
 		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
+	}
+
+	/**
+	 * Replaces the plugin's tables with the shape a released version left,
+	 * empty, and records that version.
+	 *
+	 * Version 1 had only the vectors table, already in its current shape.
+	 * Version 2 added the links table, which versions 3 to 5 widened.
+	 *
+	 * The test suite makes every table it creates temporary, and the SQLite
+	 * driver cannot alter a temporary table, so this replaces the real
+	 * tables and tear_down() puts them back.
+	 *
+	 * @param int $version 1 or 2.
+	 * @return array<string, string[]> The current column names, keyed by table.
+	 */
+	private function install_version( int $version ): array {
+		global $wpdb;
+
+		$vectors = undergrowth_vectors_table();
+		$links   = undergrowth_links_table();
+		$current = array(
+			$vectors => $this->column_names( $vectors ),
+			$links   => $this->column_names( $links ),
+		);
+
+		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
+		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
+		$this->replaced_tables = true;
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $vectors ) );
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $links ) );
+
+		$wpdb->query(
+			$wpdb->prepare(
+				'CREATE TABLE %i (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			post_id bigint(20) unsigned NOT NULL,
+			provider varchar(100) NOT NULL,
+			model varchar(191) NOT NULL,
+			language varchar(20) NOT NULL,
+			dimensions int(10) unsigned NOT NULL,
+			embedding longtext NOT NULL,
+			content_hash char(64) NOT NULL,
+			embedded_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY post_id (post_id)
+			)',
+				$vectors
+			)
+		);
+
+		if ( $version >= 2 ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'CREATE TABLE %i (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				source_id bigint(20) unsigned NOT NULL,
+				target_id bigint(20) unsigned NOT NULL,
+				state varchar(20) NOT NULL,
+				score double NOT NULL,
+				sentence text NOT NULL,
+				created_at datetime NOT NULL,
+				updated_at datetime NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY pair (source_id,target_id),
+				KEY target_id (target_id)
+				)',
+					$links
+				)
+			);
+			$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		} else {
+			$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $links ) ) );
+		}
+
+		update_option( 'undergrowth_schema_version', $version );
+
+		return $current;
+	}
+
+	/**
+	 * Asserts both tables have the current columns again.
+	 *
+	 * @param array<string, string[]> $current The current column names, keyed by table.
+	 */
+	private function assert_current_columns( array $current ): void {
+		// dbDelta() adds a missing column at the end, so only the set is compared.
+		foreach ( $current as $table => $columns ) {
+			$after = $this->column_names( $table );
+			sort( $after );
+			sort( $columns );
+			$this->assertSame( $columns, $after, $table );
+		}
+		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
+	}
+
+	public function test_upgrade_from_version_two_adds_the_link_columns_and_keeps_links() {
+		global $wpdb;
+
+		$current = $this->install_version( 2 );
+		$links   = undergrowth_links_table();
+		$wpdb->insert(
+			$links,
+			array(
+				'source_id'  => 7,
+				'target_id'  => 8,
+				'state'      => 'vetoed',
+				'score'      => 0.75,
+				'sentence'   => 'An old sentence.',
+				'created_at' => '2026-01-02 03:04:05',
+				'updated_at' => '2026-01-03 03:04:05',
+			)
+		);
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assert_current_columns( $current );
+		$link = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE source_id = %d AND target_id = %d', $links, 7, 8 ), ARRAY_A );
+		$this->assertSame( 'vetoed', $link['state'] );
+		$this->assertEqualsWithDelta( 0.75, (float) $link['score'], 0.0001 );
+		$this->assertSame( 'An old sentence.', $link['sentence'] );
+		$this->assertSame( '2026-01-03 03:04:05', $link['updated_at'] );
+		$this->assertSame( -1, (int) $link['sentence_index'] );
+		$this->assertSame( '', $link['anchor'] );
+		$this->assertSame( -1, (int) $link['anchor_offset'] );
+		$this->assertSame( 0, (int) $link['anchor_chosen'] );
+	}
+
+	public function test_upgrade_from_version_one_adds_the_links_table_and_keeps_vectors() {
+		global $wpdb;
+
+		$current = $this->install_version( 1 );
+		$vectors = undergrowth_vectors_table();
+		$wpdb->insert(
+			$vectors,
+			array(
+				'post_id'      => 7,
+				'provider'     => 'openai',
+				'model'        => 'text-embedding-3-small',
+				'language'     => 'en_US',
+				'dimensions'   => 2,
+				'embedding'    => '[0.6,0.8]',
+				'content_hash' => str_repeat( 'a', 64 ),
+				'embedded_at'  => '2026-01-02 03:04:05',
+			)
+		);
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assert_current_columns( $current );
+		$vector = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $vectors, 7 ), ARRAY_A );
+		$this->assertSame( 'openai', $vector['provider'] );
+		$this->assertSame( 'text-embedding-3-small', $vector['model'] );
+		$this->assertSame( 'en_US', $vector['language'] );
+		$this->assertSame( 2, (int) $vector['dimensions'] );
+		$this->assertSame( '[0.6,0.8]', $vector['embedding'] );
+		$this->assertSame( str_repeat( 'a', 64 ), $vector['content_hash'] );
+		$this->assertSame( '2026-01-02 03:04:05', $vector['embedded_at'] );
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
 	}
 
 	public function test_current_schema_version_skips_install() {

@@ -116,6 +116,52 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_hindi_paragraph_splits_at_each_danda() {
+		$this->assertSame(
+			array( 'ओका एक कंद है।', 'यह सर्दियों में रखा जाता है।', 'इसका स्वाद खट्टा है।' ),
+			$this->sentence_texts( '<p>ओका एक कंद है। यह सर्दियों में रखा जाता है। इसका स्वाद खट्टा है।</p>' )
+		);
+	}
+
+	/**
+	 * Splits two sentences that end in a script's own stop.
+	 *
+	 * @dataProvider data_script_stops
+	 *
+	 * @param string $first  First sentence, with its stop.
+	 * @param string $second Second sentence.
+	 * @param string $space  What separates them.
+	 */
+	public function test_sentence_ends_at_a_scripts_own_stop( string $first, string $second, string $space ) {
+		$this->assertSame( array( $first, $second ), $this->sentence_texts( "<p>{$first}{$space}{$second}</p>" ) );
+	}
+
+	/**
+	 * Sentence stops beyond Latin and CJK, with two sentences each.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_script_stops(): array {
+		return array(
+			'Bengali danda'        => array( 'ওকা একটি কন্দ।', 'এটি মিষ্টি।', ' ' ),
+			'Devanagari double'    => array( 'ओका कंद है॥', 'यह मीठा है।', ' ' ),
+			'Urdu full stop'       => array( 'اوکا ایک جڑ ہے۔', 'یہ میٹھی ہے۔', ' ' ),
+			'Arabic question mark' => array( 'هل تزرع الأوكا؟', 'نعم أزرعها.', ' ' ),
+			'Armenian full stop'   => array( 'Օկան պալար է։', 'Այն քաղցր է։', ' ' ),
+			'Ethiopic full stop'   => array( 'ኦካ ሥር ነው።', 'ጣፋጭ ነው።', ' ' ),
+			'Greek question mark'  => array( "Τι είναι η όκα\u{037E}", 'Ένας κόνδυλος.', ' ' ),
+			'Greek, normalised'    => array( 'Τι είναι η όκα;', 'Ένας κόνδυλος.', ' ' ),
+			'Burmese, no space'    => array( 'အိုကာသည် ဥဖြစ်သည်။', 'ချိုသည်။', '' ),
+		);
+	}
+
+	public function test_semicolon_after_latin_text_ends_nothing() {
+		$this->assertSame(
+			array( 'Oca keeps well; yacon does not.' ),
+			$this->sentence_texts( '<p>Oca keeps well; yacon does not.</p>' )
+		);
+	}
+
 	public function test_list_items_and_headings_are_separate_sentences() {
 		$this->assertSame(
 			array( 'Storing', 'Sand', 'Sawdust' ),
@@ -298,6 +344,41 @@ class Test_Sentences extends WP_UnitTestCase {
 
 	public function test_japanese_words_become_character_pairs() {
 		$this->assertSame( array( 'ヤー', 'ーコ', 'コン' ), undergrowth_tokens( 'ヤーコン' ) );
+	}
+
+	public function test_thai_words_become_character_pairs() {
+		$this->assertSame( array( 'ยา', 'าค', 'คอ', 'อน' ), undergrowth_tokens( 'ยาคอน' ) );
+	}
+
+	/**
+	 * Splits a run of an unspaced script into pairs of characters.
+	 *
+	 * @dataProvider data_unspaced_scripts
+	 *
+	 * @param string $text Two characters of the script.
+	 */
+	public function test_unspaced_script_becomes_character_pairs( string $text ) {
+		$chars = mb_str_split( $text, 1, 'UTF-8' );
+
+		$this->assertSame( array( $chars[0] . $chars[1], $chars[1] . $chars[2] ), undergrowth_tokens( $text ) );
+	}
+
+	/**
+	 * Scripts written without spaces between words, three characters each.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_unspaced_scripts(): array {
+		return array(
+			'Lao'     => array( 'ກະທ' ),
+			'Khmer'   => array( 'កខគ' ),
+			'Burmese' => array( 'ကခဂ' ),
+			'Tibetan' => array( 'ཀཁག' ),
+		);
+	}
+
+	public function test_a_stop_inside_an_unspaced_script_is_not_a_token() {
+		$this->assertSame( array( 'ကခ' ), undergrowth_tokens( 'ကခ။' ) );
 	}
 
 	public function test_text_without_letters_gives_no_tokens() {

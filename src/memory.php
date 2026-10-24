@@ -745,17 +745,7 @@ function undergrowth_import_memory( int $post_id, string $text ) {
 	update_post_meta( $post_id, 'undergrowth_stage', $read['stage'] );
 
 	if ( undergrowth_get_stage( $post_id ) !== $read['stage'] ) {
-		if ( $was_pinned ) {
-			update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
-		} else {
-			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
-		}
-
-		if ( undergrowth_is_stage_pinned( $post_id ) !== $was_pinned ) {
-			return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
-		}
-
-		return undergrowth_stage_not_saved();
+		return undergrowth_restore_pin( $post_id, $was_pinned ) ?? undergrowth_stage_not_saved();
 	}
 
 	// The same effects as composting a post, or returning it, by hand.

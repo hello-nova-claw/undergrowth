@@ -203,19 +203,20 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		list( $orderby, $order ) = undergrowth_stages_table_order();
 
-		$args  = array(
-			'post_type'           => $post_types,
-			'post_status'         => 'publish',
-			'has_password'        => false,
-			// A sort by stage or pin keeps the titles in order within it.
-			'orderby'             => 'title',
-			'order'               => 'title' === $orderby ? $order : 'ASC',
-			'undergrowth_orderby' => 'title' === $orderby ? '' : $orderby,
-			'undergrowth_order'   => $order,
-			'posts_per_page'      => self::PER_PAGE,
-			'paged'               => $this->get_pagenum(),
-			'fields'              => 'ids',
-			'meta_query'          => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The garden and the view the author chose.
+		$args  = undergrowth_garden_query_args(
+			array(
+				'post_type'              => $post_types,
+				// A sort by stage or pin keeps the titles in order within it.
+				'orderby'                => 'title',
+				'order'                  => 'title' === $orderby ? $order : 'ASC',
+				'undergrowth_orderby'    => 'title' === $orderby ? '' : $orderby,
+				'undergrowth_order'      => $order,
+				'posts_per_page'         => self::PER_PAGE,
+				'paged'                  => $this->get_pagenum(),
+				'no_found_rows'          => false,
+				'update_post_term_cache' => true,
+				'meta_query'             => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The garden and the view the author chose.
+			)
 		);
 		$query = new WP_Query( $args );
 		$total = (int) $query->found_posts;
