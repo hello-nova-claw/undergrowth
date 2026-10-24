@@ -280,6 +280,26 @@ test.describe( 'Settings page', () => {
 		await expect( remove ).toHaveCount( 0 );
 	} );
 
+	test( 'says why there is no question yet once an Anthropic key is saved', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		const sentence = page.locator( '#undergrowth-anthropic-no-question' );
+
+		await expect( sentence ).toHaveCount( 0 );
+
+		await useFixture( context, baseURL, 'prompt-key-saved' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+		await expect( sentence ).toBeVisible();
+
+		await useFixture( context, baseURL, 'prompt-asked' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+		await expect( sentence ).toHaveCount( 0 );
+		await expect( page.locator( '.wrap' ) ).toContainText( 'mnop' );
+	} );
+
 	test( 'has no WCAG 2.2 AA violations with a failing Anthropic key', async ( {
 		admin,
 		page,

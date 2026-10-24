@@ -321,7 +321,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
 	case 'first-run':
 		// As right after activation on a site with no key.
 		add_filter(
@@ -396,6 +396,22 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 			'pre_option_undergrowth_anthropic_api_key',
 			static function () {
 				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		break;
+
+	// A key saved, and a question already asked and snoozed.
+	case 'prompt-asked':
+		add_filter(
+			'pre_option_undergrowth_anthropic_api_key',
+			static function () {
+				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		add_filter(
+			'pre_option_undergrowth_snoozed_prompts',
+			static function () {
+				return array( array( 'key' => 'comment:1' ) );
 			}
 		);
 		break;
