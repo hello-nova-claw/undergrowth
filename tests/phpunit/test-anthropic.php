@@ -154,10 +154,10 @@ class Test_Anthropic extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_default_model_is_a_current_claude_model() {
+	public function test_default_model_is_sonnet() {
 		undergrowth_anthropic_message( 'Rules.', 'Data.' );
 
-		$this->assertSame( 'claude-opus-5-5', $this->sent_body()['model'] );
+		$this->assertSame( 'claude-sonnet-5-5', $this->sent_body()['model'] );
 	}
 
 	public function test_request_asks_for_low_effort_within_the_token_limit() {
@@ -172,13 +172,13 @@ class Test_Anthropic extends WP_UnitTestCase {
 		add_filter(
 			'undergrowth_prompt_model',
 			static function () {
-				return 'claude-sonnet-5-5';
+				return 'claude-opus-5-5';
 			}
 		);
 
 		undergrowth_anthropic_message( 'Rules.', 'Data.' );
 
-		$this->assertSame( 'claude-sonnet-5-5', $this->sent_body()['model'] );
+		$this->assertSame( 'claude-opus-5-5', $this->sent_body()['model'] );
 	}
 
 	public function test_filtered_model_that_is_not_a_name_falls_back_to_the_default() {
@@ -189,7 +189,7 @@ class Test_Anthropic extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( 'claude-opus-5-5', undergrowth_prompt_model() );
+		$this->assertSame( 'claude-sonnet-5-5', undergrowth_prompt_model() );
 	}
 
 	public function test_reply_text_is_returned_without_thinking_blocks() {
