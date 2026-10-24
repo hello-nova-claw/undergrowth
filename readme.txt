@@ -46,7 +46,7 @@ Suggestions appear on Posts > Undergrowth a few moments after a post is read. Cl
 
 * WordPress 6.9 or later, for the Abilities API.
 * PHP 7.4 or later.
-* WP-Cron, or a real cron job calling it. Every request to an outside service runs from cron, so the editor never waits for one.
+* WP-Cron, or a real cron job calling it. Every request to an outside service runs from cron, so the editor never waits for one. On a site with few visitors, or with `DISABLE_WP_CRON` set and no server cron job, older posts may take days to be read, and Settings and Site Health say so when nothing has been read for a day.
 * For Discord only: a site reachable from the internet over HTTPS.
 
 == Frequently Asked Questions ==
