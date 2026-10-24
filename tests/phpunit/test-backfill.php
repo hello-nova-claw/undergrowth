@@ -377,6 +377,32 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertGreaterThanOrEqual( $before + 5 * MINUTE_IN_SECONDS, wp_next_scheduled( 'undergrowth_backfill' ) );
 	}
 
+	public function test_text_too_long_is_not_sent_again_once_the_budget_is_spent() {
+		$this->archive( 1 );
+		$sent = &$this->openai_answers( 400 );
+		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0.05 );
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt ) {
+				usleep( 100000 );
+
+				return $preempt;
+			},
+			5
+		);
+
+		do_action( 'undergrowth_backfill' );
+
+		// The shorter text waits for the next pass rather than holding this
+		// request past its budget for a second timeout.
+		$this->assertCount( 1, $sent );
+		$this->assertSame( 0, undergrowth_index_counts()['indexed'] );
+
+		// Outside the backfill, the shorter text is sent again as before.
+		undergrowth_embed( 'Oca keeps well.' );
+		$this->assertCount( 3, $sent );
+	}
+
 	public function test_post_that_was_turned_away_is_sent_first_after_the_wait() {
 		$ids = $this->archive( 3 );
 		$this->openai_answers( 429, '120' );

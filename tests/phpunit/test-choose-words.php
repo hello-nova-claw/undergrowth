@@ -113,6 +113,37 @@ class Test_Choose_Words extends WP_UnitTestCase {
 		$_REQUEST['_wpnonce'] = $nonce;
 	}
 
+	/**
+	 * Checks that a sentence in an unspaced script offers no words to choose.
+	 *
+	 * @dataProvider data_unspaced_sentences
+	 *
+	 * @param string $sentence Sentence in the script.
+	 */
+	public function test_unspaced_sentence_has_no_words_to_choose( string $sentence ) {
+		$this->assertFalse( undergrowth_can_choose_words( $sentence ) );
+	}
+
+	/**
+	 * Sentences in scripts written without spaces between words.
+	 *
+	 * @return array<string, string[]>
+	 */
+	public function data_unspaced_sentences(): array {
+		return array(
+			'Japanese' => array( 'ヤーコンは甘い。' ),
+			'Thai'     => array( 'ฉันปลูกยาคอนไว้ที่สวน' ),
+			'Lao'      => array( 'ຂ້ອຍປູກມັນຢູ່ສວນ' ),
+			'Khmer'    => array( 'ខ្ញុំដាំដំឡូងនៅសួន' ),
+			'Burmese'  => array( 'ကျွန်တော် ဥယျာဉ်မှာ စိုက်တယ်။' ),
+			'Tibetan'  => array( 'ང་ཞིང་ཁར་འདེབས།' ),
+		);
+	}
+
+	public function test_spaced_sentence_has_words_to_choose() {
+		$this->assertTrue( undergrowth_can_choose_words( 'Every spring I copy the seed list.' ) );
+	}
+
 	public function test_chosen_words_are_stored_as_the_authors_choice() {
 		$this->assertSame( 'words_saved', $this->choose( 3, 5 ) );
 

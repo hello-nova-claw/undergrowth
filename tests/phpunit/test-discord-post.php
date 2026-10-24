@@ -183,6 +183,7 @@ class Test_Discord_Post extends WP_UnitTestCase {
 	public function test_vetoed_suggestion_is_never_posted() {
 		$this->configure();
 		list( $oca, $yacon ) = $this->pair();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		undergrowth_veto_link( $oca, $yacon );
 		undergrowth_discord_post_proposals( $oca );

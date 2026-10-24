@@ -226,18 +226,28 @@ function undergrowth_comparable_post_ids( int $post_id ): array {
 /**
  * Lists the posts a post already links to.
  *
+ * The tag processor reads links as a browser does: an address without
+ * quotes counts, and one inside a comment or another attribute does not.
+ *
  * @param WP_Post $post Post to read.
  * @return int[] Post IDs of internal link targets.
  */
 function undergrowth_linked_post_ids( WP_Post $post ): array {
-	if ( ! preg_match_all( '/href\s*=\s*["\']([^"\']+)["\']/i', $post->post_content, $matches ) ) {
-		return array();
+	$html = new WP_HTML_Tag_Processor( $post->post_content );
+	$urls = array();
+
+	while ( $html->next_tag( array( 'tag_name' => 'A' ) ) ) {
+		$href = $html->get_attribute( 'href' );
+
+		if ( is_string( $href ) && '' !== $href ) {
+			$urls[] = $href;
+		}
 	}
 
 	$ids = array();
 
-	foreach ( array_unique( $matches[1] ) as $url ) {
-		$id = url_to_postid( html_entity_decode( $url ) );
+	foreach ( array_unique( $urls ) as $url ) {
+		$id = url_to_postid( $url );
 
 		if ( $id > 0 ) {
 			$ids[] = $id;
@@ -270,7 +280,8 @@ function undergrowth_suggestions_enabled(): bool {
 function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 	global $wpdb;
 
-	if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post ) {
+	// Every caller checks this too, but a new one must not be able to forget.
+	if ( ! get_post( $source_id ) instanceof WP_Post || ! get_post( $target_id ) instanceof WP_Post || ! current_user_can( 'edit_post', $source_id ) ) {
 		return false;
 	}
 
@@ -372,11 +383,16 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
  *
  * @param int $source_id Post the link would sit in.
  * @param int $target_id Post the link would point to.
- * @return string 'vetoed', 'unchanged' when the link was already accepted, or 'gone'.
+ * @return string 'vetoed', 'unchanged' when the link was already accepted,
+ *                'forbidden' when the user cannot edit the source post, or 'gone'.
  */
 function undergrowth_veto_result( int $source_id, int $target_id ): string {
 	if ( undergrowth_veto_link( $source_id, $target_id ) ) {
 		return 'vetoed';
+	}
+
+	if ( get_post( $source_id ) instanceof WP_Post && get_post( $target_id ) instanceof WP_Post && ! current_user_can( 'edit_post', $source_id ) ) {
+		return 'forbidden';
 	}
 
 	return 'accepted' === undergrowth_link_state( $source_id, $target_id ) ? 'unchanged' : 'gone';
@@ -386,7 +402,7 @@ function undergrowth_veto_result( int $source_id, int $target_id ): string {
  * Words the result of accepting or vetoing a link, so the author reads the
  * same reason on the screen, through an ability and in Discord.
  *
- * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe' or 'needs_admin'.
+ * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
  */
 function undergrowth_link_result_messages(): array {
 	return array(
@@ -400,6 +416,7 @@ function undergrowth_link_result_messages(): array {
 		'words_saved'   => __( 'Saved. Accept will link the words now highlighted.', 'undergrowth' ),
 		'words_invalid' => __( 'Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it.', 'undergrowth' ),
 		'words_unsafe'  => __( 'Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words.', 'undergrowth' ),
+		'forbidden'     => __( 'You cannot edit that post, so nothing was changed.', 'undergrowth' ),
 		'needs_admin'   => __( 'Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link.', 'undergrowth' ),
 	);
 }

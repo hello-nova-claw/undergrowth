@@ -759,9 +759,12 @@ function undergrowth_visible_resurfacing_signals(): array {
 	$signals = array();
 
 	foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
-		$members = undergrowth_cluster_members( undergrowth_resurfacing_signal( $post_id ) );
+		// The signal holds the leader's ID, which the other members keep as
+		// their label after the leader itself leaves the garden. The group
+		// shows while the Map shows it: while three or more posts carry it.
+		$members = undergrowth_cluster_posts( undergrowth_resurfacing_signal( $post_id ) );
 
-		if ( array() !== $members && 'composting' === undergrowth_get_stage( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
+		if ( count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE && 'composting' === undergrowth_get_stage( $post_id ) && current_user_can( 'edit_post', $post_id ) ) {
 			$signals[ $post_id ] = max( $members );
 		}
 	}
@@ -991,7 +994,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'not_pinned'            => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
 		'stage_not_saved'       => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 		'stage_pin_left'        => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
-		'stage_pin_lost'        => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+		'stage_pin_lost'        => undergrowth_pin_lost()->get_error_message(),
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
