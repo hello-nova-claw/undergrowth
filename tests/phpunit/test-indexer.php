@@ -180,6 +180,94 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
 	}
 
+	public function test_post_types_chosen_on_settings_are_indexed() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+
+		$this->assertSame( array( 'post', 'page' ), undergrowth_indexed_post_types() );
+
+		$post_id = $this->publish( array( 'post_type' => 'page' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
+	public function test_post_types_filter_has_the_last_word_over_the_setting() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		add_filter(
+			'undergrowth_post_types',
+			static function ( $post_types ) {
+				return array_values( array_diff( $post_types, array( 'page' ) ) );
+			}
+		);
+
+		$this->assertSame( array( 'post' ), undergrowth_indexed_post_types() );
+	}
+
+	public function test_post_types_setting_that_is_not_a_list_indexes_posts() {
+		update_option( 'undergrowth_post_types', 'page' );
+
+		$this->assertSame( array( 'post' ), undergrowth_indexed_post_types() );
+	}
+
+	public function test_choosing_a_post_type_reads_its_published_posts() {
+		$page_id = $this->publish( array( 'post_type' => 'page' ) );
+		wp_clear_scheduled_hook( 'undergrowth_backfill' );
+
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+
+		undergrowth_run_backfill();
+
+		$this->assertNotNull( undergrowth_get_vector( $page_id ) );
+	}
+
+	public function test_dropping_a_post_type_removes_its_posts_from_the_index() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		$post_id = $this->publish();
+		$page_id = $this->publish( array( 'post_type' => 'page' ) );
+		undergrowth_embed_post( $post_id );
+		undergrowth_embed_post( $page_id );
+		$left = array();
+		add_action(
+			'undergrowth_post_left_index',
+			static function ( $id ) use ( &$left ) {
+				$left[] = $id;
+			}
+		);
+
+		update_option( 'undergrowth_post_types', array( 'post' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
+
+		undergrowth_forget_unindexed_posts();
+
+		$this->assertNull( undergrowth_get_vector( $page_id ) );
+		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
+		$this->assertSame( array( $page_id ), $left );
+	}
+
+	public function test_forgetting_dropped_posts_continues_in_batches() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		$first  = $this->publish( array( 'post_type' => 'page' ) );
+		$second = $this->publish( array( 'post_type' => 'page' ) );
+		undergrowth_embed_post( $first );
+		undergrowth_embed_post( $second );
+		update_option( 'undergrowth_post_types', array( 'post' ) );
+		wp_clear_scheduled_hook( 'undergrowth_forget_unindexed_posts' );
+
+		undergrowth_forget_unindexed_posts( 1 );
+
+		$this->assertNull( undergrowth_get_vector( $first ) );
+		$this->assertNotNull( undergrowth_get_vector( $second ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
+
+		wp_clear_scheduled_hook( 'undergrowth_forget_unindexed_posts' );
+		undergrowth_forget_unindexed_posts( 1 );
+
+		$this->assertNull( undergrowth_get_vector( $second ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
+	}
+
 	public function test_embed_stores_vector_with_provider_model_and_language() {
 		$post_id = $this->publish();
 
