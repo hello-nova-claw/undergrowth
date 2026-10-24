@@ -14,8 +14,10 @@ const UNDERGROWTH_GARDEN_STAGES = array( 'seedling', 'sprout', 'budding', 'everg
 const UNDERGROWTH_STAGE_BATCH   = 100;
 
 // A batch of a monthly pass that has not moved on this long after it
-// started, with no next batch queued, died and is run again.
-const UNDERGROWTH_PASS_STALL = 15 * MINUTE_IN_SECONDS;
+// started, with no next batch queued, died and is run again. A batch takes
+// seconds, but WP-Cron can run without a time limit, so this is far longer
+// than any batch that is still alive. The check runs hourly anyway.
+const UNDERGROWTH_PASS_STALL = HOUR_IN_SECONDS;
 
 // How each reason for a change reads in the per-post file. The file is a
 // plain record in one fixed format, so these are not translated.

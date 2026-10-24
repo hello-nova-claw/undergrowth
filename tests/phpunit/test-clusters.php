@@ -68,13 +68,13 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Makes a pass's record look as if its last batch started an hour ago.
+	 * Makes a pass's record look as if its last batch started long ago.
 	 *
 	 * @param string $hook Cron hook of the pass.
 	 */
 	private function age_pass( string $hook ): void {
 		$pass        = get_option( $hook . '_pass' );
-		$pass['at'] -= HOUR_IN_SECONDS;
+		$pass['at'] -= UNDERGROWTH_PASS_STALL;
 
 		update_option( $hook . '_pass', $pass, false );
 	}
@@ -437,6 +437,22 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		undergrowth_run_cluster_cycle();
 		$last_in_batch = $this->take_next_batch();
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+	}
+
+	public function test_batch_that_started_well_within_the_stall_age_is_not_restarted() {
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$last_in_batch = $this->take_next_batch();
+		$pass          = get_option( 'undergrowth_cluster_cycle_pass' );
+		$pass['at']   -= 30 * MINUTE_IN_SECONDS;
+		update_option( 'undergrowth_cluster_cycle_pass', $pass, false );
 
 		do_action( 'undergrowth_backfill_check' );
 

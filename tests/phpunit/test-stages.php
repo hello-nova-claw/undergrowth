@@ -722,7 +722,7 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$last_in_batch = $posts[ UNDERGROWTH_STAGE_BATCH - 1 ];
 		$pass          = get_option( 'undergrowth_stage_cycle_pass' );
-		$pass['at']   -= HOUR_IN_SECONDS;
+		$pass['at']   -= UNDERGROWTH_PASS_STALL;
 
 		wp_clear_scheduled_hook( 'undergrowth_stage_cycle', array( $last_in_batch ) );
 		update_option( 'undergrowth_stage_cycle_pass', $pass, false );
