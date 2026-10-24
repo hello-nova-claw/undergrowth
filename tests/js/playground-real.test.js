@@ -60,7 +60,9 @@ describe( 'autoAccept', () => {
 		expect( autoAccept( {} ) ).toBe( false );
 		expect( autoAccept( { UNDERGROWTH_AUTO_ACCEPT: '' } ) ).toBe( false );
 		expect( autoAccept( { UNDERGROWTH_AUTO_ACCEPT: '0' } ) ).toBe( false );
-		expect( autoAccept( { UNDERGROWTH_AUTO_ACCEPT: 'yes' } ) ).toBe( false );
+		expect( autoAccept( { UNDERGROWTH_AUTO_ACCEPT: 'yes' } ) ).toBe(
+			false
+		);
 	} );
 
 	it( 'is announced at start, as test-only, and not otherwise', () => {
@@ -69,7 +71,7 @@ describe( 'autoAccept', () => {
 			local: true,
 			model: 'nomic-embed-text',
 			anthropic: false,
-			autoAccept: true,
+			acceptAll: true,
 		} );
 		const off = startMessage( {
 			siteUrl: site,
