@@ -14,153 +14,94 @@ Uses AI to read your site and ask you questions. It never writes a word your rea
 
 Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and it changes a post's text only when you accept a suggestion.
 
-The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and, for some questions, from approved comments your readers left, which it treats as data, never as instructions.
+The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and approved comments, which it treats as data, never as instructions.
 
-What it does in this version:
+* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence of your own. Accept one and Undergrowth links a few of your words in that sentence to the other post, keeping a revision. Veto one and it is never suggested again.
+* **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never go down, and you can pin one.
+* **Composting.** Let a post rest. It stays published and keeps its links, but gets no new suggestions. When it sits close to what you are writing now, Undergrowth tells you once.
+* **One question at a time.** With an Anthropic key, Claude writes an occasional question on your Dashboard, from a gap between your posts, a reader's question in an approved comment, or a composting post. It is always a question, never a draft, and it quotes nobody but you. There are no streaks and no reminders.
+* **A plain-text file for each post**, recording its stage, its suggestions, your vetoes and the questions you were asked.
+* **A Growth stage block** that shows readers a post's stage as a line of text your theme styles.
+* **Discord, optionally.** Each new suggestion can be posted to a private channel in your own Discord server, with Accept and Veto buttons.
+* **A readers meter.** With Jetpack Stats on, your page views in the last 30 days against a milestone of 1,000.
+* **Abilities** for agents and other plugins, through the WordPress Abilities API.
 
-* **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each with the sentence of your own where the link would fit. Accept one and Undergrowth links a few of your own words in that sentence, such as the other post's title or a short phrase naming it, to the other post, keeping a revision. Veto one and it is never suggested again. Suggestions are listed on Posts > Undergrowth.
-* **Growth stages.** Each post has a stage, Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never change when you save a post, and the monthly cycle never lowers one. You can pin a stage to keep it as it is.
-* **Composting.** Move a post to compost when you want it to rest. It stays published and keeps its links, but leaves the active garden: no new suggestions, no stage changes, no timer. When a composting post sits close to what you are writing now, Undergrowth tells you once. Return it to the garden whenever you like.
-* **One question at a time.** With an Anthropic key, Claude writes you an occasional question on your Dashboard, drawn from a gap between your own posts, a reader's question in an approved comment, or a post you composted. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. Dismiss it for good or ask to see it next month. There are no streaks and no reminders.
-* **A plain-text file for each post**, in your uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
-* **A Growth stage block** that shows readers a post's stage as a small line of text your theme styles.
-* **Discord, optionally.** Each new link suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
-* **A readers meter** on your Dashboard: with Jetpack Stats on, one number, your page views in the last 30 days, against a milestone of 1,000. Passing it changes nothing in this version. It marks when the reader features of a later version can start.
-* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read the stages and suggestions of a post, a cluster or the whole site, and to accept or veto a suggestion as the buttons do.
+Undergrowth finds which posts are close by turning each into a vector with an embedding model: by default OpenAI's text-embedding-3-small, with your own API key.
 
-Undergrowth works out which posts are close by turning each post into a vector, a list of numbers, with an embedding model. By default that is OpenAI's text-embedding-3-small, using your own API key. Clusters and gaps are then found by arithmetic on the stored vectors, on your server.
+= External services =
 
-Readers come into it later. A future version reads where readers go and what they ask for, once a site has enough visits: 1,000 page views in 30 days, and enough visits on the pages behind each suggestion. This version works from your posts and their approved comments, plus one site-wide view count from Jetpack Stats for the meter.
+Undergrowth contacts three services, each only once you set it up: OpenAI, to read your posts, once you add its key; Anthropic, to write your Dashboard question, once you add its key; and Discord, once you fill in its settings. It also reads one number through Jetpack Stats when Jetpack is connected and Stats is on. The first four questions in the FAQ say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its developers and loads nothing from outside the plugin.
 
 == Installation ==
 
-1. Upload the plugin through Plugins > Add New > Upload Plugin, or unzip it into `wp-content/plugins/undergrowth/`, and activate it. A notice on the Plugins screen links to the settings page until you save a key or dismiss it.
-2. Go to Settings > Undergrowth and paste an OpenAI API key. The page links to OpenAI's own key page. The page says what is sent before anything is. Without a key, or a provider of your own through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
-3. Posts you published before saving the key are read in the background, a few at a time, as WP-Cron runs. Settings > Undergrowth shows how many are indexed so far.
-4. Optionally, paste an Anthropic API key on the same page to get the occasional question on your Dashboard.
-5. Optionally, set up Discord. See Setting up Discord below.
-
-Suggestions appear on Posts > Undergrowth a few moments after a post is read. Clusters, growth stages and questions follow on the monthly cycle.
+1. Install and activate the plugin.
+2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. With neither a key nor your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, Undergrowth sends nothing and suggests nothing.
+3. Posts you published earlier are read in the background as WP-Cron runs. The settings page shows how many are done.
+4. Optionally, add an Anthropic API key for the Dashboard question, and set up Discord (see the FAQ).
 
 = Requirements =
 
 * WordPress 6.9 or later, for the Abilities API.
-* PHP 7.4 or later.
-* WP-Cron, or a real cron job calling it. Every request to an outside service runs from cron, so the editor never waits for one. On a site with few visitors, or with `DISABLE_WP_CRON` set and no server cron job, older posts may take days to be read, and Settings and Site Health say so when WP-Cron has not run the reading for a day.
+* PHP 7.4 or later, with the mbstring extension.
+* WP-Cron, or a real cron job calling it. On a quiet site, or with `DISABLE_WP_CRON` and no server cron job, older posts may take days to be read; Settings and Site Health say so.
 * For Discord only: a site reachable from the internet over HTTPS.
 
 == Frequently Asked Questions ==
 
-= Which outside services does Undergrowth use? =
-
-Undergrowth itself contacts three, each only once you set it up: OpenAI, to read your posts, once you add an OpenAI key; Anthropic, to write your Dashboard question, once you add an Anthropic key; and Discord, once you fill in its settings. It also reads one number for the readers meter through Jetpack Stats, with no setting of its own, whenever Jetpack is connected and Stats is on. Each is a service you sign up to yourself, under its own terms. The four questions below say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to the plugin's developers and loads nothing from outside the plugin.
-
 = What is sent to OpenAI? =
 
-With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model's limit. OpenAI returns a vector; nothing it returns is shown to anyone. Drafts, private posts and comments are never sent. To stop, remove the key on Settings > Undergrowth, or from `wp-config.php` if you put it there. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/).
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model. OpenAI returns a vector, which nobody sees. Drafts, private posts and comments are never sent. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/). Remove the key to stop.
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request to Claude sends one post's title and a few sentences quoted from it, or, for a gap between your posts, one sentence from each of up to three of them. When the question comes from a reader's comment, that comment's text is sent too, as data, and Claude is told not to follow any instructions in it. Whole posts are never sent. A question about a composting post is sent back once more, on its own, to be checked. Claude's reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron: the first is queued on the first page load after you add the key and sent when WP-Cron next runs, then more each time the monthly cycle looks for a question. To stop, remove the key on Settings > Undergrowth, or from `wp-config.php` if you put it there. They are made under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy).
+With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron, a handful a month at most, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
 
 = What is sent to Discord? =
 
-Only if you set Discord up: for each new link suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Nobody can be mentioned from a message. Messages are sent to `discord.com` from WP-Cron, a few moments after each suggestion is made. Button clicks come back to your site signed by Discord, and are checked against your application's public key. Each click is acted on in WP-Cron, which then updates the clicked message on `discord.com`. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
+Only if you set Discord up: for each new suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Messages go to `discord.com` from WP-Cron. When a button is clicked, WP-Cron updates that message on `discord.com`. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
 
 = What does the readers meter read from Jetpack? =
 
-Only the site's total page views for each of the last 30 days, which it adds up into one number. It asks Jetpack's own Stats code once a day, and Jetpack makes the request to WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/); Undergrowth contacts no one itself. The number is shown only to users Jetpack lets see Stats, and is never used for anything else in this version. Without Jetpack, or with Stats off, there is no meter on the Dashboard; the Help tab on Settings > Undergrowth says what it needs.
+Only the site's total page views for each of the last 30 days, added up into one number, once a day. Jetpack fetches them from WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/). Undergrowth contacts no one itself.
 
 = What does it cost? =
 
-Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually one or two cents each, and at most a handful are written each month.
+Undergrowth is free. The services bill your own accounts. At OpenAI's published price for text-embedding-3-small, reading 500 posts of about 1,500 words costs about two cents. Each question from Claude is one or two short requests, usually one or two cents each.
 
 = Does it need a key to work at all? =
 
-Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. When you change the model, give it a new name through `undergrowth_embed_identity`, and every post is embedded again in the background. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
+Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [An example](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php) uses a model on your own server, such as Ollama, so nothing leaves it. Questions need an Anthropic key. With neither, Undergrowth sends nothing and waits.
 
 = Why is there no question on my Dashboard yet? =
 
-No question yet. Undergrowth asks one when a reader asks a question in an approved comment, a gap appears on the Map, or you move a post to compost. On a new site there may be none of these for a while, so the first look after you save the Anthropic key can find nothing to ask about. Settings > Undergrowth says so under the key until the first question is written, and the monthly cycle keeps looking.
+Undergrowth asks one only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the monthly cycle keeps looking.
 
-= Can I keep the keys out of the database? =
+= Who can read my keys? =
 
-Yes. Add them to `wp-config.php` instead of saving them on Settings > Undergrowth:
+Keys saved on Settings > Undergrowth are stored in the database, so anyone with access to the database or its backups can read them. To keep them out of the database, define them in `wp-config.php` instead:
 
 `define( 'UNDERGROWTH_OPENAI_API_KEY', 'your-openai-key' );`
 `define( 'UNDERGROWTH_ANTHROPIC_API_KEY', 'your-anthropic-key' );`
 
-A key set there is used instead of one saved on the settings page. The page then says the key is in `wp-config.php`, never shows it, and leaves the field disabled; change or remove the key in that file. What is sent is the same either way. Only the start differs: posts are read within the hour of adding the OpenAI key, or straight away if you activate Undergrowth after adding it, and the first question is asked for on the next page load after adding the Anthropic key.
-
-= Can I use a model on my own server instead of OpenAI? =
-
-Yes, if you are a developer. [docs/examples/local-embeddings.php](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php), in the plugin's GitHub repository, is a small must-use plugin that sends each post's text to an embedding model running on your own machine or server, such as Ollama with `nomic-embed-text`, instead of OpenAI. Nothing leaves that machine and no key is needed. Each model scores similarity on its own scale, so the example also sets the thresholds for links, clusters and gaps that suit `nomic-embed-text`. You run and look after the model yourself, and the plugin's settings screen does not configure it, though it says which model reads your posts and that nothing is sent to OpenAI. Most sites should use an OpenAI key instead.
+The settings page then says the key is in `wp-config.php` and never shows it.
 
 = Where does Undergrowth keep its notes about each post? =
 
-Each published post that has been indexed gets a plain-text file in the site's uploads folder, named after the post's ID. The folder is `wp-content/uploads/undergrowth-<random>/posts/` on a single site, or `wp-content/uploads/sites/<site ID>/undergrowth-<random>/posts/` on each site of a multisite network. `<random>` is 12 random characters, 0 to 9 and a to f, made once for each site. Settings > Undergrowth shows the exact folder. You can read it with any text editor. It holds only the post's title, address and slug, words and sentences from your own post, the addresses of other posts, and the questions Undergrowth asked you about it. Nothing in it is written for your readers.
+In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so the plugin can read them back. On Apache an `.htaccess` file refuses web access. The folder's random name is hard to guess but is no protection on its own, so on nginx, or any server that ignores `.htaccess`, add the deny rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
 
-A file looks like this:
+= What does deleting the plugin remove? =
 
-    # Storing oca
-    url: https://example.com/storing-oca/
-    slug: storing-oca
-    updated: 2026-11-01T09:00:00+00:00
-
-    ## stage
-    sprout
-    - 2026-11-01: seedling -> sprout (monthly cycle)
-
-    ## resurfacing
-
-    ## has
-    words: oca, tubers, frost, sweeten, sand, winter, store, harvest
-    - https://example.com/growing-oca/
-
-    ## lacks
-    - https://example.com/yacon-syrup/ | "I keep a few yacon plants nearby for their syrup."
-
-    ## scent
-
-    ## proposed links
-    - https://example.com/yacon-syrup/ | "I keep a few yacon plants nearby for their syrup."
-
-    ## accepted links
-
-    ## vetoes
-    - https://example.com/tax-returns/
-
-    ## prompts
-    - 2026-11-01: asked (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
-    - 2026-11-03: snoozed (comment) "A reader asked how you keep oca through the winter. What do you actually do?"
-
-The stage section names the post's growth stage, marked `(pinned)` when you have pinned it, then one line for each change: the date, the old and new stage, and whether the monthly cycle or you made it. The resurfacing section lists, with the date, each `signal shown` when a composting post is found close to what you are writing now, and each `signal dismissed by the author`. The prompts section lists every question Undergrowth asked you about the post on your Dashboard, and every time you dismissed or snoozed one, with the date and where the question came from. A reader's own words are never written here. The has section lists the words from your post that most set it apart from your other posts, then the published posts it links to. The lacks section lists the links suggested for it that you have not yet accepted or vetoed, best first, each with the sentence from your post where it fits. The scent section stays empty until a later version fills it. The file is rewritten whenever the post itself, its proposals, stage, resurfacing record or prompts change, and once a month in any case, since how distinctive a post's words are depends on your other posts. Edits to it are not kept. The plugin can read a file back to restore a post's stage, pin and history; it reads only the stage and resurfacing sections and ignores the rest.
-
-= Can visitors open these files? =
-
-On Apache, no: the folder holds an `.htaccess` file that refuses web access. On any server, the folder's name ends in random characters that only Settings > Undergrowth shows, so its address cannot be guessed, and each folder holds an `index.php` so it is never listed. nginx ignores `.htaccess`, so on nginx you can also add a rule like this to your server block, to refuse the files outright:
-
-    location ~ "^/wp-content/uploads/(sites/[0-9]+/)?undergrowth(-[0-9a-f]{12})?/" { deny all; }
+Deleting Undergrowth on the Plugins screen removes its database tables, its settings and saved keys, the growth stages and its other post meta, and the per-post files, on every site of a network. Keys in `wp-config.php` stay there. Links you accepted stay in your posts. Deactivating only stops its scheduled work.
 
 = Setting up Discord =
 
-Discord is optional. Posts > Undergrowth does everything Discord does. With Discord set up, each new link suggestion is also posted to a private channel in your own server, with Accept and Veto buttons. Your site must be reachable from the internet over HTTPS, because Discord sends each button click to it.
-
-1. In the Discord developer portal, create a new application just for Undergrowth. Do not reuse an existing bot: once an application has an Interactions Endpoint URL, Discord sends its interactions to that address instead of over the gateway, which can stop an existing bot from working.
-2. Copy the Application ID and the Public Key from its General Information page into Settings > Undergrowth.
-3. On the Bot page, reset the token and paste it into Bot token. Undergrowth never shows it again.
-4. Invite the bot to your server with the scope `bot` and the permissions View Channel and Send Messages, and give it access to a private channel. Anyone who can read the channel sees your suggestions.
-5. In Discord, turn on Developer Mode (User Settings > Advanced), right-click the channel, choose Copy Channel ID, and paste it into Channel ID for link suggestions. Save the settings.
-6. Copy the Interactions endpoint URL shown on the settings page into Interactions Endpoint URL on the application's General Information page, and save it there. Discord checks the address before it accepts it.
-7. An administrator enters the Discord user ID of each person who may press the buttons: on Users > Profile for their own account, or on Users > All Users > Edit for anyone else. A click works only for a linked Discord user whose WordPress account can edit the post; anyone else gets a private refusal and nothing changes.
-
-Each message sends Discord the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Only suggestions made after you set the channel are posted.
+Create a new Discord application just for Undergrowth, never an existing bot, then follow [the Discord setup steps](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/discord.md). Your site must be reachable from the internet over HTTPS.
 
 == Screenshots ==
 
 1. Posts > Undergrowth: each suggested link with the sentence in your own post where it would fit, ready to accept or veto.
 2. The Growth stages tab: every post's stage, with a pin to keep one as it is.
-3. The Map tab: your posts in groups that are close in meaning, with a flag on any group that circles something none of them is about yet.
+3. The Map tab: your posts in groups that are close in meaning, with any gap between them flagged.
 4. Settings > Undergrowth: the keys, what is sent to each service, and how many of your posts have been read.
 5. The Dashboard widget with the one question waiting for you, to snooze until next month or dismiss for good.
 6. The Growth stage block on a post, showing readers its stage as a line of text your theme styles.

@@ -195,10 +195,27 @@ function undergrowth_inside_others_words( string $before ): bool {
 }
 
 /**
+ * Tells whether a word is long enough to say what a post is about.
+ *
+ * Latin and Cyrillic have many two-letter function words, such as "of" and
+ * "он", so their words and numbers need three characters. In Hebrew, Arabic,
+ * Korean and other scripts, many content words have two.
+ *
+ * @param string $word A word of a spaced script.
+ * @return bool
+ */
+function undergrowth_is_long_enough( string $word ): bool {
+	$fewest = preg_match( '/(?![\p{Latin}\p{Cyrillic}])\p{L}/u', $word ) ? 2 : 3;
+
+	return mb_strlen( $word, 'UTF-8' ) >= $fewest;
+}
+
+/**
  * Breaks text into lowercase words for matching.
  *
- * Latin and other spaced scripts give whole words of three letters or more;
- * unspaced scripts give overlapping pairs of characters.
+ * Spaced scripts give whole words long enough to count, see
+ * undergrowth_is_long_enough(); unspaced scripts give overlapping pairs of
+ * characters.
  *
  * @param string $text Plain text.
  * @return string[] Tokens in order, with repeats.
@@ -226,7 +243,7 @@ function undergrowth_tokens( string $text ): array {
 			for ( $i = 0; $i < $last; $i++ ) {
 				$tokens[] = $chars[ $i ] . $chars[ $i + 1 ];
 			}
-		} elseif ( mb_strlen( $run, 'UTF-8' ) >= 3 ) {
+		} elseif ( undergrowth_is_long_enough( $run ) ) {
 			$tokens[] = $run;
 		}
 	}
@@ -480,15 +497,32 @@ function undergrowth_word_stem( string $token ): string {
 /**
  * Lists the plain text of a post's headings.
  *
+ * The tag processor leaves out comments and markup inside attributes, and
+ * decodes the text. A heading whose closing tag is missing is left out.
+ *
  * @param string $content Post content.
  * @return string[] Each heading's text, in order.
  */
 function undergrowth_headings( string $content ): array {
-	if ( ! preg_match_all( '#<h[1-6]\b[^>]*>(.*?)</h[1-6]\s*>#is', $content, $matches ) ) {
-		return array();
+	$html     = new WP_HTML_Tag_Processor( $content );
+	$headings = array();
+	$text     = null;
+
+	while ( $html->next_token() ) {
+		$tag = (string) $html->get_tag();
+
+		if ( 1 === preg_match( '/^H[1-6]$/', $tag ) ) {
+			if ( $html->is_tag_closer() && null !== $text ) {
+				$headings[] = $text;
+			}
+
+			$text = $html->is_tag_closer() ? null : '';
+		} elseif ( null !== $text && '#text' === $html->get_token_type() ) {
+			$text .= $html->get_modifiable_text();
+		}
 	}
 
-	return array_map( 'wp_strip_all_tags', $matches[1] );
+	return $headings;
 }
 
 /**

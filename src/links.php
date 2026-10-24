@@ -226,18 +226,28 @@ function undergrowth_comparable_post_ids( int $post_id ): array {
 /**
  * Lists the posts a post already links to.
  *
+ * The tag processor reads links as a browser does: an address without
+ * quotes counts, and one inside a comment or another attribute does not.
+ *
  * @param WP_Post $post Post to read.
  * @return int[] Post IDs of internal link targets.
  */
 function undergrowth_linked_post_ids( WP_Post $post ): array {
-	if ( ! preg_match_all( '/href\s*=\s*["\']([^"\']+)["\']/i', $post->post_content, $matches ) ) {
-		return array();
+	$html = new WP_HTML_Tag_Processor( $post->post_content );
+	$urls = array();
+
+	while ( $html->next_tag( array( 'tag_name' => 'A' ) ) ) {
+		$href = $html->get_attribute( 'href' );
+
+		if ( is_string( $href ) && '' !== $href ) {
+			$urls[] = $href;
+		}
 	}
 
 	$ids = array();
 
-	foreach ( array_unique( $matches[1] ) as $url ) {
-		$id = url_to_postid( html_entity_decode( $url ) );
+	foreach ( array_unique( $urls ) as $url ) {
+		$id = url_to_postid( $url );
 
 		if ( $id > 0 ) {
 			$ids[] = $id;
@@ -344,7 +354,7 @@ function undergrowth_veto_result( int $source_id, int $target_id ): string {
  * Words the result of accepting or vetoing a link, so the author reads the
  * same reason on the screen, through an ability and in Discord.
  *
- * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
+ * @return array<string, string> Message keyed by result: 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'not_saved', 'words_saved', 'words_invalid', 'words_unsafe', 'needs_admin' or 'forbidden'.
  */
 function undergrowth_link_result_messages(): array {
 	return array(
@@ -355,6 +365,7 @@ function undergrowth_link_result_messages(): array {
 		'not_proposed'  => __( 'That suggestion is no longer on the list, so nothing was changed.', 'undergrowth' ),
 		'edited'        => __( 'That sentence has changed since the link was suggested, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
 		'no_word'       => __( 'No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand.', 'undergrowth' ),
+		'not_saved'     => __( 'The post could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
 		'words_saved'   => __( 'Saved. Accept will link the words now highlighted.', 'undergrowth' ),
 		'words_invalid' => __( 'Those are not words of that sentence, so nothing was changed. Choose a first word and a last word at or after it.', 'undergrowth' ),
 		'words_unsafe'  => __( 'Those words can’t be linked safely, for example because formatting or another link runs through them, so nothing was changed. Choose other words.', 'undergrowth' ),

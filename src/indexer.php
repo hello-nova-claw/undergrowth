@@ -90,6 +90,46 @@ function undergrowth_indexable_sql( string $alias ): ?array {
 }
 
 /**
+ * Returns the query vars that keep a query to published posts without a
+ * password, as undergrowth_is_indexable() does.
+ *
+ * @return array{post_status: string, has_password: bool}
+ */
+function undergrowth_garden_query_vars(): array {
+	return array(
+		'post_status'  => 'publish',
+		'has_password' => false,
+	);
+}
+
+/**
+ * Builds the WP_Query arguments for the posts in the garden: every
+ * indexable post, as IDs.
+ *
+ * @param array<string, mixed> $extra Arguments to add, or to use in place of the defaults.
+ * @return array<string, mixed> WP_Query arguments.
+ */
+function undergrowth_garden_query_args( array $extra = array() ): array {
+	$args = array_merge(
+		array( 'post_type' => undergrowth_indexed_post_types() ),
+		undergrowth_garden_query_vars(),
+		array(
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_term_cache' => false,
+		),
+		$extra
+	);
+
+	// WP_Query reads an empty list of types as posts, but no type is indexed.
+	if ( array() === $args['post_type'] ) {
+		$args['post__in'] = array( 0 );
+	}
+
+	return $args;
+}
+
+/**
  * Schedules an embed when a post is saved, or removes its vector when it
  * leaves the index.
  *
@@ -650,18 +690,24 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$tried    = array();
 	$retry    = undergrowth_backfill_retry_time( $identity );
 
-	foreach ( $post_ids as $post_id ) {
-		if ( 0 !== $retry || ( array() !== $tried && microtime( true ) - $started >= $budget ) ) {
-			break;
-		}
+	undergrowth_openai_deadline( $started + $budget );
 
-		undergrowth_embed_post( $post_id );
-		$retry = undergrowth_backfill_retry_time( $identity );
+	try {
+		foreach ( $post_ids as $post_id ) {
+			if ( 0 !== $retry || ( array() !== $tried && microtime( true ) - $started >= $budget ) ) {
+				break;
+			}
 
-		// A post OpenAI turned away is tried again first after the wait.
-		if ( 0 === $retry ) {
-			$tried[] = $post_id;
+			undergrowth_embed_post( $post_id );
+			$retry = undergrowth_backfill_retry_time( $identity );
+
+			// A post OpenAI turned away is tried again first after the wait.
+			if ( 0 === $retry ) {
+				$tried[] = $post_id;
+			}
 		}
+	} finally {
+		undergrowth_openai_deadline( INF );
 	}
 
 	if ( 0 !== $retry ) {
