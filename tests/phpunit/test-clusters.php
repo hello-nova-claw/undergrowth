@@ -668,11 +668,21 @@ class Test_Clusters extends WP_UnitTestCase {
 		_set_cron_array( array() );
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
 
+		// Whether the first batch, which is not the last, queued the stage cycle.
+		$early = null;
+		$watch = static function () use ( &$early ) {
+			$early = $early ?? wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) );
+		};
+		add_action( 'undergrowth_cluster_cycle', $watch, 99 );
+
 		$ran = $this->run_due_events();
+
+		remove_action( 'undergrowth_cluster_cycle', $watch, 99 );
 
 		$this->assertGreaterThan( time(), $monthly );
 		$this->assertSame( 'undergrowth_cluster_cycle', $ran[0] );
 		$this->assertGreaterThanOrEqual( 2, count( array_keys( $ran, 'undergrowth_cluster_cycle', true ) ) );
+		$this->assertFalse( $early, 'The first clustering batch queued the stage cycle.' );
 		$this->assertContains( 'undergrowth_stage_cycle', $ran );
 		$this->assertGreaterThan(
 			max( array_keys( $ran, 'undergrowth_cluster_cycle', true ) ),
