@@ -12,10 +12,12 @@ const UNDERGROWTH_MIN_LINK_SIMILARITY  = 0.4;
 const UNDERGROWTH_NEIGHBOURS_TO_UPDATE = 10;
 const UNDERGROWTH_VECTOR_CHUNK         = 100;
 const UNDERGROWTH_POST_CHUNK           = 100;
+const UNDERGROWTH_REFRESH_BATCH        = 20;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
-add_action( 'deleted_post', 'undergrowth_forget_post_links' );
+add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
+add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
 
 /**
  * Tells whether two vectors can be compared at all.
@@ -799,16 +801,24 @@ function undergrowth_refresh_around( int $post_id ): void {
 }
 
 /**
- * Removes proposals to and from a post that has left the index, then lets
- * the posts that pointed at it pick a replacement.
+ * Removes proposals to and from a post that has left the index, then queues
+ * the posts that pointed at it to pick a replacement in cron.
+ *
+ * Choosing replacements reads every comparable post, which would hold up
+ * the request that trashed, unpublished, deleted or composted the post.
  *
  * Vetoes and accepted links are kept, so a republished post never brings a
  * vetoed link back.
  *
- * @param int $post_id Post that was unpublished or deleted.
+ * @param int          $post_id Post that was unpublished or deleted.
+ * @param WP_Post|null $post    The deleted post, when core's hook passes it.
  */
-function undergrowth_forget_post_links( int $post_id ): void {
+function undergrowth_forget_post_links( int $post_id, ?WP_Post $post = null ): void {
 	global $wpdb;
+
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
 
 	$table = undergrowth_links_table();
 
@@ -833,11 +843,41 @@ function undergrowth_forget_post_links( int $post_id ): void {
 		)
 	);
 
-	// Sources sharing a provider, model and language share one pool, so the
-	// same vectors are not loaded and decoded once per source.
+	$sources = array_values( array_unique( array_map( 'intval', $sources ) ) );
+
+	if ( array() !== $sources ) {
+		sort( $sources );
+		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $sources ) );
+	}
+}
+
+/**
+ * Lets the posts that proposed a post that left the index pick a
+ * replacement, a batch at a time, and queues the rest.
+ *
+ * A source that left the index or was composted meanwhile is skipped.
+ *
+ * @param int[] $source_ids Posts that proposed the post that left.
+ */
+function undergrowth_refresh_sources( $source_ids ): void {
+	$source_ids = array_values( array_map( 'intval', (array) $source_ids ) );
+	$rest       = array_slice( $source_ids, UNDERGROWTH_REFRESH_BATCH );
+
+	if ( array() !== $rest ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $rest ) );
+	}
+
+	// Sources sharing a provider, model and language share one pool and one
+	// set of word counts, so neither is built again for each source.
 	$pools = array();
 
-	foreach ( array_map( 'intval', $sources ) as $source_id ) {
+	foreach ( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) as $source_id ) {
+		$source = get_post( $source_id );
+
+		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) || 'composting' === undergrowth_get_stage( $source_id ) ) {
+			continue;
+		}
+
 		$vector = undergrowth_get_vector( $source_id );
 
 		if ( null === $vector ) {
@@ -848,9 +888,10 @@ function undergrowth_forget_post_links( int $post_id ): void {
 		$key = undergrowth_vector_space( $vector );
 
 		if ( ! isset( $pools[ $key ] ) ) {
-			$pools[ $key ] = undergrowth_comparable_vectors( $source_id );
+			$pool          = undergrowth_comparable_vectors( $source_id );
+			$pools[ $key ] = array( $pool, undergrowth_reusable_corpus( array_keys( $pool ) ) );
 		}
 
-		undergrowth_refresh_proposals( $source_id, $pools[ $key ] );
+		undergrowth_refresh_proposals( $source_id, $pools[ $key ][0], $pools[ $key ][1] );
 	}
 }

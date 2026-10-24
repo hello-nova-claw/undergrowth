@@ -50,6 +50,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		delete_option( 'undergrowth_backfill' );
 		delete_option( 'undergrowth_backfill.lock' );
 		delete_option( 'undergrowth_index_identity' );
+		delete_option( 'undergrowth_backfill_progress' );
 		wp_unschedule_hook( 'undergrowth_backfill' );
 		wp_unschedule_hook( 'undergrowth_backfill_check' );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
@@ -643,17 +644,123 @@ class Test_Backfill extends WP_UnitTestCase {
 	}
 
 	public function test_later_passes_leave_clustering_to_the_monthly_cycle() {
-		$ids             = $this->archive( 2 );
-		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		$this->archive( 2 );
 		undergrowth_start_backfill();
 		$this->run_cron();
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+
+		$this->archive( 1 );
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( 3, undergrowth_index_counts()['indexed'] );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_pass_where_most_embeds_failed_leaves_the_index_unclustered() {
+		$ids = $this->archive( 4 );
+
+		foreach ( array_slice( $ids, 0, 3 ) as $id ) {
+			$this->failing[] = undergrowth_post_text( get_post( $id ) );
+		}
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertSame( 1, undergrowth_index_counts()['indexed'] );
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_check_clusters_the_index_once_the_failed_posts_are_embedded() {
+		$ids = $this->archive( 4 );
+
+		foreach ( array_slice( $ids, 0, 2 ) as $id ) {
+			$this->failing[] = undergrowth_post_text( get_post( $id ) );
+		}
+
+		undergrowth_start_backfill();
+		$this->run_cron();
 
 		$this->failing = array();
 		do_action( 'undergrowth_backfill_check' );
 		$this->run_cron();
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
+	public function test_check_clusters_an_index_filled_outside_the_backfill() {
+		$ids             = $this->archive( 2 );
+		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		// The post's own embed on save, rather than a backfill pass, fills the index.
+		$this->failing = array();
+		undergrowth_embed_post( $ids[0] );
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
+	public function test_empty_index_is_not_recorded() {
+		undergrowth_start_backfill();
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
+	public function test_first_post_on_an_empty_site_clusters_the_index() {
+		undergrowth_start_backfill();
+		// Any cycle queued for the empty index has run by the time a post is published.
+		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
+
+		$this->archive( 1 );
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( undergrowth_index_target(), get_option( 'undergrowth_index_identity' ) );
+		$this->assertCount( 1, $this->cluster_cycles() );
+	}
+
+	public function test_identity_that_is_no_longer_the_target_is_not_recorded() {
+		$ids = $this->archive( 1 );
+		undergrowth_embed_post( $ids[0] );
+		$stale = array_merge( undergrowth_index_target(), array( 'model' => 'test-model-v0' ) );
+
+		// A batch that read the old model finishes after the switch, when every post has a current vector.
+		undergrowth_record_index_identity( $stale );
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
+	public function test_check_does_not_cluster_a_recorded_index_again() {
+		$this->indexed_archive( 2 );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( array(), $this->cluster_cycles() );
+	}
+
+	/**
+	 * Lists the queued cluster cycles.
+	 *
+	 * @return array<int, mixed> One entry per queued event.
+	 */
+	private function cluster_cycles(): array {
+		$cycles = array();
+
+		foreach ( _get_cron_array() as $hooks ) {
+			foreach ( $hooks['undergrowth_cluster_cycle'] ?? array() as $event ) {
+				$cycles[] = $event['args'];
+			}
+		}
+
+		return $cycles;
 	}
 
 	public function test_index_counts_compare_current_vectors_with_indexable_posts() {
@@ -699,6 +806,124 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill.lock' ) );
+	}
+
+	public function test_deactivation_forgets_when_the_backfill_last_ran() {
+		update_option( 'undergrowth_backfill_progress', array( 'time' => time() ), false );
+
+		undergrowth_deactivate();
+
+		$this->assertFalse( get_option( 'undergrowth_backfill_progress' ) );
+	}
+
+	public function test_run_records_when_it_ran_and_how_far_it_got() {
+		$this->batch_size( 1 );
+		$this->archive( 2 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 1, $progress['indexed'] );
+		$this->assertSame( 2, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_run_whose_embeds_all_fail_still_records_that_it_ran() {
+		$ids             = $this->archive( 1 );
+		$this->failing[] = undergrowth_post_text( get_post( $ids[0] ) );
+		$this->set_progress( 0, 1, DAY_IN_SECONDS * 2 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_stalled_when_nothing_moved_for_a_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		$this->assertTrue( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_not_stalled_within_a_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 23 * HOUR_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_not_stalled_once_every_post_is_read() {
+		$this->archive( 1 );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->set_progress( 1, 1, 30 * DAY_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	public function test_a_count_that_moved_starts_the_day_again() {
+		$this->archive( 3 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 3, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_first_check_starts_the_day() {
+		$this->archive( 2 );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+		$this->assertEqualsWithDelta( time(), get_option( 'undergrowth_backfill_progress' )['time'], 5 );
+	}
+
+	public function test_starting_the_backfill_starts_the_day() {
+		$this->archive( 2 );
+
+		undergrowth_start_backfill();
+
+		$progress = get_option( 'undergrowth_backfill_progress' );
+		$this->assertSame( 0, $progress['indexed'] );
+		$this->assertSame( 2, $progress['total'] );
+		$this->assertEqualsWithDelta( time(), $progress['time'], 5 );
+	}
+
+	public function test_starting_again_with_the_same_counts_keeps_the_day() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		undergrowth_start_backfill();
+
+		$this->assertTrue( undergrowth_backfill_stalled() );
+	}
+
+	public function test_backfill_is_not_stalled_without_a_provider() {
+		$this->archive( 2 );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		$this->assertFalse( undergrowth_backfill_stalled() );
+	}
+
+	/**
+	 * Records the backfill's progress as a run that long ago would have.
+	 *
+	 * @param int $indexed Posts read then.
+	 * @param int $total   Posts that could be read then.
+	 * @param int $ago     Seconds since.
+	 */
+	private function set_progress( int $indexed, int $total, int $ago ): void {
+		update_option(
+			'undergrowth_backfill_progress',
+			array(
+				'time'    => time() - $ago,
+				'indexed' => $indexed,
+				'total'   => $total,
+			),
+			false
+		);
 	}
 
 	/**

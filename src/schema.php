@@ -256,14 +256,20 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_refresh_sources' );
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
+	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
+	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle_pass' );
+	delete_option( 'undergrowth_cluster_similarity' );
+	delete_option( 'undergrowth_stage_cycle_pass' );
 	// Clusters, and the record of the last pass to compare new ones with,
 	// would be stale by the time the plugin is active again.
 	delete_post_meta_by_key( 'undergrowth_cluster' );
@@ -287,6 +293,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_discord_since' );
 	delete_option( 'undergrowth_last_discord_error' );
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
+	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_scan_until', '', true );
@@ -296,18 +303,24 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_config_prompt_queued' );
 	delete_option( 'undergrowth_snoozed_prompts' );
+	delete_option( 'undergrowth_prompt_written' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_first_run' );
 	delete_option( 'undergrowth_schema_version' );
 	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_refresh_sources' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
+	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle_pass' );
+	delete_option( 'undergrowth_cluster_similarity' );
+	delete_option( 'undergrowth_stage_cycle_pass' );
 	delete_option( 'undergrowth_cluster_labels' );
 	delete_option( 'undergrowth_scores' );
 	delete_option( 'undergrowth_dev_job' );
@@ -331,6 +344,15 @@ function undergrowth_uninstall_site(): void {
 	undergrowth_delete_memory_folder();
 	delete_option( 'undergrowth_memory_folder' );
 	delete_transient( 'undergrowth_old_folder_retry' );
+
+	// A stage lock is released as soon as the stage is written, so one is
+	// left only by a request that died while holding it.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock names include each post's ID, so there is no list to delete by name.
+	$locks = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( 'undergrowth_stage_' ) . '%' . $wpdb->esc_like( '.lock' ) ) );
+
+	foreach ( $locks as $lock ) {
+		delete_option( $lock );
+	}
 
 	foreach ( array( undergrowth_vectors_table(), undergrowth_links_table() ) as $table ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Dropping the plugin's own tables on uninstall.

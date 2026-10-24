@@ -14,7 +14,7 @@ Uses AI to read your site and ask you questions. It never writes a word your rea
 
 Undergrowth treats your site like a garden. It reads your published posts and asks you about them. It never writes for you, and it changes a post's text only when you accept a suggestion.
 
-The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and, for some questions, from approved comments, which it treats as data, never as instructions.
+The AI may speak to you, the author. It never speaks for you. Undergrowth does not write, rewrite or generate any text your readers see, and it does no keyword research, trend tracking or competitor analysis. It works from your own posts and approved comments, which it treats as data, never as instructions.
 
 * **Link suggestions.** Each post gets up to three suggested links to your closest other posts, each at a sentence of your own. Accept one and Undergrowth links a few of your words in that sentence to the other post, keeping a revision. Veto one and it is never suggested again.
 * **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the clusters your posts form. Stages never go down, and you can pin one.
@@ -23,14 +23,14 @@ The AI may speak to you, the author. It never speaks for you. Undergrowth does n
 * **A plain-text file for each post**, recording its stage, its suggestions, your vetoes and the questions you were asked.
 * **A Growth stage block** that shows readers a post's stage as a line of text your theme styles.
 * **Discord, optionally.** Each new suggestion can be posted to a private channel in your own Discord server, with Accept and Veto buttons.
-* **A readers meter.** With Jetpack Stats on, your page views in the last 30 days against a milestone of 1,000. Passing it changes nothing in this version.
-* **Abilities** for agents and other plugins, through the WordPress Abilities API, to read stages and suggestions and to accept or veto a suggestion as the buttons do.
+* **A readers meter.** With Jetpack Stats on, your page views in the last 30 days against a milestone of 1,000.
+* **Abilities** for agents and other plugins, through the WordPress Abilities API.
 
-Undergrowth finds which posts are close by turning each into a vector with an embedding model: by default OpenAI's text-embedding-3-small, with your own API key. Clusters and gaps are then found by arithmetic on your server.
+Undergrowth finds which posts are close by turning each into a vector with an embedding model: by default OpenAI's text-embedding-3-small, with your own API key.
 
 = External services =
 
-Undergrowth contacts three services, each only once you set it up: OpenAI, to read your posts, once you add its key; Anthropic, to write your Dashboard question, once you add its key; and Discord, once you fill in its settings. It also reads one number through Jetpack Stats when Jetpack is connected and Stats is on. Each is a service you sign up to yourself. The first four questions in the FAQ say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its developers and loads nothing from outside the plugin.
+Undergrowth contacts three services, each only once you set it up: OpenAI, to read your posts, once you add its key; Anthropic, to write your Dashboard question, once you add its key; and Discord, once you fill in its settings. It also reads one number through Jetpack Stats when Jetpack is connected and Stats is on. The first four questions in the FAQ say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its developers and loads nothing from outside the plugin.
 
 == Installation ==
 
@@ -39,13 +39,11 @@ Undergrowth contacts three services, each only once you set it up: OpenAI, to re
 3. Posts you published earlier are read in the background as WP-Cron runs. The settings page shows how many are done.
 4. Optionally, add an Anthropic API key for the Dashboard question, and set up Discord (see the FAQ).
 
-Suggestions appear on Posts > Undergrowth shortly after a post is read. Clusters, growth stages and questions follow on the monthly cycle.
-
 = Requirements =
 
 * WordPress 6.9 or later, for the Abilities API.
 * PHP 7.4 or later, with the mbstring extension.
-* WP-Cron, or a real cron job calling it.
+* WP-Cron, or a real cron job calling it. On a quiet site, or with `DISABLE_WP_CRON` and no server cron job, older posts may take days to be read; Settings and Site Health say so.
 * For Discord only: a site reachable from the internet over HTTPS.
 
 == Frequently Asked Questions ==
@@ -60,11 +58,11 @@ With an Anthropic key saved, each request sends one post's title and a few sente
 
 = What is sent to Discord? =
 
-Only if you set Discord up: for each new suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Messages go to `discord.com` from WP-Cron. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
+Only if you set Discord up: for each new suggestion, the titles of both posts, the suggested sentence, which is your own words, and links to both posts. Messages go to `discord.com` from WP-Cron. When a button is clicked, WP-Cron updates that message on `discord.com`. Clear the channel ID to stop. Discord's [terms of service](https://discord.com/terms) and [privacy policy](https://discord.com/privacy) apply.
 
 = What does the readers meter read from Jetpack? =
 
-Only the site's total page views for each of the last 30 days, added up into one number, once a day. Jetpack fetches them from WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/). Undergrowth contacts no one itself, and shows the number only to users Jetpack lets see Stats.
+Only the site's total page views for each of the last 30 days, added up into one number, once a day. Jetpack fetches them from WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/). Undergrowth contacts no one itself.
 
 = What does it cost? =
 
@@ -73,6 +71,10 @@ Undergrowth is free. The services bill your own accounts. At OpenAI's published 
 = Does it need a key to work at all? =
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [An example](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php) uses a model on your own server, such as Ollama, so nothing leaves it. Questions need an Anthropic key. With neither, Undergrowth sends nothing and waits.
+
+= Why is there no question on my Dashboard yet? =
+
+Undergrowth asks one only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the monthly cycle keeps looking.
 
 = Who can read my keys? =
 
@@ -93,13 +95,13 @@ Deleting Undergrowth on the Plugins screen removes its database tables, its sett
 
 = Setting up Discord =
 
-Create a new Discord application just for Undergrowth, never an existing bot, then follow [the Discord setup steps](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/discord.md). Your site must be reachable from the internet over HTTPS. Posts > Undergrowth does everything Discord does.
+Create a new Discord application just for Undergrowth, never an existing bot, then follow [the Discord setup steps](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/discord.md). Your site must be reachable from the internet over HTTPS.
 
 == Screenshots ==
 
 1. Posts > Undergrowth: each suggested link with the sentence in your own post where it would fit, ready to accept or veto.
 2. The Growth stages tab: every post's stage, with a pin to keep one as it is.
-3. The Map tab: your posts in groups that are close in meaning, with a flag on any group that circles something none of them is about yet.
+3. The Map tab: your posts in groups that are close in meaning, with any gap between them flagged.
 4. Settings > Undergrowth: the keys, what is sent to each service, and how many of your posts have been read.
 5. The Dashboard widget with the one question waiting for you, to snooze until next month or dismiss for good.
 6. The Growth stage block on a post, showing readers its stage as a line of text your theme styles.

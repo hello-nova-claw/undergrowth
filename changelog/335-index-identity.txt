@@ -1,0 +1,1 @@
+Posts are grouped for the first time only once every post has been read. Before, a first run whose reads mostly failed, with a mistyped or rate-limited key for example, grouped a nearly empty index and left it that way until the next month.

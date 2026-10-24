@@ -19,7 +19,7 @@ const UNDERGROWTH_DISCORD_MAX_SENTENCE = 500;
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_discord_queue_proposals' );
 add_action( 'undergrowth_discord_post_proposals', 'undergrowth_discord_post_proposals' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_discord_forget_post_failures' );
-add_action( 'deleted_post', 'undergrowth_discord_forget_post_failures' );
+add_action( 'deleted_post', 'undergrowth_discord_forget_post_failures', 10, 2 );
 add_action( 'add_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 add_action( 'update_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 
@@ -251,9 +251,14 @@ function undergrowth_discord_forget_failures( int $post_id, array $waiting ): vo
  * Forgets the failures of every suggestion to or from a post that left the
  * index or was deleted, since none of them will be sent again.
  *
- * @param int $post_id Post ID.
+ * @param int          $post_id Post ID.
+ * @param WP_Post|null $post    The deleted post, when core's hook passes it.
  */
-function undergrowth_discord_forget_post_failures( $post_id ): void {
+function undergrowth_discord_forget_post_failures( $post_id, ?WP_Post $post = null ): void {
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
+
 	$post_id = (int) $post_id;
 
 	foreach ( undergrowth_discord_pending() as $pair ) {

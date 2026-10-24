@@ -220,21 +220,16 @@ function undergrowth_new_cluster_leaders( array $current, array $previous ): arr
 function undergrowth_start_resurfacing(): void {
 	$current  = undergrowth_cluster_snapshot();
 	$previous = get_option( 'undergrowth_previous_clusters' );
+	$new      = is_array( $previous ) && array() !== $previous ? undergrowth_new_cluster_leaders( $current, array_map( 'intval', $previous ) ) : array();
 
+	if ( array() !== $new ) {
+		update_option( 'undergrowth_new_clusters', $new, false );
+		undergrowth_run_resurfacing_cycle( 0 );
+	}
+
+	// Kept last: when the batch dies before here, the hourly check runs it
+	// again, and it must find the same new clusters.
 	update_option( 'undergrowth_previous_clusters', $current, false );
-
-	if ( ! is_array( $previous ) || array() === $previous ) {
-		return;
-	}
-
-	$new = undergrowth_new_cluster_leaders( $current, array_map( 'intval', $previous ) );
-
-	if ( array() === $new ) {
-		return;
-	}
-
-	update_option( 'undergrowth_new_clusters', $new, false );
-	undergrowth_run_resurfacing_cycle( 0 );
 }
 
 /**

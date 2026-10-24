@@ -123,10 +123,15 @@ function undergrowth_get_vector_space( int $post_id ): ?array {
 /**
  * Removes the stored vector for a post, if it has one.
  *
- * @param int $post_id Post ID.
+ * @param int          $post_id Post ID.
+ * @param WP_Post|null $post    The deleted post, when core's hook passes it.
  */
-function undergrowth_delete_vector( int $post_id ): void {
+function undergrowth_delete_vector( int $post_id, ?WP_Post $post = null ): void {
 	global $wpdb;
+
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 	$wpdb->delete( undergrowth_vectors_table(), array( 'post_id' => $post_id ), array( '%d' ) );

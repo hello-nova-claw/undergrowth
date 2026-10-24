@@ -12,7 +12,7 @@ const UNDERGROWTH_BACKFILL_SECONDS = 15;
 
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
-add_action( 'deleted_post', 'undergrowth_delete_vector' );
+add_action( 'deleted_post', 'undergrowth_delete_vector', 10, 2 );
 add_action( 'undergrowth_backfill', 'undergrowth_run_backfill' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 // Activation does not run on plugin updates or on every site of a network.
@@ -49,6 +49,22 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
 	return 'publish' === $post->post_status
 		&& '' === $post->post_password
 		&& in_array( $post->post_type, undergrowth_indexed_post_types(), true );
+}
+
+/**
+ * Decides whether a core post hook can be ignored for a post.
+ *
+ * Core fires its save and delete hooks for every revision it prunes, every
+ * autosave and every attachment. None of them can ever have been published,
+ * so none has a vector, links or a file. Any other post may have been
+ * indexed under an earlier post type filter, and is never ignored. Nor is
+ * a hook that passes no post.
+ *
+ * @param WP_Post|null $post The post the hook fired for, if it passed one.
+ * @return bool True for a revision, an autosave or an attachment.
+ */
+function undergrowth_ignores_post( ?WP_Post $post ): bool {
+	return null !== $post && ( 'revision' === $post->post_type || 'inherit' === $post->post_status );
 }
 
 /**
@@ -93,6 +109,10 @@ function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 
 	if ( ! undergrowth_is_indexable( $post ) ) {
 		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
+
+		if ( undergrowth_ignores_post( $post ) ) {
+			return;
+		}
 
 		// Menu items, synced patterns and the like are never indexed and are
 		// saved often, so only a post that has a vector, or whose type is
@@ -412,7 +432,8 @@ function undergrowth_index_counts(): array {
  * check, which also retries posts whose embed failed. WP-Cron refuses a
  * second identical event within ten minutes, so calling this while a run
  * is queued adds nothing. While OpenAI has asked Undergrowth to wait, the
- * run is queued for when the wait is over.
+ * run is queued for when the wait is over. When every post has a vector,
+ * it clusters an index that no pass has recorded yet.
  */
 function undergrowth_start_backfill(): void {
 	$identity = undergrowth_index_target();
@@ -423,7 +444,49 @@ function undergrowth_start_backfill(): void {
 
 	if ( array() !== undergrowth_unindexed_post_ids( $identity, 0, 1 ) ) {
 		wp_schedule_single_event( max( time(), undergrowth_backfill_retry_time( $identity ) ), 'undergrowth_backfill' );
+		// Saving a key runs this in the request, so a run that never comes
+		// is still noticed a day later.
+		undergrowth_backfill_moved( undergrowth_index_counts() );
+		return;
 	}
+
+	undergrowth_record_index_identity( $identity );
+}
+
+/**
+ * Records the identity of a filled index and clusters it.
+ *
+ * Does nothing while some indexable post has no vector for this identity,
+ * so a pass whose embeds mostly failed does not cluster a nearly empty
+ * index, or while there is no indexable post yet, so the first posts on a
+ * new site are still clustered early. Once the identity is recorded,
+ * clustering is left to the monthly cycle.
+ *
+ * @param array $identity {
+ *     The current provider and model, and the site language when posts take theirs from the site.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_record_index_identity( array $identity ): void {
+	// The counts are for the current target, which a batch that read the
+	// identity before a model or language switch no longer matches.
+	if ( get_option( 'undergrowth_index_identity' ) === $identity || undergrowth_index_target() !== $identity ) {
+		return;
+	}
+
+	$counts = undergrowth_index_counts();
+
+	if ( 0 === $counts['total'] || $counts['indexed'] < $counts['total'] ) {
+		return;
+	}
+
+	update_option( 'undergrowth_index_identity', $identity, false );
+	wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
 }
 
 /**
@@ -461,9 +524,10 @@ function undergrowth_schedule_backfill_check(): void {
  * site language, count as having none, so the same passes re-embed the
  * whole index when the model or the site's language changes. A pass that
  * was under way for another model or language starts again from the first
- * post. The first pass to finish with a provider, model and language
- * clusters the new index, which would otherwise wait a month for the next
- * cycle.
+ * post. The first pass to finish with every post embedded for a provider,
+ * model and language clusters the new index, which would otherwise wait a
+ * month for the next cycle. When some embeds failed, the hourly check
+ * clusters it once they have been retried.
  */
 function undergrowth_run_backfill(): void {
 	$identity = undergrowth_index_target();
@@ -483,9 +547,84 @@ function undergrowth_run_backfill(): void {
 
 	try {
 		undergrowth_run_backfill_batch( $identity );
+		undergrowth_note_backfill_progress( undergrowth_index_counts() );
 	} finally {
 		WP_Upgrader::release_lock( 'undergrowth_backfill' );
 	}
+}
+
+/**
+ * Records when the backfill was last seen working, with the counts it saw.
+ *
+ * @param array $counts {
+ *     Counts from undergrowth_index_counts().
+ *
+ *     @type int $indexed Posts with a current vector.
+ *     @type int $total   Posts that can be indexed.
+ * }
+ *
+ * @phpstan-param array{indexed: int, total: int} $counts
+ */
+function undergrowth_note_backfill_progress( array $counts ): void {
+	update_option( 'undergrowth_backfill_progress', array_merge( array( 'time' => time() ), $counts ), false );
+}
+
+/**
+ * Says whether posts are waiting to be read and the backfill has not run, nor
+ * the counts moved, for a day.
+ *
+ * Every backfill run records the time, so a run whose embeds all failed
+ * still counts as moving: the failure notices cover that case. Only cron
+ * that never fires leaves the time behind. Counts that differ from the
+ * recorded ones, after a post is published or read on save for example,
+ * start the day again, so new work is never taken for a stall.
+ *
+ * @return bool True when the backfill looks stalled.
+ */
+function undergrowth_backfill_stalled(): bool {
+	if ( ! undergrowth_has_embed_provider() ) {
+		return false;
+	}
+
+	$counts = undergrowth_index_counts();
+
+	if ( $counts['indexed'] >= $counts['total'] ) {
+		return false;
+	}
+
+	if ( undergrowth_backfill_moved( $counts ) ) {
+		return false;
+	}
+
+	$progress = get_option( 'undergrowth_backfill_progress' );
+
+	return time() - (int) ( $progress['time'] ?? 0 ) >= DAY_IN_SECONDS;
+}
+
+/**
+ * Starts the day again when the counts differ from the recorded ones, or
+ * none are recorded. The same counts keep the recorded time.
+ *
+ * @param array $counts {
+ *     Counts from undergrowth_index_counts().
+ *
+ *     @type int $indexed Posts with a current vector.
+ *     @type int $total   Posts that can be indexed.
+ * }
+ * @return bool True when the day started again.
+ *
+ * @phpstan-param array{indexed: int, total: int} $counts
+ */
+function undergrowth_backfill_moved( array $counts ): bool {
+	$progress = get_option( 'undergrowth_backfill_progress' );
+
+	if ( is_array( $progress ) && ( $progress['indexed'] ?? null ) === $counts['indexed'] && ( $progress['total'] ?? null ) === $counts['total'] ) {
+		return false;
+	}
+
+	undergrowth_note_backfill_progress( $counts );
+
+	return true;
 }
 
 /**
@@ -539,9 +678,5 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	}
 
 	delete_option( 'undergrowth_backfill' );
-
-	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
-		update_option( 'undergrowth_index_identity', $identity, false );
-		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
-	}
+	undergrowth_record_index_identity( $identity );
 }

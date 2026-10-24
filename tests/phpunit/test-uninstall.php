@@ -172,6 +172,17 @@ class Test_Uninstall extends WP_UnitTestCase {
 		$this->assertSame( array(), array_values( $left ) );
 	}
 
+	public function test_uninstall_deletes_stage_locks_left_by_requests_that_died() {
+		$post_id = self::factory()->post->create();
+		update_option( "undergrowth_stage_{$post_id}.lock", time(), false );
+		update_option( 'undergrowth_stagecoach', 'x', false );
+
+		undergrowth_uninstall();
+
+		$this->assertFalse( get_option( "undergrowth_stage_{$post_id}.lock" ) );
+		$this->assertSame( 'x', get_option( 'undergrowth_stagecoach' ) );
+	}
+
 	public function test_uninstall_deletes_every_post_meta_key() {
 		$post_id = self::factory()->post->create();
 

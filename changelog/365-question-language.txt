@@ -1,0 +1,1 @@
+Questions are now written in the post's own language when a multilingual plugin gives one, and otherwise in the language the post's author uses for their dashboard, instead of always the site's language. Questions in Greek, Armenian and Ethiopic, written with their own question marks, are no longer thrown away, and readers' questions in those languages are found.
