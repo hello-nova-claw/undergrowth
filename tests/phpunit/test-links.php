@@ -417,6 +417,19 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotContains( $planted['spare'], $this->proposed( $source ) );
 	}
 
+	public function test_queued_refresh_skips_a_source_composted_meanwhile() {
+		$planted = $this->plant_three_sources();
+		wp_trash_post( $planted['target'] );
+
+		$source = $planted['sources'][0];
+		update_post_meta( $source, 'undergrowth_stage', 'composting' );
+		$refreshes = did_action( 'undergrowth_proposals_refreshed' );
+
+		do_action( 'undergrowth_refresh_sources', array( $source ) );
+
+		$this->assertSame( $refreshes, did_action( 'undergrowth_proposals_refreshed' ) );
+	}
+
 	public function test_many_sources_are_refreshed_in_batches() {
 		$ids = range( 1, UNDERGROWTH_REFRESH_BATCH + 5 );
 

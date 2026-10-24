@@ -850,7 +850,7 @@ function undergrowth_forget_post_links( int $post_id ): void {
  * Lets the posts that proposed a post that left the index pick a
  * replacement, a batch at a time, and queues the rest.
  *
- * A source that left the index meanwhile is skipped.
+ * A source that left the index or was composted meanwhile is skipped.
  *
  * @param int[] $source_ids Posts that proposed the post that left.
  */
@@ -869,7 +869,7 @@ function undergrowth_refresh_sources( $source_ids ): void {
 	foreach ( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) as $source_id ) {
 		$source = get_post( $source_id );
 
-		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) ) {
+		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) || 'composting' === undergrowth_get_stage( $source_id ) ) {
 			continue;
 		}
 
