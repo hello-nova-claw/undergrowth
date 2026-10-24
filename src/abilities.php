@@ -491,14 +491,11 @@ function undergrowth_ability_site_posts(): array {
 			continue;
 		}
 
-		$args = array(
-			'post_type'              => $post_type,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'posts_per_page'         => -1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_term_cache' => false,
+		$args = undergrowth_garden_query_args(
+			array(
+				'post_type'      => $post_type,
+				'posts_per_page' => -1,
+			)
 		);
 
 		if ( ! current_user_can( $object->cap->edit_others_posts ) ) {

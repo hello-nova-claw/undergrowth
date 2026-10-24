@@ -87,7 +87,7 @@ function undergrowth_anchor_spans( string $sentence, array $terms, string $title
 	$spans   = array();
 
 	$edge = static function ( array $word ) use ( $never ): bool {
-		return mb_strlen( $word['lower'], 'UTF-8' ) >= 3 && ! isset( $never[ $word['lower'] ] );
+		return undergrowth_is_long_enough( $word['lower'] ) && ! isset( $never[ $word['lower'] ] );
 	};
 
 	$add = static function ( int $first, int $last ) use ( &$spans, $words ): void {
@@ -207,7 +207,7 @@ function undergrowth_anchor_phrase( array $words, int $index, array $terms, arra
 			$about  = isset( $terms[ $word ] );
 			$opened = isset( $words[ $at - 1 ], $openers[ $words[ $at - 1 ]['lower'] ] ) && $clause === $words[ $at - 1 ]['clause'];
 
-			if ( mb_strlen( $word, 'UTF-8' ) < 3 || isset( $function_words[ $word ] ) || in_array( $word, array( 'former', 'latter', 'certain', 'little', 'several', 'various', 'first', 'second', 'third', 'last', 'next' ), true )
+			if ( ! undergrowth_is_long_enough( $word ) || isset( $function_words[ $word ] ) || in_array( $word, array( 'former', 'latter', 'certain', 'little', 'several', 'various', 'first', 'second', 'third', 'last', 'next' ), true )
 				|| ( ! $about && preg_match( '/(?:ly|ing)$/u', $word ) )
 				|| ( ! $about && ! $opened && isset( $weak[ $word ] ) ) ) {
 				break;
@@ -219,7 +219,7 @@ function undergrowth_anchor_phrase( array $words, int $index, array $terms, arra
 		$before = $words[ $first - 1 ] ?? null;
 
 		// A run opened by a pronoun or an auxiliary starts with a verb.
-		if ( $first < $index && null !== $before && $clause === $before['clause'] && ! isset( $openers[ $before['lower'] ] ) && ( isset( $function_words[ $before['lower'] ] ) || mb_strlen( $before['lower'], 'UTF-8' ) < 3 ) ) {
+		if ( $first < $index && null !== $before && $clause === $before['clause'] && ! isset( $openers[ $before['lower'] ] ) && ( isset( $function_words[ $before['lower'] ] ) || ! undergrowth_is_long_enough( $before['lower'] ) ) ) {
 			++$first;
 		}
 
