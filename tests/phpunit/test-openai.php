@@ -33,6 +33,7 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$this->responses = array( $this->ok( array( 0.25, -0.5, 1 ) ) );
 		update_option( 'undergrowth_openai_api_key', self::KEY );
 		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_embed_retry_at' );
 		add_filter( 'pre_http_request', array( $this, 'fake_http' ), 10, 3 );
 	}
 
@@ -303,7 +304,7 @@ class Test_OpenAI extends WP_UnitTestCase {
 		$retry = undergrowth_openai_retry_time();
 		$this->assertGreaterThanOrEqual( $before + 120, $retry );
 		$this->assertLessThanOrEqual( time() + 120, $retry );
-		$this->assertSame( $retry, get_option( 'undergrowth_last_embed_error' )['retry'] );
+		$this->assertSame( $retry, get_option( 'undergrowth_embed_retry_at' ) );
 	}
 
 	public function test_retry_after_as_a_date_is_honoured() {
@@ -336,7 +337,7 @@ class Test_OpenAI extends WP_UnitTestCase {
 		undergrowth_embed( 'Oca keeps well.' );
 
 		$this->assertSame( 0, undergrowth_openai_retry_time() );
-		$this->assertArrayNotHasKey( 'retry', get_option( 'undergrowth_last_embed_error' ) );
+		$this->assertFalse( get_option( 'undergrowth_embed_retry_at' ) );
 	}
 
 	public function test_nothing_is_sent_while_waiting() {
@@ -349,15 +350,7 @@ class Test_OpenAI extends WP_UnitTestCase {
 	}
 
 	public function test_requests_resume_once_the_wait_is_over() {
-		update_option(
-			'undergrowth_last_embed_error',
-			array(
-				'code'   => 'http_status',
-				'status' => 429,
-				'time'   => time() - 200,
-				'retry'  => time() - 80,
-			)
-		);
+		update_option( 'undergrowth_embed_retry_at', time() - 80 );
 
 		$this->assertSame( 0, undergrowth_openai_retry_time() );
 		$this->assertNotSame( array(), undergrowth_embed( 'Oca keeps well.' ) );

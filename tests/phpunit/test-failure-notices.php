@@ -19,6 +19,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 
 	public function tear_down() {
 		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_embed_retry_at' );
 		delete_option( 'undergrowth_last_prompt_error' );
 		delete_option( 'undergrowth_last_discord_error' );
 
@@ -220,9 +221,9 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 				'code'   => 'http_status',
 				'status' => 429,
 				'time'   => time(),
-				'retry'  => $retry,
 			)
 		);
+		update_option( 'undergrowth_embed_retry_at', $retry );
 
 		ob_start();
 		undergrowth_render_key_field(

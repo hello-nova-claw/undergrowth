@@ -325,6 +325,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
 		update_option( 'undergrowth_openai_api_key', 'sk-test-0123456789abcd' );
 		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_embed_retry_at' );
 
 		// Saving the key queued a run. Each test runs or queues its own.
 		wp_unschedule_hook( 'undergrowth_backfill' );
@@ -382,11 +383,9 @@ class Test_Backfill extends WP_UnitTestCase {
 		do_action( 'undergrowth_backfill' );
 
 		// The wait is over, and OpenAI answers again.
-		$error          = get_option( 'undergrowth_last_embed_error' );
-		$error['retry'] = time() - 1;
+		update_option( 'undergrowth_embed_retry_at', time() - 1 );
 		remove_all_filters( 'pre_http_request' );
 		$sent = &$this->openai_answers( 200 );
-		update_option( 'undergrowth_last_embed_error', $error );
 
 		do_action( 'undergrowth_backfill' );
 
@@ -398,15 +397,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->archive( 1 );
 		$sent  = &$this->openai_answers( 200 );
 		$retry = time() + 120;
-		update_option(
-			'undergrowth_last_embed_error',
-			array(
-				'code'   => 'http_status',
-				'status' => 429,
-				'time'   => time(),
-				'retry'  => $retry,
-			)
-		);
+		update_option( 'undergrowth_embed_retry_at', $retry );
 
 		do_action( 'undergrowth_backfill' );
 
@@ -418,15 +409,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->archive( 1 );
 		$this->openai_answers( 200 );
 		$retry = time() + 120;
-		update_option(
-			'undergrowth_last_embed_error',
-			array(
-				'code'   => 'http_status',
-				'status' => 429,
-				'time'   => time(),
-				'retry'  => $retry,
-			)
-		);
+		update_option( 'undergrowth_embed_retry_at', $retry );
 
 		do_action( 'undergrowth_backfill_check' );
 
@@ -435,15 +418,7 @@ class Test_Backfill extends WP_UnitTestCase {
 
 	public function test_code_that_reads_the_posts_never_waits_for_openai() {
 		$this->archive( 1 );
-		update_option(
-			'undergrowth_last_embed_error',
-			array(
-				'code'   => 'http_status',
-				'status' => 429,
-				'time'   => time(),
-				'retry'  => time() + 120,
-			)
-		);
+		update_option( 'undergrowth_embed_retry_at', time() + 120 );
 
 		do_action( 'undergrowth_backfill' );
 
