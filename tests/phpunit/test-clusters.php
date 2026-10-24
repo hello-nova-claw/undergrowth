@@ -89,7 +89,7 @@ class Test_Clusters extends WP_UnitTestCase {
 		$ran = array();
 
 		// Enough for any pass these tests plant; a chain that never ends fails.
-		for ( $guard = 0; $guard < 100; $guard++ ) {
+		for ( $guard = 0; $guard <= 100; $guard++ ) {
 			$due = null;
 
 			foreach ( (array) _get_cron_array() as $timestamp => $hooks ) {
@@ -107,6 +107,10 @@ class Test_Clusters extends WP_UnitTestCase {
 				return $ran;
 			}
 
+			if ( 100 === $guard ) {
+				break;
+			}
+
 			list( $timestamp, $hook, $event ) = $due;
 
 			if ( false !== $event['schedule'] ) {
@@ -118,7 +122,7 @@ class Test_Clusters extends WP_UnitTestCase {
 			$ran[] = $hook;
 		}
 
-		$this->fail( 'Cron events kept coming due: ' . implode( ', ', array_slice( $ran, -5 ) ) );
+		$this->fail( 'More than 100 cron events came due; the last ran were ' . implode( ', ', array_slice( $ran, -5 ) ) );
 	}
 
 	/**
