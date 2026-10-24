@@ -139,18 +139,31 @@ test.describe( 'Editor links sidebar', () => {
 			editor.canvas.locator( `p a[href="${ yacon.link }"]` )
 		).toHaveCount( 1 );
 		await page.locator( '.editor-history__undo' ).click();
-		await pageUtils.pressKeys( 'primary+s' );
 		await expect(
-			page.locator( '.editor-post-saved-state, .components-snackbar' )
-		).not.toHaveCount( 0 );
+			editor.canvas.locator( `p a[href="${ yacon.link }"]` )
+		).toHaveCount( 0 );
 
-		await expect
-			.poll( async () =>
-				( await linksOf( requestUtils, oca.id ) ).outgoing.map(
-					( item ) => item.target
-				)
+		// Undo leaves nothing to save, so the title changes too, and the test
+		// waits for the save itself rather than for the editor's buttons.
+		await editor.canvas.locator( '.editor-post-title__input' ).click();
+		await page.keyboard.press( 'End' );
+		await page.keyboard.type( ' notes' );
+
+		const saved = page.waitForResponse(
+			( response ) =>
+				[ 'POST', 'PUT' ].includes( response.request().method() ) &&
+				response.url().includes( `posts/${ oca.id }` ) &&
+				! response.url().includes( 'autosaves' )
+		);
+
+		await pageUtils.pressKeys( 'primary+s' );
+		expect( ( await saved ).ok() ).toBe( true );
+
+		expect(
+			( await linksOf( requestUtils, oca.id ) ).outgoing.map(
+				( item ) => item.target
 			)
-			.toContain( yacon.id );
+		).toContain( yacon.id );
 	} );
 
 	test( 'vetoes by keyboard and moves focus to the list', async ( {
