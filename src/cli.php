@@ -162,6 +162,11 @@ function undergrowth_cli_run_cycle( array $args = array(), array $assoc_args = a
 
 	undergrowth_cli_check_user();
 
+	// The undo clears what the cycle writes, so the two never run together.
+	if ( undergrowth_dev_job_running() ) {
+		WP_CLI::error( 'Another dev tools job is still running. Wait for it to finish.' );
+	}
+
 	$runs = undergrowth_dev_run_cycle();
 
 	WP_CLI::success( sprintf( 'The cycle ran in %1$d batches and made %2$d groups.', $runs, count( undergrowth_cluster_map() ) ) );
