@@ -65,6 +65,54 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertSame( 1, $corpus['frequency']['yacon'] );
 	}
 
+	public function test_two_letter_hebrew_word_counts_in_the_corpus() {
+		// "גן" is a garden.
+		$garden = self::factory()->post->create(
+			array(
+				'post_title'   => 'גן',
+				'post_content' => 'שתלתי אוקה בגן.',
+			)
+		);
+		$roots  = self::factory()->post->create(
+			array(
+				'post_title'   => 'שורשים',
+				'post_content' => 'האוקה בגן גדלה.',
+			)
+		);
+
+		$corpus = undergrowth_build_corpus( array( $garden, $roots ) );
+
+		$this->assertSame( 1, $corpus['frequency']['גן'] );
+	}
+
+	/**
+	 * Checks which short words count as tokens.
+	 *
+	 * @dataProvider data_short_words
+	 *
+	 * @param string   $text   Text to break into words.
+	 * @param string[] $tokens Words it gives.
+	 */
+	public function test_short_words_count_outside_latin_and_cyrillic( string $text, array $tokens ) {
+		$this->assertSame( $tokens, undergrowth_tokens( $text ) );
+	}
+
+	/**
+	 * Text with two-letter words, and the words it gives.
+	 *
+	 * @return array<string, array{0: string, 1: string[]}>
+	 */
+	public function data_short_words(): array {
+		return array(
+			'English'  => array( 'an ox ate it', array( 'ate' ) ),
+			'Cyrillic' => array( 'он ел суп', array( 'суп' ) ),
+			'numbers'  => array( 'in 12 or 365 days', array( '365', 'days' ) ),
+			'Hebrew'   => array( 'גן ירק', array( 'גן', 'ירק' ) ),
+			'Arabic'   => array( 'من بستان', array( 'من', 'بستان' ) ),
+			'Korean'   => array( '감자 밭', array( '감자' ) ),
+		);
+	}
+
 	public function test_corpus_keeps_no_word_counts_for_each_post() {
 		$oca = self::factory()->post->create( array( 'post_content' => 'Oca likes frost.' ) );
 
