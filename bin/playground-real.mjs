@@ -24,7 +24,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseEnv } from 'node:util';
 import { buildPlugin, pluginMounts } from './plugin-mounts.cjs';
-import { startMessage } from './playground-real-text.cjs';
+import {
+	autoAccept,
+	autoAcceptMessage,
+	startMessage,
+} from './playground-real-text.cjs';
 
 const root = resolve( import.meta.dirname, '..' );
 const envFile = join( root, '.env.local' );
@@ -55,6 +59,7 @@ const openaiKey = ( env.OPENAI_API_KEY ?? '' ).trim();
 const anthropicKey = ( env.ANTHROPIC_API_KEY ?? '' ).trim();
 const wxr = ( env.WXR ?? '' ).trim();
 const embeddings = ( env.UNDERGROWTH_EMBEDDINGS ?? '' ).trim();
+const acceptAll = autoAccept( env );
 
 if ( ! [ '', 'ollama', 'openai' ].includes( embeddings ) ) {
 	fail( 'UNDERGROWTH_EMBEDDINGS in .env.local must be ollama or openai.' );
@@ -91,7 +96,8 @@ if ( '' !== wxr && ! existsSync( resolve( root, wxr ) ) ) {
 	fail( 'The WXR file named in .env.local does not exist.' );
 }
 
-const consts = { DISABLE_WP_CRON: true };
+// A local site, so Posts > Undergrowth has its Dev tools tab.
+const consts = { DISABLE_WP_CRON: true, WP_ENVIRONMENT_TYPE: 'local' };
 
 // In local mode an OpenAI key is left out, so nothing is sent to OpenAI.
 if ( ! local ) {
@@ -213,6 +219,69 @@ async function runCron() {
 
 runCron();
 
+// Tells whether every post is read: none is waiting, and no read, backfill
+// or cycle is queued. A post whose read failed is retried hourly, so it
+// would hold this up; the count says so.
+const readyCode = `<?php
+require '/wordpress/wp-load.php';
+$counts = undergrowth_index_counts();
+$queued = false;
+foreach ( (array) _get_cron_array() as $events ) {
+	foreach ( array( 'undergrowth_embed_post', 'undergrowth_backfill', 'undergrowth_cluster_cycle' ) as $hook ) {
+		foreach ( $events[ $hook ] ?? array() as $event ) {
+			$queued = $queued || false === $event['schedule'];
+		}
+	}
+}
+echo wp_json_encode( array( 'ready' => $counts['total'] > 0 && $counts['indexed'] >= $counts['total'] && ! $queued ) );
+`;
+
+// The same as \`wp undergrowth accept --all\` and \`wp undergrowth run-cycle\`,
+// which Playground has no WP-CLI for: the Dev tools' own job and cycle, as
+// the admin user, so every Accept rule applies.
+const acceptCode = `<?php
+require '/wordpress/wp-load.php';
+wp_set_current_user( 1 );
+$counts = array();
+if ( undergrowth_start_dev_job( 'accept' ) ) {
+	$job    = undergrowth_run_dev_job( null );
+	$counts = null === $job ? array() : $job['counts'];
+}
+undergrowth_dev_run_cycle();
+echo wp_json_encode( array( 'counts' => (object) $counts, 'groups' => count( undergrowth_cluster_map() ) ) );
+`;
+
+/**
+ * Once every post is read, accepts every suggestion and runs the cycle, once.
+ */
+async function acceptWhenRead() {
+	try {
+		const ready = JSON.parse(
+			( await server.playground.run( { code: readyCode } ) ).text
+		);
+
+		if ( ready.ready ) {
+			const result = JSON.parse(
+				( await server.playground.run( { code: acceptCode } ) ).text
+			);
+
+			process.stdout.write( autoAcceptMessage( result ) );
+			return;
+		}
+	} catch ( error ) {
+		process.stderr.write(
+			`Could not accept the suggestions: ${ error.message }\n`
+		);
+		return;
+	}
+
+	setTimeout( acceptWhenRead, cronPause * 1000 ).unref();
+}
+
+if ( acceptAll ) {
+	acceptWhenRead();
+}
+
 /**
  * Prints what `wp undergrowth scores` prints, which Playground has no WP-CLI
  * for: score percentiles and thresholds, never any post text.
@@ -246,5 +315,6 @@ process.stdout.write(
 		local,
 		model: ollamaModel,
 		anthropic: '' !== anthropicKey,
+		acceptAll,
 	} )
 );
