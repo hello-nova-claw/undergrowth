@@ -20,9 +20,10 @@ add_action( 'clean_post_cache', 'undergrowth_forget_reusable_corpus' );
 // Another site's posts table can hold the same IDs.
 add_action( 'switch_blog', 'undergrowth_forget_reusable_corpus' );
 
-// Hiragana, katakana and CJK ideographs. These scripts do not separate words
-// with spaces, so they are matched as overlapping pairs of characters.
-const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}';
+// Thai, Lao, Tibetan, Burmese, Khmer, hiragana, katakana and CJK ideographs.
+// These scripts do not separate words with spaces, so they are matched as
+// overlapping pairs of characters.
+const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{0E00}-\x{0EFF}\x{0F00}-\x{0FFF}\x{1000}-\x{109F}\x{1780}-\x{17FF}\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}';
 
 /**
  * Splits post content into sentences, in order.
@@ -80,9 +81,14 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
-		// A closing quotation mark or bracket can sit between the stop and the space.
+		// A closing quotation mark or bracket can sit between the stop and the
+		// space. Besides Latin stops, these are the danda, Urdu, Armenian and
+		// Ethiopic full stops and the Greek and Arabic question marks. Unicode
+		// normalisation turns the Greek one into a semicolon, which ends a
+		// sentence only after a Greek letter. CJK and Burmese stops need no
+		// space after them.
 		$in_quote = false !== strpos( $block, $quoted );
-		$parts    = preg_split( '/[.!?…][”’"\'»)\]]*\K\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
+		$parts    = preg_split( '/(?:[.!?…।॥۔։።؟\x{037E}]|(?<=\p{Greek});)[”’"\'»)\]]*\K\s+|(?<=[。！？။])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
@@ -200,7 +206,9 @@ function undergrowth_inside_others_words( string $before ): bool {
 function undergrowth_tokens( string $text ): array {
 	$unspaced = UNDERGROWTH_UNSPACED_SCRIPTS;
 
-	if ( ! preg_match_all( "/[{$unspaced}]+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", mb_strtolower( $text, 'UTF-8' ), $matches ) ) {
+	// Only letters, marks and digits of an unspaced script count, so a stop
+	// such as the Burmese one is never part of a pair.
+	if ( ! preg_match_all( "/(?:(?=[\\p{L}\\p{M}\\p{N}])[{$unspaced}])+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", mb_strtolower( $text, 'UTF-8' ), $matches ) ) {
 		return array();
 	}
 

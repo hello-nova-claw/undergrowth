@@ -1,0 +1,1 @@
+Link suggestions now find sentences in Hindi, Bengali, Urdu, Arabic, Armenian, Amharic, Greek and Burmese, and read Thai, Lao, Khmer, Burmese and Tibetan text in pairs of characters, as Japanese is, so a suggestion quotes one sentence rather than a whole paragraph.
