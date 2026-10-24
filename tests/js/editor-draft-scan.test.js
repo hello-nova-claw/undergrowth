@@ -196,6 +196,22 @@ describe( 'Scan this draft', () => {
 		expect( linked ).toEqual( [ [ 'p1', linkedHtml ] ] );
 	} );
 
+	test( 'names the target in Accept, for screen readers', async () => {
+		replies = [
+			{ available: true, destination: DESTINATION, unavailable: '' },
+			scanned(),
+		];
+
+		const { container } = await renderScan();
+
+		button( container, 'Scan this draft' ).click();
+		await waitFor( () => button( container, 'Accept' ) );
+
+		expect(
+			button( container, 'Accept' ).getAttribute( 'aria-label' )
+		).toContain( 'Seed ledger' );
+	} );
+
 	test( 'says when nothing is close enough', async () => {
 		replies = [
 			{ available: true, destination: DESTINATION, unavailable: '' },
