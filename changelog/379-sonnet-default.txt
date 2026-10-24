@@ -1,0 +1,1 @@
+Questions are now written by Claude Sonnet 5.5 instead of Claude Opus 5.5, which costs about half as much: usually one or two cents a request. The `undergrowth_prompt_model` filter still picks any other model.

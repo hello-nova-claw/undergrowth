@@ -102,7 +102,7 @@ npm run test:e2e
 ## Accessibility
 
 - Every admin screen and every block in the editor is checked with axe through Playwright, against WCAG 2.2 AA. Any violation fails the build.
-- Front-end block output is checked again with pa11y-ci.
+- pa11y-ci checks the admin screens, the Dashboard widget and the Growth stage block on the front end again, with both axe and HTML_CodeSniffer, in WordPress Playground. `npm run test:a11y` runs it without Docker. The pages and the rules it skips, each with its reason, are in `.pa11yci.js`.
 - End-to-end tests also run in Hebrew (right to left) and in a pseudo-locale with lengthened strings. Layouts must survive both.
 - **Every pull request that touches UI must say how it was tested with a keyboard alone**: what you tabbed through, what you activated, where focus went afterwards.
 
