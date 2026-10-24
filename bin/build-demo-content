@@ -217,6 +217,17 @@ def fail(message):
     sys.exit(1)
 
 
+def verified(book, data):
+    """The book's bytes, once they match the hash recorded for it."""
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != book['sha256']:
+        fail(
+            f"pg{book['number']}.txt does not match its recorded hash (sha256 {digest}). If Gutenberg "
+            'has corrected the book, check the new text, then update its hash in BOOKS. The output will change.'
+        )
+    return data
+
+
 def download(book, cache):
     """The book's text from the cache, downloaded first if it isn't there."""
     path = cache / f"pg{book['number']}.txt"
@@ -224,18 +235,11 @@ def download(book, cache):
         url = f"https://www.gutenberg.org/cache/epub/{book['number']}/pg{book['number']}.txt"
         request = urllib.request.Request(url, headers={'User-Agent': 'undergrowth-demo-content'})
         with urllib.request.urlopen(request, timeout=60) as response:
-            data = response.read()
-        path.write_bytes(data)
+            # A download that fails the check never reaches the cache, so the next run tries again.
+            path.write_bytes(verified(book, response.read()))
         # Gutenberg asks automated downloads to go gently.
         time.sleep(2)
-    data = path.read_bytes()
-    digest = hashlib.sha256(data).hexdigest()
-    if digest != book['sha256']:
-        fail(
-            f"pg{book['number']}.txt has changed on Gutenberg (sha256 {digest}). Check the new text, "
-            'then update its hash in BOOKS. The output will change.'
-        )
-    return data.decode('utf-8').replace('\r', '')
+    return verified(book, path.read_bytes()).decode('utf-8').replace('\r', '')
 
 
 def text_lines(text):
