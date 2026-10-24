@@ -35,7 +35,7 @@ Undergrowth contacts three services, each only once you set it up: OpenAI, to re
 == Installation ==
 
 1. Install and activate the plugin.
-2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. With neither a key nor your own provider through the `undergrowth_embed_provider` filter, Undergrowth sends nothing and suggests nothing.
+2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. With neither a key nor your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, Undergrowth sends nothing and suggests nothing.
 3. Posts you published earlier are read in the background as WP-Cron runs. The settings page shows how many are done.
 4. Optionally, add an Anthropic API key for the Dashboard question, and set up Discord (see the FAQ).
 

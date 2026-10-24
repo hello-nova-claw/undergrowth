@@ -24,7 +24,7 @@ Settings › Undergrowth has three sections (Link suggestions, Questions on your
 ## Requirements
 
 - WordPress 6.9 or later (for the Abilities API).
-- PHP 7.4 or later.
+- PHP 7.4 or later, with the mbstring extension.
 - WP-Cron, or a real cron job calling it.
 - An OpenAI API key, or your own embedding provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [docs/examples/local-embeddings.php](docs/examples/local-embeddings.php) uses a model on your own machine instead.
 - Optional: an Anthropic API key for the Dashboard questions, Jetpack Stats for the meter, and an HTTPS site for Discord.
