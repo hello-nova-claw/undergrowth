@@ -142,8 +142,29 @@ function undergrowth_e2e_read_demo(): void {
 
 	add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 
-	// Suggestions use the thresholds the cycle measures from these posts.
-	undergrowth_run_cluster_cycle();
+	// Suggestions use the thresholds the cycle measures from these posts. A
+	// batch that fills up leaves the next to cron, which never runs here, so
+	// each one is taken off the schedule and run now. Only those events carry
+	// the last post ID; the monthly event has none.
+	$after = 0;
+
+	do {
+		undergrowth_run_cluster_cycle( $after );
+		$next = null;
+
+		foreach ( (array) _get_cron_array() as $events ) {
+			foreach ( $events['undergrowth_cluster_cycle'] ?? array() as $event ) {
+				if ( isset( $event['args'][0] ) && (int) $event['args'][0] > $after ) {
+					$next = (int) $event['args'][0];
+				}
+			}
+		}
+
+		if ( null !== $next ) {
+			wp_clear_scheduled_hook( 'undergrowth_cluster_cycle', array( $next ) );
+			$after = $next;
+		}
+	} while ( null !== $next );
 
 	$pool   = undergrowth_comparable_vectors( (int) $ids[0] );
 	$corpus = undergrowth_build_corpus( array_keys( $pool ) );
