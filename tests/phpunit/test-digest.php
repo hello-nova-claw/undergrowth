@@ -174,6 +174,42 @@ class Test_Digest extends WP_UnitTestCase {
 		$this->assertLessThan( strpos( $message, 'Score 0.55' ), strpos( $message, 'Score 0.6' ) );
 	}
 
+	public function test_suggestions_the_user_cannot_act_on_do_not_take_a_place() {
+		$user_id    = $this->subscriber();
+		$locked     = array();
+		$best_score = 0.99;
+
+		foreach ( range( 1, 5 ) as $n ) {
+			list( $source ) = $this->proposal( array( 'score' => $best_score - $n / 100 ) );
+			$locked[]       = $source;
+		}
+
+		$this->proposal( array( 'target_id' => PHP_INT_MAX ) );
+		list( $open ) = $this->proposal( array( 'score' => 0.6 ) );
+		wp_update_post(
+			array(
+				'ID'         => $open,
+				'post_title' => 'One I can edit',
+			)
+		);
+		add_filter(
+			'map_meta_cap',
+			static function ( $caps, $cap, $user, $args ) use ( $locked ) {
+				return 'edit_post' === $cap && in_array( (int) ( $args[0] ?? 0 ), $locked, true ) ? array( 'do_not_allow' ) : $caps;
+			},
+			10,
+			4
+		);
+
+		$this->assertCount( 1, undergrowth_digest_suggestions( 0, new WP_User( $user_id ) ) );
+
+		undergrowth_send_digests();
+
+		$this->assertStringContainsString( 'One I can edit', $this->sent[0]['message'] );
+		$this->assertStringContainsString( '1. A link to', $this->sent[0]['message'] );
+		$this->assertStringNotContainsString( '2. A link to', $this->sent[0]['message'] );
+	}
+
 	public function test_a_shared_map_group_is_the_reason() {
 		$this->subscriber();
 		list( $source, $target ) = $this->proposal();
