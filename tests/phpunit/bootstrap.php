@@ -47,6 +47,10 @@ if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
 	require __DIR__ . '/includes/class-wpcom-stats.php';
 }
 
+if ( ! function_exists( 'pll_get_post_language' ) ) {
+	require __DIR__ . '/includes/polylang.php';
+}
+
 // Composer loads WP-CLI's class with the i18n command, but not WP-CLI
 // itself. Its helper functions and the commands file are loaded here, so the
 // commands can be run with a logger that keeps what they print.
