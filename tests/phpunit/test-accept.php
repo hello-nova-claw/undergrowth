@@ -221,10 +221,7 @@ class Test_Accept extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->update(
 			undergrowth_links_table(),
-			array(
-				'sentence'       => 'I keep yacon plants for their syrup.',
-				'sentence_index' => 2,
-			),
+			array( 'sentence' => 'I keep yacon plants for their syrup.' ),
 			array(
 				'source_id' => $oca,
 				'target_id' => $yacon,
@@ -695,14 +692,13 @@ class Test_Accept extends WP_UnitTestCase {
 		$wpdb->replace(
 			undergrowth_links_table(),
 			array(
-				'source_id'      => $oca,
-				'target_id'      => $yacon,
-				'state'          => 'proposed',
-				'score'          => 0.9,
-				'sentence'       => $sentence,
-				'sentence_index' => 1,
-				'created_at'     => current_time( 'mysql', true ),
-				'updated_at'     => current_time( 'mysql', true ),
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => $sentence,
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
 			)
 		);
 
