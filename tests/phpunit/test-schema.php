@@ -317,16 +317,21 @@ class Test_Schema extends WP_UnitTestCase {
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
 		update_option( 'undergrowth_schema_version', 5 );
 		// wpdb sends no empty query and reports it as failed, as for a refused ALTER.
-		add_filter(
-			'query',
-			static function ( $query ) {
-				return false !== stripos( $query, 'DROP COLUMN sentence_index' ) ? '' : $query;
-			}
-		);
+		$refuse = static function ( $query ) {
+			return false !== stripos( $query, 'DROP COLUMN sentence_index' ) ? '' : $query;
+		};
+		add_filter( 'query', $refuse );
 
 		$this->assertFalse( undergrowth_install_schema() );
 		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
 		$this->assertSame( 5, (int) get_option( 'undergrowth_schema_version' ) );
+
+		// The next load tries again. On MySQL the table changes commit the
+		// option too, so a version left behind would reach later tests.
+		remove_filter( 'query', $refuse );
+		$this->assertTrue( undergrowth_install_schema() );
+		$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
 	public function test_current_schema_version_skips_install() {
