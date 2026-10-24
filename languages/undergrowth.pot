@@ -40,6 +40,11 @@ msgstr ""
 msgid "Novaclaw"
 msgstr ""
 
+#. Author URI of the plugin
+#: undergrowth.php
+msgid "https://github.com/hello-nova-claw"
+msgstr ""
+
 #: src/abilities.php
 msgid "Read what Undergrowth knows about a post, a cluster or the whole site, and accept or veto the links it suggests."
 msgstr ""
@@ -1325,6 +1330,12 @@ msgstr ""
 
 #: src/settings.php
 msgid "Remove the saved key and stop sending posts to OpenAI"
+msgstr ""
+
+#. translators: %1$s: date and time.
+#: src/settings.php
+#, php-format
+msgid "Undergrowth waits until %1$s, then sends the posts that were not read."
 msgstr ""
 
 #: src/settings.php

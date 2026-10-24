@@ -1,0 +1,33 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Undergrowth pa11y-ci site",
+		"author": "hello-nova-claw",
+		"description": "The plugin with the e2e test provider and the small demo blog (demo/undergrowth-demo-small.xml), read once so the Growth stages, the Map and the Dashboard widget are filled in, plus one post carrying the Growth stage block. Used by bin/pa11y.mjs and .pa11yci.js."
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "undergrowth/undergrowth.php"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The demo posts are read once they are all imported.\nupdate_option( 'undergrowth_e2e_demo', 'importing' );\n"
+		},
+		{
+			"step": "importWxr",
+			"file": {
+				"resource": "vfs",
+				"path": "/wordpress/wp-content/undergrowth-demo/undergrowth-demo-small.xml"
+			}
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// pa11y-ci opens this post by its slug, through ?name=.\nwp_insert_post(\n\tarray(\n\t\t'post_title'   => 'Oca',\n\t\t'post_name'    => 'undergrowth-pa11y',\n\t\t'post_content' => \"<!-- wp:paragraph -->\\n<p>Oca grows from tubers.</p>\\n<!-- /wp:paragraph -->\\n\\n<!-- wp:undergrowth/growth-stage /-->\",\n\t\t'post_status'  => 'publish',\n\t)\n);\n\nundergrowth_e2e_read_demo();\n\n// A reader's question, and a made-up key, so the Dashboard has a prompt.\n// The test site answers every request to Claude itself.\n$posts = get_posts(\n\tarray(\n\t\t'tag'         => 'winter',\n\t\t'numberposts' => 1,\n\t\t'order'       => 'ASC',\n\t)\n);\nwp_insert_comment(\n\tarray(\n\t\t'comment_post_ID'      => $posts[0]->ID,\n\t\t'comment_content'      => 'How do you keep oca through the winter?',\n\t\t'comment_approved'     => 1,\n\t\t'comment_author'       => 'A reader',\n\t\t'comment_author_email' => 'reader@example.com',\n\t)\n);\nupdate_option( 'undergrowth_anthropic_api_key', 'not-a-real-anthropic-key' );\nundergrowth_write_prompt();\n"
+		}
+	]
+}

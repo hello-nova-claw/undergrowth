@@ -1,5 +1,5 @@
 === Undergrowth ===
-Contributors: novaclaw
+Contributors: annamcphee
 Tags: internal links, digital garden, site structure, seo
 Requires at least: 6.9
 Tested up to: 7.1
@@ -73,7 +73,7 @@ Only the site's total page views for each of the last 30 days, which it adds up 
 
 = What does it cost? =
 
-Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually a few cents each, and at most a handful are written each month.
+Undergrowth is free. The services it uses bill your own accounts. Embedding is very cheap: at OpenAI's published price of $0.02 per million tokens for text-embedding-3-small, reading 500 posts of about 1,500 words each costs about two cents, and each later edit a fraction of a cent. Each question from Claude is one or two short requests, usually one or two cents each, and at most a handful are written each month.
 
 = Does it need a key to work at all? =
 
@@ -163,31 +163,5 @@ Each message sends Discord the titles of both posts, the suggested sentence, whi
 
 == Changelog ==
 
-= Unreleased =
-* Project scaffold: contribution rules, templates and CI.
-* Published posts are turned into vectors on save when a site supplies an embedding provider through the undergrowth_embed_provider filter. No post content leaves the site otherwise.
-* New Settings > Undergrowth page for an OpenAI API key. With a key saved, published posts are embedded with OpenAI text-embedding-3-small; the page says what is sent before anything is.
-* Each published post now gets up to three proposed links to your closest other posts. Proposals are stored for review; nothing is added to a post until you accept it.
-* Each proposed link now names the sentence in your post where it fits, in your own words with formatting removed.
-* Each indexed post now has a readable plain-text file listing its proposed, accepted and vetoed links, in the site's uploads folder under undergrowth/posts/.
-* New Posts > Link suggestions screen listing every proposed link with the sentence it would sit in. Veto a suggestion so it is never made again, or switch suggestions off.
-* Accept a suggestion to link one word of your own sentence to the suggested post. A revision is kept, and nothing changes when the word can't be linked safely.
-* Each post now has a growth stage in post meta, undergrowth_stage, that themes and the REST API can read. Every post starts as a Seedling.
-* Growth stages are measured once a month from the links you have accepted: a post with two or more becomes a Sprout. Stages never change when you save a post, and the monthly cycle never lowers one.
-* Each post's file now names its growth stage and lists every change to it, with the date and what made it.
-* A post's growth stage can be pinned, so the monthly cycle leaves it alone. A pinned stage is marked in post meta, undergrowth_stage_pinned, and in the post's file.
-* A post can be moved to compost, a rest you choose, and returned to the garden whenever you like. A composting post stays published and keeps its accepted links, but gets no new link suggestions in or out. It has no timer and never expires. On return its stage is measured again.
-* Settings > Undergrowth now fits a phone screen when a translation has very long words.
-* Suggestions no longer pick a sentence inside a quote, a pullquote or a Custom HTML block, since those can never be linked. The suggestion uses the next best sentence instead.
-* New Growth stages tab on Posts > Link suggestions lists each post Undergrowth reads (published and not password-protected) with its stage. Pin a stage to keep it as it is, or unpin it to have it measured again. A pinned stage shows a pin marker.
-* The Growth stages tab lists nothing when the undergrowth_post_types filter leaves no post type to read, instead of falling back to ordinary posts.
-* Text inside a Custom HTML, quote or pullquote block is no longer offered as a suggestion's sentence when the block's markup contains a block comment inside an attribute.
-* New abilities for agents and other plugins, through the Abilities API, each reading one post: undergrowth/has (its most distinctive words and the posts it links to), undergrowth/lacks (its open suggestions, each with the sentence quoted from the post), undergrowth/scent (empty until reader mode) and undergrowth/stage (its growth stage, pin and changes). Only someone who can edit the post can read them. They return only what comes from your posts and the plugin's own counting, never model output.
-* New abilities undergrowth/accept-link and undergrowth/veto-link let code on your site accept or veto a suggestion, exactly as the buttons do, for a user who can edit the post. They are never available over the REST API or MCP.
-* Posts are now grouped into clusters once a month, from the vectors already stored, before growth stages are measured. Only posts embedded with the same provider, model and language are compared, composted posts are left out, and three or more similar posts make a cluster. Nothing is sent anywhere to do this.
-* A post in a cluster of three or more, with accepted links both to and from it, now becomes Budding on the monthly cycle. Evergreen also needs a hub post linking to it, and hubs come with reader mode, so for now a post reaches Evergreen only when you pin it.
-* On the Posts screen, a published post now has a Compost link, and a composting post a Return to garden link. Both are bulk actions too. Composting posts are marked Composting and have their own view. They are left out of Posts > Link suggestions: no suggestion to or from one is listed, and the Growth stages tab does not list them.
-* Settings > Undergrowth has a second key, for Anthropic, which will let Claude write you an occasional question about your own writing. The page says what is sent: one post's title, sentences quoted from it and, for a question from a reader, that comment's text. Nothing is sent until you save a key, and nothing written by Claude is ever shown to your readers.
-* With an Anthropic key saved, Undergrowth looks once a month for a reader's question in an approved comment and asks Claude to turn it into one question for you. The reader's words are sent as data, never as instructions. A reply is kept only if it is a single question that quotes nobody but you; anything else is thrown away.
-* New Dashboard widget shows the one question waiting for you, with the post it came from. Choose Ask me next month to see it again at the next monthly cycle, or Dismiss for good so that question never comes back. Nothing new appears until the next cycle, and there is never a list to clear. Every question, dismissal and snooze is written in the post's file.
-* Each post's file now has a resurfacing section, ready to list each time an old composting post is shown as close to what you are writing now, and each time you dismiss that. The plugin can also read a post's file back, on this site or another, and restore the post's stage, pin and history, so a composting post stays composting. There is no import screen yet.
+= 0.1.0 =
+* First release.

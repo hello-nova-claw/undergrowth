@@ -314,6 +314,129 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertSame( 'openai', undergrowth_get_vector( $ids[199] )['provider'] );
 	}
 
+	/**
+	 * Sends the backfill to OpenAI, which answers every request with one status.
+	 *
+	 * @param int    $status      HTTP status code.
+	 * @param string $retry_after Retry-After header, or empty for none.
+	 * @return array<int, string> Reference to the texts sent, filled as requests go out.
+	 */
+	private function &openai_answers( int $status, string $retry_after = '' ): array {
+		remove_filter( 'undergrowth_embed_provider', array( $this, 'provider' ) );
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+		update_option( 'undergrowth_openai_api_key', 'sk-test-0123456789abcd' );
+		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_embed_retry_at' );
+
+		// Saving the key queued a run. Each test runs or queues its own.
+		wp_unschedule_hook( 'undergrowth_backfill' );
+
+		$sent = array();
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args ) use ( &$sent, $status, $retry_after ) {
+				$sent[] = json_decode( $args['body'], true )['input'];
+
+				return array(
+					'headers'  => '' !== $retry_after ? array( 'retry-after' => $retry_after ) : array(),
+					'body'     => 200 === $status ? wp_json_encode( array( 'data' => array( array( 'embedding' => array( 0.5, 0.5 ) ) ) ) ) : '{}',
+					'response' => array(
+						'code'    => $status,
+						'message' => '',
+					),
+					'cookies'  => array(),
+					'filename' => null,
+				);
+			},
+			10,
+			2
+		);
+
+		return $sent;
+	}
+
+	public function test_too_many_requests_stops_the_batch_and_waits() {
+		$this->archive( 3 );
+		$sent   = &$this->openai_answers( 429, '120' );
+		$before = time();
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $sent );
+		$this->assertGreaterThanOrEqual( $before + 120, wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_server_error_stops_the_batch_and_waits_five_minutes() {
+		$this->archive( 3 );
+		$sent   = &$this->openai_answers( 500 );
+		$before = time();
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $sent );
+		$this->assertGreaterThanOrEqual( $before + 5 * MINUTE_IN_SECONDS, wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_post_that_was_turned_away_is_sent_first_after_the_wait() {
+		$ids = $this->archive( 3 );
+		$this->openai_answers( 429, '120' );
+
+		do_action( 'undergrowth_backfill' );
+
+		// The wait is over, and OpenAI answers again.
+		update_option( 'undergrowth_embed_retry_at', time() - 1 );
+		remove_all_filters( 'pre_http_request' );
+		$sent = &$this->openai_answers( 200 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( undergrowth_post_text( get_post( $ids[0] ) ), $sent[0] );
+		$this->assertSame( 3, undergrowth_index_counts()['indexed'] );
+	}
+
+	public function test_run_while_waiting_sends_nothing_and_waits_for_the_retry_time() {
+		$this->archive( 1 );
+		$sent  = &$this->openai_answers( 200 );
+		$retry = time() + 120;
+		update_option( 'undergrowth_embed_retry_at', $retry );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 0, $sent );
+		$this->assertSame( $retry, wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_check_while_waiting_queues_the_run_for_the_retry_time() {
+		$this->archive( 1 );
+		$this->openai_answers( 200 );
+		$retry = time() + 120;
+		update_option( 'undergrowth_embed_retry_at', $retry );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( $retry, wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_code_that_reads_the_posts_never_waits_for_openai() {
+		$this->archive( 1 );
+		update_option( 'undergrowth_embed_retry_at', time() + 120 );
+
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertCount( 1, $this->embedded );
+	}
+
+	public function test_rejected_request_moves_on_to_the_next_post() {
+		$this->archive( 3 );
+		$sent = &$this->openai_answers( 400, '120' );
+
+		do_action( 'undergrowth_backfill' );
+
+		// Each post is sent twice, the second time cut shorter.
+		$this->assertCount( 6, $sent );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
 	public function test_posts_that_must_not_be_sent_are_skipped() {
 		register_post_type( 'recipe', array( 'public' => true ) );
 		$this->archive( 1, array( 'post_status' => 'draft' ) );

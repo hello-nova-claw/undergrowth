@@ -1,1 +1,0 @@
-With Discord set up, each new link suggestion is posted to your channel with Accept and Veto buttons, once. The message holds both post titles, the suggested sentence and links to both posts; nobody can be mentioned from it. Suggestions made before you set the channel are not posted. A failed message is shown on the settings page and tried again later. The buttons do nothing yet.

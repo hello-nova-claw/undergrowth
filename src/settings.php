@@ -329,7 +329,14 @@ function undergrowth_render_key_field( array $args ): void {
 		$notice = __( 'With a key, the title and text of each published post without a password are sent to OpenAI. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.openai.com/api-keys', __( 'Get a key from OpenAI', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending posts to OpenAI', 'undergrowth' );
-		$retry  = __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
+		$wait   = undergrowth_openai_retry_time();
+		$retry  = 0 !== $wait
+			? sprintf(
+				/* translators: %1$s: date and time. */
+				__( 'Undergrowth waits until %1$s, then sends the posts that were not read.', 'undergrowth' ),
+				wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $wait )
+			)
+			: __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
 		$key    = undergrowth_anthropic_key();
 		$error  = get_option( 'undergrowth_last_prompt_error' );

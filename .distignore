@@ -14,7 +14,7 @@
 .editorconfig
 .gitignore
 .nvmrc
-.pa11yci.json
+.pa11yci.js
 .wp-env.json
 composer.json
 composer.lock

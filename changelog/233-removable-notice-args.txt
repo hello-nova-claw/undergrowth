@@ -1,1 +1,0 @@
-A notice on Posts › Undergrowth or the Dashboard no longer comes back when the page is reloaded, and an action taken right after another now shows only its own result.

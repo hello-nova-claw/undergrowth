@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_ANTHROPIC_URL     = 'https://api.anthropic.com/v1/messages'; // phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- The owner's own key, as the handover decided; the core AI Client needs WordPress 7.0 (#119).
 const UNDERGROWTH_ANTHROPIC_VERSION = '2023-06-01';
-const UNDERGROWTH_ANTHROPIC_MODEL   = 'claude-opus-5-5';
+const UNDERGROWTH_ANTHROPIC_MODEL   = 'claude-sonnet-5-5';
 
 // A prompt is one sentence, but the model thinks before it answers and that
 // counts against the same limit. A reply cut off by it is thrown away.

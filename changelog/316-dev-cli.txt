@@ -1,1 +1,0 @@
-Local and development sites get `wp undergrowth accept --all [--per-post=<n>] [--dry-run]`, `wp undergrowth run-cycle` and `wp undergrowth reset [--forget-vectors] [--yes]`, the Dev tools tab's tools for scripts. They run as an administrator, given with `--user`, and do not exist on staging or production sites.

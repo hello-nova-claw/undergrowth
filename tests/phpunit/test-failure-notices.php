@@ -19,6 +19,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 
 	public function tear_down() {
 		delete_option( 'undergrowth_last_embed_error' );
+		delete_option( 'undergrowth_embed_retry_at' );
 		delete_option( 'undergrowth_last_prompt_error' );
 		delete_option( 'undergrowth_last_discord_error' );
 
@@ -210,6 +211,31 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( array( '1:2', '3:4' ), undergrowth_discord_pending() );
+	}
+
+	public function test_openai_notice_says_when_posts_are_sent_again_after_a_wait() {
+		$retry = time() + 120;
+		update_option(
+			'undergrowth_last_embed_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 429,
+				'time'   => time(),
+			)
+		);
+		update_option( 'undergrowth_embed_retry_at', $retry );
+
+		ob_start();
+		undergrowth_render_key_field(
+			array(
+				'label_for' => 'undergrowth_openai_api_key',
+				'provider'  => 'openai',
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Undergrowth waits until ' . wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $retry ) . ', then sends the posts that were not read.', $html );
+		$this->assertStringNotContainsString( 'within the hour', $html );
 	}
 
 	public function test_failure_notice_is_an_inline_warning_with_escaped_text() {
