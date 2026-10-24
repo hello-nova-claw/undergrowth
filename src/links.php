@@ -370,9 +370,12 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 		return false;
 	}
 
+	// Only a row still vetoed is changed, so an Accept or a refresh that got
+	// there first is never undone.
 	$where = array(
 		'source_id' => $source_id,
 		'target_id' => $target_id,
+		'state'     => 'vetoed',
 	);
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
@@ -380,7 +383,7 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 
 	if ( '' === $sentence ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-		$done = $wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d' ) );
+		$done = $wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d', '%s' ) );
 	} else {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
 		$done = $wpdb->update(
@@ -391,7 +394,7 @@ function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 			),
 			$where,
 			array( '%s', '%s' ),
-			array( '%d', '%d' )
+			array( '%d', '%d', '%s' )
 		);
 	}
 
