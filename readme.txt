@@ -68,7 +68,7 @@ Only the site's total page views for each of the last 30 days, added up into one
 
 = What does it cost? =
 
-Undergrowth is free. The services bill your own accounts. At OpenAI's published price for text-embedding-3-small, reading 500 posts of about 1,500 words costs about two cents. Each question from Claude is one or two short requests, usually a few cents each.
+Undergrowth is free. The services bill your own accounts. At OpenAI's published price for text-embedding-3-small, reading 500 posts of about 1,500 words costs about two cents. Each question from Claude is one or two short requests, usually one or two cents each.
 
 = Does it need a key to work at all? =
 
