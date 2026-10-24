@@ -19,10 +19,10 @@ add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_cycled', 'undergrowth_update_memory' );
 add_action( 'undergrowth_resurfacing_logged', 'undergrowth_update_memory' );
 add_action( 'undergrowth_prompt_logged', 'undergrowth_update_memory' );
-add_action( 'post_updated', 'undergrowth_update_memory_around' );
+add_action( 'post_updated', 'undergrowth_update_memory_after_save', 10, 2 );
 add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
-add_action( 'after_delete_post', 'undergrowth_update_memory_around' );
+add_action( 'after_delete_post', 'undergrowth_update_memory_around', 10, 2 );
 add_action( 'init', 'undergrowth_prepare_memory_folder' );
 
 /**
@@ -516,10 +516,15 @@ function undergrowth_write_protection_file( WP_Filesystem_Base $filesystem, stri
  * A new slug changes the post's address without changing its text, so the
  * post is not re-embedded and nothing else would rewrite these files.
  *
- * @param int $post_id Post that was updated.
+ * @param int          $post_id Post that was updated.
+ * @param WP_Post|null $post    The post, when core's hook passes it.
  */
-function undergrowth_update_memory_around( int $post_id ): void {
+function undergrowth_update_memory_around( int $post_id, ?WP_Post $post = null ): void {
 	global $wpdb;
+
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
 
 	undergrowth_write_memory( $post_id );
 
@@ -534,6 +539,29 @@ function undergrowth_update_memory_around( int $post_id ): void {
 
 	foreach ( array_map( 'intval', $sources ) as $source_id ) {
 		undergrowth_write_memory( $source_id );
+	}
+}
+
+/**
+ * Rewrites the files around a post after it is saved, when its type is
+ * indexed or it still has a file.
+ *
+ * A post of another type has no file, unless it was indexed under an
+ * earlier post type filter. One that also kept a vector leaves the index
+ * on this same save, but one with only a file is caught here.
+ *
+ * @param int     $post_id Post that was updated.
+ * @param WP_Post $post    The post as saved.
+ */
+function undergrowth_update_memory_after_save( int $post_id, WP_Post $post ): void {
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
+
+	$path = undergrowth_memory_path( $post_id );
+
+	if ( in_array( $post->post_type, undergrowth_indexed_post_types(), true ) || ( '' !== $path && file_exists( $path ) ) ) {
+		undergrowth_update_memory_around( $post_id, $post );
 	}
 }
 

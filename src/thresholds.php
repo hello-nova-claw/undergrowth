@@ -28,7 +28,7 @@ const UNDERGROWTH_FIXED_THRESHOLD_PROVIDERS = array( 'openai' );
 
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_scores_below_minimum' );
 // After the deleted post's vector is gone.
-add_action( 'deleted_post', 'undergrowth_forget_scores_below_minimum', 20, 0 );
+add_action( 'deleted_post', 'undergrowth_forget_scores_below_minimum', 20, 2 );
 
 /**
  * Lists the providers that keep the fixed thresholds whatever their scores.
@@ -186,9 +186,16 @@ function undergrowth_keep_in_reservoir( array &$kept, string $item, int $seen, i
  * Forgets the measured scores once the site has too few posts to trust them.
  *
  * A site with more posts left keeps them until the next cycle measures again.
+ *
+ * @param int          $post_id Post that left the index or was deleted. Unused.
+ * @param WP_Post|null $post    The deleted post, when core's hook passes it.
  */
-function undergrowth_forget_scores_below_minimum(): void {
+function undergrowth_forget_scores_below_minimum( $post_id = 0, ?WP_Post $post = null ): void {
 	global $wpdb;
+
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
 
 	$scores = get_option( 'undergrowth_scores' );
 

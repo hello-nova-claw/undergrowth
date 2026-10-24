@@ -16,7 +16,7 @@ const UNDERGROWTH_REFRESH_BATCH        = 20;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
-add_action( 'deleted_post', 'undergrowth_forget_post_links' );
+add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
 
 /**
@@ -810,10 +810,15 @@ function undergrowth_refresh_around( int $post_id ): void {
  * Vetoes and accepted links are kept, so a republished post never brings a
  * vetoed link back.
  *
- * @param int $post_id Post that was unpublished or deleted.
+ * @param int          $post_id Post that was unpublished or deleted.
+ * @param WP_Post|null $post    The deleted post, when core's hook passes it.
  */
-function undergrowth_forget_post_links( int $post_id ): void {
+function undergrowth_forget_post_links( int $post_id, ?WP_Post $post = null ): void {
 	global $wpdb;
+
+	if ( undergrowth_ignores_post( $post ) ) {
+		return;
+	}
 
 	$table = undergrowth_links_table();
 

@@ -12,7 +12,7 @@ const UNDERGROWTH_BACKFILL_SECONDS = 15;
 
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
-add_action( 'deleted_post', 'undergrowth_delete_vector' );
+add_action( 'deleted_post', 'undergrowth_delete_vector', 10, 2 );
 add_action( 'undergrowth_backfill', 'undergrowth_run_backfill' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 // Activation does not run on plugin updates or on every site of a network.
@@ -49,6 +49,22 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
 	return 'publish' === $post->post_status
 		&& '' === $post->post_password
 		&& in_array( $post->post_type, undergrowth_indexed_post_types(), true );
+}
+
+/**
+ * Decides whether a core post hook can be ignored for a post.
+ *
+ * Core fires its save and delete hooks for every revision it prunes, every
+ * autosave and every attachment. None of them can ever have been published,
+ * so none has a vector, links or a file. Any other post may have been
+ * indexed under an earlier post type filter, and is never ignored. Nor is
+ * a hook that passes no post.
+ *
+ * @param WP_Post|null $post The post the hook fired for, if it passed one.
+ * @return bool True for a revision, an autosave or an attachment.
+ */
+function undergrowth_ignores_post( ?WP_Post $post ): bool {
+	return null !== $post && ( 'revision' === $post->post_type || 'inherit' === $post->post_status );
 }
 
 /**
@@ -93,6 +109,10 @@ function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 
 	if ( ! undergrowth_is_indexable( $post ) ) {
 		wp_clear_scheduled_hook( 'undergrowth_embed_post', array( $post_id ) );
+
+		if ( undergrowth_ignores_post( $post ) ) {
+			return;
+		}
 
 		// Menu items, synced patterns and the like are never indexed and are
 		// saved often, so only a post that has a vector, or whose type is
