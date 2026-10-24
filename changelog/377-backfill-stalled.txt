@@ -1,1 +1,1 @@
-Settings > Undergrowth says when posts are waiting to be read and none has been read for a day, which usually means WP-Cron is not running, and a Site Health test says the same.
+Settings > Undergrowth says when posts are waiting to be read and WP-Cron has not run the reading for a day, and a Site Health test says the same. Failed requests keep their own notice.
