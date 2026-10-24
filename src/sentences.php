@@ -195,10 +195,27 @@ function undergrowth_inside_others_words( string $before ): bool {
 }
 
 /**
+ * Tells whether a word is long enough to say what a post is about.
+ *
+ * Latin and Cyrillic have many two-letter function words, such as "of" and
+ * "он", so their words and numbers need three characters. In Hebrew, Arabic,
+ * Korean and other scripts, many content words have two.
+ *
+ * @param string $word A word of a spaced script.
+ * @return bool
+ */
+function undergrowth_is_long_enough( string $word ): bool {
+	$fewest = preg_match( '/(?![\p{Latin}\p{Cyrillic}])\p{L}/u', $word ) ? 2 : 3;
+
+	return mb_strlen( $word, 'UTF-8' ) >= $fewest;
+}
+
+/**
  * Breaks text into lowercase words for matching.
  *
- * Latin and other spaced scripts give whole words of three letters or more;
- * unspaced scripts give overlapping pairs of characters.
+ * Spaced scripts give whole words long enough to count, see
+ * undergrowth_is_long_enough(); unspaced scripts give overlapping pairs of
+ * characters.
  *
  * @param string $text Plain text.
  * @return string[] Tokens in order, with repeats.
@@ -226,7 +243,7 @@ function undergrowth_tokens( string $text ): array {
 			for ( $i = 0; $i < $last; $i++ ) {
 				$tokens[] = $chars[ $i ] . $chars[ $i + 1 ];
 			}
-		} elseif ( mb_strlen( $run, 'UTF-8' ) >= 3 ) {
+		} elseif ( undergrowth_is_long_enough( $run ) ) {
 			$tokens[] = $run;
 		}
 	}
