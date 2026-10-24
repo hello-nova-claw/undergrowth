@@ -372,6 +372,29 @@ class Test_Editor_Links extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
 	}
 
+	/**
+	 * A draft's autosave writes to the post itself, so it must leave the note
+	 * for the real save. Runs alone, since the constant stays defined once it is.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_an_autosave_leaves_the_pending_link_for_the_real_save() {
+		$content = $this->accept( array( 'p' => self::SENTENCE ) )->get_data()['content'];
+
+		define( 'DOING_AUTOSAVE', true );
+		$this->save( $this->paragraph( self::SENTENCE ) );
+
+		$this->assertSame( array( $this->target ), $this->pending_targets() );
+		$this->assertSame( 'proposed', undergrowth_link_state( $this->source, $this->target ) );
+
+		// Still autosaving in this process, so the note survives even a save
+		// that holds the link; the real save is checked in the other tests.
+		$this->save( $this->paragraph( $content ) );
+
+		$this->assertSame( array( $this->target ), $this->pending_targets() );
+	}
+
 	public function test_a_revision_leaves_the_pending_link_for_the_real_save() {
 		$this->accept( array( 'p' => self::SENTENCE ) );
 
