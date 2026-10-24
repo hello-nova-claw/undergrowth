@@ -828,6 +828,10 @@ msgid "Undergrowth does not know this button, so nothing was changed."
 msgstr ""
 
 #: src/discord-clicks.php
+msgid "Discord did not say which message to update, so nothing was changed."
+msgstr ""
+
+#: src/discord-clicks.php
 msgid "Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed."
 msgstr ""
 

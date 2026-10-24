@@ -12,7 +12,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_DISCORD_UPDATE_MESSAGE = 7;
+const UNDERGROWTH_DISCORD_DEFERRED_UPDATE = 6;
+const UNDERGROWTH_DISCORD_UPDATE_MESSAGE  = 7;
+
+// A rate limit on editing the clicked message is waited out once, and only
+// when it is this many seconds or shorter.
+const UNDERGROWTH_DISCORD_LONGEST_WAIT = 5;
+
+add_action( 'undergrowth_discord_finish_click', 'undergrowth_discord_finish_click', 10, 5 );
 
 add_action( 'show_user_profile', 'undergrowth_render_discord_user_field' );
 add_action( 'edit_user_profile', 'undergrowth_render_discord_user_field' );
@@ -23,8 +30,10 @@ add_action( 'edit_user_profile_update', 'undergrowth_save_discord_user_field' );
 /**
  * Acts on a click on one of Undergrowth's buttons.
  *
- * Only the button's ID and the clicking user's ID are read from the
- * payload. The message shown afterwards is rebuilt from the database.
+ * Only the button's ID, the clicking user's ID and the interaction's token
+ * are read from the payload. Discord gives up on a reply after three
+ * seconds, and accepting saves the post, which rewrites files, so the click
+ * is answered at once and acted on in WP-Cron, which then edits the message.
  *
  * @param array<string, mixed> $interaction Signed interaction payload.
  * @return WP_REST_Response The reply Discord shows.
@@ -41,16 +50,61 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 	$user      = undergrowth_discord_linked_user( $interaction['member']['user']['id'] ?? $interaction['user']['id'] ?? '' );
 
 	if ( ! $user instanceof WP_User || ! user_can( $user, 'edit_post', $source_id ) ) {
-		return undergrowth_discord_ephemeral( __( 'Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed.', 'undergrowth' ) );
+		return undergrowth_discord_ephemeral( undergrowth_discord_refused_message() );
+	}
+
+	// The token lets the job edit the message for 15 minutes. It sits in the
+	// cron option only until the job runs.
+	$token = $interaction['token'] ?? '';
+
+	if ( ! is_string( $token ) || 1 !== preg_match( '/^[A-Za-z0-9_.-]{1,500}$/D', $token ) ) {
+		return undergrowth_discord_ephemeral( __( 'Discord did not say which message to update, so nothing was changed.', 'undergrowth' ) );
+	}
+
+	wp_schedule_single_event( time(), 'undergrowth_discord_finish_click', array( $button[1], $source_id, $target_id, $user->ID, $token ) );
+	spawn_cron();
+
+	return new WP_REST_Response( array( 'type' => UNDERGROWTH_DISCORD_DEFERRED_UPDATE ) );
+}
+
+/**
+ * Explains why a click from this Discord user changed nothing.
+ *
+ * @return string
+ */
+function undergrowth_discord_refused_message(): string {
+	return __( 'Only someone the site owner has linked to a WordPress account that can edit this post can use these buttons, so nothing was changed.', 'undergrowth' );
+}
+
+/**
+ * Acts on a click in WP-Cron, then updates the message that was clicked.
+ *
+ * The user is checked again, since they may have lost the right to edit the
+ * post since clicking.
+ *
+ * @param string $action    accept or veto.
+ * @param int    $source_id Post the link sits in.
+ * @param int    $target_id Post the link points to.
+ * @param int    $user_id   WordPress user the clicking Discord user is linked to.
+ * @param string $token     Interaction token.
+ */
+function undergrowth_discord_finish_click( $action, $source_id, $target_id, $user_id, $token ): void {
+	$source_id = (int) $source_id;
+	$target_id = (int) $target_id;
+	$user_id   = (int) $user_id;
+
+	if ( ! user_can( $user_id, 'edit_post', $source_id ) ) {
+		undergrowth_discord_answer_click( (string) $token, $source_id, $target_id, undergrowth_discord_ephemeral( undergrowth_discord_refused_message() ) );
+		return;
 	}
 
 	// Accepting checks the current user's capabilities, such as whether they
 	// may save unfiltered HTML, so it runs as the linked user.
 	$previous_user = get_current_user_id();
-	wp_set_current_user( $user->ID );
+	wp_set_current_user( $user_id );
 
 	try {
-		if ( 'accept' === $button[1] ) {
+		if ( 'accept' === $action ) {
 			$result = undergrowth_accept_link( $source_id, $target_id );
 		} else {
 			$result = undergrowth_veto_result( $source_id, $target_id );
@@ -59,7 +113,49 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 		wp_set_current_user( $previous_user );
 	}
 
-	return undergrowth_discord_click_reply( $source_id, $target_id, $result );
+	undergrowth_discord_answer_click( (string) $token, $source_id, $target_id, undergrowth_discord_click_reply( $source_id, $target_id, $result ) );
+}
+
+/**
+ * Sends the answer to a click once it has been acted on.
+ *
+ * A reply that updates the message edits the one clicked. A private reply
+ * goes to the person who clicked as a follow-up. One that fails is recorded
+ * as a Discord failure and not sent again, apart from waiting out one short
+ * rate limit.
+ *
+ * @param string           $token     Interaction token.
+ * @param int              $source_id Post the link sits in.
+ * @param int              $target_id Post the link points to.
+ * @param WP_REST_Response $reply     The reply, as it would have been given at once.
+ */
+function undergrowth_discord_answer_click( string $token, int $source_id, int $target_id, WP_REST_Response $reply ): void {
+	$answer = $reply->get_data();
+	$edit   = UNDERGROWTH_DISCORD_UPDATE_MESSAGE === $answer['type'];
+	$url    = UNDERGROWTH_DISCORD_API . '/webhooks/' . undergrowth_discord_setting( 'application_id' ) . '/' . $token . ( $edit ? '/messages/@original' : '' );
+	$args   = array(
+		'method'      => $edit ? 'PATCH' : 'POST',
+		'headers'     => array(
+			'Content-Type' => 'application/json',
+			'User-Agent'   => 'DiscordBot (https://github.com/hello-nova-claw/undergrowth, ' . UNDERGROWTH_VERSION . ')',
+		),
+		'body'        => (string) wp_json_encode( $answer['data'] ),
+		'timeout'     => 10,
+		'redirection' => 0,
+	);
+
+	$response = wp_remote_request( $url, $args );
+	$status   = (int) wp_remote_retrieve_response_code( $response );
+	$wait     = wp_remote_retrieve_header( $response, 'retry-after' );
+
+	if ( 429 === $status && is_numeric( $wait ) && (float) $wait >= 0 && (float) $wait <= UNDERGROWTH_DISCORD_LONGEST_WAIT ) {
+		usleep( (int) ceil( (float) $wait * 1000000 ) );
+
+		$response = wp_remote_request( $url, $args );
+		$status   = (int) wp_remote_retrieve_response_code( $response );
+	}
+
+	undergrowth_discord_record_result( $source_id . ':' . $target_id, $status >= 200 && $status < 300, $status );
 }
 
 /**
@@ -71,7 +167,8 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
  * @param int    $source_id Post the link sits in.
  * @param int    $target_id Post the link points to.
  * @param string $result    What the click did.
- * @return WP_REST_Response
+ * @return WP_REST_Response The reply, of type 4 to tell only the person who
+ *                          clicked, or type 7 to update the message.
  */
 function undergrowth_discord_click_reply( int $source_id, int $target_id, string $result ): WP_REST_Response {
 	global $wpdb;

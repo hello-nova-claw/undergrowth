@@ -1,0 +1,1 @@
+Clicking Accept or Veto in Discord no longer shows "This interaction failed" on a slow site. The click is answered at once, acted on a moment later in the background, and the message is then updated as before.
