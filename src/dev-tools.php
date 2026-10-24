@@ -667,6 +667,7 @@ function undergrowth_dev_count_labels(): array {
 		'accepted'          => __( 'Accepted', 'undergrowth' ),
 		'edited'            => __( 'Not accepted, sentence changed', 'undergrowth' ),
 		'no_word'           => __( 'Not accepted, no words could be linked safely', 'undergrowth' ),
+		'not_saved'         => __( 'Not accepted, the post could not be saved', 'undergrowth' ),
 		'needs_admin'       => __( 'Not accepted, saving would change other content', 'undergrowth' ),
 		'not_proposed'      => __( 'Not accepted, no longer suggested', 'undergrowth' ),
 		'gone'              => __( 'Not accepted, post gone', 'undergrowth' ),
