@@ -79,6 +79,10 @@ Undergrowth is free. The services it uses bill your own accounts. Embedding is v
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, for example a small model on your own server. When you change the model, give it a new name through `undergrowth_embed_identity`, and every post is embedded again in the background. Questions need an Anthropic key. With no key and no provider of your own, Undergrowth sends nothing and does nothing but wait.
 
+= Why is there no question on my Dashboard yet? =
+
+No question yet. Undergrowth asks one when a reader asks a question in an approved comment, a gap appears on the Map, or you move a post to compost. On a new site there may be none of these for a while, so the first look after you save the Anthropic key can find nothing to ask about. Settings > Undergrowth says so under the key until the first question is written, and the monthly cycle keeps looking.
+
 = Can I keep the keys out of the database? =
 
 Yes. Add them to `wp-config.php` instead of saving them on Settings > Undergrowth:
