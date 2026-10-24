@@ -938,63 +938,60 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
 	}
 
-	public function test_cycle_keeps_a_pin_to_another_stage_completed_just_before_its_write() {
-		list( $post_id ) = $this->linked_seedling();
+	public function test_cycle_write_is_refused_for_a_pinned_post() {
+		list( $post_id ) = $this->publish( 1 );
+		undergrowth_set_stage( $post_id, 'seedling' );
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
 
-		$this->pin_behind_the_cycle( $post_id, 'evergreen' );
-		undergrowth_cycle_post( $post_id );
-
-		wp_cache_delete( $post_id, 'post_meta' );
-		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
-		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
-	}
-
-	public function test_cycle_keeps_a_pin_to_the_measured_stage_completed_just_before_its_write() {
-		list( $post_id ) = $this->linked_seedling();
-		$measured        = undergrowth_measure_stage( $post_id );
-
-		$this->pin_behind_the_cycle( $post_id, $measured );
-		undergrowth_cycle_post( $post_id );
-
-		wp_cache_delete( $post_id, 'post_meta' );
-		$this->assertSame( $measured, undergrowth_get_stage( $post_id ) );
-		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
-	}
-
-	public function test_cycle_keeps_a_pin_completed_just_before_its_first_write() {
-		list( $post_id, $a, $b ) = $this->publish( 3 );
-		$this->link( $post_id, $a );
-		$this->link( $b, $post_id );
-		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_stage' ) );
-
-		$this->pin_behind_the_cycle( $post_id, 'evergreen' );
-		undergrowth_cycle_post( $post_id );
-
-		wp_cache_delete( $post_id, 'post_meta' );
-		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
-		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
-	}
-
-	public function test_cycle_replaces_a_stored_stage_it_does_not_know() {
-		list( $post_id ) = $this->linked_seedling();
-		update_post_meta( $post_id, 'undergrowth_stage', 'mushroom' );
-
-		undergrowth_cycle_post( $post_id );
-
-		$this->assertSame( undergrowth_measure_stage( $post_id ), get_post_meta( $post_id, 'undergrowth_stage', true ) );
-	}
-
-	public function test_cycle_keeps_a_pin_at_the_current_stage_completed_just_before_its_write() {
-		list( $post_id ) = $this->linked_seedling();
-		$logged          = count( undergrowth_stage_log( $post_id ) );
-
-		$this->pin_behind_the_cycle( $post_id, '' );
-		undergrowth_cycle_post( $post_id );
-
-		wp_cache_delete( $post_id, 'post_meta' );
+		$this->assertFalse( undergrowth_set_stage( $post_id, 'evergreen' ) );
 		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
-		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
-		$this->assertCount( $logged, undergrowth_stage_log( $post_id ) );
+		$this->assertTrue( undergrowth_set_stage( $post_id, 'evergreen', 'pin' ) );
+	}
+
+	public function test_pin_made_while_the_cycle_writes_waits_for_it() {
+		list( $post_id ) = $this->linked_seedling();
+		$this->log_in_editor();
+		$measured = undergrowth_measure_stage( $post_id );
+		$during   = null;
+
+		// The author pins while the cycle holds the lock. In one process the
+		// pin cannot outwait the cycle, so it is refused rather than lost.
+		$pin = static function ( $check, $object_id, $meta_key ) use ( &$pin, &$during, $post_id ) {
+			if ( $object_id === $post_id && 'undergrowth_stage' === $meta_key ) {
+				remove_filter( 'update_post_metadata', $pin );
+				$during = undergrowth_pin_stage( $post_id, 'evergreen' );
+			}
+
+			return $check;
+		};
+		add_filter( 'update_post_metadata', $pin, 10, 3 );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertWPError( $during );
+		$this->assertSame( $measured, undergrowth_get_stage( $post_id ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'evergreen' ) );
+		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_cycle_gives_way_to_a_stage_change_in_progress() {
+		list( $post_id ) = $this->linked_seedling();
+		update_option( "undergrowth_stage_{$post_id}.lock", time(), false );
+
+		undergrowth_cycle_post( $post_id );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_author_action_takes_over_a_lock_left_by_a_request_that_died() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->log_in_editor();
+		update_option( "undergrowth_stage_{$post_id}.lock", time() - HOUR_IN_SECONDS, false );
+
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'evergreen' ) );
+		$this->assertFalse( get_option( "undergrowth_stage_{$post_id}.lock" ) );
 	}
 
 	/**
@@ -1011,57 +1008,6 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertNotSame( 'seedling', undergrowth_measure_stage( $post_id ) );
 
 		return array( $post_id, $a, $b );
-	}
-
-	/**
-	 * Has another request pin the post just as the cycle is about to write
-	 * its stage: after every check the cycle makes beforehand.
-	 *
-	 * @param int    $post_id Post ID.
-	 * @param string $stage   Stage the author pins, or empty to pin the stage it has.
-	 */
-	private function pin_behind_the_cycle( int $post_id, string $stage ): void {
-		global $wpdb;
-
-		$pin = static function ( $check, $object_id, $meta_key ) use ( &$pin, $wpdb, $post_id, $stage ) {
-			if ( $object_id === $post_id && 'undergrowth_stage' === $meta_key ) {
-				remove_filter( 'update_post_metadata', $pin );
-				remove_filter( 'add_post_metadata', $pin );
-				// phpcs:disable WordPress.DB.SlowDBQuery, WordPress.DB.DirectDatabaseQuery -- Another request's writes, behind this one's cache.
-				$wpdb->insert(
-					$wpdb->postmeta,
-					array(
-						'post_id'    => $post_id,
-						'meta_key'   => 'undergrowth_stage_pinned',
-						'meta_value' => '1',
-					)
-				);
-
-				$where = array(
-					'post_id'  => $post_id,
-					'meta_key' => 'undergrowth_stage',
-				);
-
-				if ( '' !== $stage && ! $wpdb->update( $wpdb->postmeta, array( 'meta_value' => $stage ), $where ) ) {
-					$wpdb->insert( $wpdb->postmeta, array_merge( $where, array( 'meta_value' => $stage ) ) );
-				}
-				// phpcs:enable
-			}
-
-			return $check;
-		};
-		add_filter( 'update_post_metadata', $pin, 10, 3 );
-		add_filter( 'add_post_metadata', $pin, 10, 3 );
-	}
-
-	public function test_cycle_write_is_refused_for_a_pinned_post() {
-		list( $post_id ) = $this->publish( 1 );
-		undergrowth_set_stage( $post_id, 'seedling' );
-		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
-
-		$this->assertFalse( undergrowth_set_stage( $post_id, 'evergreen' ) );
-		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
-		$this->assertTrue( undergrowth_set_stage( $post_id, 'evergreen', 'pin' ) );
 	}
 
 	public function test_unpinning_measures_the_stage_at_once() {
