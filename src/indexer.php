@@ -12,7 +12,7 @@ const UNDERGROWTH_BACKFILL_SECONDS = 15;
 
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
-add_action( 'deleted_post', 'undergrowth_delete_vector' );
+add_action( 'deleted_post', 'undergrowth_delete_vector', 10, 2 );
 add_action( 'undergrowth_backfill', 'undergrowth_run_backfill' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 // Activation does not run on plugin updates or on every site of a network.
@@ -49,6 +49,20 @@ function undergrowth_is_indexable( WP_Post $post ): bool {
 	return 'publish' === $post->post_status
 		&& '' === $post->post_password
 		&& in_array( $post->post_type, undergrowth_indexed_post_types(), true );
+}
+
+/**
+ * Decides whether a core post hook can be ignored for a post.
+ *
+ * Core fires its save and delete hooks for every revision it prunes, every
+ * autosave and every attachment, none of which is ever indexed. A hook
+ * that passes no post is never ignored.
+ *
+ * @param WP_Post|null $post The post the hook fired for, if it passed one.
+ * @return bool True when the post's type is not indexed.
+ */
+function undergrowth_ignores_post( ?WP_Post $post ): bool {
+	return null !== $post && ! in_array( $post->post_type, undergrowth_indexed_post_types(), true );
 }
 
 /**
