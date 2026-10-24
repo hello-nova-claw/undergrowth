@@ -62,7 +62,7 @@ export function editorParagraphs( blocks ) {
  * @param {string} html HTML.
  * @return {string} Text.
  */
-function plainText( html ) {
+export function plainText( html ) {
 	const template = document.createElement( 'template' );
 	template.innerHTML = html;
 
@@ -76,7 +76,7 @@ function plainText( html ) {
  * @param {string} url  Address.
  * @return {boolean} True when a link points there.
  */
-function linksTo( html, url ) {
+export function linksTo( html, url ) {
 	const template = document.createElement( 'template' );
 	template.innerHTML = html;
 
@@ -93,7 +93,7 @@ function linksTo( html, url ) {
  * @param {Object|null} props.span     Offset and length of the words, if any.
  * @return {Element} Sentence.
  */
-function Sentence( { sentence, span } ) {
+export function Sentence( { sentence, span } ) {
 	// Offsets count characters, as PHP's mb_ functions do, not UTF-16 units.
 	const characters = [ ...sentence ];
 
