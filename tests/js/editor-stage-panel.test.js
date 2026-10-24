@@ -281,7 +281,7 @@ describe( 'Editor stage panel', () => {
 				?.textContent.includes( 'before the action' )
 		);
 
-		settle( { ...inGarden( 'composting' ), message: 'Moved.' } );
+		settle( { ...inGarden( 'composting' ), message: 'Moved, late.' } );
 		await waitFor( () => button( container, 'Return to garden' ) );
 
 		// The action's own answer may be out of date, so the stage is read again.
@@ -299,7 +299,7 @@ describe( 'Editor stage panel', () => {
 			select( noticesStore )
 				.getNotices()
 				.map( ( notice ) => notice.content )
-		).not.toContain( 'Moved.' );
+		).not.toContain( 'Moved, late.' );
 	} );
 
 	test( 'an action for another post is dropped without asking again', async () => {
