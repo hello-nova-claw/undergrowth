@@ -35,7 +35,7 @@ function undergrowth_label_words( string $text, string $locale ): array {
 	$stop     = array_flip( array_merge( $stop['never'], $stop['named'] ) );
 	$words    = array();
 
-	foreach ( (array) preg_split( '/[^\p{L}\p{N}\h]+/u', $text ) as $phrase ) {
+	foreach ( (array) preg_split( '/[^\p{L}\p{M}\p{N}\h]+/u', $text ) as $phrase ) {
 		if ( ! preg_match_all( "/(?:(?=[\\p{L}\\p{M}\\p{N}])[{$unspaced}])+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", $phrase, $matches ) ) {
 			continue;
 		}
