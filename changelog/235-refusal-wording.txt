@@ -1,1 +1,0 @@
-Settings › Undergrowth now says plainly when Claude declined to write a question from a post or comment, or its reply was cut off, and that the source was skipped. It used to call this a problem on Anthropic's side that would be tried again.

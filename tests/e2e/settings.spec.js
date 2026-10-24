@@ -494,6 +494,52 @@ test.describe( 'Settings page', () => {
 
 			expect( width ).toBeLessThanOrEqual( 390 );
 		} );
+
+		test( 'says when no post has been read for a day', async ( {
+			admin,
+			page,
+			context,
+			baseURL,
+		} ) => {
+			await context.addCookies( [
+				{
+					name: 'undergrowth_e2e_fixture',
+					value: 'backfill-stalled',
+					url: baseURL,
+				},
+			] );
+			await admin.visitAdminPage(
+				'options-general.php',
+				'page=undergrowth'
+			);
+
+			const notice = page.locator( '#undergrowth-backfill-stalled' );
+
+			await expect( notice ).toContainText( 'WP-Cron' );
+			await expect( notice ).toContainText( 'DISABLE_WP_CRON' );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			await admin.visitAdminPage( 'site-health.php' );
+
+			await expect(
+				page.getByText( 'Undergrowth has not read a post for a day' )
+			).toBeVisible();
+		} );
+
+		test( 'says nothing of a stall once every post is read', async ( {
+			admin,
+			page,
+		} ) => {
+			await expect(
+				page.locator( '#undergrowth-backfill-stalled' )
+			).toHaveCount( 0 );
+
+			await admin.visitAdminPage( 'site-health.php' );
+
+			await expect(
+				page.getByText( 'Undergrowth has not read a post for a day' )
+			).toHaveCount( 0 );
+		} );
 	} );
 
 	test( 'fits a phone screen with Discord set up', async ( {

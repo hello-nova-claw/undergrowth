@@ -221,6 +221,12 @@ const WITH_POSTS = [
 		page: SETTINGS,
 		fixture: 'index-partial',
 	},
+	{
+		screen: 'settings',
+		state: 'backfill-stalled',
+		page: SETTINGS,
+		fixture: 'backfill-stalled',
+	},
 	{ screen: 'suggestions', state: 'table', page: SUGGESTIONS },
 	{
 		screen: 'suggestions',

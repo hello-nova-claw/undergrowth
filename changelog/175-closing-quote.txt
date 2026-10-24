@@ -1,1 +1,0 @@
-A sentence that ends inside a quotation, such as “Stop.” followed by the next sentence, is no longer joined to the next one in link suggestions.

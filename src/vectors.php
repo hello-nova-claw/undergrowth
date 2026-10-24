@@ -95,6 +95,32 @@ function undergrowth_get_vector( int $post_id ): ?array {
 }
 
 /**
+ * Reads the provider, model and language of a post's stored vector, without
+ * reading the vector itself.
+ *
+ * @param int $post_id Post ID.
+ * @return array|null The vector's space, or null when the post has none.
+ *
+ * @phpstan-return array{provider: string, model: string, language: string}|null
+ */
+function undergrowth_get_vector_space( int $post_id ): ?array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every embed.
+	$row = $wpdb->get_row( $wpdb->prepare( 'SELECT provider, model, language FROM %i WHERE post_id = %d', undergrowth_vectors_table(), $post_id ), ARRAY_A );
+
+	if ( ! is_array( $row ) ) {
+		return null;
+	}
+
+	return array(
+		'provider' => (string) $row['provider'],
+		'model'    => (string) $row['model'],
+		'language' => (string) $row['language'],
+	);
+}
+
+/**
  * Removes the stored vector for a post, if it has one.
  *
  * @param int $post_id Post ID.

@@ -1,1 +1,0 @@
-The Map now accounts for every post: how many are in groups, how many are not in a group yet and why, and how many are composting. Each group is named after its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word comes from your own titles and posts; nothing is written by a model.

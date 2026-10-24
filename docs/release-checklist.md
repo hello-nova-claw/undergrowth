@@ -8,9 +8,9 @@ The maintainer decides when to release, tags, and submits. Nothing in CI does an
 
 These are one-off decisions. Settle them before 0.1.0.
 
-- [ ] **Contributors.** `Contributors:` in `readme.txt` must list WordPress.org usernames, case-sensitive. `novaclaw` is not a WordPress.org account today (its profile page is a 404), so the directory would show no profile for it. Put the owner's WordPress.org username first, and add `novaclaw` only once that account exists.
-- [ ] **Author.** `Author:` in `undergrowth.php` is shown on the directory page and in wp-admin. Decide whether it stays `Novaclaw`, and add an `Author URI:` if wanted.
-- [ ] **Branding.** Everything in `.wordpress-org/` except the screenshots is a placeholder: `icon.svg`, `icon-128x128.png`, `icon-256x256.png`, `banner-772x250.png` and `banner-1544x500.png`. Replace them with the real design. The directory reads only PNG or JPG banners; the banner SVGs are sources and are not shown. An `icon.svg` needs the PNG icons beside it as a fallback. See [Plugin assets](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) for sizes and limits: 1 MB for an icon, 4 MB for a banner, 10 MB for a screenshot.
+- [x] **Contributors.** `Contributors:` in `readme.txt` must list WordPress.org usernames, case-sensitive. It is `annamcphee`, the owner's account, which submits the plugin. `novaclaw` is not a WordPress.org account (its profile page is a 404); add it only once that account exists.
+- [x] **Author.** `Author:` in `undergrowth.php` is shown on the directory page and in wp-admin. It stays `Novaclaw`, with `Author URI: https://github.com/hello-nova-claw`.
+- [x] **Branding.** The icon and banners in `.wordpress-org/` are interim artwork, drawn for 0.1.0 and fine to ship: a sprout and a fern whose tips are linked, in the WordPress admin greens. They can be replaced with commissioned artwork at any time, as long as the file names, sizes and formats stay the same. The SVGs are the sources: `icon.svg`, `banner-1544x500.svg` and `banner-772x250.svg` (the same drawing at half size). The PNGs are rendered from them in a browser at their exact sizes, with the banner text in Source Serif 4, which is under the SIL Open Font License; without that font installed the SVGs fall back to Georgia. The directory reads only PNG or JPG banners; the banner SVGs are sources and are not shown. An `icon.svg` needs the PNG icons beside it as a fallback. See [Plugin assets](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) for sizes and limits: 1 MB for an icon, 4 MB for a banner, 10 MB for a screenshot.
 - [ ] **Readme size.** The readme standard warns that a `readme.txt` over 10 KB may cause errors. Ours is about 21 KB, mostly the FAQ's per-post file example and the Unreleased changelog. Before submitting, move the long developer detail to the GitHub repository and link to it, and keep the changelog short (see step 3).
 - [ ] **Slug.** The directory assigns the slug from the plugin name on submission, and it cannot be changed afterwards. `undergrowth` is what the deploy workflow and the text domain expect. If the reviewers assign another, change `SLUG` in `.github/workflows/deploy.yml`; the text domain has to match the slug, so every string would change too.
 
@@ -30,9 +30,9 @@ Then check the other readme headers:
 
 ## 3. Fold the changelog
 
-- [ ] Run `npm run changelog`. It appends every fragment in `changelog/` under `= Unreleased =` in `readme.txt`, in issue order, and deletes the fragments.
-- [ ] Rename `= Unreleased =` to the version, for example `= 0.1.0 =`, and add a fresh empty `= Unreleased =` above it: the script refuses to run without one.
-- [ ] For 0.1.0, consider replacing the development history with a single line, `* First release.`: the history describes steps no user ever installed, and it is the bulk of the readme's size. Keep the full list in the GitHub release notes instead.
+- [ ] Run `npm run changelog`. It appends every fragment in `changelog/` under `= Unreleased =` in `readme.txt`, in issue order, and deletes the fragments. When there is no `= Unreleased =` yet, it opens one at the top of `== Changelog ==`.
+- [ ] Rename `= Unreleased =` to the version, for example `= 0.2.0 =`. Don't leave an empty `= Unreleased =` behind: the directory would show it.
+- [x] 0.1.0 has a single line, `* First release.`: the development history describes steps no user ever installed. Fragments that land before 0.1.0 is tagged are development history too: add their lines to the end of [docs/release-notes-0.1.0.md](release-notes-0.1.0.md) and delete them instead of folding them.
 - [ ] Add an `== Upgrade Notice ==` entry from 0.2.0 on, when there is something an existing user should know before updating.
 
 ## 4. Regenerate the POT
@@ -61,7 +61,7 @@ Every push to `main` and every tag runs the **Build** workflow, which uploads `u
 ## 7. Tag and release
 
 - [ ] Tag the merged release commit on `main` with the bare version, no `v`: `git tag 0.1.0 && git push origin 0.1.0`. The deploy workflow checks the tag matches `Version:` and `Stable tag:`.
-- [ ] The tag push runs **Build** again; attach its `undergrowth.zip` to a GitHub release named after the version, with the changelog lines as its notes.
+- [ ] The tag push runs **Build** again; attach its `undergrowth.zip` to a GitHub release named after the version, with the changelog lines as its notes. For 0.1.0, use [docs/release-notes-0.1.0.md](release-notes-0.1.0.md) instead.
 
 ## 8. Submit to the directory (first release only)
 

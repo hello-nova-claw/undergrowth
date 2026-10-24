@@ -1,1 +1,0 @@
-The REST API now shows a post's growth stage only to people who can edit the post, so readers can no longer tell which posts are composting. Themes and the Growth stage block are unchanged.

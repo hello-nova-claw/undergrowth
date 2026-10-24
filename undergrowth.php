@@ -7,6 +7,7 @@
  * Requires at least: 6.9
  * Requires PHP:      7.4
  * Author:            Novaclaw
+ * Author URI:        https://github.com/hello-nova-claw
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       undergrowth
@@ -51,6 +52,7 @@ require_once __DIR__ . '/src/dashboard.php';
 require_once __DIR__ . '/src/meter.php';
 require_once __DIR__ . '/src/posts-screen.php';
 require_once __DIR__ . '/src/help.php';
+require_once __DIR__ . '/src/site-health.php';
 require_once __DIR__ . '/src/blocks.php';
 require_once __DIR__ . '/src/editor.php';
 require_once __DIR__ . '/src/editor-links.php';
@@ -64,3 +66,5 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 register_activation_hook( __FILE__, 'undergrowth_activate' );
 register_deactivation_hook( __FILE__, 'undergrowth_deactivate' );
 add_action( 'plugins_loaded', 'undergrowth_maybe_upgrade_schema' );
+// Core creates a new site's tables at the default priority.
+add_action( 'wp_initialize_site', 'undergrowth_initialize_site', 20 );

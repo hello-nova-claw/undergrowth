@@ -1,1 +1,0 @@
-Posts > Link suggestions is now Posts > Undergrowth, with its Suggestions, Growth stages and Map tabs; old addresses still work. The "Suggest links between my posts" switch moves to Settings > Undergrowth, so the screen has no settings form, and the Posts list gains a Growth stage column.

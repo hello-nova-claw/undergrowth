@@ -22,6 +22,7 @@ class Test_Settings extends WP_UnitTestCase {
 		delete_option( 'undergrowth_last_embed_error' );
 		delete_option( 'undergrowth_anthropic_api_key' );
 		delete_option( 'undergrowth_last_prompt_error' );
+		delete_option( 'undergrowth_backfill_progress' );
 	}
 
 	public function tear_down() {
@@ -429,6 +430,61 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '1 of 1 post read.', $html );
 		$this->assertStringNotContainsString( 'in the background', $html );
+	}
+
+	public function test_page_says_when_no_post_has_been_read_for_a_day() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		self::factory()->post->create_many( 2, array( 'post_status' => 'publish' ) );
+		$this->set_progress( 0, 2, 25 * HOUR_IN_SECONDS );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/<div class="notice notice-warning inline" id="undergrowth-backfill-stalled"><p>No post has been read for a day[^<]*WP-Cron[^<]*DISABLE_WP_CRON[^<]*<\/p><\/div>/', $html );
+	}
+
+	public function test_page_says_nothing_of_a_stall_once_every_post_is_read() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		$id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		undergrowth_save_vector(
+			$id,
+			array( 1.0 ),
+			array(
+				'provider'     => 'openai',
+				'model'        => UNDERGROWTH_OPENAI_MODEL,
+				'language'     => 'en_US',
+				'content_hash' => 'x',
+			)
+		);
+		$this->set_progress( 1, 1, 25 * HOUR_IN_SECONDS );
+
+		$this->assertStringNotContainsString( 'undergrowth-backfill-stalled', $this->render() );
+	}
+
+	public function test_page_says_nothing_of_a_stall_within_a_day() {
+		update_option( 'undergrowth_openai_api_key', self::KEY );
+		self::factory()->post->create_many( 2, array( 'post_status' => 'publish' ) );
+		$this->set_progress( 0, 2, 23 * HOUR_IN_SECONDS );
+
+		$this->assertStringNotContainsString( 'undergrowth-backfill-stalled', $this->render() );
+	}
+
+	/**
+	 * Records the backfill's progress as a run that long ago would have.
+	 *
+	 * @param int $indexed Posts read then.
+	 * @param int $total   Posts that could be read then.
+	 * @param int $ago     Seconds since.
+	 */
+	private function set_progress( int $indexed, int $total, int $ago ): void {
+		update_option(
+			'undergrowth_backfill_progress',
+			array(
+				'time'    => time() - $ago,
+				'indexed' => $indexed,
+				'total'   => $total,
+			),
+			false
+		);
 	}
 
 	public function test_page_speaks_of_reading_posts_not_of_vectors_or_indexes() {

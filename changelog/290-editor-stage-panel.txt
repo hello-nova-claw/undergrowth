@@ -1,1 +1,0 @@
-New Undergrowth panel in the block editor's Post tab shows the post's growth stage, and lets you pin or unpin it, compost the post or return it to the garden, as on Posts > Undergrowth and the Posts list. A draft gets a stage once it is published.
