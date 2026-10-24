@@ -487,7 +487,7 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 		return;
 	}
 
-	undergrowth_mark_pass( 'undergrowth_stage_cycle', $after_id );
+	$run = undergrowth_mark_pass( 'undergrowth_stage_cycle', $after_id );
 
 	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot page by ID, which keeps batches stable while posts are published mid-cycle.
@@ -512,6 +512,10 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 		do_action( 'undergrowth_stage_cycled', $post_id );
 	}
 
+	if ( ! undergrowth_owns_pass( 'undergrowth_stage_cycle', $run ) ) {
+		return;
+	}
+
 	if ( count( $post_ids ) === UNDERGROWTH_STAGE_BATCH ) {
 		undergrowth_queue_pass_batch( 'undergrowth_stage_cycle', end( $post_ids ) );
 		return;
@@ -528,18 +532,45 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
  * names the post the batch started after, so the hourly check can run it
  * again.
  *
+ * Each run gets its own token. When the hourly check queues a batch again
+ * while a slow run of it is still alive, the new run takes the token, and
+ * the old one stops before it stores anything for the pass; see
+ * undergrowth_owns_pass().
+ *
  * @param string $hook     Cron hook of the pass.
  * @param int    $after_id Post ID the batch starts after.
+ * @return string Token of this run.
  */
-function undergrowth_mark_pass( string $hook, int $after_id ): void {
+function undergrowth_mark_pass( string $hook, int $after_id ): string {
+	$run = wp_generate_uuid4();
+
 	update_option(
 		$hook . '_pass',
 		array(
 			'after' => $after_id,
 			'at'    => time(),
+			'run'   => $run,
 		),
 		false
 	);
+
+	return $run;
+}
+
+/**
+ * Tells whether a run of a batch still owns its pass.
+ *
+ * @param string $hook Cron hook of the pass.
+ * @param string $run  Token undergrowth_mark_pass() gave the run.
+ * @return bool False once another run has taken the pass over.
+ */
+function undergrowth_owns_pass( string $hook, string $run ): bool {
+	// Another request may have changed the record since this one read it.
+	wp_cache_delete( $hook . '_pass', 'options' );
+
+	$pass = get_option( $hook . '_pass' );
+
+	return is_array( $pass ) && ( $pass['run'] ?? '' ) === $run;
 }
 
 /**
@@ -567,8 +598,8 @@ function undergrowth_end_pass( string $hook ): void {
  *
  * Runs from the hourly check. A pass is resumed only when its batch started
  * at least UNDERGROWTH_PASS_STALL ago and neither that batch nor a new pass
- * from the first post is queued, so a batch that is still running is never
- * started twice.
+ * from the first post is queued. A run that is still alive after that
+ * long gives the pass up to the new one.
  */
 function undergrowth_resume_stalled_passes(): void {
 	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle' ) as $hook ) {

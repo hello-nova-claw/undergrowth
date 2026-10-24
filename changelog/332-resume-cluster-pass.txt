@@ -1,1 +1,1 @@
-A monthly clustering or growth stage pass that stops partway, for example on a timeout, now carries on within the hour instead of waiting for next month.
+A monthly clustering or growth stage pass that stops partway, for example on a timeout, now carries on within a couple of hours instead of waiting for next month.

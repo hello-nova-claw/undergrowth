@@ -737,6 +737,27 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 	}
 
+	public function test_slow_batch_queued_again_while_it_runs_leaves_the_pass_to_the_new_run() {
+		$posts = $this->publish( UNDERGROWTH_STAGE_BATCH + 2 );
+		sort( $posts );
+
+		// As if the hourly check took this run for dead while it measured posts.
+		add_action(
+			'undergrowth_stage_cycled',
+			static function ( $post_id ) use ( $posts ) {
+				if ( $posts[0] === $post_id ) {
+					undergrowth_queue_pass_batch( 'undergrowth_stage_cycle', 0 );
+				}
+			}
+		);
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( $posts[ UNDERGROWTH_STAGE_BATCH - 1 ] ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertSame( 0, get_option( 'undergrowth_stage_cycle_pass' )['after'] );
+	}
+
 	public function test_cycle_with_no_indexed_post_types_leaves_no_pass_to_resume() {
 		update_option(
 			'undergrowth_stage_cycle_pass',

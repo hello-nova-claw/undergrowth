@@ -292,6 +292,38 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_new_clusters' ) );
 	}
 
+	public function test_last_batch_that_dies_while_resurfacing_still_resurfaces_when_run_again() {
+		$old = $this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		$die = static function () {
+			throw new RuntimeException( 'Timed out.' );
+		};
+
+		add_filter( 'undergrowth_min_resurfacing_similarity', $die );
+
+		try {
+			$this->cycle();
+		} catch ( RuntimeException $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'undergrowth_min_resurfacing_similarity', $die );
+
+		$pass        = get_option( 'undergrowth_cluster_cycle_pass' );
+		$pass['at'] -= UNDERGROWTH_PASS_STALL;
+		update_option( 'undergrowth_cluster_cycle_pass', $pass, false );
+		wp_clear_scheduled_hook( 'undergrowth_stage_cycle', array( 0 ) );
+
+		do_action( 'undergrowth_backfill_check' );
+		undergrowth_run_cluster_cycle( $this->take_next( 'undergrowth_cluster_cycle' ) );
+
+		while ( null !== ( $after_id = $this->take_next( 'undergrowth_resurfacing_cycle' ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition
+			undergrowth_run_resurfacing_cycle( $after_id );
+		}
+
+		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
+	}
+
 	public function test_first_pass_has_no_earlier_cycle_so_nothing_is_new() {
 		$old = $this->post_with_vector( array( 1.0, 0.0, 0.0 ) );
 		$this->new_cluster_near_compost();

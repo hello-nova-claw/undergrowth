@@ -387,7 +387,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 
 	$after_id = (int) $after_id;
 
-	undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
+	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
 
 	// The first batch measures the site's scores, so the whole pass clusters
 	// with the threshold they give.
@@ -447,6 +447,12 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		if ( 0 !== $leader ) {
 			update_post_meta( $last_id, 'undergrowth_cluster', $leader );
 		}
+	}
+
+	// The hourly check queued this batch again while it ran, so the new run
+	// finishes the pass.
+	if ( ! undergrowth_owns_pass( 'undergrowth_cluster_cycle', $run ) ) {
+		return;
 	}
 
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {

@@ -459,6 +459,28 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
 	}
 
+	public function test_slow_batch_queued_again_while_it_runs_leaves_the_pass_to_the_new_run() {
+		$posts = array();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		// As if the hourly check took this run for dead while it compared posts.
+		$resume = static function ( $similarity ) {
+			undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', 0 );
+			return $similarity;
+		};
+		add_filter( 'undergrowth_min_cluster_similarity', $resume );
+
+		undergrowth_run_cluster_cycle();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $posts[ UNDERGROWTH_CLUSTER_BATCH - 1 ] ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+		$this->assertSame( array(), get_option( 'undergrowth_cluster_leaders' ) );
+		$this->assertSame( 0, get_option( 'undergrowth_cluster_cycle_pass' )['after'] );
+	}
+
 	public function test_pass_with_its_next_batch_queued_is_left_alone() {
 		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
 			$this->post_with_vector( array( 1.0, 0.0 ) );
