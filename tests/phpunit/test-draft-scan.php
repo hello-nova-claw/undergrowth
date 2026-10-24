@@ -368,7 +368,55 @@ class Test_Draft_Scan extends WP_UnitTestCase {
 
 		$this->assertSame( 502, $response->get_status() );
 		$this->assertSame( 'undergrowth_scan_failed', $response->get_data()['code'] );
-		$this->assertLessThanOrEqual( time() + UNDERGROWTH_SCAN_COOLDOWN, (int) get_user_meta( get_current_user_id(), 'undergrowth_scan_until', true ) );
+
+		$until = (int) get_user_meta( get_current_user_id(), 'undergrowth_scan_until', true );
+
+		$this->assertGreaterThan( time(), $until );
+		$this->assertLessThanOrEqual( time() + UNDERGROWTH_SCAN_COOLDOWN, $until );
+
+		// The failed scan still used the turn, so trying again at once
+		// sends nothing more.
+		$this->assertSame( 429, $this->scan()->get_status() );
+		$this->assertCount( 1, $this->requests );
+	}
+
+	public function test_a_turn_another_request_has_just_claimed_is_refused() {
+		global $wpdb;
+
+		$user = get_current_user_id();
+
+		// This request read an expired turn into the cache, then another
+		// request claimed it in the database.
+		update_user_meta( $user, 'undergrowth_scan_until', time() - 1 );
+		get_user_meta( $user, 'undergrowth_scan_until', true );
+		$wpdb->update(
+			$wpdb->usermeta,
+			array( 'meta_value' => (string) ( time() + UNDERGROWTH_SCAN_RUNNING ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+			array(
+				'user_id'  => $user,
+				'meta_key' => 'undergrowth_scan_until', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+			)
+		);
+
+		$response = $this->scan();
+
+		$this->assertSame( 429, $response->get_status() );
+		$this->assertSame( array(), $this->requests );
+	}
+
+	public function test_an_empty_draft_is_refused_without_using_the_turn() {
+		$response = $this->scan(
+			0,
+			array(
+				'title'   => ' ',
+				'content' => '<!-- wp:paragraph --><p></p><!-- /wp:paragraph -->',
+			)
+		);
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'undergrowth_scan_empty', $response->get_data()['code'] );
+		$this->assertSame( array(), $this->requests );
+		$this->assertSame( 200, $this->scan()->get_status() );
 	}
 
 	public function test_someone_who_cannot_edit_the_post_is_refused() {
