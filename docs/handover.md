@@ -271,7 +271,7 @@ Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 
 ### Accessibility (day zero)
 - `@axe-core/playwright` on every admin screen and every block in the editor. Fails on any WCAG 2.2 AA violation. This is the main linter.
 - `@wordpress/eslint-plugin` for all JS (bundles `eslint-plugin-jsx-a11y`).
-- `pa11y-ci` on the rendered front-end blocks as a second opinion.
+- `pa11y-ci` on the admin screens and the rendered front-end block as a second opinion.
 - CONTRIBUTING rule: every PR touching UI states how it was tested with a keyboard.
 
 ---

@@ -1,0 +1,22 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Undergrowth pa11y-ci site",
+		"author": "hello-nova-claw",
+		"description": "The plugin with the e2e test provider and one published post carrying the Growth stage block. Used by bin/pa11y.mjs and .pa11yci.js."
+	},
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"steps": [
+		{
+			"step": "activatePlugin",
+			"pluginPath": "undergrowth/undergrowth.php"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// pa11y-ci opens this post by its slug, through ?name=.\nwp_insert_post(\n\tarray(\n\t\t'post_title'   => 'Oca',\n\t\t'post_name'    => 'undergrowth-pa11y',\n\t\t'post_content' => \"<!-- wp:paragraph -->\\n<p>Oca grows from tubers.</p>\\n<!-- /wp:paragraph -->\\n\\n<!-- wp:undergrowth/growth-stage /-->\",\n\t\t'post_status'  => 'publish',\n\t)\n);\n"
+		}
+	]
+}
