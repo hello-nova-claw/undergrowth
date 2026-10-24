@@ -268,7 +268,8 @@ function undergrowth_is_stage_pinned( int $post_id ): bool {
  * Every change of stage goes through here, so the rules about who may
  * change it are kept by the callers, not repeated for each meta write.
  * A change of stage, or any author action, is recorded with its reason for
- * the per-post file. The cycle storing a stage that did not change is not.
+ * the per-post file. The cycle storing a stage that did not change is not,
+ * and the cycle never writes the stage of a pinned post.
  *
  * @param int    $post_id Post ID.
  * @param string $stage   One of UNDERGROWTH_STAGES.
@@ -278,6 +279,17 @@ function undergrowth_is_stage_pinned( int $post_id ): bool {
 function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'cycle' ): bool {
 	if ( ! in_array( $stage, UNDERGROWTH_STAGES, true ) || ! isset( UNDERGROWTH_STAGE_REASONS[ $reason ] ) || ! get_post( $post_id ) instanceof WP_Post ) {
 		return false;
+	}
+
+	// The cycle checked the pin before measuring, and the author may have
+	// pinned the post since, in another request. The meta cached for this
+	// one would not show it, so the pin is read again from the database.
+	if ( 'cycle' === $reason ) {
+		wp_cache_delete( $post_id, 'post_meta' );
+
+		if ( undergrowth_is_stage_pinned( $post_id ) ) {
+			return false;
+		}
 	}
 
 	$from   = undergrowth_get_stage( $post_id );
