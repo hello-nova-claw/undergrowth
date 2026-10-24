@@ -398,6 +398,11 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				return 'not-a-real-anthropic-key-mnop';
 			}
 		);
+		// Other specs leave questions behind on the test site, and this state
+		// is the one before the first question.
+		add_filter( 'pre_option_undergrowth_prompt', '__return_empty_array' );
+		add_filter( 'pre_option_undergrowth_snoozed_prompts', '__return_empty_array' );
+		add_filter( 'option_undergrowth_prompt_written', '__return_false' );
 		break;
 
 	case 'prompt-asked':
