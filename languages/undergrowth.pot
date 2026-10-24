@@ -19,6 +19,7 @@ msgstr ""
 #: src/admin.php
 #: src/dashboard.php
 #: src/discord-clicks.php
+#: src/privacy.php
 #: src/settings.php
 #: build/editor/index.js
 #: src/editor/index.js
@@ -844,6 +845,7 @@ msgid "Something went wrong while acting on this click. Check the suggestion on 
 msgstr ""
 
 #: src/discord-clicks.php
+#: src/privacy.php
 msgid "Discord user ID"
 msgstr ""
 
@@ -1281,6 +1283,42 @@ msgid "%s post was left as it was, because it is not published, the action does 
 msgid_plural "%s posts were left as they were, because they are not published, the action does not apply to them, or you cannot edit them."
 msgstr[0] ""
 msgstr[1] ""
+
+#: src/privacy.php
+msgid "Undergrowth sends text to outside services only once the site owner sets each one up, and each is used under its own terms and privacy policy."
+msgstr ""
+
+#: src/privacy.php
+msgid "To find related posts, the title and text of each published post without a password are sent to OpenAI, once an OpenAI key is saved, or to the service that code added to the site names instead. Settings > Undergrowth says which. A draft is sent the same way, once, only when its author asks to scan it for links."
+msgstr ""
+
+#: src/privacy.php
+msgid "With an Anthropic key, Anthropic is sent a post’s title and a few sentences quoted from the site’s posts to write the site owner a question. When the question comes from a reader’s approved comment, the text of that comment is sent too, without the commenter’s name, email address or IP address."
+msgstr ""
+
+#: src/privacy.php
+msgid "With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to the Discord channel the site owner chose."
+msgstr ""
+
+#: src/privacy.php
+msgid "A site user who links their Discord account on their profile has their Discord user ID stored with their account, so that clicks in Discord can be matched to them. It is included in personal data exports and removed by personal data erasure."
+msgstr ""
+
+#: src/privacy.php
+msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth."
+msgstr ""
+
+#: src/privacy.php
+msgid "Suggested text:"
+msgstr ""
+
+#: src/privacy.php
+msgid "The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord."
+msgstr ""
+
+#: src/privacy.php
+msgid "The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile."
+msgstr ""
 
 #: src/settings.php
 msgid "Settings"
