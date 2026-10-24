@@ -258,6 +258,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	wp_unschedule_hook( 'undergrowth_forget_unindexed_posts' );
 	wp_unschedule_hook( 'undergrowth_refresh_sources' );
+	wp_unschedule_hook( 'undergrowth_refresh_index' );
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
@@ -314,6 +315,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	wp_unschedule_hook( 'undergrowth_forget_unindexed_posts' );
 	wp_unschedule_hook( 'undergrowth_refresh_sources' );
+	wp_unschedule_hook( 'undergrowth_refresh_index' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	delete_option( 'undergrowth_backfill' );
