@@ -273,4 +273,104 @@ class Test_Uninstall extends WP_UnitTestCase {
 			restore_current_blog();
 		}
 	}
+
+	/**
+	 * The files uninstall.php requires, as paths from the plugin folder.
+	 *
+	 * @return string[]
+	 */
+	private function uninstall_requires(): array {
+		preg_match_all( "#^require_once __DIR__ \\. '/([^']+)';#m", (string) file_get_contents( dirname( __DIR__, 2 ) . '/uninstall.php' ), $matches );
+
+		return $matches[1];
+	}
+
+	public function test_uninstall_file_deletes_every_option() {
+		foreach ( $this->options() as $option ) {
+			update_option( $option, 'x', false );
+		}
+
+		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+			define( 'WP_UNINSTALL_PLUGIN', plugin_basename( UNDERGROWTH_FILE ) );
+		}
+
+		// The plugin is already loaded, so the file's require_once lines add
+		// nothing; a scope of its own keeps its variables out of this one.
+		( static function () {
+			require dirname( __DIR__, 2 ) . '/uninstall.php';
+		} )();
+
+		$left = array_filter(
+			$this->options(),
+			static function ( string $option ): bool {
+				return false !== get_option( $option );
+			}
+		);
+		$this->assertSame( array(), array_values( $left ) );
+	}
+
+	/**
+	 * WordPress runs uninstall.php without loading the plugin, so every
+	 * plugin function uninstall calls, and every constant those functions
+	 * read, must come from a file uninstall.php requires.
+	 *
+	 * The test suite has loaded the whole plugin, so removing a require_once
+	 * would not fail the test above; this walks the calls instead.
+	 */
+	public function test_uninstall_file_requires_everything_uninstall_calls() {
+		$root     = dirname( __DIR__, 2 );
+		$required = array_map(
+			static function ( string $path ) use ( $root ): string {
+				return realpath( $root . '/' . $path );
+			},
+			$this->uninstall_requires()
+		);
+		$this->assertNotSame( array(), $required );
+
+		$sources = array();
+		foreach ( $required as $file ) {
+			$sources[] = (string) file_get_contents( $file );
+		}
+		$required_source = implode( "\n", $sources );
+
+		$seen    = array();
+		$pending = array( 'undergrowth_uninstall' );
+		$missing = array();
+
+		while ( array() !== $pending ) {
+			$name = array_pop( $pending );
+
+			if ( isset( $seen[ $name ] ) ) {
+				continue;
+			}
+			$seen[ $name ] = true;
+
+			$function = new ReflectionFunction( $name );
+
+			if ( ! in_array( realpath( (string) $function->getFileName() ), $required, true ) ) {
+				$missing[] = $name . '() from ' . str_replace( $root . '/', '', (string) $function->getFileName() );
+				continue;
+			}
+
+			$lines = array_slice( file( (string) $function->getFileName() ), $function->getStartLine(), $function->getEndLine() - $function->getStartLine() );
+			$body  = implode( '', $lines );
+
+			preg_match_all( '/\b(undergrowth_[a-z0-9_]+)\s*\(/', $body, $calls );
+			foreach ( $calls[1] as $called ) {
+				if ( function_exists( $called ) ) {
+					$pending[] = $called;
+				}
+			}
+
+			preg_match_all( '/\b(UNDERGROWTH_[A-Z0-9_]+)\b/', $body, $constants );
+			foreach ( array_unique( $constants[1] ) as $constant ) {
+				if ( ! preg_match( '/\b(?:const ' . $constant . '\b|define\(\s*\'' . $constant . '\')/', $required_source ) ) {
+					$missing[] = $constant . ', read by ' . $name . '()';
+				}
+			}
+		}
+
+		$this->assertContains( 'undergrowth_uninstall_site', array_keys( $seen ) );
+		$this->assertSame( array(), array_values( array_unique( $missing ) ) );
+	}
 }
