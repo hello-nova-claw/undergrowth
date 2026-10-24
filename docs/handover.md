@@ -264,7 +264,7 @@ Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 
 - Plugin Check's i18n sniffs (WPCS `WordPress.WP.I18n`) are part of the PHPCS run: missing text domain, wrong domain, or non-literal strings fail the build.
 - Translations are hosted on translate.wordpress.org once the plugin is in the directory, so no `.po` files in the repo except a test locale.
 - Embedding provider must handle the site's language. Store the post's language with its vector (from `get_locale()` or a multilingual plugin's post language). Never compare vectors across languages.
-- Prompts to the author are generated in the site's locale, passed to the model as an instruction. Dates and numbers in the dashboard use `wp_date()` and `number_format_i18n()`.
+- Prompts to the author are generated in the post's language when a multilingual plugin gives one, and otherwise in the author's dashboard language (#365), passed to the model as an instruction. Dates and numbers in the dashboard use `wp_date()` and `number_format_i18n()`.
 - RTL: admin screen and blocks tested in an RTL locale (`ar` or `he`) as part of the Playwright run. `wp-env` can be started with a locale.
 - Test locale in the repo: a pseudo-locale (`en_XA`-style, accented and lengthened strings) so layout breakage from longer translations shows up in CI, not in German production.
 
