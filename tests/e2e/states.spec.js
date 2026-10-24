@@ -185,6 +185,13 @@ const WITHOUT_POSTS = [
 		fixture: 'no-provider',
 		notice: true,
 	},
+	{
+		screen: 'plugins',
+		state: 'notice-first-run-restored',
+		page: [ 'plugins.php', 'undergrowth_notice=first_run_restored' ],
+		fixture: 'first-run',
+		notice: true,
+	},
 	// Settings right after the first key is saved, linking on to suggestions.
 	{
 		screen: 'settings',

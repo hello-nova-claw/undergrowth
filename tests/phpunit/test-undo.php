@@ -208,6 +208,21 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_a_veto_is_not_undone_once_the_target_has_left_the_index() {
+		list( $oca, $yacon ) = $this->pair();
+		undergrowth_veto_link( $oca, $yacon );
+		wp_update_post(
+			array(
+				'ID'          => $yacon,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertFalse( undergrowth_unveto_link( $oca, $yacon ) );
+		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
+		$this->assertStringNotContainsString( 'undergrowth_unveto', $this->arrive( admin_url( 'edit.php?page=undergrowth-links&undergrowth_notice=vetoed&undergrowth_undo=' . $oca . '-' . $yacon ) ) );
+	}
+
 	public function test_the_veto_notice_offers_an_undo_that_restores_the_proposal() {
 		list( $oca, $yacon ) = $this->pair();
 
@@ -287,7 +302,7 @@ class Test_Undo extends WP_UnitTestCase {
 		$location = $this->call( 'undergrowth_handle_unveto' );
 
 		$this->assertStringContainsString( 'undergrowth_notice=unveto_gone', $location );
-		$this->assertStringContainsString( 'nothing was changed', $this->arrive( $location ) );
+		$this->assertStringContainsString( 'can no longer be undone', $this->arrive( $location ) );
 	}
 
 	/**
@@ -469,7 +484,7 @@ class Test_Undo extends WP_UnitTestCase {
 		$location = $this->call( 'undergrowth_dismiss_first_run' );
 
 		$this->assertSame( admin_url( 'plugins.php?undergrowth_notice=first_run_dismissed' ), $location );
-		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+		$this->assertSame( 'dismissed', get_option( 'undergrowth_first_run' ) );
 
 		$html = $this->plugins_notice( 'first_run_dismissed' );
 
@@ -478,11 +493,33 @@ class Test_Undo extends WP_UnitTestCase {
 
 		$this->follow( $this->undo_link( $html, 'undergrowth_restore_first_run' ) );
 
-		$this->assertSame( admin_url( 'plugins.php' ), $this->call( 'undergrowth_restore_first_run' ) );
+		$this->assertSame( admin_url( 'plugins.php?undergrowth_notice=first_run_restored' ), $this->call( 'undergrowth_restore_first_run' ) );
 		$this->assertSame( 'waiting', get_option( 'undergrowth_first_run' ) );
 
-		unset( $_GET['undergrowth_notice'] );
-		$this->assertStringContainsString( 'id="undergrowth-first-run"', $this->plugins_notice() );
+		// The result is announced and takes focus, and the notice is back below it.
+		$html = $this->plugins_notice( 'first_run_restored' );
+
+		$this->assertStringContainsString( 'role="status"', $html );
+		$this->assertStringContainsString( 'The notice is back', $html );
+		$this->assertStringContainsString( 'id="undergrowth-first-run"', $html );
+	}
+
+	public function test_the_first_run_notice_is_not_restored_after_a_key_was_saved_and_removed() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$this->without_provider();
+		update_option( 'undergrowth_first_run', 'waiting' );
+		update_option( 'undergrowth_openai_api_key', 'sk-test-0123456789abcd' );
+		update_option( 'undergrowth_openai_api_key', '' );
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_restore_first_run' );
+
+		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+		$this->assertStringNotContainsString( 'undergrowth_restore_first_run', $this->plugins_notice( 'first_run_dismissed' ) );
+
+		$location = $this->call( 'undergrowth_restore_first_run' );
+
+		$this->assertSame( admin_url( 'plugins.php?undergrowth_notice=first_run_gone' ), $location );
+		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+		$this->assertStringContainsString( 'nothing was changed', $this->plugins_notice( 'first_run_gone' ) );
 	}
 
 	public function test_the_first_run_notice_is_not_restored_once_a_key_is_saved() {
@@ -501,20 +538,20 @@ class Test_Undo extends WP_UnitTestCase {
 	public function test_restoring_the_first_run_notice_without_a_valid_nonce_is_refused() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->without_provider();
-		update_option( 'undergrowth_first_run', 'done' );
+		update_option( 'undergrowth_first_run', 'dismissed' );
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_dismiss_first_run' );
 
 		try {
 			$this->call( 'undergrowth_restore_first_run' );
 			$this->fail( 'The undo was not refused.' );
 		} catch ( WPDieException $e ) {
-			$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+			$this->assertSame( 'dismissed', get_option( 'undergrowth_first_run' ) );
 		}
 	}
 
 	public function test_restoring_the_first_run_notice_needs_manage_options() {
 		$this->without_provider();
-		update_option( 'undergrowth_first_run', 'done' );
+		update_option( 'undergrowth_first_run', 'dismissed' );
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_restore_first_run' );
 
 		$this->assertSame( '', $this->plugins_notice( 'first_run_dismissed' ) );
@@ -523,7 +560,7 @@ class Test_Undo extends WP_UnitTestCase {
 			$this->call( 'undergrowth_restore_first_run' );
 			$this->fail( 'The undo was not refused.' );
 		} catch ( WPDieException $e ) {
-			$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+			$this->assertSame( 'dismissed', get_option( 'undergrowth_first_run' ) );
 		}
 	}
 }

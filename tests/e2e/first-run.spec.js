@@ -212,7 +212,11 @@ test.describe( 'First run', () => {
 			).toBeFocused();
 			await page.keyboard.press( 'Enter' );
 
+			// The result is announced and takes focus, above the notice.
+			await expect( result ).toBeFocused();
+			await expect( result ).toHaveClass( /notice-success/ );
 			await expect( page.locator( NOTICE ) ).toHaveCount( 1 );
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
 			await expectNoA11yViolations( page, NOTICE );
 		} finally {
 			await requestUtils.activatePlugin( 'undergrowth' );

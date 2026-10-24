@@ -330,6 +330,28 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 }
 
 /**
+ * Says whether the current user can take back a veto: the pair is vetoed,
+ * the user may edit the post the link would sit in, and both posts are
+ * still read, so the suggestion it would bring back can still be accepted.
+ *
+ * @param int $source_id Post the link would sit in.
+ * @param int $target_id Post the link would point to.
+ * @return bool True when the veto can be undone.
+ */
+function undergrowth_can_unveto_link( int $source_id, int $target_id ): bool {
+	$source = get_post( $source_id );
+	$target = get_post( $target_id );
+
+	// Every caller checks the capability too, but a new one must not be able to forget.
+	return $source instanceof WP_Post
+		&& $target instanceof WP_Post
+		&& undergrowth_is_indexable( $source )
+		&& undergrowth_is_indexable( $target )
+		&& current_user_can( 'edit_post', $source_id )
+		&& 'vetoed' === undergrowth_link_state( $source_id, $target_id );
+}
+
+/**
  * Takes back a veto made by mistake, from the Undo in the veto's notice.
  *
  * A vetoed suggestion keeps its sentence, so it is suggested again as it
@@ -338,14 +360,13 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
  *
  * @param int $source_id Post the link would sit in.
  * @param int $target_id Post the link would point to.
- * @return bool True when the pair was vetoed and no longer is, and false
- *              when the current user cannot edit the source post.
+ * @return bool True when the pair was vetoed and no longer is. False when
+ *              undergrowth_can_unveto_link() says no.
  */
 function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
 	global $wpdb;
 
-	// Every caller checks this too, but a new one must not be able to forget.
-	if ( ! current_user_can( 'edit_post', $source_id ) || 'vetoed' !== undergrowth_link_state( $source_id, $target_id ) ) {
+	if ( ! undergrowth_can_unveto_link( $source_id, $target_id ) ) {
 		return false;
 	}
 

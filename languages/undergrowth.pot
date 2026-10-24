@@ -385,7 +385,7 @@ msgid "Undone. This link can be suggested again."
 msgstr ""
 
 #: src/admin.php
-msgid "That link is not vetoed, so nothing was changed."
+msgid "That veto can no longer be undone, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -1042,6 +1042,14 @@ msgstr ""
 
 #: src/editor.php
 msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
+#: src/first-run.php
+msgid "Undone. The notice is back."
+msgstr ""
+
+#: src/first-run.php
+msgid "That notice can no longer come back, so nothing was changed."
 msgstr ""
 
 #: src/first-run.php

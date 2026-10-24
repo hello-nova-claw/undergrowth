@@ -151,7 +151,8 @@ class Test_First_Run extends WP_UnitTestCase {
 			unset( $_REQUEST['_wpnonce'] );
 		}
 
-		$this->assertSame( 'done', get_option( 'undergrowth_first_run' ) );
+		// Dismissed, not done: only a dismissal can be undone.
+		$this->assertSame( 'dismissed', get_option( 'undergrowth_first_run' ) );
 	}
 
 	public function test_dismissing_needs_the_nonce() {

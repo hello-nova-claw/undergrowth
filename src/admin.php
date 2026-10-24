@@ -179,7 +179,7 @@ function undergrowth_unveto_link_html( string $pair ): string {
 	$source = (int) $ids[1];
 	$target = (int) $ids[2];
 
-	if ( ! current_user_can( 'edit_post', $source ) || 'vetoed' !== undergrowth_link_state( $source, $target ) ) {
+	if ( ! undergrowth_can_unveto_link( $source, $target ) ) {
 		return '';
 	}
 
@@ -998,7 +998,7 @@ function undergrowth_render_suggestions_notice(): void {
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
-		'unveto_gone'           => __( 'That link is not vetoed, so nothing was changed.', 'undergrowth' ),
+		'unveto_gone'           => __( 'That veto can no longer be undone, so nothing was changed.', 'undergrowth' ),
 	);
 
 	if ( ! isset( $messages[ $notice ] ) ) {
