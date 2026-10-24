@@ -434,8 +434,9 @@ function undergrowth_start_backfill(): void {
  *
  * Does nothing while some indexable post has no vector for this identity,
  * so a pass whose embeds mostly failed does not cluster a nearly empty
- * index, and nothing once the identity is recorded, so clustering is left
- * to the monthly cycle after the first time.
+ * index, or while there is no indexable post yet, so the first posts on a
+ * new site are still clustered early. Once the identity is recorded,
+ * clustering is left to the monthly cycle.
  *
  * @param array $identity {
  *     The current provider and model, and the site language when posts take theirs from the site.
@@ -452,7 +453,9 @@ function undergrowth_record_index_identity( array $identity ): void {
 		return;
 	}
 
-	if ( array() !== undergrowth_unindexed_post_ids( $identity, 0, 1 ) ) {
+	$counts = undergrowth_index_counts();
+
+	if ( 0 === $counts['total'] || $counts['indexed'] < $counts['total'] ) {
 		return;
 	}
 
