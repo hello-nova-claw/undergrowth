@@ -376,7 +376,8 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * until the next pass, so no batch compares more than its size times the
  * cap. Each batch that fills up schedules the next; the last starts the
  * stage cycle, looks for composting posts near the new clusters, and then
- * stores the words that name each cluster on the Map.
+ * stores the words that name each cluster on the Map. A batch that dies is
+ * run again by the hourly check; see undergrowth_resume_stalled_passes().
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
@@ -385,6 +386,8 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	global $wpdb;
 
 	$after_id = (int) $after_id;
+
+	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
 
 	// The first batch measures the site's scores, so the whole pass clusters
 	// with the threshold they give.
@@ -446,16 +449,25 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		}
 	}
 
-	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
-		update_option( 'undergrowth_cluster_leaders', $leaders, false );
-		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( $last_id ) );
+	// The hourly check queued this batch again while it ran, so the new run
+	// finishes the pass.
+	if ( ! undergrowth_owns_pass( 'undergrowth_cluster_cycle', $run ) ) {
 		return;
 	}
 
-	delete_option( 'undergrowth_cluster_leaders' );
+	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
+		update_option( 'undergrowth_cluster_leaders', $leaders, false );
+		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id );
+		return;
+	}
+
 	undergrowth_measure_gap_threshold();
-	wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 0 ) );
+	undergrowth_queue_pass_batch( 'undergrowth_stage_cycle', 0 );
 	undergrowth_start_resurfacing();
+	// Only now is the pass complete. Until here, a batch that died is run
+	// again by the hourly check, with the leaders it started with.
+	delete_option( 'undergrowth_cluster_leaders' );
+	undergrowth_end_pass( 'undergrowth_cluster_cycle' );
 	// Last, because it reads every post: the words only label the Map, so
 	// running out of time here must not hold up stages or resurfacing.
 	undergrowth_label_clusters();

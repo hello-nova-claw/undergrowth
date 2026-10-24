@@ -559,7 +559,7 @@ function undergrowth_dev_reset_clear( bool $forget_vectors ): array {
 		delete_post_meta_by_key( $key );
 	}
 
-	foreach ( array( 'undergrowth_cluster_leaders', 'undergrowth_cluster_labels', 'undergrowth_previous_clusters', 'undergrowth_new_clusters' ) as $option ) {
+	foreach ( array( 'undergrowth_cluster_leaders', 'undergrowth_cluster_cycle_pass', 'undergrowth_stage_cycle_pass', 'undergrowth_cluster_labels', 'undergrowth_previous_clusters', 'undergrowth_new_clusters' ) as $option ) {
 		delete_option( $option );
 	}
 

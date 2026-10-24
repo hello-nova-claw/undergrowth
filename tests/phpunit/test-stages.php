@@ -604,6 +604,8 @@ class Test_Stages extends WP_UnitTestCase {
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
 		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 42 ) );
 		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
+		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 42 );
+		undergrowth_mark_pass( 'undergrowth_stage_cycle', 42 );
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
 
@@ -613,6 +615,8 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 42 ) ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 		// Clusters from before a pause would be stale when the plugin returns.
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
 	}
@@ -621,12 +625,16 @@ class Test_Stages extends WP_UnitTestCase {
 		undergrowth_schedule_stage_cycle();
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
 		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
+		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 42 );
+		undergrowth_mark_pass( 'undergrowth_stage_cycle', 42 );
 
 		$this->uninstall();
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 	}
 
 	public function test_cycle_stores_the_measured_stage_for_every_indexed_post() {
@@ -704,6 +712,66 @@ class Test_Stages extends WP_UnitTestCase {
 
 		$this->assertTrue( metadata_exists( 'post', end( $posts ), 'undergrowth_stage' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( end( $posts ) ) ) );
+	}
+
+	public function test_cycle_whose_next_batch_is_lost_is_resumed_by_the_hourly_check() {
+		$posts = $this->publish( UNDERGROWTH_STAGE_BATCH + 2 );
+		sort( $posts );
+
+		undergrowth_run_stage_cycle();
+
+		$last_in_batch = $posts[ UNDERGROWTH_STAGE_BATCH - 1 ];
+		$pass          = get_option( 'undergrowth_stage_cycle_pass' );
+		$pass['at']   -= UNDERGROWTH_PASS_STALL;
+
+		wp_clear_scheduled_hook( 'undergrowth_stage_cycle', array( $last_in_batch ) );
+		update_option( 'undergrowth_stage_cycle_pass', $pass, false );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( $last_in_batch ) ) );
+
+		undergrowth_run_stage_cycle( $last_in_batch );
+
+		$this->assertTrue( metadata_exists( 'post', end( $posts ), 'undergrowth_stage' ) );
+		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
+	}
+
+	public function test_slow_batch_queued_again_while_it_runs_leaves_the_pass_to_the_new_run() {
+		$posts = $this->publish( UNDERGROWTH_STAGE_BATCH + 2 );
+		sort( $posts );
+
+		// As if the hourly check took this run for dead while it measured posts.
+		add_action(
+			'undergrowth_stage_cycled',
+			static function ( $post_id ) use ( $posts ) {
+				if ( $posts[0] === $post_id ) {
+					undergrowth_queue_pass_batch( 'undergrowth_stage_cycle', 0 );
+				}
+			}
+		);
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( $posts[ UNDERGROWTH_STAGE_BATCH - 1 ] ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertSame( 0, get_option( 'undergrowth_stage_cycle_pass' )['after'] );
+	}
+
+	public function test_cycle_with_no_indexed_post_types_leaves_no_pass_to_resume() {
+		update_option(
+			'undergrowth_stage_cycle_pass',
+			array(
+				'after' => 0,
+				'at'    => time() - HOUR_IN_SECONDS,
+			),
+			false
+		);
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		undergrowth_run_stage_cycle();
+
+		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 	}
 
 	public function test_cycle_with_no_indexed_post_types_measures_nothing() {
