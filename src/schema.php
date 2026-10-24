@@ -256,6 +256,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_refresh_sources' );
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	// A dev tools job left half done would carry on when reactivated.
@@ -263,6 +264,7 @@ function undergrowth_deactivate_site(): void {
 	delete_option( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
+	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_cluster_leaders' );
 	// Clusters, and the record of the last pass to compare new ones with,
 	// would be stale by the time the plugin is active again.
@@ -296,16 +298,19 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_config_prompt_queued' );
 	delete_option( 'undergrowth_snoozed_prompts' );
+	delete_option( 'undergrowth_prompt_written' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_first_run' );
 	delete_option( 'undergrowth_schema_version' );
 	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_refresh_sources' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	delete_option( 'undergrowth_backfill' );
 	delete_option( 'undergrowth_backfill.lock' );
+	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
 	delete_option( 'undergrowth_cluster_labels' );

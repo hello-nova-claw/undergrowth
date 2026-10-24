@@ -443,6 +443,9 @@ class Test_Memory extends WP_UnitTestCase {
 
 		wp_delete_post( $yacon, true );
 
+		// Oca picks a replacement in cron, which writes its file again.
+		do_action( 'undergrowth_refresh_sources', array( $oca ) );
+
 		$this->assertSame( array(), $this->section( (string) $this->read( $oca ), 'proposed links' ) );
 	}
 
