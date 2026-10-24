@@ -1,1 +1,0 @@
-Activating Undergrowth on a site with no key now shows one notice on the Plugins screen that links to Settings > Undergrowth, until a key is saved or the notice is dismissed for good. Settings > Undergrowth opens with a sentence on what each key turns on, links each key field to the provider's key page, and after the first OpenAI key is saved links on to Posts > Undergrowth.

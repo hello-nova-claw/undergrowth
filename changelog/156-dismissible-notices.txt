@@ -1,1 +1,0 @@
-The notice after accepting, vetoing, pinning or answering a question can now be dismissed like WordPress's own notices, and it reliably takes keyboard focus once the page has loaded.

@@ -48,6 +48,24 @@ class Test_Vectors extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_get_vector( PHP_INT_MAX ) );
 	}
 
+	public function test_vector_space_reads_back_without_the_vector() {
+		$post_id = self::factory()->post->create();
+		undergrowth_save_vector( $post_id, array( 0.25, -1.5, 3.0 ), $this->meta() );
+
+		$this->assertSame(
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v1',
+				'language' => 'en_US',
+			),
+			undergrowth_get_vector_space( $post_id )
+		);
+	}
+
+	public function test_missing_vector_space_reads_as_null() {
+		$this->assertNull( undergrowth_get_vector_space( PHP_INT_MAX ) );
+	}
+
 	public function test_saving_again_replaces_the_post_row() {
 		global $wpdb;
 

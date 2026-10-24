@@ -1,1 +1,0 @@
-Posts published before a key was saved are now read in the background, a few at a time, without saving them again. Settings > Undergrowth shows how many posts are indexed, and a post whose embed failed is tried again within the hour.

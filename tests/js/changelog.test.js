@@ -84,9 +84,25 @@ describe( 'foldInto', () => {
 		expect( foldInto( README, [] ) ).toBe( README );
 	} );
 
-	it( 'throws when there is no Unreleased section', () => {
-		expect( () => foldInto( '== Changelog ==\n', [ 'New.' ] ) ).toThrow(
-			/Unreleased/
+	it( 'opens an Unreleased section above the last release', () => {
+		const out = foldInto(
+			'== Changelog ==\n\n= 0.1.0 =\n* First release.\n',
+			[ 'New.' ]
+		);
+		expect( out ).toBe(
+			'== Changelog ==\n\n= Unreleased =\n* New.\n\n= 0.1.0 =\n* First release.\n'
+		);
+	} );
+
+	it( 'opens an Unreleased section in an empty changelog', () => {
+		expect( foldInto( '== Changelog ==\n', [ 'New.' ] ) ).toBe(
+			'== Changelog ==\n\n= Unreleased =\n* New.\n'
+		);
+	} );
+
+	it( 'throws when there is no Changelog section', () => {
+		expect( () => foldInto( '=== Undergrowth ===\n', [ 'New.' ] ) ).toThrow(
+			/Changelog/
 		);
 	} );
 } );

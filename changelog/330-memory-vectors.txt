@@ -1,0 +1,1 @@
+Saving a post no longer reads every stored vector to rewrite its file and the files of the posts that link to it, so saving and the monthly growth stage check stay fast on large sites.

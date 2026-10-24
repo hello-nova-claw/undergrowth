@@ -1,1 +1,0 @@
-Accept and Veto on a Discord message now do what the buttons on Posts > Undergrowth do, and the message then shows what happened. Only a Discord user an administrator has linked, on the user's profile, to an account that can edit the post may use them; anyone else gets a private refusal. See Setting up Discord in the FAQ.
