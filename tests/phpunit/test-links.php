@@ -219,7 +219,7 @@ class Test_Links extends WP_UnitTestCase {
 	public function test_every_link_result_has_a_message() {
 		$messages = undergrowth_link_result_messages();
 
-		foreach ( array( 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'needs_admin', 'forbidden' ) as $result ) {
+		foreach ( array( 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'not_saved', 'needs_admin', 'forbidden' ) as $result ) {
 			$this->assertNotSame( '', $messages[ $result ] ?? '', $result );
 		}
 	}
