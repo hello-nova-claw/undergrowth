@@ -61,7 +61,12 @@ function undergrowth_discord_click( array $interaction ): WP_REST_Response {
 		return undergrowth_discord_ephemeral( __( 'Discord did not say which message to update, so nothing was changed.', 'undergrowth' ) );
 	}
 
-	wp_schedule_single_event( time(), 'undergrowth_discord_finish_click', array( $button[1], $source_id, $target_id, $user->ID, $token ) );
+	$queued = wp_schedule_single_event( time(), 'undergrowth_discord_finish_click', array( $button[1], $source_id, $target_id, $user->ID, $token ), true );
+
+	if ( true !== $queued ) {
+		return undergrowth_discord_ephemeral( __( 'Undergrowth could not queue this click, so nothing was changed. Try again, or use Posts > Undergrowth.', 'undergrowth' ) );
+	}
+
 	spawn_cron();
 
 	return new WP_REST_Response( array( 'type' => UNDERGROWTH_DISCORD_DEFERRED_UPDATE ) );

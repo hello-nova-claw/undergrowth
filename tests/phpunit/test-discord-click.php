@@ -345,6 +345,20 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_click_that_cannot_be_queued_is_refused_privately() {
+		list( $oca, $yacon ) = $this->pair();
+		add_filter( 'pre_schedule_event', '__return_false' );
+
+		$response = $this->click( 'undergrowth:accept:' . $oca . ':' . $yacon );
+
+		remove_filter( 'pre_schedule_event', '__return_false' );
+		$this->assertEphemeral( $response );
+		$this->assertStringContainsString( 'could not queue', $response->get_data()['data']['content'] );
+		$this->finish();
+		$this->assertSame( array(), $this->requests );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
 	public function test_user_who_can_no_longer_edit_the_post_is_told_privately() {
 		list( $oca, $yacon ) = $this->pair();
 
