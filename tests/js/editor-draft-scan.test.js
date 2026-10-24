@@ -126,7 +126,8 @@ describe( 'Scan this draft', () => {
 			{
 				available: false,
 				destination: '',
-				unavailable: 'Scanning a draft needs something to read it with.',
+				unavailable:
+					'Scanning a draft needs something to read it with.',
 			},
 		];
 
