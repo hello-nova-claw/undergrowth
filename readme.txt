@@ -80,7 +80,7 @@ Undergrowth is free. The services bill your own accounts. At OpenAI's published 
 
 Link suggestions, clusters and growth stages need an embedding provider: an OpenAI key, or your own through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters. [An example](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/examples/local-embeddings.php) uses a model on your own server, such as Ollama, so nothing leaves it. Questions need an Anthropic key. With neither, Undergrowth sends nothing and waits.
 
-= Why is there no question on my Dashboard yet? =
+= Why is there no question in my Prompt studio yet? =
 
 Undergrowth asks one only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the monthly cycle keeps looking.
 
