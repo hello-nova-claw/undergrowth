@@ -70,6 +70,9 @@ export default function Edit( { attributes, setAttributes } ) {
 			<ServerSideRender
 				block="undergrowth/garden-index"
 				attributes={ attributes }
+				// The wrapper above already carries the colour, type and
+				// spacing, so the preview must not apply them twice.
+				skipBlockSupportAttributes
 				EmptyResponsePlaceholder={ NoPosts }
 			/>
 		</div>

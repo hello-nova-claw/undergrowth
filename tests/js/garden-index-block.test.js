@@ -72,7 +72,11 @@ describe( 'Garden index block', () => {
 				'<div class="wp-block-undergrowth-garden-index"><h2 class="wp-block-heading">Oca</h2><ul><li><a href="/?p=3">Oca</a></li></ul></div>',
 		};
 
-		const container = renderEdit( { stage: 'sprout' } );
+		const container = renderEdit( {
+			stage: 'sprout',
+			backgroundColor: 'accent',
+			style: { spacing: { padding: { top: '2em' } } },
+		} );
 
 		await waitFor( () => container.querySelector( 'li a' ) );
 
@@ -82,6 +86,10 @@ describe( 'Garden index block', () => {
 		);
 		expect( decodeURIComponent( requests[ 0 ].path ) ).toContain(
 			'attributes[stage]=sprout'
+		);
+		// The wrapper carries the supports, so the preview never doubles them.
+		expect( decodeURIComponent( requests[ 0 ].path ) ).not.toMatch(
+			/backgroundColor|padding/
 		);
 		expect( container.querySelector( 'h2' ).textContent ).toBe( 'Oca' );
 	} );

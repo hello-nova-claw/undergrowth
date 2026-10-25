@@ -259,6 +259,14 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		$this->assertSame( array( 'Other posts' => array( 'Yacon', 'Oca' ) ), $this->groups( $this->render() ) );
 	}
 
+	public function test_other_posts_are_newest_first_by_date_not_by_id() {
+		$this->member( 'Old import', array( 1.0, 0.0, 0.0 ), -1, array( 'post_date' => '2001-05-01 00:00:00' ) );
+		$this->member( 'Recent', array( 0.0, 1.0, 0.0 ), -1, array( 'post_date' => '2026-05-01 00:00:00' ) );
+		$this->member( 'Redated', array( 0.0, 0.0, 1.0 ), -1, array( 'post_date' => '2010-05-01 00:00:00' ) );
+
+		$this->assertSame( array( 'Other posts' => array( 'Recent', 'Redated', 'Old import' ) ), $this->groups( $this->render() ) );
+	}
+
 	public function test_reads_groups_from_the_cache_not_the_vectors() {
 		$posts = $this->plant_clusters();
 		undergrowth_build_garden_index();

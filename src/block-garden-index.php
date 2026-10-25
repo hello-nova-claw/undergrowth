@@ -127,7 +127,17 @@ function undergrowth_garden_index_groups( string $stage ): array {
 		);
 	}
 
+	// Newest first by the date readers see, not by ID, so an imported or
+	// redated post sits where its date puts it. The posts are already loaded.
 	$apart = $staged( $keep( $apart ) );
+	usort(
+		$apart,
+		static function ( int $a, int $b ): int {
+			$order = strcmp( (string) get_post_field( 'post_date_gmt', $b ), (string) get_post_field( 'post_date_gmt', $a ) );
+
+			return 0 === $order ? $b <=> $a : $order;
+		}
+	);
 
 	if ( array() !== $apart ) {
 		$groups[] = array(
