@@ -85,7 +85,7 @@ function undergrowth_choose_words( int $source_id, int $target_id, int $first, i
 	$wpdb->update(
 		$table,
 		array(
-			'anchor'        => (string) preg_replace( '/\s+/u', ' ', $found['word'] ),
+			'anchor'        => undergrowth_collapse_spaces( $found['word'] ),
 			'anchor_offset' => $offset,
 			'anchor_chosen' => 1,
 		),

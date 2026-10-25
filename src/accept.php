@@ -386,7 +386,7 @@ function undergrowth_find_in_sentence( string $content, string $sentence, string
 
 				$before = ltrim( undergrowth_plain_text( substr( $inner, 0, $node_at + $at ) ) );
 				$from   = mb_strlen( $before );
-				$shown  = mb_strlen( (string) preg_replace( '/\s+/u', ' ', $word ) );
+				$shown  = mb_strlen( undergrowth_collapse_spaces( $word ) );
 				$start  = undergrowth_sentence_copy_at( $starts, mb_strlen( $sentence ), $from, $shown, $offset );
 
 				if ( null === $start ) {
@@ -616,5 +616,5 @@ function undergrowth_overlaps_any( int $start, int $end, array $ranges ): bool {
 function undergrowth_plain_text( string $html ): string {
 	$text = html_entity_decode( implode( '', array_column( ( new Undergrowth_HTML_Text( $html ) )->text_nodes(), 0 ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-	return (string) preg_replace( '/\s+/u', ' ', $text );
+	return undergrowth_collapse_spaces( $text );
 }

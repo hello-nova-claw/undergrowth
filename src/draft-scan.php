@@ -349,7 +349,7 @@ function undergrowth_scan_draft( WP_Post $draft ): ?array {
 			'sentence' => $sentence['text'],
 			'span'     => array(
 				'offset' => $choice['offset'],
-				'length' => mb_strlen( (string) preg_replace( '/\s+/u', ' ', $choice['word'] ) ),
+				'length' => mb_strlen( undergrowth_collapse_spaces( $choice['word'] ) ),
 			),
 		);
 
