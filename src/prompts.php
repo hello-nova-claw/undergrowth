@@ -647,6 +647,7 @@ function undergrowth_write_more_prompts(): array {
  * @param int           $limit  Requests to send at most.
  * @param callable|null $accept Tells whether a source record may be used, or null for any.
  * @param bool|null     $failed Set to true when a failed request ended the run.
+ * @param-out bool       $failed
  * @return int Questions written.
  */
 function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null, ?bool &$failed = null ): int {
