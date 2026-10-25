@@ -643,6 +643,9 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'value="undergrowth_dismiss_pollination"', $html );
 		$this->assertStringContainsString( 'aria-describedby="' . $id . '"', $html );
 		$this->assertStringContainsString( '<strong>Cautious</strong>', $html );
+		// Many forms on one screen never repeat core's nonce id.
+		$this->assertStringNotContainsString( 'id="_wpnonce" name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_dismiss_pollination_' . $a[0] . '_' . $b[0] ), $html );
+		$this->assertStringContainsString( 'name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_dismiss_pollination_' . $a[0] . '_' . $b[0] ) . '"', $html );
 	}
 
 	public function test_map_view_says_so_when_no_pair_is_found() {

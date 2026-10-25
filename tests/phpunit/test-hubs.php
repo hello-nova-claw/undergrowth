@@ -492,6 +492,7 @@ class Test_Hubs extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="action" value="undergrowth_veto_hub"', $html );
 		$this->assertStringContainsString( 'aria-describedby="undergrowth-hub-' . $ids[0] . '"', $html );
 		$this->assertStringContainsString( 'id="undergrowth-hub-' . $ids[0] . '"', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_start_hub_' . $ids[0] ) . '" />', $html );
 	}
 
 	public function test_map_proposes_nothing_for_a_sparse_group() {
