@@ -622,19 +622,13 @@ function undergrowth_write_prompt( ?callable $accept = null ): bool {
  * @return array{written: int, error: array<string, mixed>|null} Questions written, and the failure that stopped the run, if one did.
  */
 function undergrowth_write_more_prompts(): array {
-	$before  = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
-	$start   = time();
-	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS, 'undergrowth_user_can_answer_prompt' );
-	$error   = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
+	$failed  = false;
+	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS, 'undergrowth_user_can_answer_prompt', $failed );
 
-	// A refusal is recorded too, but it is an answer, and the run went on.
-	if ( null === $error || $error === $before || (int) $error['time'] < $start || in_array( $error['code'] ?? '', array( 'refusal', 'max_tokens' ), true ) ) {
-		$error = null;
-	}
-
+	// The failure that ended this run is the last one recorded.
 	return array(
 		'written' => $written,
-		'error'   => $error,
+		'error'   => $failed ? undergrowth_last_failure( 'undergrowth_last_prompt_error' ) : null,
 	);
 }
 
@@ -652,9 +646,12 @@ function undergrowth_write_more_prompts(): array {
  * @param int           $wanted Questions to write at most.
  * @param int           $limit  Requests to send at most.
  * @param callable|null $accept Tells whether a source record may be used, or null for any.
+ * @param bool|null     $failed Set to true when a failed request ended the run.
  * @return int Questions written.
  */
-function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null ): int {
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null, ?bool &$failed = null ): int {
+	$failed = false;
+
 	if ( ! undergrowth_prompts_enabled() ) {
 		return 0;
 	}
@@ -680,6 +677,7 @@ function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept =
 		$result = undergrowth_write_prompt_from( $record, $calls );
 
 		if ( 'failed' === $result ) {
+			$failed = true;
 			break;
 		}
 

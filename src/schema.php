@@ -422,8 +422,8 @@ function undergrowth_uninstall_site(): void {
 
 	// A stage lock is released as soon as the stage is written, so one is
 	// left only by a request that died while holding it.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock names include each post's ID, so there is no list to delete by name.
-	$locks = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( 'undergrowth_stage_' ) . '%' . $wpdb->esc_like( '.lock' ) ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock names include each post's or user's ID, so there is no list to delete by name.
+	$locks = $wpdb->get_col( $wpdb->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s OR option_name LIKE %s', $wpdb->options, $wpdb->esc_like( 'undergrowth_stage_' ) . '%' . $wpdb->esc_like( '.lock' ), $wpdb->esc_like( 'undergrowth_more_prompts_' ) . '%' . $wpdb->esc_like( '.lock' ) ) );
 
 	foreach ( $locks as $lock ) {
 		delete_option( $lock );

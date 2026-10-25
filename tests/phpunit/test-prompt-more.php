@@ -136,6 +136,15 @@ class Test_Prompt_More extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Dismisses every new question, so More questions is offered again.
+	 */
+	private function dismiss_all(): void {
+		foreach ( undergrowth_prompts( 'new' ) as $prompt ) {
+			undergrowth_dismiss_prompt( $prompt['key'] );
+		}
+	}
+
+	/**
 	 * Clicks More questions and returns where the handler redirected.
 	 *
 	 * @return string Redirect location.
@@ -191,7 +200,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="action" value="undergrowth_more_prompts"', $html );
 		$this->assertStringContainsString( 'aria-describedby="undergrowth-more-cost"', $html );
-		$this->assertMatchesRegularExpression( '#<p id="undergrowth-more-cost">\s*More questions asks Claude for up to 3 questions straight away, using this site’s Anthropic API key\. Each question usually costs one or two cents#', $html );
+		$this->assertMatchesRegularExpression( '#<p id="undergrowth-more-cost">\s*More questions asks Claude for up to 3 questions straight away, using this site’s Anthropic API key\. A click sends at most 6 requests, each usually one or two cents at Anthropic’s published prices, and they are charged even when no new question comes of them\.#', $html );
 		$this->assertLessThan( strpos( $html, '>More questions</button>' ), strpos( $html, 'id="undergrowth-more-cost"' ) );
 		$this->assertSame( array(), $this->requests );
 	}
@@ -227,7 +236,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 	public function test_a_second_click_within_ten_minutes_sends_nothing() {
 		$this->offer( 5 );
 		$this->click();
-		undergrowth_dismiss_prompt( undergrowth_current_prompt()['key'] );
+		$this->dismiss_all();
 
 		$location = $this->click();
 
@@ -239,6 +248,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 	public function test_another_author_may_click_at_once() {
 		$this->offer( 5 );
 		$this->click();
+		$this->dismiss_all();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertStringContainsString( 'undergrowth_notice=more_written', $this->click() );
@@ -248,9 +258,43 @@ class Test_Prompt_More extends WP_UnitTestCase {
 	public function test_a_click_after_ten_minutes_asks_again() {
 		$this->offer( 5 );
 		$this->click();
+		$this->dismiss_all();
 		update_user_meta( get_current_user_id(), 'undergrowth_more_prompts_at', time() - UNDERGROWTH_PROMPT_MORE_WAIT - 1 );
 
 		$this->assertStringContainsString( 'undergrowth_count=2', $this->click() );
+	}
+
+	public function test_a_click_while_new_questions_wait_sends_nothing() {
+		$this->offer( 5 );
+		$this->click();
+		update_user_meta( get_current_user_id(), 'undergrowth_more_prompts_at', time() - UNDERGROWTH_PROMPT_MORE_WAIT - 1 );
+
+		$location = $this->click();
+
+		$this->assertStringContainsString( 'undergrowth_notice=more_waiting', $location );
+		$this->assertCount( 3, $this->requests );
+		$this->assertStringContainsString( 'already waiting', $this->notice( $location ) );
+	}
+
+	public function test_a_click_sent_at_the_same_time_as_another_sends_nothing() {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		$this->offer( 3 );
+		WP_Upgrader::create_lock( 'undergrowth_more_prompts_' . get_current_user_id(), MINUTE_IN_SECONDS );
+
+		$this->assertStringContainsString( 'undergrowth_notice=more_wait', $this->click() );
+		$this->assertSame( array(), $this->requests );
+
+		WP_Upgrader::release_lock( 'undergrowth_more_prompts_' . get_current_user_id() );
+	}
+
+	public function test_a_failure_like_an_earlier_one_is_still_reported() {
+		$this->offer( 3 );
+		$this->statuses = array( 429 );
+		$this->click();
+		update_user_meta( get_current_user_id(), 'undergrowth_more_prompts_at', time() - UNDERGROWTH_PROMPT_MORE_WAIT - 1 );
+		$this->statuses = array( 429 );
+
+		$this->assertStringContainsString( 'undergrowth_notice=more_failed', $this->click() );
 	}
 
 	public function test_nothing_left_to_ask_about_says_so_without_a_request() {

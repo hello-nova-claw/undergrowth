@@ -75,6 +75,7 @@ const PROMPT_NOTICES = [
 	'more_failed',
 	'more_none',
 	'more_wait',
+	'more_waiting',
 ];
 
 const WITHOUT_POSTS = [

@@ -218,9 +218,10 @@ function undergrowth_render_more_prompts_form(): void {
 			<?php
 			echo esc_html(
 				sprintf(
-					/* translators: %s: number of questions asked for. */
-					__( 'More questions asks Claude for up to %s questions straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices.', 'undergrowth' ),
-					number_format_i18n( UNDERGROWTH_PROMPT_MORE )
+					/* translators: 1: number of questions asked for, 2: number of requests sent at most. */
+					__( 'More questions asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. A click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices, and they are charged even when no new question comes of them.', 'undergrowth' ),
+					number_format_i18n( UNDERGROWTH_PROMPT_MORE ),
+					number_format_i18n( UNDERGROWTH_PROMPT_MORE_CALLS )
 				)
 			);
 			?>
@@ -361,16 +362,16 @@ function undergrowth_handle_more_prompts(): void {
 		wp_die( esc_html__( 'You cannot ask for more questions.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	$user   = get_current_user_id();
-	$last   = (int) get_user_meta( $user, 'undergrowth_more_prompts_at', true );
 	$result = array( 'written' => 0 );
 
 	if ( ! undergrowth_prompts_enabled() ) {
 		$notice = 'more_no_key';
-	} elseif ( $last > time() - UNDERGROWTH_PROMPT_MORE_WAIT ) {
+	} elseif ( array() !== undergrowth_user_prompts( 'new' ) ) {
+		// A form left open from before can be sent once new questions wait.
+		$notice = 'more_waiting';
+	} elseif ( ! undergrowth_reserve_more_prompts( get_current_user_id() ) ) {
 		$notice = 'more_wait';
 	} else {
-		update_user_meta( $user, 'undergrowth_more_prompts_at', time() );
 		$result = undergrowth_write_more_prompts();
 
 		if ( null !== $result['error'] ) {
@@ -382,6 +383,36 @@ function undergrowth_handle_more_prompts(): void {
 
 	wp_safe_redirect( undergrowth_studio_url( '', $notice, '', $result['written'] ) );
 	exit;
+}
+
+/**
+ * Records that a user asked for more questions, unless they did within
+ * UNDERGROWTH_PROMPT_MORE_WAIT seconds.
+ *
+ * A lock makes the check and the record one step, so two clicks sent at
+ * once never both go through.
+ *
+ * @param int $user User ID.
+ * @return bool True when this click may ask Claude.
+ */
+function undergrowth_reserve_more_prompts( int $user ): bool {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	$lock = 'undergrowth_more_prompts_' . $user;
+
+	if ( ! WP_Upgrader::create_lock( $lock, MINUTE_IN_SECONDS ) ) {
+		return false;
+	}
+
+	$reserved = (int) get_user_meta( $user, 'undergrowth_more_prompts_at', true ) <= time() - UNDERGROWTH_PROMPT_MORE_WAIT;
+
+	if ( $reserved ) {
+		update_user_meta( $user, 'undergrowth_more_prompts_at', (string) time() );
+	}
+
+	WP_Upgrader::release_lock( $lock );
+
+	return $reserved;
 }
 
 /**
@@ -482,8 +513,8 @@ function undergrowth_render_studio_notice(): void {
 function undergrowth_render_more_prompts_notice( string $notice, int $count ): void {
 	$error   = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
 	$written = sprintf(
-		/* translators: %s: number of new questions. */
-		_n( 'Claude wrote %s new question for you.', 'Claude wrote %s new questions for you.', $count, 'undergrowth' ),
+		/* translators: %1$s: number of new questions. */
+		_n( 'Claude wrote %1$s new question for you.', 'Claude wrote %1$s new questions for you.', $count, 'undergrowth' ),
 		number_format_i18n( $count )
 	);
 	$failure = null === $error ? '' : undergrowth_failure_text( 'Anthropic', $error, __( 'You can ask for more questions again in a few minutes.', 'undergrowth' ) );
@@ -509,6 +540,7 @@ function undergrowth_render_more_prompts_notice( string $notice, int $count ): v
 		),
 		'more_none'    => array( 'notice-info', __( 'Claude has no new question for you from your posts just now. Undergrowth looks again each week.', 'undergrowth' ) ),
 		'more_wait'    => array( 'notice-warning', __( 'You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes.', 'undergrowth' ) ),
+		'more_waiting' => array( 'notice-info', __( 'New questions are already waiting here, so nothing was sent.', 'undergrowth' ) ),
 		'more_no_key'  => array( 'notice-warning', __( 'There is no Anthropic API key, so nothing was sent.', 'undergrowth' ) ),
 	);
 

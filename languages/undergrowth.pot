@@ -2298,10 +2298,10 @@ msgstr ""
 msgid "Replace"
 msgstr ""
 
-#. translators: %s: number of questions asked for.
+#. translators: 1: number of questions asked for, 2: number of requests sent at most.
 #: src/studio.php
 #, php-format
-msgid "More questions asks Claude for up to %s questions straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices."
+msgid "More questions asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. A click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices, and they are charged even when no new question comes of them."
 msgstr ""
 
 #: src/studio.php
@@ -2376,11 +2376,11 @@ msgstr ""
 msgid "Claude could not write a different question just now, so this one stays. Try again later."
 msgstr ""
 
-#. translators: %s: number of new questions.
+#. translators: %1$s: number of new questions.
 #: src/studio.php
 #, php-format
-msgid "Claude wrote %s new question for you."
-msgid_plural "Claude wrote %s new questions for you."
+msgid "Claude wrote %1$s new question for you."
+msgid_plural "Claude wrote %1$s new questions for you."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -2406,6 +2406,10 @@ msgstr ""
 
 #: src/studio.php
 msgid "You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes."
+msgstr ""
+
+#: src/studio.php
+msgid "New questions are already waiting here, so nothing was sent."
 msgstr ""
 
 #: src/studio.php
