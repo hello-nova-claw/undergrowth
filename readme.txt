@@ -62,7 +62,7 @@ With an OpenAI key saved, the title and text of each published post that is not 
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only in your Prompt studio. Requests go to `api.anthropic.com` from WP-Cron, a handful a month at most, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
+With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only in your Prompt studio. Requests go to `api.anthropic.com` from WP-Cron, a handful a month, and straight away each time you choose Replace in your Prompt studio, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
 
 = What is sent to Discord? =
 
@@ -82,7 +82,7 @@ Link suggestions, clusters and growth stages need an embedding provider: an Open
 
 = Why is there no question in my Prompt studio yet? =
 
-Undergrowth asks one only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the monthly cycle keeps looking.
+Undergrowth writes a question only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the monthly cycle keeps looking. Once there are questions, Posts > Prompt studio lists the new ones and the ones you saved to your idea bank, and the Dashboard says how many new ones wait.
 
 = Who can read my keys? =
 
