@@ -1208,6 +1208,18 @@ test.describe( 'Screenshot catalogue', () => {
 			await requestUtils.request.post( 'wp-admin/admin-post.php', {
 				form: fields,
 			} );
+
+			// A failed Accept would otherwise capture an empty list under
+			// the "linked" states' names.
+			const front = await requestUtils.request.get( `?p=${ yacon.id }` );
+
+			if (
+				! ( await front.text() ).includes(
+					`<li><a href="${ oca.link }">Oca</a></li>`
+				)
+			) {
+				throw new Error( 'Accepting the link did not list Oca.' );
+			}
 		} );
 
 		capture( WITH_LINKED_FROM );
