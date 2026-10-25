@@ -489,16 +489,16 @@ function undergrowth_map_export_markdown( array $rows ): string {
 	$lines = array();
 
 	foreach ( undergrowth_map_export_table( $rows ) as $i => $cells ) {
-		if ( 0 !== $i ) {
-			$cells[3] = '' === $cells[3] ? '' : '<' . $cells[3] . '>';
+		foreach ( $cells as $c => $cell ) {
+			$cell = trim( (string) preg_replace( '/\s+/', ' ', $cell ) );
+
+			// A post's address becomes a link; every other cell is text, so
+			// markup in a title reads as written, as on the Map.
+			$cells[ $c ] = 3 === $c && 0 !== $i
+				? ( '' === $cell ? '' : '<' . $cell . '>' )
+				: str_replace( array( '\\', '|', '<', '>' ), array( '\\\\', '\|', '\<', '\>' ), $cell );
 		}
 
-		$cells   = array_map(
-			static function ( $cell ) {
-				return str_replace( array( '\\', '|' ), array( '\\\\', '\|' ), trim( (string) preg_replace( '/\s+/', ' ', $cell ) ) );
-			},
-			$cells
-		);
 		$lines[] = '| ' . implode( ' | ', $cells ) . ' |';
 
 		if ( 0 === $i ) {
