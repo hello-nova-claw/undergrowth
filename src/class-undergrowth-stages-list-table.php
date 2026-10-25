@@ -144,13 +144,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			$url = add_query_arg( 'undergrowth_stage', $filter, $url );
 		}
 
-		return sprintf(
-			'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
-			esc_url( $url ),
-			$current ? ' class="current" aria-current="page"' : '',
-			esc_html( $label ),
-			esc_html( number_format_i18n( $count ) )
-		);
+		return undergrowth_view_link( $url, $label, $count, $current );
 	}
 
 	/**
@@ -295,7 +289,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			return $marker;
 		}
 
-		return sprintf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>', esc_html__( 'Not pinned', 'undergrowth' ) );
+		return undergrowth_empty_cell( __( 'Not pinned', 'undergrowth' ) );
 	}
 
 	/**

@@ -1342,7 +1342,7 @@ function undergrowth_render_suggestions_notice(): void {
 	if ( 'accepted' === $notice && $revision > 0 ) {
 		$see = sprintf(
 			' <a href="%1$s">%2$s</a>',
-			esc_url( admin_url( 'revision.php?revision=' . $revision ) ),
+			esc_url( add_query_arg( 'revision', $revision, admin_url( 'revision.php' ) ) ),
 			esc_html__( 'See the change', 'undergrowth' )
 		);
 	}

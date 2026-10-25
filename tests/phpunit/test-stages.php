@@ -84,6 +84,31 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( '', undergrowth_pinned_marker( $post_id ) );
 	}
 
+	public function test_pinned_marker_has_no_title_on_its_hidden_icon() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$post_id = self::factory()->post->create();
+		$this->assertTrue( undergrowth_pin_stage( $post_id, 'sprout' ) );
+
+		// The icon is hidden from screen readers, which read the text beside it.
+		$this->assertStringNotContainsString( 'title=', undergrowth_pinned_marker( $post_id ) );
+	}
+
+	public function test_empty_cell_shows_core_dash_and_names_what_is_missing() {
+		$this->assertSame( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">No growth stage</span>', undergrowth_empty_cell( 'No growth stage' ) );
+		$this->assertStringContainsString( '&lt;b&gt;', undergrowth_empty_cell( '<b>' ) );
+	}
+
+	public function test_view_link_marks_only_the_current_view() {
+		$this->assertSame(
+			'<a href="https://example.org/?a=1&#038;b=2" class="current" aria-current="page">Sprout <span class="count">(1,234)</span></a>',
+			undergrowth_view_link( 'https://example.org/?a=1&b=2', 'Sprout', 1234, true )
+		);
+		$this->assertSame(
+			'<a href="https://example.org/">Sprout <span class="count">(0)</span></a>',
+			undergrowth_view_link( 'https://example.org/', 'Sprout', 0, false )
+		);
+	}
+
 	public function test_post_with_no_accepted_links_measures_seedling() {
 		list( $post_id ) = $this->publish( 1 );
 

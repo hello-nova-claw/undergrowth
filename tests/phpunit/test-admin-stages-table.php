@@ -263,7 +263,7 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '#<td class=\'stage column-stage\' data-colname="Growth stage"\s*>Sprout</td>#', $html );
-		$this->assertMatchesRegularExpression( '#<td class=\'pinned column-pinned\' data-colname="Pinned"\s*><span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="Pinned"></span><span class="screen-reader-text">Pinned</span></td>#', $html );
+		$this->assertMatchesRegularExpression( '#<td class=\'pinned column-pinned\' data-colname="Pinned"\s*><span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true"></span><span class="screen-reader-text">Pinned</span></td>#', $html );
 		$this->assertStringContainsString( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">Not pinned</span>', $html );
 		$this->assertStringContainsString( '<label class="screen-reader-text" for="cb-select-' . $yacon . '">Select Yacon</label>', $html );
 		$this->assertStringContainsString( '<input id="cb-select-' . $yacon . '" type="checkbox" name="post[]" value="' . $yacon . '" />', $html );
