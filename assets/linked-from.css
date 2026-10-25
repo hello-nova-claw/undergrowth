@@ -1,0 +1,8 @@
+/*
+ * Each post's link sits on a line of its own, so the lines are kept at
+ * least 24px apart for touch and pointer users (WCAG 2.5.8), even at a
+ * small font size.
+ */
+.wp-block-undergrowth-linked-from li {
+	min-height: 24px;
+}

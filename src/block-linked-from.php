@@ -20,7 +20,17 @@ add_action( 'init', 'undergrowth_register_linked_from_block' );
  */
 function undergrowth_register_linked_from_block(): void {
 	$folder = dirname( UNDERGROWTH_FILE ) . '/build/blocks/linked-from';
-	$args   = array( 'render_callback' => 'undergrowth_render_linked_from_block' );
+	$args   = array(
+		'render_callback' => 'undergrowth_render_linked_from_block',
+		'style_handles'   => array( 'undergrowth-linked-from' ),
+	);
+
+	wp_register_style(
+		'undergrowth-linked-from',
+		plugins_url( 'assets/linked-from.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
+	);
 
 	if ( ! file_exists( $folder . '/block.json' ) ) {
 		$folder                        = dirname( UNDERGROWTH_FILE ) . '/src/blocks/linked-from';
