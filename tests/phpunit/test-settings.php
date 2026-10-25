@@ -690,6 +690,41 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'name="undergrowth_post_types_shown"', $html );
 	}
 
+	public function test_page_has_no_accept_row_while_no_save_has_failed() {
+		$this->assertStringNotContainsString( 'undergrowth-accept-error', $this->render() );
+	}
+
+	public function test_accept_row_says_when_a_save_failed_and_what_wordpress_reported() {
+		update_option(
+			'undergrowth_last_accept_error',
+			array(
+				'code'   => 'empty_content',
+				'status' => 0,
+				'time'   => 1767225600,
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<th scope="row">Accept</th>#', $html );
+		$this->assertStringContainsString( 'id="undergrowth-accept-error"', $html );
+		$this->assertStringContainsString( 'WordPress refused to save the post because it would have been empty, so the link was not added.', $html );
+		$this->assertStringContainsString( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 ), $html );
+	}
+
+	public function test_accept_row_names_an_error_code_it_has_no_sentence_for() {
+		update_option(
+			'undergrowth_last_accept_error',
+			array(
+				'code'   => 'some_plugin_refused',
+				'status' => 0,
+				'time'   => time(),
+			)
+		);
+
+		$this->assertStringContainsString( 'WordPress did not save the post, so the link was not added. It reported the error some_plugin_refused.', undergrowth_accept_failure_text( get_option( 'undergrowth_last_accept_error' ) ) );
+	}
+
 	public function test_saving_settings_without_the_switch_on_the_page_keeps_it() {
 		update_option( 'undergrowth_suggest_links', '0' );
 
