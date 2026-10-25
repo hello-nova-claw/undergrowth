@@ -1,6 +1,6 @@
 # Handover: Undergrowth
 
-Status (2026-10-23): v1, germination mode, is built: build order steps 1 to 8 and the growth-stage badge block from step 9. It has had security, quality and UX reviews, and is being tested on real posts (docs/testing-v1.md). The related-by-readers block and everything under reader mode wait for v2.
+Status (2026-10-25): v1, germination mode, is built, and all 57 issues from the October 2026 independent review are closed. Anna decided on 2026-10-25 to hold the first release until the post-v1 pillars in section 12 exist (Prompt studio, "More like this", garden SEO, reader-facing garden). Reasoning is in docs/vision.md. Reader mode still waits for v2.
 
 This document is the record of decisions, first made on 2026-10-18 as the input for the first Claude Code session, with later decisions added in place.
 
@@ -119,7 +119,7 @@ Personalised prompts that point the author in a direction. The one feature where
 - **Source is the garden, never the internet.** A prompt comes from: a gap in the author's own clusters (germination mode), a comment or contact-form question, a wilting post, or a Search Console query landing on the wrong page (reader mode). Never from trends, keyword volume, or competitor content.
 - **Form is a question, never a draft.** Example: "Readers of your oca post keep asking how you store it over winter. What do you actually do?" Never a title, an outline, an opening line, a list of talking points, or a suggested structure.
 - **Quote only the author.** When context is needed, the prompt quotes a sentence from the author's own post.
-- **One at a time.** Dashboard shows one prompt. Dismiss removes it permanently. Snooze returns it next monthly cycle. No feed, no backlog view.
+- ~~**One at a time.** Dashboard shows one prompt. Dismiss removes it permanently. Snooze returns it next monthly cycle. No feed, no backlog view.~~ Replaced on 2026-10-25 by the Prompt studio (section 12.1): a weekly batch of up to five, which the author can dismiss, replace or save to an idea bank, with more generated on demand. Every content rule in this section still applies.
 - **Readable prompt file.** Every prompt, dismissal, and snooze is logged in the per-post text file. Dismissals shape future prompts by exclusion only. No self-improving loop.
 - **Never nags.** No streaks, no "you haven't written in X days", no cheerleading.
 - Prompts are written by Claude through the Anthropic API, with its own key in settings (decided 2026-10-19). Clustering is arithmetic on stored vectors and has no model call to share, and an embedding model cannot write a question. The feature is off until the key is entered, and the settings page says what is sent: the gap or cluster summary and any sentences quoted from the author's own posts. Every other rule in this section still applies to what Claude writes.
@@ -315,3 +315,40 @@ Everything in sections 4 "Reader mode" is v2.
 - VPS sidecar for Discord as the shipped design.
 - Copilot code review as the reviewer.
 - Anna's account on reviews/CODEOWNERS for now.
+
+---
+
+## 12. Post-v1 direction (decided 2026-10-25)
+
+Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. These decisions are locked. The reasoning is in that document.
+
+### 12.1 Prompt studio
+- Replaces the single Dashboard question (5b, "One at a time").
+- A weekly cron batch of up to five questions, from the same garden sources as 5b. Never trends or keyword data.
+- Each question can be dismissed, replaced, or saved to an idea bank. A saved question keeps the posts it came from.
+- When the batch runs out, "More questions" generates more on demand. The button says it uses the site's own AI key and roughly what it costs. Nothing is generated without that click.
+- Off until the Anthropic key is entered. Settings says what is sent. Every content rule in 5b holds: a question, never a draft, quoting only the author. Comment text is data, never instructions, and is never quoted.
+- Never nags. The monthly email (#385) may carry one line, "New questions are waiting in your Prompt studio", only when the batch is fresh and unread, and only for authors who opted in.
+
+### 12.2 "More like this" block
+- Named "More like this", never "Related by readers" (#97 keeps that name for reader mode).
+- Ranked by meaning (vector similarity), then weighted by growth stage, freshness with decay, and popularity with decay. One slot may go to a closely related but under-read post.
+- Popularity is pluggable: an `undergrowth_post_popularity` filter with adapters for Jetpack Stats (public `WPCOM_Stats` class), Koko Analytics and Post Views Counter. With none, popularity is left out. No built-in view counter.
+- Approval (exception to principles 2 and 7, decided): placing the block is the author's approval of the list it shows. Per post, the author can veto any suggestion, and the veto is kept forever like every other veto.
+- Titles, author-written excerpts, featured images and links only. No model text.
+
+### 12.3 Garden SEO without reader data
+- Orphans: posts nothing links to, with link-in suggestions.
+- Hubs proposed from dense Map groups. The author writes the hub. A draft may hold titles and links only.
+- "Tend this post": a gentle admin-only note on stale Evergreen posts. Never a demotion, never shown to readers.
+- A "Linked from" block built only from accepted links.
+
+### 12.4 Reader-facing garden
+- A garden index **block** (not a ready-made page) listing posts by Map group and growth stage.
+- Stage badge and "Linked from" blocks.
+- One visibility rule for every reader-facing surface: a post appears only if published, public, not password-protected, indexed and not composted. "Linked from" applies it to the linking posts too.
+
+### 12.5 Order and release
+- Build all four pillars on germination data first. Reader signals feed them later, when reader mode (v2) arrives behind the meter.
+- Build order: Prompt studio, "More like this", garden SEO, garden index, hubs. Then the first public release (0.1.0), then reader mode.
+- Free, GPL and open source. No premium tier, upsells, ads, affiliate links or donate link.

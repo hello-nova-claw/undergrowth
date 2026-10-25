@@ -1,6 +1,6 @@
 # Vision: Undergrowth after v1
 
-> **This is a draft for Anna to react to, not a decision.** Merging it decides nothing. Only the decisions Anna confirms go into `docs/handover.md`, and nothing below is built or filed as a build issue until then.
+> **Confirmed by Anna on 2026-10-25.** She accepted every recommendation in section 6. The decisions are recorded in `docs/handover.md` section 12, which is the source of truth. This document keeps the reasoning.
 
 Drafted 2026-10-25, after the October review was finished. It reads with `docs/handover.md` (the design record) and `docs/v2-reader-mode-proposal.md` open.
 
@@ -98,7 +98,7 @@ Everything reader-facing is the author's own titles and words, arranged by struc
 - **Not ready to submit yet** (Anna, 2026-10-25). v1 stays unreleased until this direction is settled.
 - **No profit, ever.** GPL, open source, no premium tier, upsells, ads, affiliate links or donate link.
 
-## 6. Decisions needed from Anna
+## 6. Decisions (confirmed 2026-10-25: every recommendation accepted)
 
 - **D1. Release shape.** Option (a): ship v1 as it is now and build the pillars as 0.2, 0.3 and so on. Option (b): hold the first release until the Prompt studio and "More like this" exist, so the first public version feels like Undergrowth. Recommendation: (b), because first impressions on WordPress.org are hard to change, and those two are what make the plugin distinct.
 - **D2. Approval for "More like this".** Principles 2 and 7 say a human approves every reader-visible link. A list that changes with decay and popularity can't be approved link by link. Options: (a) placing the block is the approval, with a per-post way to hide a suggestion forever (a veto, kept like every other veto); (b) the author approves each post's list, and again whenever it changes. Recommendation: (a). The block is a visible, author-placed feature whose rules are stated, and the veto keeps the author in charge.
