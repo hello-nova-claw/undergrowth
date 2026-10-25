@@ -94,7 +94,7 @@ npm run test:e2e
 - Text domain is `undergrowth`. Every user-facing string goes through a translation function with that domain: `__()`, `_e()`, `_x()`, `_n()`, `esc_html__()` and friends.
 - Never build a sentence by concatenation. Use `sprintf()` with numbered placeholders (`%1$s`, `%2$d`) so translators can reorder them, and add a `/* translators: */` comment for every placeholder.
 - JavaScript uses `@wordpress/i18n`, and each script is registered with `wp_set_script_translations()`.
-- Dates use `wp_date()`. Numbers use `number_format_i18n()`.
+- Dates use `wp_date()`. Numbers use `number_format_i18n()`. The per-post files are the exception: they are fixed-format records in UTC, read by tools, not people, so they use `gmdate()`.
 - `languages/undergrowth.pot` is committed. Regenerate it with `npm run i18n:pot` whenever you add or change a string. CI fails if it is out of date. Its references name the file but not the line, and it has no creation date, so moving code doesn't change it and open pull requests don't conflict over it.
 - No `.po` or `.mo` files in the repository. Translations live on translate.wordpress.org. The pseudo-locale used in CI is generated from the POT at test time.
 - Vectors carry the language of the post they came from. Never compare vectors across languages.
