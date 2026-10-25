@@ -812,7 +812,7 @@ function undergrowth_render_map_tab(): void {
 	}
 
 	if ( count( $map ) >= 2 ) {
-		undergrowth_render_pollination_view();
+		undergrowth_render_pollination_view( $map );
 	}
 
 	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
