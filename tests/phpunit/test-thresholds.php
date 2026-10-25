@@ -322,10 +322,13 @@ class Test_Thresholds extends WP_UnitTestCase {
 
 		// OpenAI ignores a filter's vector, so the planted vectors come back
 		// from a stand-in for its API instead, by post title.
-		$answer = function ( $preempt, $args, $url ) {
+		$requests = 0;
+		$answer   = function ( $preempt, $args, $url ) use ( &$requests ) {
 			if ( UNDERGROWTH_OPENAI_URL !== $url ) {
 				return $preempt;
 			}
+
+			++$requests;
 
 			$input = (string) ( json_decode( (string) $args['body'], true )['input'] ?? '' );
 
@@ -344,6 +347,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 		undergrowth_measure_scores();
 
 		remove_filter( 'pre_http_request', $answer, 10 );
+		$this->assertSame( 20, $requests, 'Every post was embedded through OpenAI.' );
 		$stored = get_option( 'undergrowth_scores' );
 		$this->assertSame( 'openai', $stored['provider'] );
 		$this->assertSame( 20, $stored['posts'] );
