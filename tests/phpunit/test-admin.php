@@ -633,7 +633,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		// One gate holds the refusal, so no handler can drift from the others.
 		$this->assertSame( 1, substr_count( $source, "'You cannot change links in this post.'" ) );
-		$this->assertSame( 1, substr_count( $source, 'check_admin_referer( \'undergrowth_\' . $action' ) );
+		$this->assertSame( 0, preg_match_all( "/check_admin_referer\\( 'undergrowth_[a-z_]+_' \\./", $source ) );
 	}
 
 	public function test_the_post_gate_returns_the_posted_post_once_the_nonce_passes() {

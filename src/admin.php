@@ -120,17 +120,54 @@ function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): s
 }
 
 /**
- * Vetoes the link posted from a row's form, then returns to the screen.
+ * Reads the pair a link action names, and lets the request go on only with
+ * that action's nonce and when the user may edit the post the link sits in.
+ *
+ * Every write from the Suggestions screen passes through here, so the gate
+ * cannot differ from one handler to the next.
+ *
+ * @param string $action    Action name, such as 'veto', after the undergrowth_ prefix.
+ * @param bool   $from_link True to read the pair from the address, as an Undo link sends it.
+ * @return int[] Source and target post IDs.
  */
-function undergrowth_handle_veto(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+function undergrowth_posted_link_pair( string $action, bool $from_link = false ): array {
+	// phpcs:disable WordPress.Security.NonceVerification -- check_admin_referer() runs before anything changes.
+	$input  = $from_link ? $_GET : $_POST;
+	$source = isset( $input['source'] ) ? absint( wp_unslash( $input['source'] ) ) : 0;
+	$target = isset( $input['target'] ) ? absint( wp_unslash( $input['target'] ) ) : 0;
+	// phpcs:enable
 
-	check_admin_referer( 'undergrowth_veto_' . $source . '_' . $target );
+	check_admin_referer( 'undergrowth_' . $action . '_' . $source . '_' . $target );
 
 	if ( ! current_user_can( 'edit_post', $source ) ) {
 		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
+
+	return array( $source, $target );
+}
+
+/**
+ * Reads the post a row action on the Growth stages or Map tab names, and
+ * lets the request go on only with that action's nonce. Each action checks
+ * what the user may do to the post itself.
+ *
+ * @param string $action Action name, such as 'pin', after the undergrowth_ prefix.
+ * @return int Post ID.
+ */
+function undergrowth_posted_post_id( string $action ): int {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- check_admin_referer() runs before anything changes.
+	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_' . $action . '_' . $post_id );
+
+	return $post_id;
+}
+
+/**
+ * Vetoes the link posted from a row's form, then returns to the screen.
+ */
+function undergrowth_handle_veto(): void {
+	list( $source, $target ) = undergrowth_posted_link_pair( 'veto' );
 
 	$result = undergrowth_veto_result( $source, $target );
 	$url    = undergrowth_suggestions_url( $result );
@@ -150,16 +187,7 @@ function undergrowth_handle_veto(): void {
  * returns to the screen.
  */
 function undergrowth_handle_unveto(): void {
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- check_admin_referer() runs before anything changes.
-	$source = isset( $_GET['source'] ) ? absint( wp_unslash( $_GET['source'] ) ) : 0;
-	$target = isset( $_GET['target'] ) ? absint( wp_unslash( $_GET['target'] ) ) : 0;
-	// phpcs:enable
-
-	check_admin_referer( 'undergrowth_unveto_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
+	list( $source, $target ) = undergrowth_posted_link_pair( 'unveto', true );
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_unveto_link( $source, $target ) ? 'unvetoed' : 'unveto_gone' ) );
 	exit;
@@ -206,14 +234,7 @@ function undergrowth_unveto_link_html( string $pair ): string {
  * link straight to what changed.
  */
 function undergrowth_handle_accept(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_accept_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
+	list( $source, $target ) = undergrowth_posted_link_pair( 'accept' );
 
 	$result = undergrowth_accept_link( $source, $target );
 	$url    = undergrowth_suggestions_url( $result );
@@ -234,18 +255,13 @@ function undergrowth_handle_accept(): void {
  * Saves the words chosen in a row's Choose words form, then returns to the screen.
  */
 function undergrowth_handle_choose_words(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+	list( $source, $target ) = undergrowth_posted_link_pair( 'choose_words' );
 
-	check_admin_referer( 'undergrowth_choose_words_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
-
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked by undergrowth_posted_link_pair().
 	$first = isset( $_POST['first'] ) ? (int) $_POST['first'] : -1;
 	$last  = isset( $_POST['last'] ) ? (int) $_POST['last'] : -1;
 	$shown = isset( $_POST['shown'] ) ? sanitize_key( wp_unslash( $_POST['shown'] ) ) : '';
+	// phpcs:enable
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
 	exit;
@@ -255,10 +271,9 @@ function undergrowth_handle_choose_words(): void {
  * Pins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_pin(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-	$stage   = isset( $_POST['stage'] ) ? sanitize_key( wp_unslash( $_POST['stage'] ) ) : '';
-
-	check_admin_referer( 'undergrowth_pin_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'pin' );
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked by undergrowth_posted_post_id().
+	$stage = isset( $_POST['stage'] ) ? sanitize_key( wp_unslash( $_POST['stage'] ) ) : '';
 
 	undergrowth_finish_stage_action( undergrowth_pin_stage( $post_id, $stage ), 'pinned' );
 }
@@ -267,9 +282,7 @@ function undergrowth_handle_pin(): void {
  * Unpins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_unpin(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_unpin_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'unpin' );
 
 	undergrowth_finish_stage_action( undergrowth_unpin_stage( $post_id ), 'unpinned' );
 }
@@ -279,9 +292,7 @@ function undergrowth_handle_unpin(): void {
  * the Map tab.
  */
 function undergrowth_handle_dismiss_resurfacing(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_dismiss_resurfacing_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'dismiss_resurfacing' );
 
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		wp_die( esc_html__( 'You cannot change this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
