@@ -199,7 +199,7 @@ msgid "Undergrowth screen"
 msgstr ""
 
 #: src/admin.php
-msgid "These posts have no accepted link from another of your posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted."
+msgid "These posts have no accepted link from another of your published posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted."
 msgstr ""
 
 #: src/admin.php
@@ -1267,7 +1267,7 @@ msgid "Accept adds that one link and saves a revision, so you can see or undo th
 msgstr ""
 
 #: src/help.php
-msgid "An orphan is a post in your garden that no accepted link from another of your posts points to. Readers who follow links, and search engines, reach it less easily. Undergrowth only knows the links it suggested and you accepted, so a link you added by hand is not counted."
+msgid "An orphan is a post in your garden that no accepted link from another of your published posts points to. Readers who follow links, and search engines, reach it less easily. Undergrowth only knows the links it suggested and you accepted, so a link you added by hand is not counted."
 msgstr ""
 
 #: src/help.php

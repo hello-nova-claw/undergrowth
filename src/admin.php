@@ -575,7 +575,7 @@ function undergrowth_render_orphans_tab(): void {
 	$table = new Undergrowth_Orphans_List_Table();
 	$table->prepare_items();
 
-	echo '<p>' . esc_html__( 'These posts have no accepted link from another of your posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'These posts have no accepted link from another of your published posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted.', 'undergrowth' ) . '</p>';
 
 	$table->display();
 }
