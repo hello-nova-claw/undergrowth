@@ -1,0 +1,1 @@
+Dates and times in notices are now joined the way your language joins them, as in "24 October 2026 at 14:05". The first-run notice shows its two actions as buttons. The Posts screen's Return to garden link is now named so voice control finds it by the words it shows, and translators are told to keep each button's name starting with its visible words.

@@ -182,14 +182,14 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'accept' => undergrowth_row_action_button(
 					'accept',
 					$this->pair( $item ),
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it. */
 					sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Accept', 'undergrowth' )
 				),
 				'veto'   => undergrowth_row_action_button(
 					'veto',
 					$this->pair( $item ),
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it. */
 					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Veto', 'undergrowth' )
 				),
@@ -198,7 +198,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'choose' => sprintf(
 					'<a href="%1$s" aria-label="%2$s">%3$s</a>',
 					esc_url( $this->choose_url( $item ) ),
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Choose words”, the words on the link, so voice control can find it. */
 					esc_attr( sprintf( __( 'Choose words for the link from %1$s to %2$s', 'undergrowth' ), $source, $target ) ),
 					esc_html__( 'Choose words', 'undergrowth' )
 				),

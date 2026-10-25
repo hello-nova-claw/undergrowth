@@ -87,6 +87,15 @@ class Test_First_Run extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Dismiss for good', $html );
 	}
 
+	public function test_each_action_is_its_own_button_with_no_separator_to_translate() {
+		undergrowth_activate();
+
+		$html = $this->notice_on();
+
+		$this->assertMatchesRegularExpression( '#<a class="button button-primary" href="[^"]+">Add a key in Settings</a> <a class="button" href="[^"]+">Dismiss for good</a>#', $html );
+		$this->assertStringNotContainsString( ' | ', wp_strip_all_tags( $html ) );
+	}
+
 	public function test_notice_shows_nowhere_but_the_plugins_screen() {
 		undergrowth_activate();
 
