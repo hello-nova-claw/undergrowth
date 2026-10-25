@@ -83,7 +83,7 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 	}
 
 	public function test_valid_ids_are_saved_trimmed() {
-		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( ' ' . self::APPLICATION . "\n" ) );
+		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( ' ' . self::APPLICATION . ' ' ) );
 		$this->assertSame( self::CHANNEL, undergrowth_sanitize_discord_channel_id( self::CHANNEL ) );
 	}
 
@@ -91,6 +91,13 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 		update_option( 'undergrowth_discord_channel_id', self::CHANNEL );
 
 		$this->assertSame( '', undergrowth_sanitize_discord_channel_id( '' ) );
+	}
+
+	public function test_an_id_with_a_trailing_newline_is_refused() {
+		update_option( 'undergrowth_discord_application_id', self::APPLICATION );
+
+		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( "223344556677889900\n" ) );
+		$this->assertSame( 'undergrowth_discord_application_id', get_settings_errors( 'undergrowth_discord_application_id' )[0]['code'] );
 	}
 
 	public function test_an_invalid_id_keeps_the_saved_one_and_reports_an_error() {
@@ -215,6 +222,38 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 		foreach ( undergrowth_discord_options() as $option ) {
 			$this->assertSame( 'missing', get_option( $option, 'missing' ) );
 		}
+	}
+
+	/**
+	 * Values a Discord ID is never.
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public function data_not_discord_ids() {
+		return array(
+			'empty'            => array( '' ),
+			'trailing newline' => array( "223344556677889900\n" ),
+			'leading space'    => array( ' 223344556677889900' ),
+			'letters'          => array( '22334455667788990a' ),
+			'too long'         => array( str_repeat( '1', 21 ) ),
+			'not a string'     => array( 223344556677889900 ),
+		);
+	}
+
+	/**
+	 * Anything but one to twenty digits, alone, is not an ID.
+	 *
+	 * @dataProvider data_not_discord_ids
+	 *
+	 * @param mixed $value Not an ID.
+	 */
+	public function test_is_discord_id_refuses( $value ) {
+		$this->assertFalse( undergrowth_is_discord_id( $value ) );
+	}
+
+	public function test_is_discord_id_takes_one_to_twenty_digits() {
+		$this->assertTrue( undergrowth_is_discord_id( '1' ) );
+		$this->assertTrue( undergrowth_is_discord_id( str_repeat( '9', 20 ) ) );
 	}
 
 	public function test_discord_fields_are_listed_once_and_named_by_every_option() {

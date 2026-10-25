@@ -582,4 +582,30 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		$this->assertSame( 'missing', get_option( 'undergrowth_last_discord_error', 'missing' ) );
 		$this->assertSame( '', get_post_meta( $oca, 'undergrowth_discord_messages', true ) );
 	}
+
+	public function test_a_message_id_with_a_trailing_newline_counts_as_a_failure() {
+		$answer = static function ( $preempt, $args, $url ) {
+			if ( 0 !== strpos( $url, 'https://discord.com/' ) ) {
+				return $preempt;
+			}
+
+			return array(
+				'headers'  => array(),
+				'body'     => (string) wp_json_encode( array( 'id' => "1001\n" ) ),
+				'response' => array(
+					'code'    => 200,
+					'message' => '',
+				),
+				'cookies'  => array(),
+				'filename' => null,
+			);
+		};
+		// After the suite's own stand-in, which answers every Discord request.
+		add_filter( 'pre_http_request', $answer, 20, 3 );
+
+		$sent = undergrowth_discord_send( '/channels/1/messages', array( 'content' => 'Hello' ) );
+
+		remove_filter( 'pre_http_request', $answer, 20 );
+		$this->assertSame( '', $sent['id'] );
+	}
 }

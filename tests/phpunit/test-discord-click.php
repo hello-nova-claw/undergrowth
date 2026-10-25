@@ -602,6 +602,16 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$this->assertSame( '223344556677889900', get_user_meta( $author, 'undergrowth_discord_user_id', true ) );
 	}
 
+	public function test_profile_refuses_a_discord_user_id_with_a_trailing_newline() {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		$this->become_administrator();
+		$_POST['undergrowth_discord_user_id'] = "223344556677889900\n";
+
+		undergrowth_save_discord_user_field( $author );
+
+		$this->assertSame( '', get_user_meta( $author, 'undergrowth_discord_user_id', true ) );
+	}
+
 	public function test_blank_field_unlinks_the_discord_user() {
 		$this->become_administrator();
 		$_POST['undergrowth_discord_user_id'] = '';
@@ -640,5 +650,15 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		undergrowth_uninstall_site();
 
 		$this->assertSame( '', get_user_meta( $this->editor, 'undergrowth_discord_user_id', true ) );
+	}
+
+	public function test_a_discord_user_id_with_a_trailing_newline_is_linked_to_no_one() {
+		update_user_meta( $this->editor, 'undergrowth_discord_user_id', self::DISCORD_USER . "\n" );
+
+		$this->assertNull( undergrowth_discord_linked_user( self::DISCORD_USER . "\n" ) );
+	}
+
+	public function test_a_discord_user_id_with_a_trailing_newline_cannot_be_linked() {
+		$this->assertNotSame( '', undergrowth_discord_user_problem( "223344556677889900\n", $this->editor ) );
 	}
 }

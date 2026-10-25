@@ -424,7 +424,7 @@ function undergrowth_discord_send( string $path, array $message ): array {
 	$data   = json_decode( wp_remote_retrieve_body( $response ), true );
 	$id     = is_array( $data ) && isset( $data['id'] ) && is_string( $data['id'] ) ? $data['id'] : '';
 
-	if ( 200 !== $status || 1 !== preg_match( '/^[0-9]{1,20}$/', $id ) ) {
+	if ( 200 !== $status || ! undergrowth_is_discord_id( $id ) ) {
 		return array(
 			'id'     => '',
 			'status' => $status,

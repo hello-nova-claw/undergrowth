@@ -10,6 +10,8 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_DISCORD_NAMESPACE = 'undergrowth/v1';
 const UNDERGROWTH_DISCORD_ROUTE     = '/discord';
+// A Discord ID, or snowflake: a 64-bit number in decimal.
+const UNDERGROWTH_DISCORD_ID = '[0-9]{1,20}';
 
 add_action( 'admin_init', 'undergrowth_register_discord_settings' );
 add_action( 'add_option_undergrowth_discord_bot_token', 'undergrowth_stop_autoloading_key' );
@@ -169,15 +171,28 @@ function undergrowth_sanitize_discord_channel_id( $value ): string {
  *                or the saved one when the new one is not an ID.
  */
 function undergrowth_sanitize_discord_id( $value, string $option, string $message ): string {
-	$id = is_string( $value ) ? trim( sanitize_text_field( $value ) ) : '';
+	// sanitize_text_field() would drop a line break, so it is looked for first.
+	$id = is_string( $value ) && 1 !== preg_match( '/[\r\n]/', $value ) ? trim( sanitize_text_field( $value ) ) : "\n";
 
-	if ( '' === $id || 1 === preg_match( '/^[0-9]{1,20}$/', $id ) ) {
+	if ( '' === $id || undergrowth_is_discord_id( $id ) ) {
 		return $id;
 	}
 
 	add_settings_error( $option, $option, $message );
 
 	return undergrowth_discord_setting( substr( $option, strlen( 'undergrowth_discord_' ) ) );
+}
+
+/**
+ * Tells whether a value is a Discord ID and nothing else.
+ *
+ * The D modifier stops $ from matching before a final newline.
+ *
+ * @param mixed $value Value to check.
+ * @return bool True for one to twenty digits.
+ */
+function undergrowth_is_discord_id( $value ): bool {
+	return is_string( $value ) && 1 === preg_match( '/^' . UNDERGROWTH_DISCORD_ID . '$/D', $value );
 }
 
 /**
