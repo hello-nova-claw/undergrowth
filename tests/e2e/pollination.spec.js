@@ -185,7 +185,12 @@ test.describe( 'Cross-pollination links', () => {
 		);
 		expect( pass.ok() ).toBe( true );
 
-		await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
+		// Narrowed to the links into Roots: the whole list runs to more than
+		// one page, and its order puts the newest post's rows last.
+		await admin.visitAdminPage(
+			'edit.php',
+			`page=undergrowth-links&undergrowth_to=${ roots.id }`
+		);
 	} );
 
 	test.afterEach( async ( { requestUtils } ) => {
