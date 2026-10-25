@@ -394,13 +394,16 @@ test.describe( 'Map tab', () => {
 				posts.map( ( post ) => post.link ).sort()
 			);
 			// Nothing but the list: no heading, no paragraph, no other text.
-			expect(
-				content
-					.replace( /<!--[^>]*-->/g, '' )
-					.replace( /<a [^>]*>[^<]*<\/a>/g, '' )
-					.replace( /<[^>]+>/g, '' )
-					.trim()
-			).toBe( '' );
+			expect( content ).toBe(
+				'<!-- wp:list -->\n<ul class="wp-block-list">' +
+					items
+						.map(
+							( item ) =>
+								`<!-- wp:list-item -->\n${ item[ 0 ] }\n<!-- /wp:list-item -->\n\n`
+						)
+						.join( '' ) +
+					'</ul>\n<!-- /wp:list -->'
+			);
 
 			// The notice leads to the draft in the editor.
 			await expect( notice.locator( 'a' ) ).toHaveAttribute(
