@@ -353,15 +353,15 @@ Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. The
 - Stage badge and "Linked from" blocks.
 - One visibility rule for every reader-facing surface: a post appears only if published, public, not password-protected, indexed and not composted. "Linked from" applies it to the linking posts too.
 
-### 12.6 Cross-pollination (decided 2026-10-25)
-
-- Finds pairs of the author's own posts or groups that are apart but could combine: a moderate-similarity sweet spot across groups, bridges between unlinked groups, and shared rare threads.
-- A surprise scale setting (close cousins to wild) controls the similarity band and bridge strength. The default is cautious.
-- Outputs: questions in the Prompt studio (5b rules hold), with at least one in each weekly batch when a good pair exists; bridge post ideas (structure, never keyword research); and cross-group link suggestions, approved like any link.
-- Shown in a Cross-pollination view on the Map. Dismissals and vetoes are kept forever.
-
 ### 12.5 Order and release
 
 - Build all four pillars on germination data first. Reader signals feed them later, when reader mode (v2) arrives behind the meter.
 - Build order: Prompt studio, "More like this", garden SEO, garden index, hubs, then cross-pollination (12.6). Then the first public release (0.1.0), then reader mode.
 - Free, GPL and open source. No premium tier, upsells, ads, affiliate links or donate link.
+
+### 12.6 Cross-pollination (decided 2026-10-25)
+
+- Finds pairs of the author's own posts or groups that are apart but could combine: a moderate-similarity sweet spot across groups, bridges between unlinked groups, and shared rare threads.
+- A surprise scale setting (close cousins to wild) controls the similarity band and bridge strength. The default is cautious.
+- Outputs: questions in the Prompt studio (5b rules hold), with at least one in each weekly batch when a good pair exists; bridge post ideas, which are a fixed, plugin-written note that two groups have no post connecting them, never a model-written title, outline, structure or draft, and never keyword research; and cross-group link suggestions, approved like any link.
+- Shown in a Cross-pollination view on the Map, which is admin-only and never shown to readers. Dismissals and vetoes are kept forever.

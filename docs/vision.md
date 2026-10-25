@@ -102,9 +102,9 @@ Added by Anna on 2026-10-25: creativity often comes from combining ideas that do
 - **A surprise scale** (decided by Anna). A setting from "close cousins" to "wild", which moves the similarity band and how strong a bridge must be. The default sits towards the cautious end, so early results make sense. The author can turn it up.
 - **Three outputs:**
   - **questions** in the Prompt studio, under every 5b rule (a question only, quoting only the author). Each weekly batch holds **at least one** cross-pollination question when a good pair exists (decided by Anna);
-  - **bridge post ideas**: "a post connecting these two groups would link both halves of your garden". That is unexpected SEO from the author's own material, never keyword research (principle 8);
+  - **bridge post ideas**: a fixed note written by the plugin, not a model, such as "no post connects these two groups yet", shown with the two groups' own titles. It is never a title, outline, structure or draft (handover 5b), so the author decides what, if anything, to write. That is unexpected SEO from the author's own material, never keyword research (principle 8);
   - **cross-links**: link suggestions across groups, labelled as cross-pollination so the author knows why they're unusual, and approved like every other link (principle 2).
-- **Where it shows:** a Cross-pollination view on the Map, with pairs of groups and the bridging post or phrase between them. Dismiss and veto work as everywhere else, and are kept forever.
+- **Where it shows:** an admin-only Cross-pollination view on the Map, never shown to readers, with pairs of groups and the bridging post or phrase between them. Dismiss and veto work as everywhere else, and are kept forever.
 
 ## 5. Decisions so far
 
