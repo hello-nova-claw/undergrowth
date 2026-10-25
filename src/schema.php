@@ -33,6 +33,7 @@ function undergrowth_protected_meta_keys(): array {
 		'undergrowth_stage',
 		'undergrowth_stage_log',
 		'undergrowth_stage_pinned',
+		'undergrowth_tend_dismissed',
 	);
 }
 
@@ -409,6 +410,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	delete_post_meta_by_key( 'undergrowth_similar' );
 	delete_post_meta_by_key( 'undergrowth_similar_hidden' );
+	delete_post_meta_by_key( 'undergrowth_tend_dismissed' );
 	delete_option( 'undergrowth_similar_generation' );
 	delete_option( 'undergrowth_popularity' );
 	undergrowth_delete_memory_folder();

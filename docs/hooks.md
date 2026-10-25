@@ -72,6 +72,13 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 | `undergrowth_popularity_sources` | `src/popularity.php` | The stats plugins popularity is read from, first choice first, as `array( slug => array( 'label', 'active', 'read' ) )`. The first active one is read once a day; `read` takes a number of days and returns daily views keyed by post ID, then by date as `Y-m-d`. |
 | `undergrowth_popularity_half_life` | `src/popularity.php` | How many days it takes a view to count half as much towards popularity. Default 7. |
 
+### Worth a look
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_tend_after_days` | `src/tend.php` | How many days an Evergreen post may go unedited before the Growth stages tab and its editor panel say it is worth a look. Default 365. |
+| `undergrowth_tend_group_grown` | `src/tend.php` | How many posts must join an Evergreen post's Map group since its last edit for it to be worth a look. Default 3. |
+
 ### Writing prompts
 
 | Filter | Where | What it changes |

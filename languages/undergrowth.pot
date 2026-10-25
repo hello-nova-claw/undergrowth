@@ -166,6 +166,7 @@ msgid "Undo"
 msgstr ""
 
 #: src/admin.php
+#: src/tend.php
 msgid "You cannot change this post."
 msgstr ""
 
@@ -657,6 +658,18 @@ msgstr ""
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Select %s"
+msgstr ""
+
+#. translators: %1$s: post title. Must begin with the translation of “Dismiss note”, the words on the button, so voice control can find it.
+#: src/class-undergrowth-stages-list-table.php
+#, php-format
+msgid "Dismiss note on %1$s"
+msgstr ""
+
+#: src/class-undergrowth-stages-list-table.php
+#: build/editor/index.js
+#: src/editor/stage-panel.js
+msgid "Dismiss note"
 msgstr ""
 
 #. translators: %1$s: post title. Must begin with the translation of “Unpin”, the word on the button, so voice control can find it.
@@ -2337,6 +2350,28 @@ msgstr ""
 
 #: src/studio.php
 msgid "Save keeps a question in your idea bank, with the posts it came from, until you remove it. Dismiss removes it for good, and its notice has an Undo. Replace asks Claude for a different question straight away, using this site’s Anthropic API key."
+msgstr ""
+
+#. translators: %1$s: how long ago, such as "1 year".
+#: src/tend.php
+#, php-format
+msgid "Worth a look: you last edited this Evergreen post %1$s ago."
+msgstr ""
+
+#. translators: %1$s: number of posts.
+#: src/tend.php
+#, php-format
+msgid "Worth a look: %1$s post has joined this one’s group on the Map since you last edited it."
+msgid_plural "Worth a look: %1$s posts have joined this one’s group on the Map since you last edited it."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/tend.php
+msgid "Dismissed. The note will not come back until you edit the post and it is worth a look again."
+msgstr ""
+
+#: src/tend.php
+msgid "That note is no longer shown, so nothing was changed."
 msgstr ""
 
 #: build/blocks/garden-index/index.js
