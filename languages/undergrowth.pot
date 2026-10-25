@@ -355,6 +355,22 @@ msgstr ""
 msgid "<a href=\"%1$s\">Turn them on in Settings</a>."
 msgstr ""
 
+#. translators: %1$s: title of the post the suggestions would link to.
+#: src/admin.php
+#, php-format
+msgid "Posts that could link to “%1$s”"
+msgstr ""
+
+#: src/admin.php
+msgid "Show all suggestions"
+msgstr ""
+
+#. translators: %1$s: post title.
+#: src/admin.php
+#, php-format
+msgid "No other post is suggested to link to %1$s yet."
+msgstr ""
+
 #: src/admin.php
 msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
 msgstr ""
@@ -1403,6 +1419,16 @@ msgstr ""
 msgid "Compost &#8220;%s&#8221;"
 msgstr ""
 
+#. translators: %s: post title.
+#: src/posts-screen.php
+#, php-format
+msgid "Show the posts that could link to &#8220;%s&#8221;"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "Links in"
+msgstr ""
+
 #: src/posts-screen.php
 msgid "No growth stage"
 msgstr ""
@@ -2056,6 +2082,11 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Open one of these posts to accept its link to this one."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Accept or veto them all on Posts › Undergrowth"
 msgstr ""
 
 #: build/editor/index.js

@@ -151,8 +151,10 @@ function undergrowth_rest_get_links( WP_REST_Request $request ): WP_REST_Respons
 
 	return new WP_REST_Response(
 		array(
-			'outgoing' => $outgoing,
-			'incoming' => $incoming,
+			'outgoing'        => $outgoing,
+			'incoming'        => $incoming,
+			// Posts > Undergrowth opens only for those who may edit others' posts.
+			'incoming_screen' => current_user_can( 'edit_others_posts' ) ? undergrowth_links_in_url( $post_id ) : null,
 		)
 	);
 }

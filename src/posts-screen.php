@@ -23,7 +23,8 @@ add_action( 'admin_post_undergrowth_compost', 'undergrowth_handle_compost_row' )
 add_action( 'admin_post_undergrowth_return', 'undergrowth_handle_return_row' );
 
 /**
- * Adds the compost or return link under a post's title.
+ * Adds the compost or return link under a post's title, and, for a post in
+ * the garden, a link to the suggestions that would link to it.
  *
  * Only posts in the garden have a stage, so other posts get neither.
  *
@@ -56,6 +57,18 @@ function undergrowth_compost_row_actions( $actions, $post ) {
 		esc_attr( $label ),
 		esc_html( $text )
 	);
+
+	// Posts > Undergrowth needs edit_others_posts, and a composting post is
+	// suggested to no one.
+	if ( 'compost' === $action && current_user_can( 'edit_others_posts' ) ) {
+		$actions['undergrowth_links_in'] = sprintf(
+			'<a href="%1$s" aria-label="%2$s">%3$s</a>',
+			esc_url( undergrowth_links_in_url( $post->ID ) ),
+			/* translators: %s: post title. */
+			esc_attr( sprintf( __( 'Show the posts that could link to &#8220;%s&#8221;', 'undergrowth' ), $title ) ),
+			esc_html__( 'Links in', 'undergrowth' )
+		);
+	}
 
 	return $actions;
 }

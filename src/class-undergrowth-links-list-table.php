@@ -19,9 +19,20 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	const PER_PAGE = 20;
 
 	/**
-	 * Sets up the table.
+	 * Post the listed suggestions would link to, or 0 for every suggestion.
+	 *
+	 * @var int
 	 */
-	public function __construct() {
+	private $to;
+
+	/**
+	 * Sets up the table.
+	 *
+	 * @param int $to Post the listed suggestions would link to, or 0 for every suggestion.
+	 */
+	public function __construct( int $to = 0 ) {
+		$this->to = $to;
+
 		parent::__construct(
 			array(
 				'singular' => 'undergrowth-link',
@@ -167,8 +178,9 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$rows = array_values(
 			array_filter(
 				$rows,
-				static function ( $row ) {
-					return current_user_can( 'edit_post', (int) $row['source_id'] )
+				function ( $row ) {
+					return ( 0 === $this->to || $this->to === (int) $row['target_id'] )
+						&& current_user_can( 'edit_post', (int) $row['source_id'] )
 						&& 'composting' !== undergrowth_get_stage( (int) $row['source_id'] )
 						&& 'composting' !== undergrowth_get_stage( (int) $row['target_id'] );
 				}
@@ -295,7 +307,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'choose' => $item['source_id'] . '-' . $item['target_id'],
 				'paged'  => $pagenum > 1 ? $pagenum : false,
 			),
-			undergrowth_suggestions_url()
+			0 === $this->to ? undergrowth_suggestions_url() : undergrowth_links_in_url( $this->to )
 		) . '#' . $this->form_id( $item, 'choose' );
 	}
 

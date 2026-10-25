@@ -88,7 +88,7 @@ class Test_Links_In extends WP_UnitTestCase {
 
 		$html = $this->render( $oca );
 
-		$this->assertMatchesRegularExpression( '/<h2[^>]*>[^<]*Oca[^<]*<\/h2>/', $html );
+		$this->assertMatchesRegularExpression( '/<h2>[^<]*<bdi>Oca<\/bdi>[^<]*<\/h2>/', $html );
 		$this->assertStringContainsString( 'href="' . esc_url( undergrowth_suggestions_url() ) . '"', $html );
 	}
 
@@ -112,10 +112,10 @@ class Test_Links_In extends WP_UnitTestCase {
 	}
 
 	public function test_accepting_from_the_view_returns_to_the_view() {
-		list( $oca, $yacon ) = $this->garden();
-		$_POST['source']             = (string) $yacon;
-		$_POST['target']             = (string) $oca;
-		$_REQUEST['_wpnonce']        = wp_create_nonce( 'undergrowth_accept_' . $yacon . '_' . $oca );
+		list( $oca, $yacon )          = $this->garden();
+		$_POST['source']              = (string) $yacon;
+		$_POST['target']              = (string) $oca;
+		$_REQUEST['_wpnonce']         = wp_create_nonce( 'undergrowth_accept_' . $yacon . '_' . $oca );
 		$_REQUEST['_wp_http_referer'] = '/wp-admin/edit.php?page=undergrowth-links&undergrowth_to=' . $oca;
 
 		try {
@@ -136,7 +136,8 @@ class Test_Links_In extends WP_UnitTestCase {
 	public function test_choose_words_keeps_the_view() {
 		list( $oca, $yacon ) = $this->garden();
 
-		$this->assertMatchesRegularExpression( '/href="[^"]*choose=' . $yacon . '-' . $oca . '[^"]*undergrowth_to=' . $oca . '/', $this->render( $oca ) );
+		$this->assertSame( 1, preg_match( '/<a href="([^"]*choose=' . $yacon . '-' . $oca . '[^"]*)"/', $this->render( $oca ), $link ) );
+		$this->assertStringContainsString( 'undergrowth_to=' . $oca, $link[1] );
 	}
 
 	public function test_the_posts_list_row_leads_to_the_view() {

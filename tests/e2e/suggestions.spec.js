@@ -312,6 +312,50 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expectNoA11yViolations( page, '#undergrowth-notice' );
 		} );
 
+		test( 'opens the posts that could link to a post from its row, by keyboard', async ( {
+			admin,
+			page,
+		} ) => {
+			// The suggestion from Oca, which mentions yacon, to Yacon.
+			const box = page.locator(
+				`input[name="link[]"][value^="${ oca.id }-"]`
+			);
+			const target = ( await box.getAttribute( 'value' ) ).split(
+				'-'
+			)[ 1 ];
+
+			await admin.visitAdminPage( 'edit.php', '' );
+
+			const linksIn = page.locator(
+				`#post-${ target } .undergrowth_links_in a`
+			);
+
+			await linksIn.focus();
+			await expect( linksIn ).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+			await page.waitForURL( new RegExp( `undergrowth_to=${ target }` ) );
+
+			const rows = page.locator( 'table.undergrowth-links tbody tr' );
+
+			await expect( rows ).toHaveCount( 1 );
+			await expect( page.locator( '.wrap h2 bdi' ) ).toHaveCount( 1 );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			// Accepting from the view comes back to it.
+			await actionButton(
+				rows.first(),
+				'accept',
+				/Oca[\s\S]*Yacon/
+			).focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+			await expect( page ).toHaveURL(
+				new RegExp( `undergrowth_to=${ target }` )
+			);
+			await expect( rows ).toHaveCount( 0 );
+			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
 		test( 'is switched off and on from Settings, by keyboard', async ( {
 			admin,
 			page,
