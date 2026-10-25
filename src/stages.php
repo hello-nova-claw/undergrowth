@@ -477,13 +477,13 @@ function undergrowth_read_log( int $post_id, string $meta_key, array $fields ): 
  * cluster whose links all run one way, which the handover's rules leave
  * between Sprout and Budding.
  *
- * Evergreen is never measured yet. Its rule also needs a hub linking to the
- * post, and hubs come only from fusion in reader mode, so until hubs exist
- * the author can pin Evergreen but the cycle never reaches it. Composting is
- * never measured; only the author chooses it.
+ * A post in a cluster with three or more links in is Evergreen once a hub
+ * readers can see links to it: a page started from the Map that the author
+ * published (see hubs.php). The hub's own link is not one of the three.
+ * Composting is never measured; only the author chooses it.
  *
  * @param int $post_id Post ID.
- * @return string 'seedling', 'sprout' or 'budding'.
+ * @return string 'seedling', 'sprout', 'budding' or 'evergreen'.
  */
 function undergrowth_measure_stage( int $post_id ): string {
 	global $wpdb;
@@ -518,7 +518,13 @@ function undergrowth_measure_stage( int $post_id ): string {
 		}
 	}
 
-	if ( $out > 0 && $in > 0 && array() !== undergrowth_cluster_members( $post_id ) ) {
+	$clustered = array() !== undergrowth_cluster_members( $post_id );
+
+	if ( $clustered && $in >= 3 && undergrowth_has_hub_link( $post_id ) ) {
+		return 'evergreen';
+	}
+
+	if ( $clustered && $out > 0 && $in > 0 ) {
 		return 'budding';
 	}
 
