@@ -489,7 +489,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 			array(
 				'group'     => 'Oca | ulluco',
 				'words'     => '',
-				'title'     => "Two\nlines, a \\| b, <em>c</em>",
+				'title'     => "Two\nlines, a \\| b, <em>c</em> *d* [e](f) `g`_h_~i~",
 				'permalink' => 'http://example.org/?p=1',
 				'stage'     => 'Sprout',
 				'gap'       => false,
@@ -502,7 +502,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->assertSame( '| --- | --- | --- | --- | --- | --- |', $lines[1] );
 		// A backslash is escaped too, so one before a pipe cannot unescape it,
 		// and markup in a title reads as written.
-		$this->assertSame( '| Oca \\| ulluco |  | Two lines, a \\\\\\| b, \\<em\\>c\\</em\\> | <http://example.org/?p=1> | Sprout | No |', $lines[2] );
+		$this->assertSame( '| Oca \\| ulluco |  | Two lines, a \\\\\\| b, \\<em\\>c\\</em\\> \\*d\\* \\[e\\](f) \\`g\\`\\_h\\_\\~i\\~ | <http://example.org/?p=1> | Sprout | No |', $lines[2] );
 		$this->assertCount( 3, $lines );
 	}
 

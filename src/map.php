@@ -492,11 +492,12 @@ function undergrowth_map_export_markdown( array $rows ): string {
 		foreach ( $cells as $c => $cell ) {
 			$cell = trim( (string) preg_replace( '/\s+/', ' ', $cell ) );
 
-			// A post's address becomes a link; every other cell is text, so
-			// markup in a title reads as written, as on the Map.
+			// A post's address becomes a link. Every other cell is text: each
+			// character Markdown reads inside a table cell is escaped, so a
+			// title reads as written, as on the Map.
 			$cells[ $c ] = 3 === $c && 0 !== $i
 				? ( '' === $cell ? '' : '<' . $cell . '>' )
-				: str_replace( array( '\\', '|', '<', '>' ), array( '\\\\', '\|', '\<', '\>' ), $cell );
+				: (string) preg_replace( '/[\\\\`*_~\[\]<>|]/', '\\\\$0', $cell );
 		}
 
 		$lines[] = '| ' . implode( ' | ', $cells ) . ' |';
