@@ -147,7 +147,16 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 		true
 	);
 
-	return is_wp_error( $updated ) || 0 === $updated ? 'not_saved' : 'accepted';
+	if ( is_wp_error( $updated ) || 0 === $updated ) {
+		// Only WordPress's code is kept; its message can quote the post.
+		undergrowth_record_failure( 'undergrowth_last_accept_error', $updated instanceof WP_Error ? (string) $updated->get_error_code() : 'not_saved' );
+
+		return 'not_saved';
+	}
+
+	delete_option( 'undergrowth_last_accept_error' );
+
+	return 'accepted';
 }
 
 /**

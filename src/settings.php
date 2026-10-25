@@ -144,6 +144,12 @@ function undergrowth_register_settings(): void {
 	}
 
 	add_settings_field( 'undergrowth_post_types', __( 'Post types', 'undergrowth' ), 'undergrowth_render_post_types_field', 'undergrowth', 'undergrowth_links' );
+	// A failed save on Accept is the only thing this row ever says, so it is
+	// there only while there is one to report.
+	if ( is_array( get_option( 'undergrowth_last_accept_error' ) ) ) {
+		add_settings_field( 'undergrowth_accept_error', __( 'Accept', 'undergrowth' ), 'undergrowth_render_accept_error_field', 'undergrowth', 'undergrowth_links' );
+	}
+
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
@@ -760,6 +766,57 @@ function undergrowth_file_failure_text( array $error ): string {
 
 	// Each part is a whole sentence, translated on its own.
 	return $cause . ' ' . $when . ' ' . $retry;
+}
+
+/**
+ * Prints why the last Accept could not save the post it would link.
+ */
+function undergrowth_render_accept_error_field(): void {
+	$error = get_option( 'undergrowth_last_accept_error' );
+
+	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+		return;
+	}
+
+	undergrowth_print_failure_notice( undergrowth_accept_failure_text( $error ), 'undergrowth-accept-error' );
+}
+
+/**
+ * Says in plain words why the last Accept could not save the post, from the
+ * error code WordPress gave, and when.
+ *
+ * @param array $error Saved error, with 'code' and 'time'.
+ * @return string Plain text.
+ *
+ * @phpstan-param array<string, mixed> $error
+ */
+function undergrowth_accept_failure_text( array $error ): string {
+	$code = (string) ( $error['code'] ?? '' );
+
+	if ( 'empty_content' === $code ) {
+		$cause = __( 'WordPress refused to save the post because it would have been empty, so the link was not added.', 'undergrowth' );
+	} elseif ( 'invalid_post' === $code || 'invalid_page' === $code ) {
+		$cause = __( 'WordPress could not find the post to save, so the link was not added.', 'undergrowth' );
+	} elseif ( 'db_update_error' === $code ) {
+		$cause = __( 'The database did not take the change, so the link was not added.', 'undergrowth' );
+	} elseif ( '' === $code || 'not_saved' === $code ) {
+		$cause = __( 'WordPress did not save the post, so the link was not added.', 'undergrowth' );
+	} else {
+		$cause = sprintf(
+			/* translators: %1$s: error code WordPress gave, such as rest_cannot_edit. */
+			__( 'WordPress did not save the post, so the link was not added. It reported the error %1$s.', 'undergrowth' ),
+			$code
+		);
+	}
+
+	$when = sprintf(
+		/* translators: %1$s: date and time. */
+		__( 'That was on %1$s.', 'undergrowth' ),
+		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] )
+	);
+
+	// Each part is a whole sentence, translated on its own.
+	return $cause . ' ' . $when . ' ' . __( 'The suggestion is still on Posts > Undergrowth, so you can accept it again.', 'undergrowth' );
 }
 
 /**
