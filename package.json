@@ -4,7 +4,7 @@
 	"description": "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.",
 	"license": "GPL-2.0-or-later",
 	"engines": {
-		"node": ">=22.22.2"
+		"node": ">=24.18.0"
 	},
 	"scripts": {
 		"build": "wp-scripts build",
@@ -51,5 +51,13 @@
 		"pa11y-ci": "^5.0.0",
 		"pixelmatch": "^8.0.0",
 		"pngjs": "^7.0.0"
+	},
+	"allowScripts": {
+		"puppeteer": true,
+		"fs-ext-extra-prebuilt": true,
+		"core-js": false,
+		"core-js-pure": false,
+		"unrs-resolver": false,
+		"@parcel/watcher": false
 	}
 }
