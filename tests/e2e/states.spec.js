@@ -529,6 +529,30 @@ const WITH_BADGE = [
 	},
 ];
 
+// Filled in once the list's posts exist, since the shots need their IDs.
+const listPosts = {};
+
+// "More like this", on the front end where readers see it and in the editor
+// with its settings and the posts on the list in the sidebar. A post with
+// nothing close shows readers nothing.
+const WITH_MORE_LIKE_THIS = [
+	{
+		screen: 'block-more-like-this',
+		state: 'front-list',
+		front: () => `/?p=${ listPosts.source }`,
+	},
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-list',
+		list: () => listPosts.source,
+	},
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-empty',
+		list: () => listPosts.alone,
+	},
+];
+
 // Filled in once the panel's posts exist, since the shots need their IDs.
 const panelPosts = {};
 
@@ -763,6 +787,25 @@ function capture( states ) {
 					await editor.canvas
 						.locator(
 							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+						)
+						.first()
+						.waitFor();
+				} else if ( entry.list ) {
+					await admin.editPost( entry.list() );
+					const block = editor.canvas.locator(
+						'[data-type="undergrowth/more-like-this"]'
+					);
+					// The preview is rendered by the server after load.
+					await block
+						.locator( 'nav, .components-placeholder' )
+						.first()
+						.waitFor();
+					await editor.selectBlocks( block );
+					await editor.openDocumentSettingsSidebar();
+					// The posts on the list come from their own route.
+					await page
+						.locator(
+							'.undergrowth-more-like-this-panel :is(ul, p, .components-notice)'
 						)
 						.first()
 						.waitFor();
@@ -1133,6 +1176,38 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_BADGE );
+	} );
+
+	test.describe( 'with a More like this list', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// The test site's provider counts fixture words, so posts that
+			// share "oca" are close and the ledger is close to nothing.
+			for ( const [ name, title, content, excerpt ] of [
+				[
+					'yacon',
+					'Yacon',
+					'Oca and yacon share a bed.',
+					'Two roots, one bed.',
+				],
+				[ 'syrup', 'Syrup', 'Oca boiled down to syrup.', '' ],
+				[ 'alone', 'Ledger', 'Ledger ledger ledger.', '' ],
+				[ 'source', 'Oca', 'Oca oca oca.', '' ],
+			] ) {
+				listPosts[ name ] = (
+					await requestUtils.createPost( {
+						title,
+						excerpt,
+						content: `<!-- wp:paragraph --><p>${ content }</p><!-- /wp:paragraph --><!-- wp:undergrowth/more-like-this {"showExcerpt":true} /-->`,
+						status: 'publish',
+					} )
+				).id;
+			}
+		} );
+
+		capture( WITH_MORE_LIKE_THIS );
 	} );
 
 	test.describe( 'with the editor panel', () => {
