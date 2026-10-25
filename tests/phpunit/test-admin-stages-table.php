@@ -16,6 +16,9 @@ class Test_Admin_Stages_Table extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// The table is loaded with its screen. A test that reads it before
+		// drawing one must not rely on an earlier test having loaded it.
+		undergrowth_load_stages_table();
 		undergrowth_register_stage_meta();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		add_filter( 'wp_redirect', array( $this, 'stop_redirect' ) );
