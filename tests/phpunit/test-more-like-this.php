@@ -154,6 +154,18 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( array( $evergreen, $seedling ), undergrowth_more_like_this( $this->source, 6 ) );
 	}
 
+	public function test_a_post_far_down_by_meaning_alone_can_still_rise_on_its_weights() {
+		foreach ( range( 1, 40 ) as $n ) {
+			$this->old( 'Post ' . $n, array( 1, 0.1 + $n / 1000, 0 ) );
+		}
+
+		$evergreen = $this->old( 'Mashua', array( 1, 0.15, 0 ) );
+		update_post_meta( $evergreen, 'undergrowth_stage', 'evergreen' );
+		$this->changed( $evergreen, 'now' );
+
+		$this->assertSame( $evergreen, undergrowth_more_like_this( $this->source, 3 )[0] );
+	}
+
 	public function test_stage_weights_can_be_filtered() {
 		$seedling = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
 		$budding  = $this->old( 'Mashua', array( 1, 0.5, 0 ) );

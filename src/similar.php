@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SIMILAR_CACHED     = 24;
+const UNDERGROWTH_SIMILAR_CACHED     = 100;
 const UNDERGROWTH_SIMILAR_MAX_SHOWN  = 6;
 const UNDERGROWTH_SIMILAR_STAGES     = array(
 	'evergreen' => 1.15,
@@ -111,6 +111,9 @@ function undergrowth_measure_similar( int $post_id ): array {
 		}
 	);
 
+	// The list is weighed after this, so enough are kept for a post far down
+	// by meaning alone to rise on its stage and freshness. The bound keeps
+	// one post's list from holding the whole archive.
 	$scores = array_slice( $scores, 0, UNDERGROWTH_SIMILAR_CACHED, true );
 
 	update_post_meta(
