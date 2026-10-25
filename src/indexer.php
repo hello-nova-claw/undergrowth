@@ -337,6 +337,18 @@ function undergrowth_post_text( WP_Post $post ): string {
 }
 
 /**
+ * Makes every run of whitespace in a text one space, trimming nothing.
+ *
+ * Core's normalize_whitespace() keeps line breaks, so it does not do this.
+ *
+ * @param string $text Text.
+ * @return string The text with single spaces.
+ */
+function undergrowth_collapse_spaces( string $text ): string {
+	return (string) preg_replace( '/\s+/u', ' ', $text );
+}
+
+/**
  * Turns markup into one line of plain text, as a reader would read it.
  *
  * Entities are decoded, so `&amp;` reads as `&` and is never taken for a
@@ -349,7 +361,7 @@ function undergrowth_post_text( WP_Post $post ): string {
 function undergrowth_plain_line( string $html ): string {
 	$text = html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
-	return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+	return trim( undergrowth_collapse_spaces( $text ) );
 }
 
 /**
