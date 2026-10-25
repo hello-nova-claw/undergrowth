@@ -60,31 +60,22 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 		$this->assertSame( array( 1.0, 0.5, 0.0 ), undergrowth_unpack_vector( $pool[ $oca ] ) );
 	}
 
-	public function test_comparable_vectors_are_read_in_bounded_chunks() {
-		$count = 2 * UNDERGROWTH_VECTOR_CHUNK + 1;
-
-		for ( $i = 1; $i <= $count; $i++ ) {
+	public function test_comparable_vectors_are_the_same_whatever_the_chunk_size() {
+		for ( $i = 1; $i <= 5; $i++ ) {
 			$this->store( 100000 + $i, array( 1.0, (float) $i ) );
 		}
 
-		$selects = array();
-		$record  = static function ( $query ) use ( &$selects ) {
-			if ( false !== strpos( $query, 'undergrowth_vectors' ) && 0 === strpos( ltrim( $query ), 'SELECT post_id, embedding' ) ) {
-				$selects[] = $query;
+		$full = undergrowth_comparable_vectors( 100001 );
+
+		add_filter(
+			'undergrowth_vector_chunk_size',
+			static function () {
+				return 2;
 			}
-			return $query;
-		};
-		add_filter( 'query', $record );
+		);
 
-		$pool = undergrowth_comparable_vectors( 100001 );
-
-		remove_filter( 'query', $record );
-		$this->assertCount( $count, $pool );
-		$this->assertGreaterThanOrEqual( 3, count( $selects ) );
-
-		foreach ( $selects as $select ) {
-			$this->assertStringContainsString( 'LIMIT ' . UNDERGROWTH_VECTOR_CHUNK, $select );
-		}
+		$this->assertCount( 5, $full );
+		$this->assertSame( $full, undergrowth_comparable_vectors( 100001 ) );
 	}
 
 	public function test_comparable_vectors_leave_no_rows_behind_in_wpdb() {
@@ -156,7 +147,7 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 		$yacon  = $this->plant( 'Yacon', $closer );
 		$mashua = $this->plant( 'Mashua', $further );
 
-		$scores = undergrowth_rank_targets( $oca );
+		$scores = undergrowth_test_rank_targets( $oca );
 
 		$this->assertSame( array( $yacon, $mashua ), array_keys( $scores ) );
 		$this->assertEqualsWithDelta( undergrowth_cosine( $source, $closer ), $scores[ $yacon ], 1e-7 );

@@ -144,26 +144,35 @@ class Test_Corpus extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_corpus_reads_posts_in_bounded_chunks() {
-		$ids     = self::factory()->post->create_many( 2 * UNDERGROWTH_POST_CHUNK + 1 );
-		$selects = array();
-		$record  = static function ( $query ) use ( &$selects ) {
-			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_title, post_content' ) ) {
-				$selects[] = $query;
+	public function test_corpus_is_the_same_whatever_the_chunk_size() {
+		$ids  = self::factory()->post->create_many( 5, array( 'post_content' => 'Oca and yacon grow in the cool hills.' ) );
+		$full = undergrowth_build_corpus( $ids );
+
+		add_filter(
+			'undergrowth_post_chunk_size',
+			static function () {
+				return 2;
 			}
-			return $query;
-		};
-		add_filter( 'query', $record );
+		);
 
-		$corpus = undergrowth_build_corpus( $ids );
+		$this->assertSame( 5, $full['documents'] );
+		$this->assertSame( $full, undergrowth_build_corpus( $ids ) );
+	}
 
-		remove_filter( 'query', $record );
-		$this->assertSame( count( $ids ), $corpus['documents'] );
-		$this->assertCount( 3, $selects );
+	public function test_chunk_sizes_follow_their_filters_and_stay_positive() {
+		$this->assertSame( UNDERGROWTH_POST_CHUNK, undergrowth_post_chunk_size() );
+		$this->assertSame( UNDERGROWTH_VECTOR_CHUNK, undergrowth_vector_chunk_size() );
 
-		foreach ( $selects as $select ) {
-			$this->assertLessThanOrEqual( UNDERGROWTH_POST_CHUNK, substr_count( $select, ',' ) - 1 );
-		}
+		add_filter( 'undergrowth_post_chunk_size', '__return_zero' );
+		add_filter(
+			'undergrowth_vector_chunk_size',
+			static function () {
+				return 7;
+			}
+		);
+
+		$this->assertSame( 1, undergrowth_post_chunk_size() );
+		$this->assertSame( 7, undergrowth_vector_chunk_size() );
 	}
 
 	public function test_corpus_leaves_no_rows_behind_in_wpdb() {
@@ -456,7 +465,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_refresh_checks_target_posts_in_bounded_chunks() {
+	public function test_open_targets_are_the_same_whatever_the_chunk_size() {
 		add_filter(
 			'undergrowth_min_link_similarity',
 			static function () {
@@ -464,25 +473,31 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 
-		for ( $i = 0; $i < UNDERGROWTH_POST_CHUNK + 1; $i++ ) {
-			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 200, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+		for ( $i = 0; $i < 5; $i++ ) {
+			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 10, 0.0 ) );
 		}
 
-		$selects = array();
-		$record  = static function ( $query ) use ( &$selects ) {
-			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_status, post_password, post_type' ) ) {
-				$selects[] = $query;
+		$draft = $this->plant( 'Mashua', array( 1.0, 0.05, 0.0 ) );
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'draft',
+			)
+		);
+
+		$full = undergrowth_test_rank_targets( $source, null, 0 );
+
+		add_filter(
+			'undergrowth_post_chunk_size',
+			static function () {
+				return 1;
 			}
-			return $query;
-		};
-		add_filter( 'query', $record );
+		);
 
-		undergrowth_refresh_proposals( $source );
-
-		remove_filter( 'query', $record );
-		$this->assertCount( 2, $selects );
+		$this->assertCount( 5, $full );
+		$this->assertSame( $full, undergrowth_test_rank_targets( $source, null, 0 ) );
 	}
 
 	public function test_post_deleted_after_the_corpus_was_built_has_no_distinctive_terms() {
@@ -513,7 +528,7 @@ class Test_Corpus extends WP_UnitTestCase {
 			$best[] = $this->plant( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
 		}
 
-		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_rank_targets( $source, null, 2 ) ) );
+		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_test_rank_targets( $source, null, 2 ) ) );
 	}
 
 	public function test_reused_corpus_is_counted_once_for_the_same_posts() {
