@@ -170,6 +170,10 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot make pages."
+msgstr ""
+
+#: src/admin.php
 msgid "You cannot export the Map."
 msgstr ""
 
@@ -241,6 +245,32 @@ msgstr[1] ""
 #: src/admin.php
 #, php-format
 msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: %1$s: title of the hub page, linked to its editor.
+#: src/admin.php
+#, php-format
+msgid "This group has a hub: %1$s."
+msgstr ""
+
+#: src/admin.php
+msgid "This group has a hub draft. It stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "Edit the draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it."
+msgstr ""
+
+#: src/admin.php
+msgid "Start a hub draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Not for this group"
 msgstr ""
 
 #: src/admin.php
@@ -411,6 +441,18 @@ msgstr ""
 
 #: src/admin.php
 msgid "No suggestion was checked, or no bulk action was chosen, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "Hub draft started. It holds only the group’s titles as links, and stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "No hub will be proposed for this group again."
+msgstr ""
+
+#: src/admin.php
+msgid "That group no longer has a hub proposal, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -1234,7 +1276,7 @@ msgid "Budding: in a group, with accepted links both in and out."
 msgstr ""
 
 #: src/help.php
-msgid "Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there."
+msgid "Evergreen: in a group, with three or more accepted links in, and a published hub page that links to it. A hub is a page you started from the Map, wrote and published yourself."
 msgstr ""
 
 #: src/help.php
@@ -1251,6 +1293,10 @@ msgstr ""
 
 #: src/help.php
 msgid "A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgstr ""
+
+#: src/help.php
+msgid "A large group whose posts already link to each other may get a hub proposal: a page that ties the group together for readers. You write the hub. Start a hub draft makes a draft page holding only the group’s titles, each linked to its post, and Undergrowth never publishes it. Not for this group means it is never proposed for that group again."
 msgstr ""
 
 #: src/help.php

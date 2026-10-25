@@ -109,6 +109,7 @@ Rules:
 - Stage stored in post meta (themes can show it) and in the readable per-post file.
 - Nothing is auto-demoted in germination mode.
 - Stages double as the SEO health score. Composted posts are left out of it.
+- Hubs (#485): where a Map group has 5+ posts and half of them already have an accepted link to or from another member, the Map proposes a hub. Start a hub draft makes an untitled draft page holding only the group's titles as links; Undergrowth never publishes it. A veto is kept for the group's posts forever, and a group counts as the same while more than half its posts are shared. For Evergreen, "a hub links to it" means a published, public page started this way whose content links to the post; the hub's own link is not one of the 3+ links in.
 
 ---
 
