@@ -1570,7 +1570,7 @@ msgid "A site user who links their Discord account on their profile has their Di
 msgstr ""
 
 #: src/privacy.php
-msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads how often each post was viewed from it once a day, and sends that nowhere."
+msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads from it, once a day, how often the most viewed posts were viewed lately, and sends that nowhere."
 msgstr ""
 
 #: src/privacy.php
@@ -1818,17 +1818,25 @@ msgid "The rest are read in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
-msgid "No stats plugin found, so “More like this” leaves popularity out. It can read Jetpack Stats, Koko Analytics or Post Views Counter."
+msgid "No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter."
 msgstr ""
 
-#. translators: %s: name of a stats plugin, such as Jetpack Stats.
+#. translators: %1$s: name of a stats plugin, such as Jetpack Stats.
 #: src/settings.php
 #, php-format
-msgid "“More like this” reads recent views from %s once a day."
+msgid "“More like this” reads recent views of your most viewed posts from %1$s once a day."
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth counts no views itself, and nothing new leaves your site."
+msgid "Undergrowth counts no views itself. Jetpack asks WordPress.com for them, as it does for its own Stats screen."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself. They are read from your own database, and nothing leaves your site."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself."
 msgstr ""
 
 #: src/settings.php

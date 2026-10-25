@@ -383,11 +383,14 @@ function undergrowth_more_like_this( int $post_id, int $count ): array {
 
 	// The under-read post is chosen among the closest in meaning alone, so
 	// it is always close, however its stage or age weighs it.
-	$close = array_slice( $visible, 0, $count * 2 );
-	$links = array() === $known
-		? undergrowth_similar_links_in( array_values( array_unique( array_merge( $close, $shown ) ) ) )
-		: array_map( 'floatval', $views );
-	$quiet = null;
+	// Views decide only when every post in question has them; otherwise an
+	// unknown count would pass for none.
+	$close     = array_slice( $visible, 0, $count * 2 );
+	$candidate = array_values( array_unique( array_merge( $close, $shown ) ) );
+	$links     = count( array_intersect_key( $known, array_flip( $candidate ) ) ) === count( $candidate )
+		? $known
+		: undergrowth_similar_links_in( $candidate );
+	$quiet     = null;
 
 	foreach ( $close as $id ) {
 		if ( null === $quiet || $links[ $id ] < $links[ $quiet ] ) {

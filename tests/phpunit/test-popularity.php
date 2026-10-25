@@ -183,13 +183,45 @@ class Test_Popularity extends WP_UnitTestCase {
 		$this->assertSame( 0.0, undergrowth_posts_popularity( array( 13 ) )[13] );
 	}
 
-	public function test_a_failed_jetpack_answer_counts_no_views() {
+	public function test_a_failed_read_keeps_the_last_good_one() {
 		$this->jetpack_on();
-		WPCOM_Stats::$top_posts = new WP_Error( 'stats', 'No.' );
+		$kept = array(
+			'source' => 'jetpack',
+			'read'   => 1,
+			'views'  => array( 11 => 5.0 ),
+		);
+		update_option( 'undergrowth_popularity', $kept );
+		$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
 
+		WPCOM_Stats::$top_posts = new WP_Error( 'stats', 'No.' );
 		undergrowth_read_popularity();
 
-		$this->assertSame( array(), get_option( 'undergrowth_popularity' )['views'] );
+		$this->assertSame( $kept, get_option( 'undergrowth_popularity' ) );
+		$this->assertSame( $generation, (int) get_option( 'undergrowth_similar_generation', 0 ) );
+
+		WPCOM_Stats::$top_posts = array( 'summary' => array() );
+		undergrowth_read_popularity();
+
+		$this->assertSame( $kept, get_option( 'undergrowth_popularity' ) );
+	}
+
+	public function test_a_missing_stats_table_reads_as_unknown() {
+		$this->assertNull( undergrowth_read_koko_views( 30 ) );
+		$this->assertNull( undergrowth_read_pvc_views( 30 ) );
+	}
+
+	public function test_views_from_another_source_are_not_known() {
+		$this->jetpack_on();
+		update_option(
+			'undergrowth_popularity',
+			array(
+				'source' => 'koko',
+				'read'   => 1,
+				'views'  => array( 11 => 5.0 ),
+			)
+		);
+
+		$this->assertSame( array( 11 => null ), undergrowth_posts_popularity( array( 11 ) ) );
 	}
 
 	public function test_reads_koko_analytics_by_post_adding_up_each_address() {
@@ -508,6 +540,42 @@ class Test_Popularity extends WP_UnitTestCase {
 		$this->assertSame( array( $first, $third ), undergrowth_more_like_this( $source, 2 ) );
 	}
 
+	public function test_the_quiet_slot_falls_back_to_links_when_any_view_count_is_unknown() {
+		global $wpdb;
+
+		$source = $this->old( 'Oca', array( 1, 0, 0 ) );
+		$first  = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$second = $this->old( 'Mashua', array( 1, 0.12, 0 ) );
+		$third  = $this->old( 'Syrup', array( 1, 0.14, 0 ) );
+		$fourth = $this->old( 'Ledger', array( 1, 0.16, 0 ) );
+
+		foreach ( array( $first, $second, $third ) as $target ) {
+			$wpdb->insert(
+				undergrowth_links_table(),
+				array(
+					'source_id'  => $source,
+					'target_id'  => $target,
+					'state'      => 'accepted',
+					'score'      => 0.5,
+					'sentence'   => '',
+					'created_at' => '2026-01-01 00:00:00',
+					'updated_at' => '2026-01-01 00:00:00',
+				)
+			);
+		}
+
+		// The third has views and the fourth none known, so links decide.
+		$this->views(
+			array(
+				$first  => 30,
+				$second => 20,
+				$third  => 1,
+			)
+		);
+
+		$this->assertSame( array( $first, $fourth ), undergrowth_more_like_this( $source, 2 ) );
+	}
+
 	public function test_settings_say_which_source_is_read() {
 		ob_start();
 		undergrowth_render_popularity_field();
@@ -519,8 +587,26 @@ class Test_Popularity extends WP_UnitTestCase {
 		$jetpack = ob_get_clean();
 
 		$this->assertStringContainsString( 'No stats plugin found', $none );
-		$this->assertStringContainsString( 'reads recent views from Jetpack Stats once a day', $jetpack );
-		$this->assertStringContainsString( 'nothing new leaves your site', $jetpack );
+		$this->assertStringContainsString( 'from Jetpack Stats once a day', $jetpack );
+		$this->assertStringContainsString( 'Jetpack asks WordPress.com', $jetpack );
+		$this->assertStringNotContainsString( 'nothing leaves', $jetpack );
+
+		$this->only_sources( array( 'pvc' ) );
+		add_filter(
+			'undergrowth_popularity_sources',
+			static function ( $sources ) {
+				$sources['pvc']['active'] = '__return_true';
+
+				return $sources;
+			},
+			20
+		);
+		ob_start();
+		undergrowth_render_popularity_field();
+		$pvc = ob_get_clean();
+
+		$this->assertStringContainsString( 'from Post Views Counter once a day', $pvc );
+		$this->assertStringContainsString( 'nothing leaves your site', $pvc );
 	}
 
 	public function test_each_daily_read_measures_the_lists_again() {
@@ -530,6 +616,7 @@ class Test_Popularity extends WP_UnitTestCase {
 		$this->assertSame( $generation, (int) get_option( 'undergrowth_similar_generation', 0 ), 'Nothing was kept, so nothing changed.' );
 
 		$this->jetpack_on();
+		WPCOM_Stats::$top_posts = array( 'days' => array() );
 		undergrowth_read_popularity();
 		$this->assertSame( $generation + 1, (int) get_option( 'undergrowth_similar_generation', 0 ) );
 

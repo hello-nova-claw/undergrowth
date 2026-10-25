@@ -709,17 +709,18 @@ function undergrowth_render_posts_read_field(): void {
  * none is active.
  */
 function undergrowth_render_popularity_field(): void {
+	$slug  = undergrowth_popularity_source();
 	$label = undergrowth_popularity_source_label();
 	?>
 	<p id="undergrowth-popularity">
 		<?php
 		if ( null === $label ) {
-			esc_html_e( 'No stats plugin found, so “More like this” leaves popularity out. It can read Jetpack Stats, Koko Analytics or Post Views Counter.', 'undergrowth' );
+			esc_html_e( 'No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter.', 'undergrowth' );
 		} else {
 			echo esc_html(
 				sprintf(
-					/* translators: %s: name of a stats plugin, such as Jetpack Stats. */
-					__( '“More like this” reads recent views from %s once a day.', 'undergrowth' ),
+					/* translators: %1$s: name of a stats plugin, such as Jetpack Stats. */
+					__( '“More like this” reads recent views of your most viewed posts from %1$s once a day.', 'undergrowth' ),
 					$label
 				)
 			);
@@ -727,7 +728,15 @@ function undergrowth_render_popularity_field(): void {
 		?>
 	</p>
 	<p class="description">
-		<?php esc_html_e( 'Undergrowth counts no views itself, and nothing new leaves your site.', 'undergrowth' ); ?>
+		<?php
+		if ( 'jetpack' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. Jetpack asks WordPress.com for them, as it does for its own Stats screen.', 'undergrowth' );
+		} elseif ( 'koko' === $slug || 'pvc' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. They are read from your own database, and nothing leaves your site.', 'undergrowth' );
+		} else {
+			esc_html_e( 'Undergrowth counts no views itself.', 'undergrowth' );
+		}
+		?>
 	</p>
 	<?php
 }

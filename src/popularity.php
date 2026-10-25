@@ -64,7 +64,8 @@ function undergrowth_popularity_sources(): array {
 	 *
 	 * The first source whose `active` callback returns true is read once a
 	 * day. Its `read` callback receives a number of days and returns daily
-	 * views keyed by post ID, then by date as Y-m-d.
+	 * views keyed by post ID, then by date as Y-m-d, or null when it could
+	 * not read them.
 	 *
 	 * @param array<string, array{label: string, active: callable, read: callable}> $sources Sources keyed by slug. Default Jetpack Stats, Koko Analytics and Post Views Counter.
 	 */
@@ -119,9 +120,9 @@ function undergrowth_pvc_is_active(): bool {
  * Only the most viewed posts come back, which are the ones that matter.
  *
  * @param int $days How many days back.
- * @return array<int, array<string, int>> Views keyed by post ID, then date.
+ * @return array<int, array<string, int>>|null Views keyed by post ID, then date, or null when Jetpack gave no usable answer.
  */
-function undergrowth_read_jetpack_views( int $days ): array {
+function undergrowth_read_jetpack_views( int $days ): ?array {
 	$top = ( new WPCOM_Stats() )->get_top_posts(
 		array(
 			'period' => 'day',
@@ -131,7 +132,7 @@ function undergrowth_read_jetpack_views( int $days ): array {
 	);
 
 	if ( ! is_array( $top ) || ! isset( $top['days'] ) || ! is_array( $top['days'] ) ) {
-		return array();
+		return null;
 	}
 
 	$views = array();
@@ -157,16 +158,20 @@ function undergrowth_read_jetpack_views( int $days ): array {
  * for each, so the rows of a day are added up.
  *
  * @param int $days How many days back.
- * @return array<int, array<string, int>> Views keyed by post ID, then date.
+ * @return array<int, array<string, int>>|null Views keyed by post ID, then date, or null when the table could not be read.
  */
-function undergrowth_read_koko_views( int $days ): array {
+function undergrowth_read_koko_views( int $days ): ?array {
 	global $wpdb;
+
+	// A table the plugin has not made yet reads as unknown, without a
+	// database error on screen.
+	$quiet = $wpdb->suppress_errors();
 
 	// Koko dates its rows in the site's time zone.
 	$today = current_datetime();
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Koko Analytics's table has no API for daily views per post; read once a day.
-	$rows = (array) $wpdb->get_results(
+	$rows = $wpdb->get_results(
 		$wpdb->prepare(
 			'SELECT date, post_id, SUM(pageviews) AS views FROM %i WHERE post_id > 0 AND date BETWEEN %s AND %s GROUP BY date, post_id',
 			$wpdb->prefix . 'koko_analytics_post_stats',
@@ -175,6 +180,12 @@ function undergrowth_read_koko_views( int $days ): array {
 		),
 		ARRAY_A
 	);
+
+	$wpdb->suppress_errors( $quiet );
+
+	if ( ! is_array( $rows ) || '' !== $wpdb->last_error ) {
+		return null;
+	}
 
 	$views = array();
 
@@ -193,10 +204,14 @@ function undergrowth_read_koko_views( int $days ): array {
  * content in the same table, marked in a content column, where 0 is a post.
  *
  * @param int $days How many days back.
- * @return array<int, array<string, int>> Views keyed by post ID, then date.
+ * @return array<int, array<string, int>>|null Views keyed by post ID, then date, or null when the table could not be read.
  */
-function undergrowth_read_pvc_views( int $days ): array {
+function undergrowth_read_pvc_views( int $days ): ?array {
 	global $wpdb;
+
+	// A table the plugin has not made yet reads as unknown, without a
+	// database error on screen.
+	$quiet = $wpdb->suppress_errors();
 
 	$table = $wpdb->prefix . 'post_views';
 	$today = current_datetime();
@@ -214,9 +229,15 @@ function undergrowth_read_pvc_views( int $days ): array {
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, period, count FROM %i WHERE type = 0 AND period BETWEEN %s AND %s', $table, $from, $to ), ARRAY_A );
 	}
 
+	$wpdb->suppress_errors( $quiet );
+
+	if ( ! is_array( $rows ) || '' !== $wpdb->last_error ) {
+		return null;
+	}
+
 	$views = array();
 
-	foreach ( (array) $rows as $row ) {
+	foreach ( $rows as $row ) {
 		$date = DateTimeImmutable::createFromFormat( '!Ymd', (string) $row['period'] );
 
 		if ( false !== $date && (int) $row['id'] > 0 ) {
@@ -293,7 +314,11 @@ function undergrowth_read_popularity(): void {
 	}
 
 	$views = call_user_func( undergrowth_popularity_sources()[ $slug ]['read'], UNDERGROWTH_POPULARITY_DAYS );
-	$views = is_array( $views ) ? $views : array();
+
+	// A failed read keeps the last good one, which tomorrow's may replace.
+	if ( ! is_array( $views ) ) {
+		return;
+	}
 
 	update_option(
 		'undergrowth_popularity',
@@ -316,9 +341,12 @@ function undergrowth_read_popularity(): void {
  * @return array<int, float|null> Views keyed by post ID, or null where they are not known.
  */
 function undergrowth_posts_popularity( array $post_ids ): array {
-	$kept  = get_option( 'undergrowth_popularity' );
-	$known = is_array( $kept ) && is_array( $kept['views'] ?? null ) && null !== undergrowth_popularity_source();
-	$views = array();
+	// Views from another source count on another scale, so only those from
+	// the source in use now are known.
+	$kept   = get_option( 'undergrowth_popularity' );
+	$source = is_array( $kept ) ? ( $kept['source'] ?? null ) : null;
+	$known  = null !== $source && is_array( $kept['views'] ?? null ) && undergrowth_popularity_source() === $source;
+	$views  = array();
 
 	foreach ( $post_ids as $post_id ) {
 		$value = $known ? (float) ( $kept['views'][ $post_id ] ?? 0 ) : null;
