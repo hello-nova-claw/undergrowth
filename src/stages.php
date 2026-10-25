@@ -518,7 +518,9 @@ function undergrowth_measure_stage( int $post_id ): string {
 		}
 	}
 
-	$clustered = array() !== undergrowth_cluster_members( $post_id );
+	// Budding and Evergreen both need a link in, so a post with none skips
+	// the cluster lookup.
+	$clustered = $in > 0 && array() !== undergrowth_cluster_members( $post_id );
 
 	if ( $clustered && $in >= 3 && undergrowth_has_hub_link( $post_id ) ) {
 		return 'evergreen';
