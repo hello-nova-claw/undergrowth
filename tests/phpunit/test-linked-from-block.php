@@ -110,6 +110,8 @@ class Test_Linked_From_Block extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_render_linked_from_block', $type->render_callback );
 		$this->assertSame( 'string', $type->attributes['heading']['type'] );
 		$this->assertSame( 5, $type->attributes['maxItems']['default'] );
+		$this->assertSame( array( 'undergrowth-linked-from' ), $type->style_handles );
+		$this->assertTrue( wp_style_is( 'undergrowth-linked-from', 'registered' ) );
 		$this->assertArrayHasKey( 'color', $type->supports );
 		$this->assertArrayHasKey( 'typography', $type->supports );
 		$this->assertArrayHasKey( 'spacing', $type->supports );

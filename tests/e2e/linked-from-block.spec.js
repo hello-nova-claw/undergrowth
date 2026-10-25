@@ -4,20 +4,23 @@ const { expectNoA11yViolations } = require( './a11y' );
 const LIST = '.wp-block-undergrowth-linked-from';
 
 /**
- * Accepts the suggestion for Oca to link to Yacon, by keyboard, as the
+ * Accepts the suggestion for a post to link to Yacon, by keyboard, as the
  * author would on Posts > Undergrowth.
  *
- * @param {import('@wordpress/e2e-test-utils-playwright').Admin} admin Admin utils.
- * @param {import('@playwright/test').Page}                      page  Page.
+ * @param {import('@wordpress/e2e-test-utils-playwright').Admin} admin  Admin utils.
+ * @param {import('@playwright/test').Page}                      page   Page.
+ * @param {string}                                               source Title of the post the link sits in.
  */
-async function acceptOcaToYacon( admin, page ) {
+async function acceptToYacon( admin, page, source = 'Oca' ) {
 	await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
 
 	const row = page.locator( 'table.undergrowth-links tbody tr' ).filter( {
-		has: page.locator( '.column-source a', { hasText: 'Oca' } ),
+		has: page.locator( '.column-source a', { hasText: source } ),
 	} );
 	const accept = row
-		.getByRole( 'button', { name: /Oca[\s\S]*Yacon/ } )
+		.getByRole( 'button', {
+			name: new RegExp( `${ source }[\\s\\S]*Yacon` ),
+		} )
 		.and( row.locator( '[form^="undergrowth-accept-"]' ) );
 
 	await accept.focus();
@@ -75,7 +78,7 @@ test.describe( 'Linked from block', () => {
 		editor,
 		page,
 	} ) => {
-		await acceptOcaToYacon( admin, page );
+		await acceptToYacon( admin, page );
 		await admin.editPost( yacon.id );
 
 		const preview = editor.canvas.locator( `${ LIST } ${ LIST }` );
@@ -100,19 +103,31 @@ test.describe( 'Linked from block', () => {
 		await expectNoA11yViolations( page, '.block-editor-block-inspector' );
 	} );
 
-	test( 'shows readers the linking post, and drops it once composted', async ( {
+	test( 'shows readers the linking posts, and drops one once composted', async ( {
 		admin,
 		page,
+		requestUtils,
 	} ) => {
-		await acceptOcaToYacon( admin, page );
+		await requestUtils.createPost( {
+			title: 'Mashua',
+			content: '<p>Mashua grows here. I keep yacon nearby.</p>',
+			status: 'publish',
+			date: '2020-01-01T10:00:00',
+		} );
+		await acceptToYacon( admin, page );
+		await acceptToYacon( admin, page, 'Mashua' );
 
 		await page.goto( `/?p=${ yacon.id }` );
 
+		// Newest first, kept far enough apart to tap at a small size.
 		const list = page.locator( LIST );
 		await expect( list ).toHaveClass( /has-small-font-size/ );
 		await expect( list.locator( 'h2' ) ).toHaveCount( 1 );
-		await expect( list.locator( 'li a' ) ).toHaveText( 'Oca' );
-		await expect( list.locator( 'li a' ) ).toHaveAttribute(
+		await expect( list.locator( 'li a' ) ).toHaveText( [
+			'Oca',
+			'Mashua',
+		] );
+		await expect( list.locator( 'li a' ).first() ).toHaveAttribute(
 			'href',
 			new RegExp( `p=${ oca.id }|/oca/?$` )
 		);
@@ -130,7 +145,8 @@ test.describe( 'Linked from block', () => {
 		);
 
 		await page.goto( `/?p=${ yacon.id }` );
-		await expect( page.locator( 'body' ) ).toBeVisible();
-		await expect( page.locator( LIST ) ).toHaveCount( 0 );
+		await expect( page.locator( `${ LIST } li a` ) ).toHaveText( [
+			'Mashua',
+		] );
 	} );
 } );
