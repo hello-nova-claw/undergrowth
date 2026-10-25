@@ -503,6 +503,35 @@ const WITH_CLUSTERS = [
 	} ) ),
 ];
 
+// Shown after a pass found two groups and a post near both: a pair on the
+// Cross-pollination list, and the notices after dismissing one.
+const WITH_POLLINATION = [
+	{ screen: 'map', state: 'pollination', page: MAP },
+	...[ 'pollination_dismissed', 'pollination_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
+	// The surprise scale with its wildest step chosen, not yet saved.
+	{
+		screen: 'settings',
+		state: 'surprise-wild',
+		page: SETTINGS,
+		open: async ( page ) => {
+			const wild = page.locator( '#undergrowth_surprise_5' );
+
+			if ( ( await wild.count() ) === 0 ) {
+				return false;
+			}
+
+			await wild.check();
+
+			return true;
+		},
+	},
+];
+
 // The same, once the first group has a hub draft.
 const WITH_HUB_DRAFT = [ { screen: 'map', state: 'hub-draft', page: MAP } ];
 
@@ -1175,6 +1204,41 @@ test.describe( 'Screenshot catalogue', () => {
 
 			capture( WITH_HUB_DRAFT );
 		} );
+	} );
+
+	test.describe( 'with a cross-pollination pair', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			// Two groups of repeated fixture words, and one post with both.
+			for ( const [ title, content ] of [
+				[ 'First', 'yacon '.repeat( 6 ) ],
+				[ 'Second', 'yacon '.repeat( 6 ) ],
+				[ 'Third', 'yacon '.repeat( 6 ) ],
+				[ 'Roots', 'oca '.repeat( 6 ) ],
+				[ 'Old roots', 'oca '.repeat( 6 ) ],
+				[ 'Deep roots', 'oca '.repeat( 6 ) ],
+				[ 'Both', 'oca '.repeat( 3 ) + 'yacon '.repeat( 3 ) ],
+			] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ content.trim() }</p>`,
+					status: 'publish',
+				} );
+			}
+
+			const response = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			if ( ! response.ok() ) {
+				throw new Error(
+					`Clustering failed with HTTP ${ response.status() }.`
+				);
+			}
+		} );
+
+		capture( WITH_POLLINATION );
 	} );
 
 	test.describe( 'with a growth-stage badge', () => {

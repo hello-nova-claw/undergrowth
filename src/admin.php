@@ -811,6 +811,10 @@ function undergrowth_render_map_tab(): void {
 		undergrowth_render_hub_proposal( $cluster['leader'], $cluster['members'] );
 	}
 
+	if ( count( $map ) >= 2 ) {
+		undergrowth_render_pollination_view( $map );
+	}
+
 	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
 	undergrowth_render_map_export_form();
 }
@@ -889,7 +893,7 @@ function undergrowth_hub_action_form( string $action, int $leader, string $descr
 		esc_url( admin_url( 'admin-post.php' ) ),
 		esc_attr( $action ),
 		$leader,
-		wp_nonce_field( 'undergrowth_' . $action . '_' . $leader, '_wpnonce', true, false ),
+		undergrowth_nonce_input( 'undergrowth_' . $action . '_' . $leader ),
 		esc_attr( $button_class ),
 		esc_attr( $described ),
 		esc_html( $text )
@@ -1108,6 +1112,17 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 			esc_html__( 'Dismiss', 'undergrowth' )
 		);
 	}
+}
+
+/**
+ * Builds a nonce field without the id core gives it, for a screen with many
+ * small forms, where core's would repeat one id on every form.
+ *
+ * @param string $action Nonce action.
+ * @return string Hidden input HTML.
+ */
+function undergrowth_nonce_input( string $action ): string {
+	return sprintf( '<input type="hidden" name="_wpnonce" value="%s" />', esc_attr( wp_create_nonce( $action ) ) );
 }
 
 /**
@@ -1433,7 +1448,7 @@ function undergrowth_render_suggestions_notice(): void {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 
-	$messages = undergrowth_link_result_messages() + undergrowth_stage_result_messages() + array(
+	$messages = undergrowth_link_result_messages() + undergrowth_stage_result_messages() + undergrowth_pollination_result_messages() + array(
 		'resurfacing_dismissed' => __( 'Dismissed. The post stays composting.', 'undergrowth' ),
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
@@ -1481,7 +1496,7 @@ function undergrowth_render_suggestions_notice(): void {
 		}
 	}
 
-	$class = in_array( $notice, array( 'vetoed', 'unvetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed', 'hub_started', 'hub_vetoed' ), true ) ? 'notice-success' : 'notice-warning';
+	$class = in_array( $notice, array( 'vetoed', 'unvetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed', 'hub_started', 'hub_vetoed', 'pollination_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
 
 	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }

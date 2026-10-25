@@ -141,6 +141,24 @@ function undergrowth_choose_label_terms( array $group, int $group_size, array $s
 }
 
 /**
+ * Tells whether two sets of posts are the same group: more than half of
+ * the larger set is in both.
+ *
+ * Leaders change every month, so anything kept for a group, such as a veto
+ * or a dismissal, is kept for its posts and matched this way.
+ *
+ * @param int[] $a Post IDs.
+ * @param int[] $b Post IDs.
+ * @return bool True when they are the same group.
+ */
+function undergrowth_same_group( array $a, array $b ): bool {
+	$a = array_unique( array_map( 'intval', $a ) );
+	$b = array_unique( array_map( 'intval', $b ) );
+
+	return array() !== $a && 2 * count( array_intersect( $a, $b ) ) > max( count( $a ), count( $b ) );
+}
+
+/**
  * Lists the posts in the active garden: indexable and not composting.
  *
  * @return array<int, string> When each post was last read, as a UTC MySQL
@@ -275,9 +293,10 @@ function undergrowth_label_clusters(): void {
 		}
 	}
 
-	$labels          = (array) get_option( 'undergrowth_cluster_labels', array() );
-	$labels['made']  = $labels['made'] ?? current_time( 'mysql', true );
-	$labels['terms'] = $terms;
+	$labels            = (array) get_option( 'undergrowth_cluster_labels', array() );
+	$labels['made']    = $labels['made'] ?? current_time( 'mysql', true );
+	$labels['terms']   = $terms;
+	$labels['threads'] = undergrowth_find_threads( $groups, $candidates, count( $garden ) );
 
 	update_option( 'undergrowth_cluster_labels', $labels, false );
 }

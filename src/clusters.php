@@ -530,6 +530,9 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	// Last, because it reads every post: the words only label the Map, so
 	// running out of time here must not hold up stages or resurfacing.
 	undergrowth_label_clusters();
+	// After the labels, whose pass it is marked with. It only queues the
+	// first batch, since that reads every vector.
+	undergrowth_start_pollination();
 }
 
 /**

@@ -48,6 +48,13 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 | `undergrowth_hub_min_size` | `src/hubs.php` | The fewest posts a Map group needs before a hub is proposed for it. Default 5, never below 3. |
 | `undergrowth_hub_min_linked_share` | `src/hubs.php` | The smallest share of a group's posts that must already have an accepted link to or from another post in the group. Default 0.5. |
 
+### Cross-pollination
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_surprise_band` | `src/pollination.php` | The sweet-spot band at each step of the surprise scale, as `array( lowest, below )`. Default from the cluster threshold down, by a quarter of its gap to the link threshold at step 1, then a half, three quarters, all of it and one and a half. A pass keeps what the widest step would show. |
+| `undergrowth_bridge_strength` | `src/pollination.php` | How close a bridge post must be to both groups' centres at each step. Default the cluster threshold at step 1, down by a quarter of the gap each step, to the link threshold at step 5. |
+
 ### Links
 
 | Filter | Where | What it changes |

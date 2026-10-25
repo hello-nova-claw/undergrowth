@@ -105,21 +105,6 @@ function undergrowth_hub_linked_members( array $members ): int {
 }
 
 /**
- * Tells whether two sets of posts are the same group: more than half of
- * the larger set is in both.
- *
- * @param int[] $a Post IDs.
- * @param int[] $b Post IDs.
- * @return bool True when they are the same group.
- */
-function undergrowth_same_hub_group( array $a, array $b ): bool {
-	$a = array_unique( array_map( 'intval', $a ) );
-	$b = array_unique( array_map( 'intval', $b ) );
-
-	return array() !== $a && 2 * count( array_intersect( $a, $b ) ) > max( count( $a ), count( $b ) );
-}
-
-/**
  * Returns the vetoed groups, each as the posts it had when it was vetoed.
  *
  * @return int[][] Post IDs, lowest first, one list per veto.
@@ -153,7 +138,7 @@ function undergrowth_hub_vetoes(): array {
  */
 function undergrowth_hub_vetoed( array $members ): bool {
 	foreach ( undergrowth_hub_vetoes() as $vetoed ) {
-		if ( undergrowth_same_hub_group( $members, $vetoed ) ) {
+		if ( undergrowth_same_group( $members, $vetoed ) ) {
 			return true;
 		}
 	}
@@ -199,7 +184,7 @@ function undergrowth_hubs(): array {
  */
 function undergrowth_group_hub( array $members ): int {
 	foreach ( undergrowth_hubs() as $hub_id => $started_for ) {
-		if ( undergrowth_same_hub_group( $members, $started_for ) ) {
+		if ( undergrowth_same_group( $members, $started_for ) ) {
 			return $hub_id;
 		}
 	}

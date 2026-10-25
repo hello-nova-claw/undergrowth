@@ -93,8 +93,8 @@ test.describe( 'Map tab', () => {
 				'href',
 				/tab=map/
 			);
-			// Two groups, then the posts not in one.
-			await expect( page.locator( '.wrap h2' ) ).toHaveCount( 3 );
+			// Two groups, the pairs between them, then the posts not in one.
+			await expect( page.locator( '.wrap h2' ) ).toHaveCount( 4 );
 			await expect(
 				page.locator( 'ul.undergrowth-cluster' )
 			).toHaveCount( 2 );
@@ -245,6 +245,12 @@ test.describe( 'Map tab', () => {
 					page.locator( 'ul.undergrowth-cluster li a' ).nth( i )
 				).toBeFocused();
 			}
+
+			// Then the way to the surprise scale, as no pair is found here.
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				page.locator( '#undergrowth-pollination + p a' )
+			).toBeFocused();
 
 			// Then the post outside every group.
 			await page.keyboard.press( 'Tab' );
