@@ -257,6 +257,19 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( self::QUESTION, $html );
 	}
 
+	public function test_widget_prints_nothing_without_a_new_question() {
+		$this->assertSame( '', $this->render() );
+	}
+
+	public function test_the_first_prompt_event_sends_nothing_while_a_question_waits() {
+		undergrowth_write_prompt();
+		$this->comment( $this->post_id, 'When do you lift them?' );
+
+		do_action( 'undergrowth_write_prompt' );
+
+		$this->assertSame( 1, $this->requests );
+	}
+
 	public function test_widget_counts_every_new_question() {
 		$this->comment( $this->post_id, 'When do you lift them?' );
 		undergrowth_write_prompt();
