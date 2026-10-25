@@ -65,21 +65,19 @@ function undergrowth_tend_newer_in_group( int $post_id, string $since ): int {
 
 	$members = get_posts(
 		array(
-			'post_type'        => undergrowth_indexed_post_types(),
-			'post_status'      => 'publish',
-			'fields'           => 'ids',
-			'posts_per_page'   => -1,
-			'post__not_in'     => array( $post_id ),
-			'no_found_rows'    => true,
-			'suppress_filters' => true,
+			'post_type'      => undergrowth_indexed_post_types(),
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+			'posts_per_page' => -1,
+			'no_found_rows'  => true,
 			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- One group's members, for the few Evergreen rows on screen.
-			'meta_query'       => array(
+			'meta_query'     => array(
 				array(
 					'key'   => 'undergrowth_cluster',
 					'value' => $leader,
 				),
 			),
-			'date_query'       => array(
+			'date_query'     => array(
 				array(
 					'column' => 'post_date_gmt',
 					'after'  => $since,
@@ -88,7 +86,9 @@ function undergrowth_tend_newer_in_group( int $post_id, string $since ): int {
 		)
 	);
 
-	return count( undergrowth_filter_garden_visible( array_map( 'intval', $members ) ) );
+	// The post itself is left out here rather than through post__not_in,
+	// which keeps the query cacheable.
+	return count( array_diff( undergrowth_filter_garden_visible( array_map( 'intval', $members ) ), array( $post_id ) ) );
 }
 
 /**

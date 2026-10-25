@@ -693,14 +693,30 @@ const tendPosts = {};
 // An Evergreen post untouched for two years carries a "Worth a look" note
 // on the Growth stages tab and in its editor panel.
 const WITH_TEND = [
-	{ screen: 'stages', state: 'worth-a-look', page: STAGES },
+	// A build without the note shows none, and is listed as skipped.
+	{
+		screen: 'stages',
+		state: 'worth-a-look',
+		page: STAGES,
+		open: async ( page ) =>
+			( await page.locator( '.undergrowth-tend' ).count() ) > 0,
+	},
 	{
 		screen: 'editor-panel',
 		state: 'worth-a-look',
 		panel: () => tendPosts.stale,
 		open: ( page ) =>
-			page.evaluate( () =>
-				Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) )
+			page.evaluate(
+				async ( id ) =>
+					Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) ) &&
+					Boolean(
+						(
+							await window.wp.apiFetch( {
+								path: `/undergrowth/v1/posts/${ id }/stage`,
+							} )
+						).tend
+					),
+				tendPosts.stale
 			),
 	},
 ];
@@ -1483,15 +1499,20 @@ test.describe( 'Screenshot catalogue', () => {
 				} )
 			).id;
 
-			// A build from before the route has no stage to pin, and its
-			// shots show the post without a note.
+			// A build from before the panel has no route to pin through, and
+			// its shots are listed as skipped. Any other failure stops the
+			// run, rather than capturing a post with no note.
 			await requestUtils
 				.rest( {
 					method: 'POST',
 					path: `/undergrowth/v1/posts/${ tendPosts.stale }/stage`,
 					data: { action: 'pin', stage: 'evergreen' },
 				} )
-				.catch( () => null );
+				.catch( ( error ) => {
+					if ( error?.code !== 'rest_no_route' ) {
+						throw error;
+					}
+				} );
 		} );
 
 		capture( WITH_TEND );
