@@ -124,8 +124,8 @@ class Test_Admin extends WP_UnitTestCase {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
-		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*">Oca</a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
-		$this->assertMatchesRegularExpression( '#^<a href="[^"]+">Oca</a>$#', undergrowth_post_link( $post_id ) );
+		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*"><bdi>Oca</bdi></a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertMatchesRegularExpression( '#^<a href="[^"]+"><bdi>Oca</bdi></a>$#', undergrowth_post_link( $post_id ) );
 	}
 
 	public function test_post_link_is_plain_text_when_the_edit_address_is_empty() {
@@ -133,7 +133,7 @@ class Test_Admin extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		add_filter( 'get_edit_post_link', '__return_empty_string' );
 
-		$this->assertSame( 'Oca', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertSame( '<bdi>Oca</bdi>', undergrowth_post_link( $post_id, 'row-title' ) );
 	}
 
 	public function test_suggestions_url_opens_each_tab_with_its_notice() {
@@ -369,8 +369,8 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '">Yacon</a></p>#', $html );
-		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '">Oca</a>#', $html );
+		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '"><bdi>Yacon</bdi></a></p>#', $html );
+		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '"><bdi>Oca</bdi></a>#', $html );
 		$this->assertStringNotContainsString( 'href="' . esc_url( (string) get_permalink( $yacon ) ) . '"', $html );
 	}
 
@@ -395,7 +395,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p>Link to <a class="row-title" href="', $html );
-		$this->assertStringContainsString( '">(no title)</a></p>', $html );
+		$this->assertStringContainsString( '"><bdi>(no title)</bdi></a></p>', $html );
 		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
 	}
 
@@ -412,7 +412,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<p>Link to <strong>Yacon</strong></p>', $html );
+		$this->assertStringContainsString( '<p>Link to <strong><bdi>Yacon</bdi></strong></p>', $html );
 		$this->assertStringNotContainsString( 'href=""', $html );
 	}
 

@@ -20,7 +20,19 @@ add_action( 'init', 'undergrowth_register_blocks' );
  */
 function undergrowth_register_blocks(): void {
 	$folder = dirname( UNDERGROWTH_FILE ) . '/build/blocks/growth-stage';
-	$args   = array( 'render_callback' => 'undergrowth_render_growth_stage_block' );
+	$args   = array(
+		'render_callback' => 'undergrowth_render_growth_stage_block',
+		'style_handles'   => array( 'undergrowth-growth-stage' ),
+	);
+
+	// The badge hides its own screen-reader label, since a classic theme may
+	// drop the block library's styles and with them .screen-reader-text.
+	wp_register_style(
+		'undergrowth-growth-stage',
+		plugins_url( 'assets/growth-stage.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
+	);
 
 	if ( ! file_exists( $folder . '/block.json' ) ) {
 		$folder                        = dirname( UNDERGROWTH_FILE ) . '/src/blocks/growth-stage';

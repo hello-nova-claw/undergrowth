@@ -413,8 +413,33 @@ function undergrowth_render_key_field( array $args ): void {
 	$provider  = $args['provider'];
 	$constant  = 'openai' === $provider ? 'UNDERGROWTH_OPENAI_API_KEY' : 'UNDERGROWTH_ANTHROPIC_API_KEY';
 	$in_config = '' !== undergrowth_key_from_config( $constant );
+	$failed    = is_array( $error ) && isset( $error['time'] );
+
+	// Everything said about the field below it, so a screen reader reads
+	// "leave the field blank to keep it" and the last failure on focus.
+	$described = array( 'notice' );
+
+	if ( $in_config ) {
+		$described[] = 'config';
+	} elseif ( '' !== $key ) {
+		$described[] = 'saved';
+	}
+
+	if ( $failed ) {
+		$described[] = 'error';
+	}
+
+	$described = implode(
+		' ',
+		array_map(
+			static function ( string $part ) use ( $provider ): string {
+				return 'undergrowth-' . $provider . '-' . $part;
+			},
+			$described
+		)
+	);
 	?>
-	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-<?php echo esc_attr( $provider ); ?>-notice<?php echo $in_config ? ' undergrowth-' . esc_attr( $provider ) . '-config' : ''; ?>"<?php disabled( $in_config ); ?> />
+	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $described ); ?>"<?php disabled( $in_config ); ?> />
 
 	<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-notice">
 		<?php echo esc_html( $notice ); ?>
@@ -435,7 +460,7 @@ function undergrowth_render_key_field( array $args ): void {
 			?>
 		</p>
 	<?php elseif ( '' !== $key ) : ?>
-		<p class="description">
+		<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-saved">
 			<?php
 			echo esc_html(
 				sprintf(
@@ -461,8 +486,8 @@ function undergrowth_render_key_field( array $args ): void {
 	<?php endif; ?>
 
 	<?php
-	if ( is_array( $error ) && isset( $error['time'] ) ) {
-		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) );
+	if ( $failed ) {
+		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ), 'undergrowth-' . $provider . '-error' );
 	}
 }
 

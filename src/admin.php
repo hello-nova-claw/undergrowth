@@ -566,12 +566,13 @@ function undergrowth_render_map_tab(): void {
 		printf(
 			'<h2 id="%1$s">%2$s</h2>',
 			esc_attr( $id ),
-			esc_html(
+			sprintf(
 				$cluster['gap']
 					/* translators: %1$s: title of the post nearest the middle of the group. */
-					? sprintf( __( 'Around “%1$s”, with a gap', 'undergrowth' ), $title )
+					? esc_html__( 'Around “%1$s”, with a gap', 'undergrowth' )
 					/* translators: %1$s: title of the post nearest the middle of the group. */
-					: sprintf( __( 'Around “%1$s”', 'undergrowth' ), $title )
+					: esc_html__( 'Around “%1$s”', 'undergrowth' ),
+				'<bdi>' . esc_html( $title ) . '</bdi>'
 			)
 		);
 
@@ -719,7 +720,10 @@ function undergrowth_render_map_post( int $post_id, string $note ): void {
 				undergrowth_post_link( $post_id ),
 				esc_html( $note )
 			),
-			array( 'a' => array( 'href' => array() ) )
+			array(
+				'a'   => array( 'href' => array() ),
+				'bdi' => array(),
+			)
 		)
 	);
 }
@@ -788,7 +792,10 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 					undergrowth_post_link( $post_id ),
 					undergrowth_post_link( $newest )
 				),
-				array( 'a' => array( 'href' => array() ) )
+				array(
+					'a'   => array( 'href' => array() ),
+					'bdi' => array(),
+				)
 			),
 			esc_url( admin_url( 'admin-post.php' ) ),
 			(int) $post_id
@@ -862,12 +869,15 @@ function undergrowth_print_result_notices( array $notices ): void {
 /**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
+ * The title is isolated, so a title in another script never reorders the
+ * sentence or the quotation marks around it.
+ *
  * @param int    $post_id    Post ID.
  * @param string $link_class Class for the link, such as core's row-title, if any.
  * @return string Escaped HTML.
  */
 function undergrowth_post_link( int $post_id, string $link_class = '' ): string {
-	$title = esc_html( undergrowth_post_title( $post_id ) );
+	$title = '<bdi>' . esc_html( undergrowth_post_title( $post_id ) ) . '</bdi>';
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
 	// Core's own edit_post_link() also gives no link for an empty address.
