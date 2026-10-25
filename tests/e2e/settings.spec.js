@@ -334,6 +334,24 @@ test.describe( 'Settings page', () => {
 		await expectNoA11yViolations( page, '.wrap' );
 	} );
 
+	test( 'says when an Accept could not save its post', async ( {
+		admin,
+		page,
+		context,
+		baseURL,
+	} ) => {
+		await expect( page.locator( '#undergrowth-accept-error' ) ).toHaveCount(
+			0
+		);
+
+		await useFixture( context, baseURL, 'accept-last-error' );
+		await admin.visitAdminPage( 'options-general.php', 'page=undergrowth' );
+
+		await expect(
+			page.locator( '#undergrowth-accept-error' )
+		).toBeVisible();
+	} );
+
 	test( 'keeps the post types when none is ticked, and says why', async ( {
 		page,
 	} ) => {
@@ -467,6 +485,7 @@ test.describe( 'Settings page', () => {
 		'discord-invalid',
 		'discord-last-error',
 		'file-last-error',
+		'accept-last-error',
 	] ) {
 		test( `has no WCAG 2.2 AA violations with ${ fixture }`, async ( {
 			admin,

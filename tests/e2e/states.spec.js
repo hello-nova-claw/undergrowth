@@ -95,6 +95,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'accept-last-error',
+		page: SETTINGS,
+		fixture: 'accept-last-error',
+	},
+	{
+		screen: 'settings',
 		state: 'file-last-error',
 		page: SETTINGS,
 		fixture: 'file-last-error',
