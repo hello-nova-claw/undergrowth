@@ -120,7 +120,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<li><a href="[^"]*post\\.php\\?post=' . $posts['Yacon syrup'] . '&[^"]*action=edit"><bdi>Yacon syrup<\\/bdi><\\/a> \\(Budding\\)<\\/li>/', $html );
 
 		foreach ( $posts as $title => $post_id ) {
-			$this->assertStringContainsString( '>' . $title . '</a> (', $html );
+			$this->assertStringContainsString( '><bdi>' . $title . '</bdi></a> (', $html );
 		}
 	}
 
@@ -210,7 +210,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<span>Words that set this group apart: <bdi>sweet syrup</bdi>, <bdi>leaves</bdi>, and <bdi>&lt;b&gt;tubers&lt;/b&gt;</bdi>.</span>', $html );
-		$this->assertStringNotContainsString( '<bdi>Yacon</bdi>', $html );
+		$this->assertStringNotContainsString( '<bdi>Yacon</bdi>,', $html );
 	}
 
 	public function test_group_without_stored_words_says_only_its_size() {
@@ -280,7 +280,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 			false
 		);
 
-		$this->assertMatchesRegularExpression( '/>Cycling<\/a> \(Read since the groups were last found\)<\/li>/', $this->render() );
+		$this->assertMatchesRegularExpression( '/><bdi>Cycling<\/bdi><\/a> \(Read since the groups were last found\)<\/li>/', $this->render() );
 	}
 
 	public function test_long_list_of_posts_not_in_a_group_starts_collapsed() {

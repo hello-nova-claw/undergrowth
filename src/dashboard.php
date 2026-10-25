@@ -80,9 +80,14 @@ function undergrowth_render_prompt_widget(): void {
 		/* translators: %1$s: title of the post, linked to its editor. */
 		$from = __( 'Claude wrote this question from your post %1$s. Only you can see it.', 'undergrowth' );
 	}
+
+	$allowed = array(
+		'a'   => array( 'href' => array() ),
+		'bdi' => array(),
+	);
 	?>
 	<p><strong><?php echo esc_html( $prompt['question'] ); ?></strong></p>
-	<p class="description"><?php echo wp_kses( sprintf( esc_html( $from ), $link ), array( 'a' => array( 'href' => array() ) ) ); ?></p>
+	<p class="description"><?php echo wp_kses( sprintf( esc_html( $from ), $link ), $allowed ); ?></p>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="undergrowth_prompt" />
 		<input type="hidden" name="key" value="<?php echo esc_attr( $prompt['key'] ); ?>" />

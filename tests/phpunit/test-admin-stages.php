@@ -174,7 +174,7 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<strong>Oca</strong>', $html );
+		$this->assertStringContainsString( '<strong><bdi>Oca</bdi></strong>', $html );
 		$this->assertStringNotContainsString( 'form="undergrowth-pin-' . $oca . '"', $html );
 		$this->assertStringNotContainsString( 'form="undergrowth-unpin-' . $oca . '"', $html );
 	}

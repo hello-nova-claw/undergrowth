@@ -66,9 +66,10 @@ function undergrowth_render_growth_stage_block( $attributes, $content, $block ):
 	$name = undergrowth_stage_label( $stage );
 
 	// The visible word alone does not say what it is, so screen readers get
-	// the whole label instead.
+	// the whole label instead. The label hides itself, since a classic theme
+	// may drop the block library's styles and with them .screen-reader-text.
 	return sprintf(
-		'<p %1$s><span class="screen-reader-text">%2$s</span><span aria-hidden="true">%3$s</span></p>',
+		'<p %1$s><span class="screen-reader-text" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%%);white-space:nowrap;border:0">%2$s</span><span aria-hidden="true">%3$s</span></p>',
 		get_block_wrapper_attributes( array( 'class' => 'is-stage-' . $stage ) ),
 		esc_html(
 			sprintf(

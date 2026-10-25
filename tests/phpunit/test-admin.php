@@ -370,7 +370,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '"><bdi>Yacon</bdi></a></p>#', $html );
-		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '">Oca</a>#', $html );
+		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '"><bdi>Oca</bdi></a>#', $html );
 		$this->assertStringNotContainsString( 'href="' . esc_url( (string) get_permalink( $yacon ) ) . '"', $html );
 	}
 
@@ -395,7 +395,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p>Link to <a class="row-title" href="', $html );
-		$this->assertStringContainsString( '">(no title)</a></p>', $html );
+		$this->assertStringContainsString( '"><bdi>(no title)</bdi></a></p>', $html );
 		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
 	}
 
@@ -412,7 +412,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<p>Link to <strong>Yacon</strong></p>', $html );
+		$this->assertStringContainsString( '<p>Link to <strong><bdi>Yacon</bdi></strong></p>', $html );
 		$this->assertStringNotContainsString( 'href=""', $html );
 	}
 
