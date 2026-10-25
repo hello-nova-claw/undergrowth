@@ -18,6 +18,7 @@ msgstr ""
 #: src/abilities.php
 #: src/admin.php
 #: src/dashboard.php
+#: src/digest.php
 #: src/discord-clicks.php
 #: src/privacy.php
 #: src/settings.php
@@ -33,7 +34,7 @@ msgstr ""
 
 #. Description of the plugin
 #: undergrowth.php
-msgid "Uses AI to read your site and ask you questions. It never writes a word your readers will see."
+msgid "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide."
 msgstr ""
 
 #. Author of the plugin
@@ -159,7 +160,17 @@ msgid "You cannot change links in this post."
 msgstr ""
 
 #: src/admin.php
+#: src/dashboard.php
+#: src/first-run.php
+msgid "Undo"
+msgstr ""
+
+#: src/admin.php
 msgid "You cannot change this post."
+msgstr ""
+
+#: src/admin.php
+msgid "You cannot export the Map."
 msgstr ""
 
 #: src/admin.php
@@ -232,6 +243,22 @@ msgstr[1] ""
 msgid "Words that set this group apart: %1$s."
 msgstr ""
 
+#: src/admin.php
+msgid "Export the Map as"
+msgstr ""
+
+#: src/admin.php
+msgid "CSV, for a spreadsheet"
+msgstr ""
+
+#: src/admin.php
+msgid "Markdown, for notes"
+msgstr ""
+
+#: src/admin.php
+msgid "Export"
+msgstr ""
+
 #. translators: 1: number of posts, 2: number of groups, such as "4 groups".
 #: src/admin.php
 #, php-format
@@ -269,6 +296,7 @@ msgid "Not close enough to other posts yet"
 msgstr ""
 
 #: src/admin.php
+#: src/map.php
 msgid "Not in a group yet"
 msgstr ""
 
@@ -327,6 +355,22 @@ msgstr ""
 msgid "<a href=\"%1$s\">Turn them on in Settings</a>."
 msgstr ""
 
+#. translators: %1$s: title of the post the suggestions would link to.
+#: src/admin.php
+#, php-format
+msgid "Posts that could link to “%1$s”"
+msgstr ""
+
+#: src/admin.php
+msgid "Show all suggestions"
+msgstr ""
+
+#. translators: %1$s: post title.
+#: src/admin.php
+#, php-format
+msgid "No other post is suggested to link to %1$s yet."
+msgstr ""
+
 #: src/admin.php
 msgid "No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved."
 msgstr ""
@@ -335,36 +379,19 @@ msgstr ""
 msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to, 3: what happened, a full sentence.
 #: src/admin.php
-#: src/editor.php
-msgid "Stage pinned. The monthly cycle will leave it as it is."
+#, php-format
+msgid "From %1$s to %2$s: %3$s"
 msgstr ""
 
+#. translators: 1: number of suggestions linked, 2: number selected.
 #: src/admin.php
-#: src/editor.php
-msgid "Stage unpinned and measured again from the links you have accepted."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "A composting post cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage was not pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
-msgstr ""
-
-#: src/admin.php
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
-msgstr ""
+#, php-format
+msgid "Linked %1$s of %2$s selected suggestion."
+msgid_plural "Linked %1$s of %2$s selected suggestions."
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/admin.php
 msgid "Dismissed. The post stays composting."
@@ -372,6 +399,18 @@ msgstr ""
 
 #: src/admin.php
 msgid "That post has no signal to dismiss, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "Undone. This link can be suggested again."
+msgstr ""
+
+#: src/admin.php
+msgid "That veto can no longer be undone, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "No suggestion was checked, or no bulk action was chosen, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -394,13 +433,35 @@ msgstr ""
 msgid "In this post"
 msgstr ""
 
+#: src/class-undergrowth-links-list-table.php
+msgid "Accept selected"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Select bulk action"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Bulk actions"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Apply"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "Select the link from %1$s to %2$s"
+msgstr ""
+
 #. translators: %1$s: title of the post the link would point to, linked to its editor.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Link to %1$s"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Accept the link from %1$s to %2$s"
@@ -408,13 +469,14 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
+#: src/settings.php
 #: build/editor/index.js
 #: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
 msgid "Accept"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
@@ -427,7 +489,7 @@ msgstr ""
 msgid "Veto"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Choose words”, the words on the link, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Choose words for the link from %1$s to %2$s"
@@ -485,6 +547,7 @@ msgid "Cancel"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
+#: src/map.php
 msgid "Post"
 msgstr ""
 
@@ -539,7 +602,7 @@ msgstr ""
 msgid "Select %s"
 msgstr ""
 
-#. translators: %1$s: post title.
+#. translators: %1$s: post title. Must begin with the translation of “Unpin”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Unpin the stage of %1$s"
@@ -557,7 +620,7 @@ msgstr ""
 msgid "Stage to pin for %1$s"
 msgstr ""
 
-#. translators: %1$s: post title.
+#. translators: %1$s: post title. Must begin with the translation of “Pin”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Pin the stage of %1$s"
@@ -622,6 +685,10 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
+msgstr ""
+
+#: src/dashboard.php
+msgid "Undone. The question is back."
 msgstr ""
 
 #: src/dev-tools.php
@@ -822,6 +889,80 @@ msgstr ""
 msgid "Yes, undo everything"
 msgstr ""
 
+#: src/digest.php
+msgid "Undergrowth monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "The monthly email is off. You can turn it back on from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "This link no longer works. You can turn the monthly email off from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "Stop the monthly email of new link suggestions?"
+msgstr ""
+
+#: src/digest.php
+msgid "Turn off the monthly email"
+msgstr ""
+
+#. translators: %s: site title.
+#: src/digest.php
+#, php-format
+msgid "[%s] Link suggestions worth a look"
+msgstr ""
+
+#: src/digest.php
+msgid "These are the strongest link suggestions Undergrowth made since its last email. Nothing changes on your site until you accept one."
+msgstr ""
+
+#. translators: 1: number of the suggestion in the list, 2: title of the post the link would point to.
+#: src/digest.php
+#, php-format
+msgid "%1$s. A link to “%2$s”"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: the sentence, with the words to link in square brackets.
+#: src/digest.php
+#, php-format
+msgid "In “%1$s”: %2$s"
+msgstr ""
+
+#: src/digest.php
+msgid "Accept or veto them on Posts > Undergrowth:"
+msgstr ""
+
+#: src/digest.php
+msgid "You get this email because you turned it on in your profile. To stop it:"
+msgstr ""
+
+#. translators: %s: title of the post nearest the middle of the group.
+#: src/digest.php
+#, php-format
+msgid "Both posts are in the group around “%s” on the Map."
+msgstr ""
+
+#. translators: %s: words from the sentence that the other post uses too.
+#: src/digest.php
+#, php-format
+msgid "Both posts use the words “%s”."
+msgstr ""
+
+#: src/digest.php
+msgid "Monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "Email me the best new link suggestions once a month"
+msgstr ""
+
+#: src/digest.php
+msgid "At most five, after the monthly cycle, and only when there are new ones. Each email has a link to turn it off."
+msgstr ""
+
 #: src/discord-clicks.php
 msgid "Undergrowth does not know this button, so nothing was changed."
 msgstr ""
@@ -875,6 +1016,10 @@ msgstr ""
 #: src/discord-messages.php
 #, php-format
 msgid "To: %s"
+msgstr ""
+
+#: src/discord-messages.php
+msgid "A veto is permanent."
 msgstr ""
 
 #: src/discord-messages.php
@@ -1018,12 +1163,12 @@ msgstr ""
 msgid "Choose a stage to pin."
 msgstr ""
 
-#: src/editor.php
-msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+#: src/first-run.php
+msgid "Undone. The notice is back."
 msgstr ""
 
-#: src/editor.php
-msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+#: src/first-run.php
+msgid "That notice can no longer come back, so nothing was changed."
 msgstr ""
 
 #: src/first-run.php
@@ -1036,6 +1181,10 @@ msgstr ""
 
 #: src/first-run.php
 msgid "You cannot change Undergrowth’s settings."
+msgstr ""
+
+#: src/first-run.php
+msgid "Dismissed. This notice won’t come back."
 msgstr ""
 
 #. translators: %1$s: link to the suggestions screen.
@@ -1069,7 +1218,7 @@ msgid "Choose words lets you pick other words of the same sentence for the link:
 msgstr ""
 
 #: src/help.php
-msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post. The notice after a veto has an Undo, in case you chose it by mistake."
 msgstr ""
 
 #: src/help.php
@@ -1101,11 +1250,15 @@ msgid "A post is not in a group yet when it has not been read, was read after th
 msgstr ""
 
 #: src/help.php
-msgid "A group marked \"with a gap\" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgid "A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
 msgstr ""
 
 #: src/help.php
 msgid "When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine."
+msgstr ""
+
+#: src/help.php
+msgid "Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group's words, its link, its stage and whether its group has a gap."
 msgstr ""
 
 #: src/help.php
@@ -1172,6 +1325,38 @@ msgstr ""
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
 msgstr ""
 
+#: src/map.php
+msgid "Group"
+msgstr ""
+
+#: src/map.php
+msgid "Words"
+msgstr ""
+
+#: src/map.php
+msgid "Link"
+msgstr ""
+
+#: src/map.php
+msgid "Stage"
+msgstr ""
+
+#: src/map.php
+msgid "Gap"
+msgstr ""
+
+#: src/map.php
+msgid "Yes"
+msgstr ""
+
+#: src/map.php
+msgid "No"
+msgstr ""
+
+#: src/memory.php
+msgid "Visitors can open the per-post files, because this server ignores the .htaccess and web.config files that refuse them. Add the deny rule for nginx or Caddy to the server’s settings. Until the files are refused, the questions Claude wrote are left out of them."
+msgstr ""
+
 #: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
@@ -1226,16 +1411,26 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
-msgid "Return &#8220;%s&#8221; to the garden"
+msgid "Return to garden: &#8220;%1$s&#8221;"
+msgstr ""
+
+#. translators: %s: post title. Must begin with the translation of “Compost”, the word on the link, so voice control can find it.
+#: src/posts-screen.php
+#, php-format
+msgid "Compost &#8220;%s&#8221;"
 msgstr ""
 
 #. translators: %s: post title.
 #: src/posts-screen.php
 #, php-format
-msgid "Compost &#8220;%s&#8221;"
+msgid "Show the posts that could link to &#8220;%s&#8221;"
+msgstr ""
+
+#: src/posts-screen.php
+msgid "Links in"
 msgstr ""
 
 #: src/posts-screen.php
@@ -1343,6 +1538,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Post types"
+msgstr ""
+
+#: src/settings.php
 msgid "Per-post files"
 msgstr ""
 
@@ -1352,6 +1551,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Anthropic API key"
+msgstr ""
+
+#: src/settings.php
+msgid "Choose at least one post type for Undergrowth to read. The ones chosen before are kept."
 msgstr ""
 
 #: src/settings.php
@@ -1464,6 +1667,14 @@ msgstr ""
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
 msgstr ""
 
+#: src/settings.php
+msgid "Code on this site chooses which post types are read, so these boxes cannot be changed here."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map."
+msgstr ""
+
 #. translators: %1$s: service name, such as Anthropic.
 #: src/settings.php
 #, php-format
@@ -1544,6 +1755,12 @@ msgstr ""
 msgid "Each post’s plain-text record is kept in this folder."
 msgstr ""
 
+#. translators: 1: date, 2: time.
+#: src/settings.php
+#, php-format
+msgid "%1$s at %2$s"
+msgstr ""
+
 #: src/settings.php
 msgid "Undergrowth tries again each time a post’s file is updated, and for every post at the next monthly cycle."
 msgstr ""
@@ -1574,6 +1791,32 @@ msgstr ""
 msgid "A post’s file could not be written. Check that the uploads folder can be written to."
 msgstr ""
 
+#: src/settings.php
+msgid "WordPress treated the post as empty and refused to save it, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress could not find the post to save, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "The database did not take the change, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress did not save the post, so the link was not added."
+msgstr ""
+
+#. translators: %1$s: error code WordPress gave, such as rest_cannot_edit.
+#: src/settings.php
+#, php-format
+msgid "WordPress did not save the post, so the link was not added. It reported the error %1$s."
+msgstr ""
+
+#: src/settings.php
+msgid "The suggestion is still on Posts > Undergrowth, so you can accept it again."
+msgstr ""
+
 #. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.
 #: src/settings.php
 #, php-format
@@ -1582,6 +1825,14 @@ msgstr ""
 
 #: src/settings.php
 msgid "With a key, the title and text of each published post without a password are sent to OpenAI, so Undergrowth can tell which of your posts are about similar things and suggest links between them. Nothing is sent while there is no key. Undergrowth changes a post only when you accept a link in it."
+msgstr ""
+
+#: src/settings.php
+msgid "A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent."
+msgstr ""
+
+#: src/settings.php
+msgid "With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other. A post the plugin gives no language keeps the site’s language."
 msgstr ""
 
 #: src/settings.php
@@ -1602,6 +1853,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files are private"
 msgstr ""
 
 #: src/site-health.php
@@ -1636,6 +1891,34 @@ msgstr ""
 
 #: src/site-health.php
 msgid "How to run WP-Cron from a server cron job"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files cannot be read from the web"
+msgstr ""
+
+#: src/site-health.php
+msgid "Security"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth keeps a plain-text file for each post in the uploads folder, and this server refuses visitors who ask for one."
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth could not check whether its per-post files can be read from the web"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth asks for a file in its folder at the site’s own address, and got no answer that shows whether visitors are refused. Until a check shows they are, the questions Claude wrote are left out of the per-post files."
+msgstr ""
+
+#: src/site-health.php
+msgid "How to keep the per-post files private"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files can be read from the web"
 msgstr ""
 
 #: src/stages.php
@@ -1724,7 +2007,39 @@ msgid "You cannot change the growth stage of this post."
 msgstr ""
 
 #: src/stages.php
-msgid "The stage could not be saved, so nothing was changed."
+msgid "Stage pinned. The monthly cycle will leave it as it is."
+msgstr ""
+
+#: src/stages.php
+msgid "Stage unpinned and measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+msgstr ""
+
+#: src/stages.php
+msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "A composting post cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage was not pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/stages.php
@@ -1817,6 +2132,11 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Open one of these posts to accept its link to this one."
+msgstr ""
+
+#: build/editor/index.js
+#: src/editor/links-sidebar.js
+msgid "Accept or veto them all on Posts › Undergrowth"
 msgstr ""
 
 #: build/editor/index.js

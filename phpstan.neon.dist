@@ -8,8 +8,9 @@ parameters:
 		- undergrowth.php
 		- src
 		- uninstall.php
-	# Jetpack is not a dependency. The meter's stand-ins give its signatures.
+	# Jetpack and Polylang are not dependencies. Their stand-ins give the signatures.
 	scanFiles:
 		- tests/phpunit/includes/class-modules.php
 		- tests/phpunit/includes/class-manager.php
 		- tests/phpunit/includes/class-wpcom-stats.php
+		- tests/phpunit/includes/polylang.php

@@ -9,6 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_BACKFILL_BATCH   = 20;
 const UNDERGROWTH_BACKFILL_SECONDS = 15;
+const UNDERGROWTH_FORGET_BATCH     = 100;
 
 add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
 add_action( 'undergrowth_embed_post', 'undergrowth_embed_post' );
@@ -19,6 +20,22 @@ add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 add_action( 'init', 'undergrowth_schedule_backfill_check' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 20, 0 );
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 10, 0 );
+// Polylang and WPML load their functions with the other plugins.
+add_action( 'init', 'undergrowth_hook_multilingual_language', 0 );
+add_action( 'add_option_undergrowth_post_types', 'undergrowth_post_types_changed', 10, 0 );
+add_action( 'update_option_undergrowth_post_types', 'undergrowth_post_types_changed', 10, 0 );
+add_action( 'undergrowth_forget_unindexed_posts', 'undergrowth_forget_unindexed_posts', 10, 0 );
+
+/**
+ * Lists the post types chosen on Settings > Undergrowth.
+ *
+ * @return string[] Post type names, only 'post' until some are chosen.
+ */
+function undergrowth_saved_post_types(): array {
+	$saved = get_option( 'undergrowth_post_types', array( 'post' ) );
+
+	return is_array( $saved ) ? array_values( array_filter( $saved, 'is_string' ) ) : array( 'post' );
+}
 
 /**
  * Lists the post types whose published posts are indexed.
@@ -29,9 +46,12 @@ function undergrowth_indexed_post_types(): array {
 	/**
 	 * Filters which post types are indexed.
 	 *
-	 * @param string[] $post_types Post type names. Default only 'post'.
+	 * Code that uses this filter has the last word over the setting, and the
+	 * setting's boxes cannot be changed while it does.
+	 *
+	 * @param string[] $post_types Post type names. Default the ones chosen on Settings > Undergrowth, only 'post' until some are chosen.
 	 */
-	$post_types = apply_filters( 'undergrowth_post_types', array( 'post' ) );
+	$post_types = apply_filters( 'undergrowth_post_types', undergrowth_saved_post_types() );
 
 	return is_array( $post_types ) ? array_values( array_filter( $post_types, 'is_string' ) ) : array( 'post' );
 }
@@ -87,6 +107,46 @@ function undergrowth_indexable_sql( string $alias ): ?array {
 		"{$alias}post_status = %s AND {$alias}post_password = %s AND {$alias}post_type IN ({$placeholders})",
 		array_merge( array( 'publish', '' ), $post_types ),
 	);
+}
+
+/**
+ * Returns the query vars that keep a query to published posts without a
+ * password, as undergrowth_is_indexable() does.
+ *
+ * @return array{post_status: string, has_password: bool}
+ */
+function undergrowth_garden_query_vars(): array {
+	return array(
+		'post_status'  => 'publish',
+		'has_password' => false,
+	);
+}
+
+/**
+ * Builds the WP_Query arguments for the posts in the garden: every
+ * indexable post, as IDs.
+ *
+ * @param array<string, mixed> $extra Arguments to add, or to use in place of the defaults.
+ * @return array<string, mixed> WP_Query arguments.
+ */
+function undergrowth_garden_query_args( array $extra = array() ): array {
+	$args = array_merge(
+		array( 'post_type' => undergrowth_indexed_post_types() ),
+		undergrowth_garden_query_vars(),
+		array(
+			'fields'                 => 'ids',
+			'no_found_rows'          => true,
+			'update_post_term_cache' => false,
+		),
+		$extra
+	);
+
+	// WP_Query reads an empty list of types as posts, but no type is indexed.
+	if ( array() === $args['post_type'] ) {
+		$args['post__in'] = array( 0 );
+	}
+
+	return $args;
 }
 
 /**
@@ -218,6 +278,49 @@ function undergrowth_remove_from_index( int $post_id ): void {
 }
 
 /**
+ * Reads the posts of a newly chosen post type, and takes those of a type no
+ * longer chosen out of the index, after the post types setting changes.
+ */
+function undergrowth_post_types_changed(): void {
+	if ( false === wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_forget_unindexed_posts' );
+	}
+
+	undergrowth_start_backfill();
+}
+
+/**
+ * Takes posts that have a vector but are no longer indexable out of the
+ * index, a batch at a time, the way an unpublished post leaves it.
+ *
+ * @param int $limit Posts per run.
+ */
+function undergrowth_forget_unindexed_posts( int $limit = UNDERGROWTH_FORGET_BATCH ): void {
+	global $wpdb;
+
+	$indexable = undergrowth_indexable_sql( 'p.' );
+	$condition = null === $indexable ? array( '1 = 1', array() ) : array( "NOT ( {$indexable[0]} )", $indexable[1] );
+
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
+	$post_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT v.post_id FROM %i v INNER JOIN %i p ON p.ID = v.post_id WHERE {$condition[0]} ORDER BY v.post_id ASC LIMIT %d",
+			array_merge( array( undergrowth_vectors_table(), $wpdb->posts ), $condition[1], array( $limit + 1 ) )
+		)
+	);
+	// phpcs:enable
+
+	foreach ( array_slice( array_map( 'intval', $post_ids ), 0, $limit ) as $post_id ) {
+		undergrowth_remove_from_index( $post_id );
+	}
+
+	if ( count( $post_ids ) > $limit ) {
+		wp_schedule_single_event( time(), 'undergrowth_forget_unindexed_posts' );
+	}
+}
+
+/**
  * Builds the text that represents a post: its title, then its body as plain text.
  *
  * @param WP_Post $post Post to read.
@@ -263,6 +366,43 @@ function undergrowth_post_language( WP_Post $post ): string {
 	$locale = is_string( $locale ) && '' !== $locale ? sanitize_text_field( $locale ) : get_locale();
 
 	return undergrowth_fit_language( $locale );
+}
+
+/**
+ * Takes each post's language from Polylang or WPML, when either is active.
+ *
+ * Only then is the filter added, so a site without one keeps comparing every
+ * post in the site language.
+ */
+function undergrowth_hook_multilingual_language(): void {
+	if ( function_exists( 'pll_get_post_language' ) || has_filter( 'wpml_post_language_details' ) ) {
+		add_filter( 'undergrowth_post_language', 'undergrowth_multilingual_language', 5, 2 );
+	}
+}
+
+/**
+ * Reads a post's language from Polylang or WPML.
+ *
+ * @param mixed   $locale Language so far.
+ * @param WP_Post $post   Post being embedded.
+ * @return mixed The post's locale, or the language so far when neither plugin gives one.
+ */
+function undergrowth_multilingual_language( $locale, $post ) {
+	if ( ! $post instanceof WP_Post ) {
+		return $locale;
+	}
+
+	if ( function_exists( 'pll_get_post_language' ) ) {
+		$language = pll_get_post_language( $post->ID, 'locale' );
+
+		if ( is_string( $language ) && '' !== $language ) {
+			return $language;
+		}
+	}
+
+	$details = apply_filters( 'wpml_post_language_details', null, $post->ID ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own hook.
+
+	return is_array( $details ) && is_string( $details['locale'] ?? null ) && '' !== $details['locale'] ? $details['locale'] : $locale;
 }
 
 /**
@@ -365,6 +505,7 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	global $wpdb;
 
 	$indexable = undergrowth_indexable_sql( 'p.' );
+	$stale     = undergrowth_stale_index_language( $identity );
 
 	if ( null === $indexable ) {
 		return array();
@@ -374,13 +515,42 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id ), $indexable[1], array( $limit ) )
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE ( v.post_id IS NULL OR ( %s <> '' AND v.language = %s ) ) AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $stale, $stale, $after_id ), $indexable[1], array( $limit ) )
 		)
 	);
 	// phpcs:enable
 
 	return array_map( 'intval', $post_ids );
+}
+
+/**
+ * Returns the site language the index was filled in, once posts have
+ * started to take their own language, as when Polylang or WPML is turned on.
+ *
+ * Vectors still in that language may be in the wrong one, so a pass reads
+ * them again. Embedding a post whose language has not changed sends nothing.
+ * Once the pass fills the index in the new way, there is none.
+ *
+ * @param array $identity {
+ *     The target, as from undergrowth_index_target().
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @return string The old site language, or an empty string.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_stale_index_language( array $identity ): string {
+	$recorded = get_option( 'undergrowth_index_identity' );
+
+	if ( '' !== $identity['language'] || ! is_array( $recorded ) || ( $recorded['provider'] ?? '' ) !== $identity['provider'] || ( $recorded['model'] ?? '' ) !== $identity['model'] ) {
+		return '';
+	}
+
+	return is_string( $recorded['language'] ?? null ) ? $recorded['language'] : '';
 }
 
 /**
@@ -460,7 +630,8 @@ function undergrowth_start_backfill(): void {
  * so a pass whose embeds mostly failed does not cluster a nearly empty
  * index, or while there is no indexable post yet, so the first posts on a
  * new site are still clustered early. Once the identity is recorded,
- * clustering is left to the monthly cycle.
+ * clustering is left to the monthly cycle. Every post's proposals are
+ * refreshed once too, with the word counts of the whole site.
  *
  * @param array $identity {
  *     The current provider and model, and the site language when posts take theirs from the site.
@@ -487,6 +658,7 @@ function undergrowth_record_index_identity( array $identity ): void {
 
 	update_option( 'undergrowth_index_identity', $identity, false );
 	wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
+	wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );
 }
 
 /**

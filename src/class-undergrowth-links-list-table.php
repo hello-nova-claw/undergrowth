@@ -19,9 +19,20 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	const PER_PAGE = 20;
 
 	/**
-	 * Sets up the table.
+	 * Post the listed suggestions would link to, or 0 for every suggestion.
+	 *
+	 * @var int
 	 */
-	public function __construct() {
+	private $to;
+
+	/**
+	 * Sets up the table.
+	 *
+	 * @param int $to Post the listed suggestions would link to, or 0 for every suggestion.
+	 */
+	public function __construct( int $to = 0 ) {
+		$this->to = $to;
+
 		parent::__construct(
 			array(
 				'singular' => 'undergrowth-link',
@@ -42,8 +53,82 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
+			'cb'       => '<input type="checkbox" />',
 			'sentence' => __( 'Suggestion', 'undergrowth' ),
 			'source'   => __( 'In this post', 'undergrowth' ),
+		);
+	}
+
+	/**
+	 * Offers Accept for the suggestions the author has checked. Nothing is
+	 * checked to begin with, and there is no way to accept everything.
+	 *
+	 * @return array<string, string> Bulk action labels keyed by action.
+	 */
+	public function get_bulk_actions() {
+		return array( 'accept' => __( 'Accept selected', 'undergrowth' ) );
+	}
+
+	/**
+	 * Prints the bulk menu and its Apply button, as core does, but tied by
+	 * the form attribute to the bulk form after the table. Each row already
+	 * holds its own Accept and Veto forms, and forms cannot nest.
+	 *
+	 * The menu has its own name, since admin-post.php routes on "action".
+	 *
+	 * @param string $which 'top' or 'bottom'.
+	 */
+	protected function bulk_actions( $which = '' ) {
+		$two = 'bottom' === $which ? '2' : '';
+
+		printf(
+			'<label for="bulk-action-selector-%1$s" class="screen-reader-text">%2$s</label><select name="undergrowth_bulk%3$s" id="bulk-action-selector-%1$s" form="%4$s"><option value="-1">%5$s</option>',
+			esc_attr( $which ),
+			esc_html__( 'Select bulk action', 'undergrowth' ),
+			esc_attr( $two ),
+			esc_attr( UNDERGROWTH_ACCEPT_SELECTED_FORM ),
+			esc_html__( 'Bulk actions', 'undergrowth' )
+		);
+
+		foreach ( $this->get_bulk_actions() as $action => $label ) {
+			printf( '<option value="%1$s">%2$s</option>', esc_attr( $action ), esc_html( $label ) );
+		}
+
+		echo '</select>';
+
+		submit_button(
+			__( 'Apply', 'undergrowth' ),
+			'action compact',
+			'bulk_action',
+			false,
+			array(
+				'id'   => 'doaction' . $two,
+				'form' => UNDERGROWTH_ACCEPT_SELECTED_FORM,
+			)
+		);
+	}
+
+	/**
+	 * Prints a row's checkbox, named by the link it selects.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return string Checkbox HTML.
+	 */
+	public function column_cb( $item ) {
+		$pair = $item['source_id'] . '-' . $item['target_id'];
+
+		return sprintf(
+			'<label class="screen-reader-text" for="cb-select-%1$s">%2$s</label><input id="cb-select-%1$s" type="checkbox" name="link[]" value="%1$s" form="%3$s" />',
+			esc_attr( $pair ),
+			esc_html(
+				sprintf(
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					__( 'Select the link from %1$s to %2$s', 'undergrowth' ),
+					undergrowth_post_title( $item['source_id'] ),
+					undergrowth_post_title( $item['target_id'] )
+				)
+			),
+			esc_attr( UNDERGROWTH_ACCEPT_SELECTED_FORM )
 		);
 	}
 
@@ -93,8 +178,9 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$rows = array_values(
 			array_filter(
 				$rows,
-				static function ( $row ) {
-					return current_user_can( 'edit_post', (int) $row['source_id'] )
+				function ( $row ) {
+					return ( 0 === $this->to || $this->to === (int) $row['target_id'] )
+						&& current_user_can( 'edit_post', (int) $row['source_id'] )
 						&& 'composting' !== undergrowth_get_stage( (int) $row['source_id'] )
 						&& 'composting' !== undergrowth_get_stage( (int) $row['target_id'] );
 				}
@@ -154,7 +240,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				$this->edit_link( $item['target_id'], 'row-title' )
 			) . '</p>'
 			. ( $this->is_choosing( $item ) ? $this->choose_form( $item, $choice ) : '' )
-			. $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
+			. undergrowth_row_action_form( 'accept', $this->pair( $item ) ) . undergrowth_row_action_form( 'veto', $this->pair( $item ) );
 	}
 
 	/**
@@ -179,17 +265,17 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 
 		return $this->row_actions(
 			array(
-				'accept' => $this->action_button(
-					$item,
+				'accept' => undergrowth_row_action_button(
 					'accept',
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					$this->pair( $item ),
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it. */
 					sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Accept', 'undergrowth' )
 				),
-				'veto'   => $this->action_button(
-					$item,
+				'veto'   => undergrowth_row_action_button(
 					'veto',
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					$this->pair( $item ),
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it. */
 					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Veto', 'undergrowth' )
 				),
@@ -198,7 +284,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'choose' => sprintf(
 					'<a href="%1$s" aria-label="%2$s">%3$s</a>',
 					esc_url( $this->choose_url( $item ) ),
-					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Choose words”, the words on the link, so voice control can find it. */
 					esc_attr( sprintf( __( 'Choose words for the link from %1$s to %2$s', 'undergrowth' ), $source, $target ) ),
 					esc_html__( 'Choose words', 'undergrowth' )
 				),
@@ -221,8 +307,18 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'choose' => $item['source_id'] . '-' . $item['target_id'],
 				'paged'  => $pagenum > 1 ? $pagenum : false,
 			),
-			undergrowth_suggestions_url()
+			$this->view_url()
 		) . '#' . $this->form_id( $item, 'choose' );
+	}
+
+	/**
+	 * Returns the address of the view this table shows: every suggestion, or
+	 * those that would link to one post.
+	 *
+	 * @return string Admin URL.
+	 */
+	private function view_url(): string {
+		return 0 === $this->to ? undergrowth_suggestions_url() : undergrowth_links_in_url( $this->to );
 	}
 
 	/**
@@ -308,7 +404,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			esc_attr( undergrowth_sentence_version( $item['sentence'] ) ),
 			wp_nonce_field( 'undergrowth_choose_words_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false ),
 			esc_html__( 'Save words', 'undergrowth' ),
-			esc_url( undergrowth_suggestions_url() ),
+			esc_url( $this->view_url() ),
 			esc_html__( 'Cancel', 'undergrowth' )
 		) . wp_get_inline_script_tag( "window.addEventListener( 'load', function () { var first = document.getElementById( " . wp_json_encode( 'undergrowth-first-' . $suffix ) . ' ); if ( first ) { first.focus(); } } );' );
 	}
@@ -348,7 +444,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Link HTML.
 	 */
 	private function edit_link( int $post_id, string $link_class = '' ): string {
-		$title = esc_html( undergrowth_post_title( $post_id ) );
+		$title = '<bdi>' . esc_html( undergrowth_post_title( $post_id ) ) . '</bdi>';
 		$link  = get_edit_post_link( $post_id, 'raw' );
 
 		// A post the user cannot edit is named, not linked. In a line of
@@ -373,49 +469,19 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Element id.
 	 */
 	private function form_id( array $item, string $action ): string {
-		return sprintf( 'undergrowth-%1$s-%2$d-%3$d', $action, $item['source_id'], $item['target_id'] );
+		return undergrowth_row_action_form_id( $action, $this->pair( $item ) );
 	}
 
 	/**
-	 * Builds one row action, a button tied to its form by the form attribute.
+	 * Names a row's pair of posts as its forms post them.
 	 *
-	 * The buttons sit outside their forms so they flow in the row actions
-	 * like core's own, which use the same button-link class.
-	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
-	 * @param string                                                                               $action Action name.
-	 * @param string                                                                               $label  Accessible name.
-	 * @param string                                                                               $text   Visible text.
-	 * @return string Button HTML.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return array{source: int, target: int} Source and target IDs.
 	 */
-	private function action_button( array $item, string $action, string $label, string $text ): string {
-		return sprintf(
-			'<button type="submit" form="%1$s" class="button-link" aria-label="%2$s">%3$s</button>',
-			esc_attr( $this->form_id( $item, $action ) ),
-			esc_attr( $label ),
-			esc_html( $text )
-		);
-	}
-
-	/**
-	 * Builds the form behind one action button, holding only hidden fields.
-	 *
-	 * Each action is a separate form so it works without JavaScript and
-	 * carries a nonce for that exact pair of posts.
-	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
-	 * @param string                                                                               $action Action name.
-	 * @return string Form HTML.
-	 */
-	private function action_form( array $item, string $action ): string {
-		return sprintf(
-			'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_%3$s" /><input type="hidden" name="source" value="%4$d" /><input type="hidden" name="target" value="%5$d" />%6$s</form>',
-			esc_url( admin_url( 'admin-post.php' ) ),
-			esc_attr( $this->form_id( $item, $action ) ),
-			esc_attr( $action ),
-			$item['source_id'],
-			$item['target_id'],
-			wp_nonce_field( 'undergrowth_' . $action . '_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false )
+	private function pair( array $item ): array {
+		return array(
+			'source' => (int) $item['source_id'],
+			'target' => (int) $item['target_id'],
 		);
 	}
 }

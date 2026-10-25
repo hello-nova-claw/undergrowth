@@ -23,7 +23,8 @@ add_action( 'admin_post_undergrowth_compost', 'undergrowth_handle_compost_row' )
 add_action( 'admin_post_undergrowth_return', 'undergrowth_handle_return_row' );
 
 /**
- * Adds the compost or return link under a post's title.
+ * Adds the compost or return link under a post's title, and, for a post in
+ * the garden, a link to the suggestions that would link to it.
  *
  * Only posts in the garden have a stage, so other posts get neither.
  *
@@ -40,12 +41,12 @@ function undergrowth_compost_row_actions( $actions, $post ) {
 
 	if ( 'composting' === undergrowth_get_stage( $post->ID ) ) {
 		$action = 'return';
-		/* translators: %s: post title. */
-		$label = sprintf( __( 'Return &#8220;%s&#8221; to the garden', 'undergrowth' ), $title );
+		/* translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it. */
+		$label = sprintf( __( 'Return to garden: &#8220;%1$s&#8221;', 'undergrowth' ), $title );
 		$text  = __( 'Return to garden', 'undergrowth' );
 	} else {
 		$action = 'compost';
-		/* translators: %s: post title. */
+		/* translators: %s: post title. Must begin with the translation of “Compost”, the word on the link, so voice control can find it. */
 		$label = sprintf( __( 'Compost &#8220;%s&#8221;', 'undergrowth' ), $title );
 		$text  = __( 'Compost', 'undergrowth' );
 	}
@@ -56,6 +57,18 @@ function undergrowth_compost_row_actions( $actions, $post ) {
 		esc_attr( $label ),
 		esc_html( $text )
 	);
+
+	// Posts > Undergrowth needs edit_others_posts, and a composting post is
+	// suggested to no one.
+	if ( 'compost' === $action && current_user_can( 'edit_others_posts' ) ) {
+		$actions['undergrowth_links_in'] = sprintf(
+			'<a href="%1$s" aria-label="%2$s">%3$s</a>',
+			esc_url( undergrowth_links_in_url( $post->ID ) ),
+			/* translators: %s: post title. */
+			esc_attr( sprintf( __( 'Show the posts that could link to &#8220;%s&#8221;', 'undergrowth' ), $title ) ),
+			esc_html__( 'Links in', 'undergrowth' )
+		);
+	}
 
 	return $actions;
 }
@@ -374,16 +387,14 @@ function undergrowth_composting_view( $views ) {
 	$post_type = '' === (string) $typenow ? 'post' : (string) $typenow;
 
 	$count = new WP_Query(
-		array(
-			'post_type'              => $post_type,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_key'               => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Counted once per screen.
-			'meta_value'             => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Counted once per screen.
-			'posts_per_page'         => 1,
-			'fields'                 => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'post_type'              => $post_type,
+				'meta_query'             => undergrowth_composting_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
+				'posts_per_page'         => 1,
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+			)
 		)
 	);
 
@@ -433,10 +444,13 @@ function undergrowth_filter_composting_view( $query ): void {
 		return;
 	}
 
-	$query->set( 'post_status', 'publish' );
-	$query->set( 'has_password', false );
-	$query->set( 'meta_key', 'undergrowth_stage' ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only on the view the author chose.
-	$query->set( 'meta_value', 'composting' ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only on the view the author chose.
+	$meta_query = array_merge( (array) $query->get( 'meta_query' ), undergrowth_composting_meta_query() );
+
+	foreach ( undergrowth_garden_query_vars() as $var => $value ) {
+		$query->set( $var, $value );
+	}
+
+	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the view the author chose.
 }
 
 /**
@@ -543,8 +557,10 @@ function undergrowth_filter_posts_by_stage( $query ): void {
 	$meta_query   = (array) $query->get( 'meta_query' );
 	$meta_query[] = undergrowth_stage_filter_meta_query( $filter );
 
-	$query->set( 'post_status', 'publish' );
-	$query->set( 'has_password', false );
+	foreach ( undergrowth_garden_query_vars() as $var => $value ) {
+		$query->set( $var, $value );
+	}
+
 	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the filter the author chose.
 }
 

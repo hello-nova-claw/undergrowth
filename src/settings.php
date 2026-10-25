@@ -91,6 +91,17 @@ function undergrowth_register_settings(): void {
 		)
 	);
 
+	register_setting(
+		'undergrowth',
+		'undergrowth_post_types',
+		array(
+			'type'              => 'array',
+			'default'           => array( 'post' ),
+			'show_in_rest'      => false,
+			'sanitize_callback' => 'undergrowth_sanitize_post_types',
+		)
+	);
+
 	foreach ( $keys as $option => $sanitize_callback ) {
 		register_setting(
 			'undergrowth',
@@ -132,6 +143,13 @@ function undergrowth_register_settings(): void {
 		add_settings_field( 'undergrowth_suggest_links', __( 'Suggestions', 'undergrowth' ), 'undergrowth_render_suggest_links_field', 'undergrowth', 'undergrowth_links' );
 	}
 
+	add_settings_field( 'undergrowth_post_types', __( 'Post types', 'undergrowth' ), 'undergrowth_render_post_types_field', 'undergrowth', 'undergrowth_links' );
+	// A failed save on Accept is the only thing this row ever says, so it is
+	// there only while there is one to report.
+	if ( is_array( get_option( 'undergrowth_last_accept_error' ) ) ) {
+		add_settings_field( 'undergrowth_accept_error', __( 'Accept', 'undergrowth' ), 'undergrowth_render_accept_error_field', 'undergrowth', 'undergrowth_links' );
+	}
+
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
@@ -154,7 +172,7 @@ function undergrowth_register_settings(): void {
  *
  * @param string $option Name of the option just added.
  */
-function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_api_key' ): void {
+function undergrowth_stop_autoloading_key( string $option ): void {
 	wp_set_option_autoload( $option, false );
 }
 
@@ -202,6 +220,52 @@ function undergrowth_sanitize_suggest_links( $value ): string {
 	}
 
 	return '1' === $value ? '1' : '0';
+}
+
+/**
+ * Lists the post types the author can choose: the public ones, apart from
+ * media.
+ *
+ * @return array<string, WP_Post_Type> Post type objects, by name.
+ */
+function undergrowth_selectable_post_types(): array {
+	$post_types = get_post_types( array( 'public' => true ), 'objects' );
+	unset( $post_types['attachment'] );
+
+	return $post_types;
+}
+
+/**
+ * Cleans the submitted post types.
+ *
+ * Saving with none ticked keeps the ones chosen before, and says so, since
+ * an empty choice would take every post out of the index.
+ *
+ * @param mixed $value Submitted value.
+ * @return string[] The post types to save.
+ */
+function undergrowth_sanitize_post_types( $value ): array {
+	$saved = undergrowth_saved_post_types();
+
+	// options.php has already checked the nonce and capability for this form.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( empty( $_POST['undergrowth_post_types_shown'] ) ) {
+		return $saved;
+	}
+
+	$submitted = array_filter( (array) $value, 'is_string' );
+	$chosen    = array_values( array_intersect( array_keys( undergrowth_selectable_post_types() ), $submitted ) );
+
+	if ( array() !== $chosen ) {
+		return $chosen;
+	}
+
+	// Core runs this twice when the option is first added.
+	if ( array() === get_settings_errors( 'undergrowth_post_types' ) ) {
+		add_settings_error( 'undergrowth_post_types', 'undergrowth_post_types', __( 'Choose at least one post type for Undergrowth to read. The ones chosen before are kept.', 'undergrowth' ) );
+	}
+
+	return $saved;
 }
 
 /**
@@ -334,7 +398,7 @@ function undergrowth_render_key_field( array $args ): void {
 			? sprintf(
 				/* translators: %1$s: date and time. */
 				__( 'Undergrowth waits until %1$s, then sends the posts that were not read.', 'undergrowth' ),
-				wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $wait )
+				undergrowth_date_time( $wait )
 			)
 			: __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
@@ -349,8 +413,33 @@ function undergrowth_render_key_field( array $args ): void {
 	$provider  = $args['provider'];
 	$constant  = 'openai' === $provider ? 'UNDERGROWTH_OPENAI_API_KEY' : 'UNDERGROWTH_ANTHROPIC_API_KEY';
 	$in_config = '' !== undergrowth_key_from_config( $constant );
+	$failed    = is_array( $error ) && isset( $error['time'] );
+
+	// Everything said about the field below it, so a screen reader reads
+	// "leave the field blank to keep it" and the last failure on focus.
+	$described = array( 'notice' );
+
+	if ( $in_config ) {
+		$described[] = 'config';
+	} elseif ( '' !== $key ) {
+		$described[] = 'saved';
+	}
+
+	if ( $failed ) {
+		$described[] = 'error';
+	}
+
+	$described = implode(
+		' ',
+		array_map(
+			static function ( string $part ) use ( $provider ): string {
+				return 'undergrowth-' . $provider . '-' . $part;
+			},
+			$described
+		)
+	);
 	?>
-	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="undergrowth-<?php echo esc_attr( $provider ); ?>-notice<?php echo $in_config ? ' undergrowth-' . esc_attr( $provider ) . '-config' : ''; ?>"<?php disabled( $in_config ); ?> />
+	<input type="password" class="regular-text" id="<?php echo esc_attr( $args['label_for'] ); ?>" name="<?php echo esc_attr( $args['label_for'] ); ?>" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $described ); ?>"<?php disabled( $in_config ); ?> />
 
 	<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-notice">
 		<?php echo esc_html( $notice ); ?>
@@ -371,7 +460,7 @@ function undergrowth_render_key_field( array $args ): void {
 			?>
 		</p>
 	<?php elseif ( '' !== $key ) : ?>
-		<p class="description">
+		<p class="description" id="undergrowth-<?php echo esc_attr( $provider ); ?>-saved">
 			<?php
 			echo esc_html(
 				sprintf(
@@ -397,8 +486,8 @@ function undergrowth_render_key_field( array $args ): void {
 	<?php endif; ?>
 
 	<?php
-	if ( is_array( $error ) && isset( $error['time'] ) ) {
-		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ) );
+	if ( $failed ) {
+		undergrowth_print_failure_notice( undergrowth_failure_text( 'openai' === $provider ? 'OpenAI' : 'Anthropic', $error, $retry ), 'undergrowth-' . $provider . '-error' );
 	}
 }
 
@@ -467,6 +556,38 @@ function undergrowth_render_suggest_links_field(): void {
 }
 
 /**
+ * Prints a checkbox for each post type the author can choose. While code
+ * chooses the post types, the boxes show its choice and cannot be changed.
+ */
+function undergrowth_render_post_types_field(): void {
+	$by_code = has_filter( 'undergrowth_post_types' );
+	$indexed = undergrowth_indexed_post_types();
+	?>
+	<fieldset>
+		<legend class="screen-reader-text"><?php esc_html_e( 'Post types', 'undergrowth' ); ?></legend>
+		<?php if ( ! $by_code ) : ?>
+			<input type="hidden" name="undergrowth_post_types_shown" value="1" />
+		<?php endif; ?>
+		<?php foreach ( undergrowth_selectable_post_types() as $name => $post_type ) : ?>
+			<label for="undergrowth_post_type_<?php echo esc_attr( $name ); ?>">
+				<input type="checkbox" id="undergrowth_post_type_<?php echo esc_attr( $name ); ?>" name="undergrowth_post_types[]" value="<?php echo esc_attr( $name ); ?>"<?php checked( in_array( $name, $indexed, true ) ); ?><?php disabled( $by_code ); ?> />
+				<?php echo esc_html( $post_type->labels->name ); ?>
+			</label><br />
+		<?php endforeach; ?>
+	</fieldset>
+	<p class="description">
+		<?php
+		if ( $by_code ) {
+			esc_html_e( 'Code on this site chooses which post types are read, so these boxes cannot be changed here.', 'undergrowth' );
+		} else {
+			esc_html_e( 'Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map.', 'undergrowth' );
+		}
+		?>
+	</p>
+	<?php
+}
+
+/**
  * Records the last failure of one kind, so Settings › Undergrowth can say
  * what went wrong.
  *
@@ -516,7 +637,7 @@ function undergrowth_failure_text( string $service, array $error, string $retry,
 		$when = sprintf(
 			/* translators: %1$s: date and time. */
 			__( 'That was on %1$s.', 'undergrowth' ),
-			wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) )
+			undergrowth_date_time( (int) ( $error['time'] ?? 0 ) )
 		);
 
 		return sprintf( $cause, $service ) . ' ' . $when;
@@ -545,7 +666,7 @@ function undergrowth_failure_text( string $service, array $error, string $retry,
 	$when = sprintf(
 		/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
 		__( 'That was on %1$s (status %2$s).', 'undergrowth' ),
-		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) ),
+		undergrowth_date_time( (int) ( $error['time'] ?? 0 ) ),
 		number_format_i18n( $status )
 	);
 
@@ -601,6 +722,10 @@ function undergrowth_render_memory_folder_field(): void {
 		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
 	</p>
 	<?php
+	if ( undergrowth_memory_exposed() ) {
+		undergrowth_print_failure_notice( undergrowth_memory_exposed_text(), 'undergrowth-memory-exposed' );
+	}
+
 	undergrowth_render_file_failure_notice();
 }
 
@@ -628,6 +753,22 @@ function undergrowth_print_failure_notice( string $text, string $id = '' ): void
 		'<div class="notice notice-warning inline"%1$s><p>%2$s</p></div>',
 		'' === $id ? '' : ' id="' . esc_attr( $id ) . '"',
 		esc_html( $text )
+	);
+}
+
+/**
+ * Writes a moment as the site's date and time, joined the way the site's
+ * language joins them.
+ *
+ * @param int $time Unix timestamp.
+ * @return string Date and time, such as 24 October 2026 at 14:05.
+ */
+function undergrowth_date_time( int $time ): string {
+	return sprintf(
+		/* translators: 1: date, 2: time. */
+		__( '%1$s at %2$s', 'undergrowth' ),
+		wp_date( get_option( 'date_format' ), $time ),
+		wp_date( get_option( 'time_format' ), $time )
 	);
 }
 
@@ -665,11 +806,62 @@ function undergrowth_file_failure_text( array $error ): string {
 	$when = sprintf(
 		/* translators: %1$s: date and time. */
 		__( 'That was on %1$s.', 'undergrowth' ),
-		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] )
+		undergrowth_date_time( (int) $error['time'] )
 	);
 
 	// Each part is a whole sentence, translated on its own.
 	return $cause . ' ' . $when . ' ' . $retry;
+}
+
+/**
+ * Prints why the last Accept could not save the post it would link.
+ */
+function undergrowth_render_accept_error_field(): void {
+	$error = get_option( 'undergrowth_last_accept_error' );
+
+	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+		return;
+	}
+
+	undergrowth_print_failure_notice( undergrowth_accept_failure_text( $error ), 'undergrowth-accept-error' );
+}
+
+/**
+ * Says in plain words why the last Accept could not save the post, from the
+ * error code WordPress gave, and when.
+ *
+ * @param array $error Saved error, with 'code' and 'time'.
+ * @return string Plain text.
+ *
+ * @phpstan-param array<string, mixed> $error
+ */
+function undergrowth_accept_failure_text( array $error ): string {
+	$code = (string) ( $error['code'] ?? '' );
+
+	if ( 'empty_content' === $code ) {
+		$cause = __( 'WordPress treated the post as empty and refused to save it, so the link was not added.', 'undergrowth' );
+	} elseif ( 'invalid_post' === $code || 'invalid_page' === $code ) {
+		$cause = __( 'WordPress could not find the post to save, so the link was not added.', 'undergrowth' );
+	} elseif ( 'db_update_error' === $code ) {
+		$cause = __( 'The database did not take the change, so the link was not added.', 'undergrowth' );
+	} elseif ( '' === $code || 'not_saved' === $code ) {
+		$cause = __( 'WordPress did not save the post, so the link was not added.', 'undergrowth' );
+	} else {
+		$cause = sprintf(
+			/* translators: %1$s: error code WordPress gave, such as rest_cannot_edit. */
+			__( 'WordPress did not save the post, so the link was not added. It reported the error %1$s.', 'undergrowth' ),
+			$code
+		);
+	}
+
+	$when = sprintf(
+		/* translators: %1$s: date and time. */
+		__( 'That was on %1$s.', 'undergrowth' ),
+		undergrowth_date_time( (int) $error['time'] )
+	);
+
+	// Each part is a whole sentence, translated on its own.
+	return $cause . ' ' . $when . ' ' . __( 'The suggestion is still on Posts > Undergrowth, so you can accept it again.', 'undergrowth' );
 }
 
 /**
@@ -692,7 +884,11 @@ function undergrowth_add_settings_help(): void {
 	$tabs = array(
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
-			array( $links ),
+			array(
+				$links,
+				__( 'A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent.', 'undergrowth' ),
+				__( 'With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other. A post the plugin gives no language keeps the site’s language.', 'undergrowth' ),
+			),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),

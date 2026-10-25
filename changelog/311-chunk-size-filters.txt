@@ -1,0 +1,1 @@
+New filters `undergrowth_post_chunk_size` and `undergrowth_vector_chunk_size` set how many posts and vectors are read in one query. A host short of memory can lower them.

@@ -58,7 +58,7 @@ function undergrowth_add_screen_help(): void {
 		array(
 			__( 'Each suggestion is a link from one of your posts to another, at a sentence you wrote. The highlighted words are the words Accept will make into the link.', 'undergrowth' ),
 			__( 'Choose words lets you pick other words of the same sentence for the link: choose the first word and the last, then save. Only words already in your sentence can be chosen; nothing can be typed or added.', 'undergrowth' ),
-			__( 'Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post.', 'undergrowth' ),
+			__( 'Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post. The notice after a veto has an Undo, in case you chose it by mistake.', 'undergrowth' ),
 		)
 	);
 
@@ -80,8 +80,9 @@ function undergrowth_add_screen_help(): void {
 		array(
 			__( 'Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model.', 'undergrowth' ),
 			__( 'A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted.', 'undergrowth' ),
-			__( 'A group marked "with a gap" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you.', 'undergrowth' ),
+			__( 'A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you.', 'undergrowth' ),
 			__( 'When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine.', 'undergrowth' ),
+			__( 'Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group\'s words, its link, its stage and whether its group has a gap.', 'undergrowth' ),
 		)
 	);
 

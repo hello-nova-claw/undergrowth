@@ -12,6 +12,11 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_MEMORY_INDEX = "<?php\n// Silence is golden.\n";
 
+// IIS reads web.config the way Apache reads .htaccess.
+const UNDERGROWTH_MEMORY_WEB_CONFIG = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<configuration>\n\t<system.webServer>\n\t\t<security>\n\t\t\t<authorization>\n\t\t\t\t<add accessType=\"Deny\" users=\"*\" />\n\t\t\t</authorization>\n\t\t</security>\n\t</system.webServer>\n</configuration>\n";
+
+const UNDERGROWTH_MEMORY_DOCS = 'https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md';
+
 add_action( 'undergrowth_proposals_refreshed', 'undergrowth_update_memory' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_update_memory' );
 // How distinctive a post's words are depends on every other post, so each
@@ -24,6 +29,8 @@ add_action( 'undergrowth_post_left_index', 'undergrowth_update_memory_around' );
 // After the post cache is cleared, so a deleted post no longer looks published.
 add_action( 'after_delete_post', 'undergrowth_update_memory_around', 10, 2 );
 add_action( 'init', 'undergrowth_prepare_memory_folder' );
+add_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' );
+add_action( 'undergrowth_memory_folder_check', 'undergrowth_recheck_memory_folder' );
 
 /**
  * Returns the folder that holds the plugin's files for the current site.
@@ -270,7 +277,7 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		$links[ $state ][] = $line;
 	}
 
-	$lines   = array_merge(
+	$lines = array_merge(
 		array(
 			'# ' . $post->post_title,
 			'url: ' . get_permalink( $post ),
@@ -291,10 +298,15 @@ function undergrowth_memory_text( WP_Post $post ): string {
 		array( '', '## accepted links' ),
 		$links['accepted'],
 		array( '', '## vetoes' ),
-		$links['vetoed'],
-		array( '', '## prompts' ),
-		undergrowth_memory_prompts( $post->ID )
+		$links['vetoed']
 	);
+
+	// Questions a model wrote are the one thing in the file the author did not
+	// write, so they are left out unless visitors are known to be refused.
+	if ( undergrowth_memory_private() ) {
+		$lines = array_merge( $lines, array( '', '## prompts' ), undergrowth_memory_prompts( $post->ID ) );
+	}
+
 	$lines[] = '';
 
 	return implode( "\n", $lines );
@@ -375,7 +387,7 @@ function undergrowth_memory_resurfacing( int $post_id ): array {
 
 /**
  * Builds the prompts section of a post's file: one line for each prompt
- * asked, dismissed or snoozed, oldest first.
+ * asked, dismissed, snoozed or brought back, oldest first.
  *
  * @param int $post_id Post ID.
  * @return string[] Lines of the section, without its heading.
@@ -446,12 +458,14 @@ function undergrowth_write_memory( int $post_id ): bool {
 	}
 
 	// The files hold no secrets, but they are the owner's notes, not pages
-	// for visitors. nginx ignores .htaccess; the readme gives its equivalent.
-	// Without its protection files, the folder is never written to at all.
+	// for visitors. nginx and Caddy ignore both rules, which
+	// undergrowth_check_memory_folder() finds out. Without its protection
+	// files, the folder is never written to at all.
 	$protection = array(
 		'index.php'       => UNDERGROWTH_MEMORY_INDEX,
 		'posts/index.php' => UNDERGROWTH_MEMORY_INDEX,
 		'.htaccess'       => "Require all denied\n<IfModule !mod_authz_core.c>\n\tDeny from all\n</IfModule>\n",
+		'web.config'      => UNDERGROWTH_MEMORY_WEB_CONFIG,
 	);
 
 	foreach ( $protection as $name => $contents ) {
@@ -459,6 +473,12 @@ function undergrowth_write_memory( int $post_id ): bool {
 			undergrowth_record_failure( 'undergrowth_last_file_error', 'no_protection' );
 			return false;
 		}
+	}
+
+	// Until a check has answered, the questions are left out. The first check
+	// runs in WP-Cron, never in the request that wrote the file.
+	if ( false === get_option( 'undergrowth_memory_exposed' ) && false === wp_next_scheduled( 'undergrowth_memory_folder_check' ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_memory_folder_check' );
 	}
 
 	if ( ! $filesystem->put_contents( undergrowth_memory_path( $post_id ), undergrowth_memory_text( $post ), FS_CHMOD_FILE ) ) {
@@ -469,6 +489,207 @@ function undergrowth_write_memory( int $post_id ): bool {
 	delete_option( 'undergrowth_last_file_error' );
 
 	return true;
+}
+
+/**
+ * Tells whether the last check found the per-post folder readable from the web.
+ *
+ * @return bool True while visitors could read the files.
+ */
+function undergrowth_memory_exposed(): bool {
+	$check = get_option( 'undergrowth_memory_exposed' );
+
+	return is_array( $check ) && true === ( $check['exposed'] ?? null );
+}
+
+/**
+ * Tells whether the last check found that visitors are refused the per-post
+ * folder.
+ *
+ * @return bool True only when a check has answered that they are.
+ */
+function undergrowth_memory_private(): bool {
+	$check = get_option( 'undergrowth_memory_exposed' );
+
+	return is_array( $check ) && false === ( $check['exposed'] ?? null );
+}
+
+/**
+ * Checks whether visitors can read the per-post files, by writing a file
+ * into the folder and asking for it at the site's own address.
+ *
+ * Each answer is kept until the next check, including one that proves
+ * nothing. While the folder is not known to be refused, the questions are
+ * taken out of the files already there, so a file that could not be
+ * rewritten last time is tried again.
+ *
+ * @return bool|null True when the file could be read, false when it was
+ *                   refused, or null when there is no folder yet or the
+ *                   answer proves neither.
+ */
+function undergrowth_check_memory_folder(): ?bool {
+	$root       = undergrowth_memory_root();
+	$filesystem = undergrowth_filesystem();
+
+	if ( '' === $root || null === $filesystem || ! $filesystem->is_dir( $root . '/posts' ) ) {
+		return null;
+	}
+
+	$exposed = undergrowth_ask_for_memory_file( $filesystem, $root );
+
+	// An answer that proves nothing replaces the last one too: a folder found
+	// refused once may not be refused now.
+	update_option(
+		'undergrowth_memory_exposed',
+		array(
+			'exposed' => $exposed,
+			'time'    => time(),
+		),
+		false
+	);
+
+	// An answer that could not be stored must not leave an old refusal in
+	// place, so the folder then counts as never checked.
+	if ( false !== $exposed && undergrowth_memory_private() ) {
+		delete_option( 'undergrowth_memory_exposed' );
+	}
+
+	// The fresh answer decides, in case the stored one could not be replaced.
+	if ( false !== $exposed ) {
+		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );
+	}
+
+	return $exposed;
+}
+
+/**
+ * Asks for a file in the per-post folder at the site's own address, beside
+ * one in the uploads folder that visitors may read.
+ *
+ * The second file shows the request reaches the uploads at all: a site
+ * behind a password, or a loopback the host turns away, would refuse both,
+ * which says nothing about the folder.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $root       The plugin's folder.
+ * @return bool|null True when the folder's file came back, false when only it
+ *                   was refused, or null when the answers prove neither.
+ */
+function undergrowth_ask_for_memory_file( WP_Filesystem_Base $filesystem, string $root ): ?bool {
+	$uploads = wp_upload_dir( null, false );
+
+	// Uploads served from another host, by an offload plugin say, would never
+	// hold these files, so their absence there would prove nothing.
+	if ( wp_parse_url( $uploads['baseurl'], PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST ) ) {
+		return null;
+	}
+
+	$control = undergrowth_fetch_check_file( $filesystem, $uploads['basedir'], $uploads['baseurl'] );
+
+	if ( true !== $control ) {
+		return null;
+	}
+
+	return undergrowth_fetch_check_file( $filesystem, $root . '/posts', $uploads['baseurl'] . '/' . undergrowth_memory_folder() . '/posts' );
+}
+
+/**
+ * Writes a file with a body no other page holds, asks for it, and deletes it.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $folder     Folder to write it in.
+ * @param string             $url        Address of that folder.
+ * @return bool|null True when the file came back, false when it was refused,
+ *                   or null when the answer proves neither.
+ */
+function undergrowth_fetch_check_file( WP_Filesystem_Base $filesystem, string $folder, string $url ): ?bool {
+	// A name that is never a post's.
+	$name  = 'undergrowth-check-' . strtolower( wp_generate_password( 12, false ) ) . '.txt';
+	$token = wp_generate_password( 32, false );
+
+	if ( ! $filesystem->put_contents( $folder . '/' . $name, $token, FS_CHMOD_FILE ) ) {
+		return null;
+	}
+
+	$response = wp_remote_get(
+		$url . '/' . $name,
+		array(
+			'timeout'     => 10,
+			'redirection' => 0,
+			/** This filter is documented in wp-includes/class-wp-http-streams.php */
+			'sslverify'   => apply_filters( 'https_local_ssl_verify', false ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core's hook, as core's own loopback requests use it.
+		)
+	);
+
+	$filesystem->delete( $folder . '/' . $name );
+
+	if ( is_wp_error( $response ) ) {
+		return null;
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+
+	if ( 200 === $code ) {
+		return false !== strpos( wp_remote_retrieve_body( $response ), $token ) ? true : null;
+	}
+
+	// A redirect, a password prompt or a server error says nothing about
+	// what a visitor would get. Only a plain refusal does.
+	return in_array( $code, array( 403, 404, 410 ), true ) ? false : null;
+}
+
+/**
+ * Checks the per-post folder again, on the hourly check.
+ */
+function undergrowth_recheck_memory_folder(): void {
+	undergrowth_check_memory_folder();
+}
+
+/**
+ * Takes the prompts section out of every per-post file in a folder.
+ *
+ * It is the last section, and reading a file back never needs it.
+ *
+ * @param WP_Filesystem_Base $filesystem Filesystem with direct access.
+ * @param string             $folder     Folder of per-post files.
+ */
+function undergrowth_strip_memory_prompts( WP_Filesystem_Base $filesystem, string $folder ): void {
+	foreach ( array_keys( (array) $filesystem->dirlist( $folder, false ) ) as $name ) {
+		if ( 1 !== preg_match( '/^[0-9]+\.txt$/D', (string) $name ) ) {
+			continue;
+		}
+
+		$text = (string) $filesystem->get_contents( $folder . '/' . $name );
+		$cut  = strpos( $text, "\n## prompts\n" );
+
+		if ( false !== $cut ) {
+			$filesystem->put_contents( $folder . '/' . $name, substr( $text, 0, $cut + 1 ), FS_CHMOD_FILE );
+		}
+	}
+}
+
+/**
+ * Says that the per-post files can be read from the web, and what follows.
+ *
+ * @return string Plain text.
+ */
+function undergrowth_memory_exposed_text(): string {
+	return __( 'Visitors can open the per-post files, because this server ignores the .htaccess and web.config files that refuse them. Add the deny rule for nginx or Caddy to the server’s settings. Until the files are refused, the questions Claude wrote are left out of them.', 'undergrowth' );
+}
+
+/**
+ * Returns the rules that refuse the per-post folder on servers that ignore
+ * .htaccess and web.config.
+ *
+ * @return array<string, string> Rule, keyed by server name.
+ */
+function undergrowth_memory_deny_rules(): array {
+	$pattern = '^/wp-content/uploads/(sites/[0-9]+/)?undergrowth(-[0-9a-f]{12})?/';
+
+	return array(
+		'nginx' => 'location ~ "' . $pattern . '" { deny all; }',
+		'Caddy' => '@undergrowth path_regexp ' . $pattern . "\nrespond @undergrowth 403",
+	);
 }
 
 /**

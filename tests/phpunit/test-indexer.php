@@ -27,6 +27,8 @@ class Test_Indexer extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$GLOBALS['undergrowth_test_post_languages'] = array();
+
 		$this->embedded = array();
 		$this->model    = 'test-model-v1';
 
@@ -76,6 +78,50 @@ class Test_Indexer extends WP_UnitTestCase {
 				$args
 			)
 		);
+	}
+
+	public function test_garden_query_finds_the_indexable_posts_as_ids() {
+		$published = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		self::factory()->post->create(
+			array(
+				'post_status'   => 'publish',
+				'post_password' => 'secret',
+			)
+		);
+		self::factory()->post->create(
+			array(
+				'post_status' => 'publish',
+				'post_type'   => 'attachment',
+			)
+		);
+
+		$query = new WP_Query( undergrowth_garden_query_args() );
+
+		$this->assertSame( array( $published ), array_map( 'intval', $query->posts ) );
+	}
+
+	public function test_garden_query_finds_nothing_when_no_type_is_indexed() {
+		self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$query = new WP_Query( undergrowth_garden_query_args() );
+
+		$this->assertSame( array(), $query->posts );
+	}
+
+	public function test_garden_query_arguments_can_be_replaced() {
+		$args = undergrowth_garden_query_args(
+			array(
+				'post_type'     => 'page',
+				'no_found_rows' => false,
+			)
+		);
+
+		$this->assertSame( 'page', $args['post_type'] );
+		$this->assertFalse( $args['no_found_rows'] );
+		$this->assertFalse( $args['has_password'] );
+		$this->assertSame( 'ids', $args['fields'] );
 	}
 
 	public function test_post_text_decodes_entities() {
@@ -134,6 +180,94 @@ class Test_Indexer extends WP_UnitTestCase {
 		$post_id = $this->publish( array( 'post_type' => 'page' ) );
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
+	public function test_post_types_chosen_on_settings_are_indexed() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+
+		$this->assertSame( array( 'post', 'page' ), undergrowth_indexed_post_types() );
+
+		$post_id = $this->publish( array( 'post_type' => 'page' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
+	public function test_post_types_filter_has_the_last_word_over_the_setting() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		add_filter(
+			'undergrowth_post_types',
+			static function ( $post_types ) {
+				return array_values( array_diff( $post_types, array( 'page' ) ) );
+			}
+		);
+
+		$this->assertSame( array( 'post' ), undergrowth_indexed_post_types() );
+	}
+
+	public function test_post_types_setting_that_is_not_a_list_indexes_posts() {
+		update_option( 'undergrowth_post_types', 'page' );
+
+		$this->assertSame( array( 'post' ), undergrowth_indexed_post_types() );
+	}
+
+	public function test_choosing_a_post_type_reads_its_published_posts() {
+		$page_id = $this->publish( array( 'post_type' => 'page' ) );
+		wp_clear_scheduled_hook( 'undergrowth_backfill' );
+
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
+
+		undergrowth_run_backfill();
+
+		$this->assertNotNull( undergrowth_get_vector( $page_id ) );
+	}
+
+	public function test_dropping_a_post_type_removes_its_posts_from_the_index() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		$post_id = $this->publish();
+		$page_id = $this->publish( array( 'post_type' => 'page' ) );
+		undergrowth_embed_post( $post_id );
+		undergrowth_embed_post( $page_id );
+		$left = array();
+		add_action(
+			'undergrowth_post_left_index',
+			static function ( $id ) use ( &$left ) {
+				$left[] = $id;
+			}
+		);
+
+		update_option( 'undergrowth_post_types', array( 'post' ) );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
+
+		undergrowth_forget_unindexed_posts();
+
+		$this->assertNull( undergrowth_get_vector( $page_id ) );
+		$this->assertNotNull( undergrowth_get_vector( $post_id ) );
+		$this->assertSame( array( $page_id ), $left );
+	}
+
+	public function test_forgetting_dropped_posts_continues_in_batches() {
+		update_option( 'undergrowth_post_types', array( 'post', 'page' ) );
+		$first  = $this->publish( array( 'post_type' => 'page' ) );
+		$second = $this->publish( array( 'post_type' => 'page' ) );
+		undergrowth_embed_post( $first );
+		undergrowth_embed_post( $second );
+		update_option( 'undergrowth_post_types', array( 'post' ) );
+		wp_clear_scheduled_hook( 'undergrowth_forget_unindexed_posts' );
+
+		undergrowth_forget_unindexed_posts( 1 );
+
+		$this->assertNull( undergrowth_get_vector( $first ) );
+		$this->assertNotNull( undergrowth_get_vector( $second ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
+
+		wp_clear_scheduled_hook( 'undergrowth_forget_unindexed_posts' );
+		undergrowth_forget_unindexed_posts( 1 );
+
+		$this->assertNull( undergrowth_get_vector( $second ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_forget_unindexed_posts' ) );
 	}
 
 	public function test_embed_stores_vector_with_provider_model_and_language() {
@@ -236,6 +370,92 @@ class Test_Indexer extends WP_UnitTestCase {
 		);
 		$post_id = $this->publish();
 
+		undergrowth_embed_post( $post_id );
+
+		$this->assertSame( 'de_DE', undergrowth_get_vector( $post_id )['language'] );
+	}
+
+	/**
+	 * Publishes two posts about the same thing, with languages Polylang
+	 * reports, and embeds both.
+	 *
+	 * @param string $first  Language of the first post.
+	 * @param string $second Language of the second post.
+	 * @return int[] The two post IDs.
+	 */
+	private function publish_in( string $first, string $second ): array {
+		$ids = array(
+			$this->publish( array( 'post_content' => '<p>Oca keeps well in a cool shed. Yacon keeps well too.</p>' ) ),
+			$this->publish( array( 'post_content' => '<p>Yacon keeps well in a cool shed. Oca keeps well too.</p>' ) ),
+		);
+
+		$GLOBALS['undergrowth_test_post_languages'] = array(
+			$ids[0] => $first,
+			$ids[1] => $second,
+		);
+
+		undergrowth_hook_multilingual_language();
+		undergrowth_embed_post( $ids[0] );
+		undergrowth_embed_post( $ids[1] );
+
+		return $ids;
+	}
+
+	public function test_polylang_language_is_stored_and_never_compared_with_another() {
+		list( $french, $english ) = $this->publish_in( 'fr', 'en' );
+
+		$this->assertSame( 'fr', undergrowth_get_vector( $french )['language'] );
+		$this->assertSame( 'en', undergrowth_get_vector( $english )['language'] );
+		$this->assertSame( '', undergrowth_link_state( $english, $french ) );
+		$this->assertSame( '', undergrowth_link_state( $french, $english ) );
+	}
+
+	public function test_polylang_posts_in_one_language_are_compared() {
+		list( $first, $second ) = $this->publish_in( 'fr', 'fr' );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $second, $first ) );
+	}
+
+	public function test_post_polylang_has_no_language_for_keeps_the_site_language() {
+		list( $french, $other ) = $this->publish_in( 'fr', '' );
+
+		$this->assertSame( get_locale(), undergrowth_get_vector( $other )['language'] );
+	}
+
+	public function test_turning_polylang_on_embeds_again_the_posts_read_in_the_site_language() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v1',
+				'language' => get_locale(),
+			)
+		);
+		$this->assertSame( get_locale(), undergrowth_get_vector( $post_id )['language'] );
+
+		$GLOBALS['undergrowth_test_post_languages'] = array( $post_id => 'fr' );
+		undergrowth_hook_multilingual_language();
+		undergrowth_start_backfill();
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( 'fr', undergrowth_get_vector( $post_id )['language'] );
+		$this->assertSame( '', get_option( 'undergrowth_index_identity' )['language'] );
+	}
+
+	public function test_wpml_language_is_stored() {
+		$post_id = $this->publish();
+		add_filter(
+			'wpml_post_language_details',
+			static function ( $details, $id ) use ( $post_id ) {
+				return $id === $post_id ? array( 'locale' => 'de_DE' ) : $details;
+			},
+			10,
+			2
+		);
+
+		undergrowth_hook_multilingual_language();
 		undergrowth_embed_post( $post_id );
 
 		$this->assertSame( 'de_DE', undergrowth_get_vector( $post_id )['language'] );

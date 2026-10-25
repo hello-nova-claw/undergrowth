@@ -18,6 +18,7 @@ add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
+add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index' );
 
 /**
  * Tells whether two vectors can be compared at all.
@@ -105,6 +106,71 @@ function undergrowth_unpack_vector( string $packed ): array {
 }
 
 /**
+ * Splits a list into chunks, building each one only when it is asked for.
+ *
+ * Unlike array_chunk(), which builds every chunk at once, this holds one
+ * chunk at a time, so a small chunk size never costs more memory.
+ *
+ * @param iterable<int|string, mixed> $items         Items to split.
+ * @param int                         $size          Items per chunk, at least one.
+ * @param bool                        $preserve_keys Whether each chunk keeps the items' keys.
+ * @return Generator<int, array<int|string, mixed>> Chunks, in order.
+ */
+function undergrowth_chunks( iterable $items, int $size, bool $preserve_keys = false ): Generator {
+	$size  = max( 1, $size );
+	$chunk = array();
+
+	foreach ( $items as $key => $item ) {
+		if ( $preserve_keys ) {
+			$chunk[ $key ] = $item;
+		} else {
+			$chunk[] = $item;
+		}
+
+		if ( count( $chunk ) === $size ) {
+			yield $chunk;
+			$chunk = array();
+		}
+	}
+
+	if ( array() !== $chunk ) {
+		yield $chunk;
+	}
+}
+
+/**
+ * Returns how many posts are read in one query when posts are read in chunks.
+ *
+ * @return int Posts per chunk, at least one.
+ */
+function undergrowth_post_chunk_size(): int {
+	/**
+	 * Filters how many posts are read in one query.
+	 *
+	 * A smaller chunk holds less in memory at once and sends more queries.
+	 *
+	 * @param int $size Posts per chunk. Default 100.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_post_chunk_size', UNDERGROWTH_POST_CHUNK ) );
+}
+
+/**
+ * Returns how many vectors are read in one query.
+ *
+ * @return int Vectors per chunk, at least one.
+ */
+function undergrowth_vector_chunk_size(): int {
+	/**
+	 * Filters how many stored vectors are read in one query.
+	 *
+	 * A smaller chunk holds less in memory at once and sends more queries.
+	 *
+	 * @param int $size Vectors per chunk. Default 100.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_vector_chunk_size', UNDERGROWTH_VECTOR_CHUNK ) );
+}
+
+/**
  * Returns the lowest similarity worth proposing a link for.
  *
  * @return float Cosine similarity between -1 and 1.
@@ -157,6 +223,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 
 	$vectors = array();
 	$after   = 0;
+	$size    = undergrowth_vector_chunk_size();
 
 	do {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
@@ -168,7 +235,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 				$model,
 				$language,
 				$after,
-				UNDERGROWTH_VECTOR_CHUNK
+				$size
 			),
 			ARRAY_A
 		);
@@ -188,7 +255,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 		// leave a chunk of JSON behind for the whole refresh.
 		unset( $rows );
 		$wpdb->flush();
-	} while ( UNDERGROWTH_VECTOR_CHUNK === $fetched );
+	} while ( $size === $fetched );
 
 	return $vectors;
 }
@@ -327,6 +394,80 @@ function undergrowth_veto_link( int $source_id, int $target_id ): bool {
 	undergrowth_write_memory( $source_id );
 
 	return 'vetoed' === undergrowth_link_state( $source_id, $target_id );
+}
+
+/**
+ * Says whether the current user can take back a veto: the pair is vetoed,
+ * the user may edit the post the link would sit in, and both posts are
+ * still read, so the suggestion it would bring back can still be accepted.
+ *
+ * @param int $source_id Post the link would sit in.
+ * @param int $target_id Post the link would point to.
+ * @return bool True when the veto can be undone.
+ */
+function undergrowth_can_unveto_link( int $source_id, int $target_id ): bool {
+	$source = get_post( $source_id );
+	$target = get_post( $target_id );
+
+	// Every caller checks the capability too, but a new one must not be able to forget.
+	return $source instanceof WP_Post
+		&& $target instanceof WP_Post
+		&& undergrowth_is_indexable( $source )
+		&& undergrowth_is_indexable( $target )
+		&& current_user_can( 'edit_post', $source_id )
+		&& 'vetoed' === undergrowth_link_state( $source_id, $target_id );
+}
+
+/**
+ * Takes back a veto made by mistake, from the Undo in the veto's notice.
+ *
+ * A vetoed suggestion keeps its sentence, so it is suggested again as it
+ * was. A veto of a pair that was no longer suggested is forgotten, and the
+ * next refresh around the post may suggest the pair again.
+ *
+ * @param int $source_id Post the link would sit in.
+ * @param int $target_id Post the link would point to.
+ * @return bool True when the pair was vetoed and no longer is. False when
+ *              undergrowth_can_unveto_link() says no.
+ */
+function undergrowth_unveto_link( int $source_id, int $target_id ): bool {
+	global $wpdb;
+
+	if ( ! undergrowth_can_unveto_link( $source_id, $target_id ) ) {
+		return false;
+	}
+
+	// Only a row still vetoed is changed, so an Accept or a refresh that got
+	// there first is never undone.
+	$where = array(
+		'source_id' => $source_id,
+		'target_id' => $target_id,
+		'state'     => 'vetoed',
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+	$sentence = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d', undergrowth_links_table(), $source_id, $target_id ) );
+
+	if ( '' === $sentence ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$done = $wpdb->delete( undergrowth_links_table(), $where, array( '%d', '%d', '%s' ) );
+	} else {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$done = $wpdb->update(
+			undergrowth_links_table(),
+			array(
+				'state'      => 'proposed',
+				'updated_at' => current_time( 'mysql', true ),
+			),
+			$where,
+			array( '%s', '%s' ),
+			array( '%d', '%d', '%s' )
+		);
+	}
+
+	undergrowth_write_memory( $source_id );
+
+	return is_int( $done ) && $done > 0;
 }
 
 /**
@@ -536,7 +677,7 @@ function undergrowth_open_target_ids( array $post_ids ): array {
  * @return Generator<int, float> Similarity keyed by target post ID, best first.
  */
 function undergrowth_open_targets( array $scores ): Generator {
-	foreach ( array_chunk( $scores, UNDERGROWTH_POST_CHUNK, true ) as $chunk ) {
+	foreach ( undergrowth_chunks( $scores, undergrowth_post_chunk_size(), true ) as $chunk ) {
 		$open = undergrowth_open_target_ids( array_keys( $chunk ) );
 
 		foreach ( $chunk as $target_id => $score ) {
@@ -545,32 +686,6 @@ function undergrowth_open_targets( array $scores ): Generator {
 			}
 		}
 	}
-}
-
-/**
- * Picks the posts a post should link to.
- *
- * Leaves out the post itself, posts it already links to, composting posts,
- * and any pair the author has accepted or vetoed. A composting post gets
- * no targets at all.
- *
- * @param int                     $post_id Source post ID.
- * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
- * @param int                     $limit   Most targets to return, or 0 for every target above the minimum.
- * @return array<int, float> Similarity keyed by target post ID, best first.
- */
-function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
-	$targets = array();
-
-	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
-		$targets[ $target_id ] = $score;
-
-		if ( $limit > 0 && count( $targets ) >= $limit ) {
-			break;
-		}
-	}
-
-	return $targets;
 }
 
 /**
@@ -652,15 +767,14 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 		$state                 = undergrowth_link_state( $post_id, $target_id );
 		$anchor                = undergrowth_proposal_anchor( $post_id, $target_id, $sentence['text'], $corpus );
 		$fields                = array(
-			'score'          => $score,
-			'sentence'       => $sentence['text'],
-			'sentence_index' => $sentence['index'],
-			'anchor'         => $anchor['anchor'],
-			'anchor_offset'  => $anchor['offset'],
-			'anchor_chosen'  => 0,
-			'updated_at'     => $now,
+			'score'         => $score,
+			'sentence'      => $sentence['text'],
+			'anchor'        => $anchor['anchor'],
+			'anchor_offset' => $anchor['offset'],
+			'anchor_chosen' => 0,
+			'updated_at'    => $now,
 		);
-		$formats               = array( '%f', '%s', '%d', '%s', '%d', '%d', '%s' );
+		$formats               = array( '%f', '%s', '%s', '%d', '%d', '%s' );
 
 		if ( 'proposed' === $state ) {
 			// Words the author chose stay theirs while the sentence they
@@ -670,7 +784,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 			if ( $sentence['text'] === $chosen ) {
 				unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
-				$formats = array( '%f', '%s', '%d', '%s' );
+				$formats = array( '%f', '%s', '%s' );
 			}
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
@@ -885,12 +999,32 @@ function undergrowth_refresh_sources( $source_ids ): void {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $rest ) );
 	}
 
-	// Sources sharing a provider, model and language share one pool and one
-	// set of word counts, so neither is built again for each source.
-	$pools = array();
+	undergrowth_refresh_posts( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) );
+}
 
-	foreach ( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) as $source_id ) {
-		$source = get_post( $source_id );
+/**
+ * Refreshes the proposals of some posts, in order, until the time is spent.
+ *
+ * Posts sharing a provider, model and language share one pool and one set
+ * of word counts, so neither is built again for each post. A post that
+ * left the index or is composting is skipped.
+ *
+ * @param int[] $post_ids Posts to refresh.
+ * @param float $budget   Seconds after which no further post is started. One post is always refreshed.
+ * @return int[] The posts that were reached, refreshed or skipped.
+ */
+function undergrowth_refresh_posts( array $post_ids, float $budget = INF ): array {
+	$started = microtime( true );
+	$pools   = array();
+	$reached = array();
+
+	foreach ( $post_ids as $source_id ) {
+		if ( array() !== $reached && microtime( true ) - $started >= $budget ) {
+			break;
+		}
+
+		$reached[] = $source_id;
+		$source    = get_post( $source_id );
 
 		if ( ! $source instanceof WP_Post || ! undergrowth_is_indexable( $source ) || 'composting' === undergrowth_get_stage( $source_id ) ) {
 			continue;
@@ -912,4 +1046,71 @@ function undergrowth_refresh_sources( $source_ids ): void {
 
 		undergrowth_refresh_proposals( $source_id, $pools[ $key ][0], $pools[ $key ][1] );
 	}
+
+	return $reached;
+}
+
+/**
+ * Refreshes every indexed post's proposals once the backfill has read the
+ * whole site, a batch at a time.
+ *
+ * Proposals made while the backfill was running were chosen with the word
+ * counts of part of the site, so their sentence may no longer hold a word
+ * that can carry the link. Each run takes the backfill's batch size and
+ * time budget, then queues the next after the last post it reached.
+ *
+ * @param int $after Refresh posts with a higher ID than this.
+ */
+function undergrowth_refresh_index( $after = 0 ): void {
+	$identity = undergrowth_index_target();
+
+	// A switch of model or language since starts another backfill, which
+	// queues its own refresh once it has read the site.
+	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		return;
+	}
+
+	$size     = undergrowth_backfill_batch_size();
+	$post_ids = undergrowth_indexed_post_ids( $identity, (int) $after, $size );
+	$reached  = undergrowth_refresh_posts( $post_ids, undergrowth_backfill_time_budget() );
+
+	if ( array() !== $reached && ( count( $post_ids ) === $size || count( $reached ) < count( $post_ids ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( end( $reached ) ) );
+	}
+}
+
+/**
+ * Lists posts that have a vector for an identity, by ID.
+ *
+ * @param array $identity {
+ *     The provider and model, and the site language when posts take theirs from the site.
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @param int   $after    Only posts with a higher ID than this.
+ * @param int   $limit    Most posts to list.
+ * @return int[] Post IDs in ascending order.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_indexed_post_ids( array $identity, int $after, int $limit ): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT post_id FROM %i WHERE provider = %s AND model = %s AND ( %s = '' OR language = %s ) AND post_id > %d ORDER BY post_id LIMIT %d",
+			undergrowth_vectors_table(),
+			$identity['provider'],
+			$identity['model'],
+			$identity['language'],
+			$identity['language'],
+			$after,
+			$limit
+		)
+	);
+
+	return array_map( 'intval', (array) $ids );
 }

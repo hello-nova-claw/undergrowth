@@ -6,7 +6,7 @@ Use a local or staging copy of your site, not the live one. Undergrowth only cha
 
 ## Test locally with your own keys
 
-If you'd rather not install anything on a site, `npm run playground:real` starts a throwaway WordPress on your own computer with your real posts. It needs Node 22 and a clone of this repository with `npm install` run once. It runs the plugin from your clone, so you can skip sections 1 to 3 below. It runs one of two ways:
+If you'd rather not install anything on a site, `npm run playground:real` starts a throwaway WordPress on your own computer with your real posts. It needs Node 24 and a clone of this repository with `npm install` run once. It runs the plugin from your clone, so you can skip sections 1 to 3 below. It runs one of two ways:
 
 - **Free, on your computer (try this first).** Ollama reads your posts with the `nomic-embed-text` model. Nothing is sent to OpenAI and nothing costs money. Install Ollama, then run `brew services start ollama` (or `ollama serve`) and `ollama pull nomic-embed-text`.
 - **OpenAI.** Your posts are sent to OpenAI with your own key, as on a real site. Try this once the free run looks right.

@@ -16,6 +16,7 @@ jobs:
   playwright:
     name: Playwright (${{ matrix.locale }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -39,7 +40,19 @@ jobs:
       - name: Build
         if: hashFiles('src/**/*.js') != ''
         run: npm run build
-      - run: npx playwright install chromium --with-deps
+      # The browser is cached by Playwright version; its system packages are not.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6.1.0
+        id: playwright-browser
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright-browser.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+      - if: steps.playwright-browser.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: npx wp-env start
       - name: Switch to Hebrew
         if: matrix.locale == 'he_IL'
@@ -63,6 +76,7 @@ jobs:
   pa11y:
     name: pa11y-ci
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v7.1.0

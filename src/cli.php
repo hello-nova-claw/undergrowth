@@ -169,6 +169,10 @@ function undergrowth_cli_run_cycle( array $args = array(), array $assoc_args = a
 
 	$runs = undergrowth_dev_run_cycle();
 
+	if ( 0 === $runs ) {
+		WP_CLI::error( 'A clustering batch is already running, so the cycle is queued to start in a minute. Run this again once it has finished.' );
+	}
+
 	WP_CLI::success( sprintf( 'The cycle ran in %1$d batches and made %2$d groups.', $runs, count( undergrowth_cluster_map() ) ) );
 }
 

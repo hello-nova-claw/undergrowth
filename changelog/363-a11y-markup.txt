@@ -1,0 +1,1 @@
+Screen readers now read "Leave the field blank to keep it" and the last failure when you focus a saved API key or the Discord bot token. Post titles are kept apart from the sentence around them, so a title in another script no longer reorders it. The Growth stage block's label stays hidden in classic themes that drop the block styles.

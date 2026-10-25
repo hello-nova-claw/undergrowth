@@ -21,7 +21,7 @@ const UNDERGROWTH_MAX_CLUSTERS           = 100;
 // src/thresholds.php.
 const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 
-add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
+add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle', 10, 2 );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
 
@@ -72,25 +72,15 @@ function undergrowth_cluster_leader( int $post_id ): int {
  *               or an empty array when the post is not in a cluster.
  */
 function undergrowth_cluster_members( int $post_id ): array {
-	global $wpdb;
-
 	$leader = undergrowth_cluster_leader( $post_id );
 
 	if ( 0 === $leader ) {
 		return array();
 	}
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- WP_Query would load every member post just to count them.
-	$members = $wpdb->get_col(
-		$wpdb->prepare(
-			'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC',
-			$wpdb->postmeta,
-			'undergrowth_cluster',
-			(string) $leader
-		)
-	);
+	$members = undergrowth_cluster_posts( $leader );
 
-	return count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ? array_map( 'intval', $members ) : array();
+	return count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ? $members : array();
 }
 
 /**
@@ -336,13 +326,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
 	$near   = array();
 
 	foreach ( $vectors as $post_id => $vector ) {
-		$dot = 0.0;
-
-		foreach ( $vector as $i => $value ) {
-			$dot += $value * $centre[ $i ];
-		}
-
-		$near[ $post_id ] = $dot;
+		$near[ $post_id ] = undergrowth_dot_product( $vector, $centre );
 	}
 
 	// Nearest first; equally near posts stay in ID order.
@@ -380,15 +364,77 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * run again by the hourly check; see undergrowth_resume_stalled_passes().
  * Every batch clusters with the threshold read when the pass started.
  *
+ * The first batch gives the pass an ID, which every later batch carries.
+ * A pass started while another is under way replaces it: a batch of the
+ * older pass stops before it changes anything. Batches run one at a time,
+ * under a lock, so a new pass waits for the batch that is running.
+ *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
+ * @param string     $pass     ID of the pass the batch belongs to. Empty for a new
+ *                            pass, and for a batch queued before passes had IDs.
  */
-function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
+function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
+	undergrowth_cluster_batch_under_lock( (int) $after_id, (string) $pass );
+}
+
+/**
+ * Runs one clustering batch once it holds the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ * @return bool False when another batch held the lock and this one was queued
+ *              for a minute later, true otherwise.
+ */
+function undergrowth_cluster_batch_under_lock( int $after_id, string $pass ): bool {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	// The lock is taken atomically, so checking the pass, resetting the
+	// clusters and storing a batch's own never interleave with another batch.
+	// One left by a batch that died expires when the hourly check would run
+	// that batch again. A batch that finds it taken tries again in a minute.
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', UNDERGROWTH_PASS_STALL ) ) {
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_cluster_cycle', undergrowth_pass_args( $after_id, $pass ) );
+		return false;
+	}
+
+	try {
+		undergrowth_run_cluster_batch( $after_id, $pass );
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+	}
+
+	return true;
+}
+
+/**
+ * Clusters one batch, while holding the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ */
+function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	global $wpdb;
 
-	$after_id = (int) $after_id;
+	if ( 0 === $after_id && '' === $pass ) {
+		$pass = wp_generate_uuid4();
+	} elseif ( 0 === $after_id ) {
+		// A first batch the hourly check queued again stops when a newer
+		// pass has started since.
+		if ( undergrowth_current_pass( 'undergrowth_cluster_cycle' ) !== $pass ) {
+			return;
+		}
+	} else {
+		$current = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
 
-	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
+		if ( '' !== $pass && $pass !== $current ) {
+			return;
+		}
+
+		$pass = $current;
+	}
+
+	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id, $pass );
 
 	// The first batch measures the site's scores, so the whole pass clusters
 	// with the threshold they give.
@@ -425,6 +471,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	$minimum = get_option( 'undergrowth_cluster_similarity' );
 	$minimum = is_numeric( $minimum ) ? (float) $minimum : undergrowth_min_cluster_similarity();
 	$last_id = $after_id;
+	$joined  = array();
 
 	while ( array() !== $rows ) {
 		$row     = array_shift( $rows );
@@ -451,19 +498,24 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		}
 
 		if ( 0 !== $leader ) {
-			update_post_meta( $last_id, 'undergrowth_cluster', $leader );
+			$joined[ $last_id ] = $leader;
 		}
 	}
 
-	// The hourly check queued this batch again while it ran, so the new run
-	// finishes the pass.
+	// Another run took the pass over while this one compared posts: the
+	// hourly check queued this batch again, or a new pass started. Nothing is
+	// stored, so the clusters are all that run's.
 	if ( ! undergrowth_owns_pass( 'undergrowth_cluster_cycle', $run ) ) {
 		return;
 	}
 
+	foreach ( $joined as $post_id => $leader ) {
+		update_post_meta( $post_id, 'undergrowth_cluster', $leader );
+	}
+
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
 		update_option( 'undergrowth_cluster_leaders', $leaders, false );
-		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id );
+		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id, $pass );
 		return;
 	}
 
@@ -538,7 +590,7 @@ function undergrowth_leader_vectors( array $leader_ids, array $identity ): array
 
 	$vectors = array();
 
-	foreach ( array_chunk( $leader_ids, UNDERGROWTH_VECTOR_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( $leader_ids, undergrowth_vector_chunk_size() ) as $chunk ) {
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per leader.
@@ -587,12 +639,7 @@ function undergrowth_nearest_leader( string $vector, array $leaders, float $mini
 			continue;
 		}
 
-		$dot = 0.0;
-		$i   = 0;
-
-		foreach ( undergrowth_unpack_vector( $packed ) as $value ) {
-			$dot += $value * $values[ $i++ ];
-		}
+		$dot = undergrowth_dot_product( $values, undergrowth_unpack_vector( $packed ) );
 
 		// A later leader has to be strictly closer, so a tie stays with the
 		// older one. The first match may sit exactly on the minimum.

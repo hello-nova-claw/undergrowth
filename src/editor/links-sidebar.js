@@ -584,6 +584,19 @@ export default function LinksSidebar( { postId, saved, paragraphs, onLink } ) {
 								</li>
 							) ) }
 						</ul>
+						{ lists.incoming_screen && (
+							<p>
+								<a
+									className="undergrowth-incoming-screen"
+									href={ lists.incoming_screen }
+								>
+									{ __(
+										'Accept or veto them all on Posts › Undergrowth',
+										'undergrowth'
+									) }
+								</a>
+							</p>
+						) }
 					</>
 				) }
 			</PanelBody>

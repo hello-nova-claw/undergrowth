@@ -6,6 +6,8 @@
 	beStrictAboutTestsThatDoNotTestAnything="true"
 	failOnRisky="true"
 	failOnWarning="true"
+	executionOrder="random"
+	resolveDependencies="true"
 >
 	<testsuites>
 		<testsuite name="undergrowth">

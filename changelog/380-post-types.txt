@@ -1,0 +1,1 @@
+Settings > Undergrowth has a Post types row: tick Pages, or any other public post type, to have Undergrowth read it and suggest links to and from it. Unticking a type takes its posts out of suggestions, growth stages and the Map. Code using the undergrowth_post_types filter still has the last word.

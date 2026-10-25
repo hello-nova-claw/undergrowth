@@ -29,6 +29,16 @@ tests_add_filter(
 
 require "{$_tests_dir}/includes/bootstrap.php";
 
+// The SQLite driver keeps its list of temporary tables in a table it makes
+// with the first one. Until then, DROP TEMPORARY TABLE IF EXISTS fails and
+// rolls back the test's transaction, so whatever the test writes next is
+// kept for every later test. Uninstall drops tables that the suite turns
+// into DROP TEMPORARY, so one temporary table is made up front.
+if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
+	$GLOBALS['wpdb']->query( 'CREATE TEMPORARY TABLE undergrowth_sqlite_temporary_tables (id int)' );
+}
+
+require __DIR__ . '/includes/rank-targets.php';
 require __DIR__ . '/includes/trait-plants-posts.php';
 require __DIR__ . '/includes/trait-signs-discord-interactions.php';
 require __DIR__ . '/includes/trait-stops-redirects.php';
@@ -45,6 +55,10 @@ if ( ! class_exists( 'Automattic\Jetpack\Connection\Manager' ) ) {
 
 if ( ! class_exists( 'Automattic\Jetpack\Stats\WPCOM_Stats' ) ) {
 	require __DIR__ . '/includes/class-wpcom-stats.php';
+}
+
+if ( ! function_exists( 'pll_get_post_language' ) ) {
+	require __DIR__ . '/includes/polylang.php';
 }
 
 // Composer loads WP-CLI's class with the i18n command, but not WP-CLI

@@ -491,14 +491,11 @@ function undergrowth_ability_site_posts(): array {
 			continue;
 		}
 
-		$args = array(
-			'post_type'              => $post_type,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'posts_per_page'         => -1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_term_cache' => false,
+		$args = undergrowth_garden_query_args(
+			array(
+				'post_type'      => $post_type,
+				'posts_per_page' => -1,
+			)
 		);
 
 		if ( ! current_user_can( $object->cap->edit_others_posts ) ) {
@@ -512,7 +509,7 @@ function undergrowth_ability_site_posts(): array {
 	sort( $ids );
 	$editable = array();
 
-	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( $ids, undergrowth_post_chunk_size() ) as $chunk ) {
 		_prime_post_caches( $chunk, false, true );
 
 		foreach ( $chunk as $post_id ) {
@@ -680,7 +677,7 @@ function undergrowth_ability_lacks_many( array $post_ids ): array {
 
 	$links = array();
 
-	foreach ( array_chunk( array_map( 'intval', $post_ids ), UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( array_map( 'intval', $post_ids ), undergrowth_post_chunk_size() ) as $chunk ) {
 		// Each post's sentences are kept for its own chunk only.
 		$sentences    = array();
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
