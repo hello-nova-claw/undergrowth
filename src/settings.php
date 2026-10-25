@@ -720,7 +720,7 @@ function undergrowth_render_popularity_field(): void {
 			echo esc_html(
 				sprintf(
 					/* translators: %1$s: name of a stats plugin, such as Jetpack Stats. */
-					__( '“More like this” reads recent views of your most viewed posts from %1$s once a day.', 'undergrowth' ),
+					__( '“More like this” reads your posts’ recent views from %1$s once a day, as many as it gives.', 'undergrowth' ),
 					$label
 				)
 			);
