@@ -8,12 +8,19 @@
  * one on the branch it merges into, so a pull request cannot lower the bar
  * it is measured against. Without it, as on a push, the two are the same.
  *
- * The gate passes only when coverage equals the baseline, to two decimals,
- * and neither is below the base baseline. Coverage that went up without the
- * baseline following would let the next pull request drop it again.
+ * The gate fails when the baseline goes down, when coverage falls below the
+ * base baseline, when the baseline is set above the coverage, and when
+ * coverage rose by more than UNDERGROWTH_COVERAGE_SLACK without the baseline
+ * following. A smaller rise passes and prints the figure to set.
  *
  * @package Undergrowth
  */
+
+// Several pull requests are open at once. If each had to set the baseline to
+// its exact figure, each merge would put every other one in conflict on this
+// one file. So a small rise may wait for a later pull request to record it,
+// and only a real gain must be written down before it can be lost again.
+const UNDERGROWTH_COVERAGE_SLACK = 0.5;
 
 if ( 3 !== $argc && 4 !== $argc ) {
 	fwrite( STDERR, "Usage: php bin/coverage-gate.php <clover.xml> <baseline-file> [<base-baseline-file>]\n" );
@@ -79,9 +86,19 @@ if ( (float) $coverage < (float) $base ) {
 	exit( 1 );
 }
 
-if ( $coverage !== $baseline ) {
+if ( (float) $coverage < (float) $baseline ) {
+	fwrite( STDERR, "Coverage is {$coverage}%, below the baseline, so set {$argv[2]} to {$coverage} in this pull request.\n" );
+	exit( 1 );
+}
+
+if ( round( (float) $coverage - (float) $baseline, 2 ) > UNDERGROWTH_COVERAGE_SLACK ) {
 	fwrite( STDERR, "Coverage is {$coverage}%, so set {$argv[2]} to {$coverage} in this pull request.\n" );
 	exit( 1 );
+}
+
+if ( $coverage !== $baseline ) {
+	echo "Coverage is {$coverage}%. Setting {$argv[2]} to {$coverage} would record the rise.\n";
+	exit( 0 );
 }
 
 echo "Coverage matches the baseline.\n";

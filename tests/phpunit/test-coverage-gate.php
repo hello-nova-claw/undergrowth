@@ -99,12 +99,24 @@ class Test_Coverage_Gate extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Coverage went down from 98.34% to 98.20%', $output );
 	}
 
-	public function test_coverage_that_went_up_without_the_baseline_fails_with_the_figure_to_set() {
-		list( $code, $output ) = $this->gate( 9851, '98.34', '98.34' );
+	public function test_coverage_that_went_up_past_the_slack_without_the_baseline_fails_with_the_figure_to_set() {
+		list( $code, $output ) = $this->gate( 9890, '98.34', '98.34' );
 
 		$this->assertSame( 1, $code );
-		$this->assertStringContainsString( 'Coverage is 98.51%, so set', $output );
-		$this->assertStringContainsString( 'to 98.51 in this pull request', $output );
+		$this->assertStringContainsString( 'Coverage is 98.90%, so set', $output );
+		$this->assertStringContainsString( 'to 98.90 in this pull request', $output );
+	}
+
+	public function test_a_small_rise_without_the_baseline_passes_and_suggests_the_figure() {
+		list( $code, $output ) = $this->gate( 9851, '98.34', '98.34' );
+
+		$this->assertSame( 0, $code, $output );
+		$this->assertStringContainsString( 'Setting', $output );
+		$this->assertStringContainsString( 'to 98.51 would record the rise', $output );
+	}
+
+	public function test_a_rise_of_exactly_the_slack_passes() {
+		$this->assertSame( 0, $this->gate( 9884, '98.34', '98.34' )[0] );
 	}
 
 	public function test_raising_the_baseline_with_the_coverage_passes() {
@@ -117,13 +129,13 @@ class Test_Coverage_Gate extends WP_UnitTestCase {
 		list( $code, $output ) = $this->gate( 9840, '98.60', '98.34' );
 
 		$this->assertSame( 1, $code );
-		$this->assertStringContainsString( 'Coverage is 98.40%, so set', $output );
+		$this->assertStringContainsString( 'Coverage is 98.40%, below the baseline, so set', $output );
 	}
 
 	public function test_without_a_base_baseline_the_baseline_is_the_floor() {
 		$this->assertSame( 0, $this->gate( 9834, '98.34' )[0] );
 		$this->assertSame( 1, $this->gate( 9820, '98.34' )[0] );
-		$this->assertSame( 1, $this->gate( 9851, '98.34' )[0] );
+		$this->assertSame( 1, $this->gate( 9890, '98.34' )[0] );
 	}
 
 	public function test_a_figure_that_rounds_to_the_baseline_matches_it() {
