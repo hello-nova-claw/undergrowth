@@ -420,6 +420,31 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'New questions (0)', $html );
 	}
 
+	public function test_a_question_drawing_on_a_post_the_user_cannot_edit_is_hidden_and_refused() {
+		$other = $this->plant( 'Yacon', array( 0.0, 1.0 ), array( 'post_author' => self::factory()->user->create( array( 'role' => 'author' ) ) ) );
+		$this->store(
+			array(
+				'key'    => 'gap:1',
+				'source' => 'gap',
+				'posts'  => array( $this->post_id, $other ),
+			)
+		);
+
+		$this->assertStringNotContainsString( self::QUESTION, $this->studio() );
+		$this->assertSame( '', $this->render() );
+
+		try {
+			$this->choose( 'dismiss', 'gap:1' );
+			$this->fail( 'The choice was not refused.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 'new', undergrowth_find_prompt( 'gap:1' )['status'] );
+		}
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertStringContainsString( self::QUESTION, $this->studio() );
+	}
+
 	public function test_studio_names_an_untitled_post() {
 		wp_update_post(
 			array(
