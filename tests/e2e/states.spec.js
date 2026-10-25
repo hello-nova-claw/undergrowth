@@ -8,6 +8,7 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
 const { skipWelcomeGuide } = require( './preferences' );
+const { STYLED } = require( './supports' );
 
 const OUTPUT = path.resolve(
 	process.env.UNDERGROWTH_SCREENSHOTS_DIR || 'artifacts/screenshots'
@@ -607,6 +608,12 @@ const WITH_BADGE = [
 		state: 'editor-composting',
 		edit: () => badgePosts.composting,
 	},
+	// Colour and padding set, shown once, as readers see them.
+	{
+		screen: 'block-growth-stage',
+		state: 'editor-styled',
+		edit: () => badgePosts.styled,
+	},
 ];
 
 // Filled in once the list's posts exist, since the shots need their IDs.
@@ -630,6 +637,12 @@ const WITH_MORE_LIKE_THIS = [
 		screen: 'block-more-like-this',
 		state: 'editor-empty',
 		list: () => listPosts.alone,
+	},
+	// Colour and padding set, shown once, as readers see them.
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-styled',
+		list: () => listPosts.styled,
 	},
 ];
 
@@ -1322,6 +1335,16 @@ test.describe( 'Screenshot catalogue', () => {
 				).id;
 			}
 
+			badgePosts.styled = (
+				await requestUtils.createPost( {
+					title: 'Mashua',
+					content: `<!-- wp:paragraph --><p>Oca grows here.</p><!-- /wp:paragraph --><!-- wp:undergrowth/growth-stage ${ JSON.stringify(
+						STYLED
+					) } /-->`,
+					status: 'publish',
+				} )
+			).id;
+
 			const list = await requestUtils.request.get( 'wp-admin/edit.php' );
 			const link = ( await list.text() ).match(
 				new RegExp(
@@ -1368,6 +1391,18 @@ test.describe( 'Screenshot catalogue', () => {
 					} )
 				).id;
 			}
+		} );
+
+		test.beforeAll( async ( { requestUtils } ) => {
+			listPosts.styled = (
+				await requestUtils.createPost( {
+					title: 'Oca again',
+					content: `<!-- wp:paragraph --><p>Oca oca oca.</p><!-- /wp:paragraph --><!-- wp:undergrowth/more-like-this ${ JSON.stringify(
+						STYLED
+					) } /-->`,
+					status: 'publish',
+				} )
+			).id;
 		} );
 
 		capture( WITH_MORE_LIKE_THIS );

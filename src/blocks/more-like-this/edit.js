@@ -290,6 +290,9 @@ export default function Edit( {
 					key={ changed }
 					block="undergrowth/more-like-this"
 					attributes={ attributes }
+					// The wrapper above already carries the colour, type and
+					// spacing, so the preview must not apply them twice.
+					skipBlockSupportAttributes
 					urlQueryArgs={ { post_id: postId } }
 					EmptyResponsePlaceholder={ NoList }
 				/>

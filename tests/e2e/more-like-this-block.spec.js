@@ -1,6 +1,7 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
 const { skipWelcomeGuide } = require( './preferences' );
+const { STYLED, expectSupportsOnce } = require( './supports' );
 
 const LIST = '.wp-block-undergrowth-more-like-this';
 const PANEL = '.undergrowth-more-like-this-panel';
@@ -11,9 +12,10 @@ const BLOCK = '<!-- wp:undergrowth/more-like-this {"showExcerpt":true} /-->';
  * the fixture words, so posts sharing "oca" are close and the ledger is not.
  *
  * @param {Object} requestUtils Request utilities.
+ * @param {string} block        The block's markup in the source post.
  * @return {Promise<Object>} Posts by name, as the REST API returns them.
  */
-async function plantGarden( requestUtils ) {
+async function plantGarden( requestUtils, block = BLOCK ) {
 	const posts = {};
 
 	for ( const [ name, title, content, extra ] of [
@@ -26,7 +28,7 @@ async function plantGarden( requestUtils ) {
 		posts[ name ] = await requestUtils.createPost( {
 			title,
 			content: `<!-- wp:paragraph --><p>${ content }</p><!-- /wp:paragraph -->${
-				'source' === name ? BLOCK : ''
+				'source' === name ? block : ''
 			}`,
 			excerpt: 'A note the author wrote.',
 			status: 'publish',
@@ -131,6 +133,27 @@ test.describe( 'More like this block', () => {
 		// Kept for good: readers no longer see it either.
 		await page.goto( `/?p=${ posts.source.id }` );
 		await expect( page.locator( `nav${ LIST } li` ) ).toHaveCount( 1 );
+	} );
+
+	test( 'shows its colour and spacing once in the editor, as on the front end', async ( {
+		admin,
+		editor,
+		page,
+		requestUtils,
+	} ) => {
+		const posts = await plantGarden(
+			requestUtils,
+			`<!-- wp:undergrowth/more-like-this ${ JSON.stringify( STYLED ) } /-->`
+		);
+
+		await expectSupportsOnce( {
+			page,
+			admin,
+			editor,
+			postId: posts.source.id,
+			name: 'undergrowth/more-like-this',
+			rendered: 'nav',
+		} );
 	} );
 
 	test( 'shows readers nothing once every close post is composted', async ( {

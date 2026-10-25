@@ -1,5 +1,6 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
+const { STYLED, expectSupportsOnce } = require( './supports' );
 
 const BADGE = '.wp-block-undergrowth-growth-stage';
 
@@ -96,6 +97,30 @@ test.describe( 'Growth stage block', () => {
 		await expect(
 			editor.canvas.locator( `[data-type="undergrowth/growth-stage"]` )
 		).toHaveCount( 1 );
+	} );
+
+	test( 'shows its colour and spacing once in the editor, as on the front end', async ( {
+		admin,
+		editor,
+		page,
+		requestUtils,
+	} ) => {
+		const post = await requestUtils.createPost( {
+			title: 'Oca',
+			content: `<!-- wp:undergrowth/growth-stage ${ JSON.stringify(
+				STYLED
+			) } /-->`,
+			status: 'publish',
+		} );
+
+		await expectSupportsOnce( {
+			page,
+			admin,
+			editor,
+			postId: post.id,
+			name: 'undergrowth/growth-stage',
+			rendered: `${ BADGE } p, p${ BADGE }`,
+		} );
 	} );
 
 	test( 'shows readers the stage and hides it once the post is composted', async ( {
