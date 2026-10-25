@@ -15,16 +15,25 @@ add_action( 'admin_init', 'undergrowth_register_discord_settings' );
 add_action( 'add_option_undergrowth_discord_bot_token', 'undergrowth_stop_autoloading_key' );
 
 /**
+ * Names the Discord settings, in the order the settings page shows them.
+ *
+ * @return string[] Setting names without their prefix.
+ */
+function undergrowth_discord_fields(): array {
+	return array( 'application_id', 'public_key', 'bot_token', 'channel_id' );
+}
+
+/**
  * Returns the names of the options that hold the Discord settings.
  *
  * @return string[] Option names.
  */
 function undergrowth_discord_options(): array {
-	return array(
-		'undergrowth_discord_application_id',
-		'undergrowth_discord_public_key',
-		'undergrowth_discord_bot_token',
-		'undergrowth_discord_channel_id',
+	return array_map(
+		static function ( string $name ): string {
+			return 'undergrowth_discord_' . $name;
+		},
+		undergrowth_discord_fields()
 	);
 }
 
@@ -69,22 +78,16 @@ function undergrowth_discord_endpoint_url(): string {
  * Registers the Discord settings and their section on the settings page.
  */
 function undergrowth_register_discord_settings(): void {
-	$sanitizers = array(
-		'undergrowth_discord_application_id' => 'undergrowth_sanitize_discord_application_id',
-		'undergrowth_discord_public_key'     => 'undergrowth_sanitize_discord_public_key',
-		'undergrowth_discord_bot_token'      => 'undergrowth_sanitize_discord_bot_token',
-		'undergrowth_discord_channel_id'     => 'undergrowth_sanitize_discord_channel_id',
-	);
-
-	foreach ( $sanitizers as $option => $sanitize_callback ) {
+	// Each setting has a sanitizer of the same name.
+	foreach ( undergrowth_discord_fields() as $name ) {
 		register_setting(
 			'undergrowth',
-			$option,
+			'undergrowth_discord_' . $name,
 			array(
 				'type'              => 'string',
 				'default'           => '',
 				'show_in_rest'      => false,
-				'sanitize_callback' => $sanitize_callback,
+				'sanitize_callback' => 'undergrowth_sanitize_discord_' . $name,
 			)
 		);
 	}
@@ -96,14 +99,15 @@ function undergrowth_register_discord_settings(): void {
 		'undergrowth'
 	);
 
-	$fields = array(
+	$titles = array(
 		'application_id' => __( 'Application ID', 'undergrowth' ),
 		'public_key'     => __( 'Public key', 'undergrowth' ),
 		'bot_token'      => __( 'Bot token', 'undergrowth' ),
 		'channel_id'     => __( 'Channel ID for link suggestions', 'undergrowth' ),
 	);
 
-	foreach ( $fields as $name => $title ) {
+	foreach ( undergrowth_discord_fields() as $name ) {
+		$title = $titles[ $name ];
 		add_settings_field(
 			'undergrowth_discord_' . $name,
 			$title,
@@ -214,12 +218,12 @@ function undergrowth_sanitize_discord_bot_token( $value ): string {
  * message sends is in the Discord Help tab.
  */
 function undergrowth_render_discord_section(): void {
-	$error = get_option( 'undergrowth_last_discord_error' );
+	$error = undergrowth_last_failure( 'undergrowth_last_discord_error' );
 	?>
 	<p id="undergrowth-discord-notice"><?php esc_html_e( 'Undergrowth can also post each new link suggestion to a private channel in your own Discord server, with Accept and Veto buttons, once every field below is filled in.', 'undergrowth' ); ?></p>
 
 	<?php
-	if ( is_array( $error ) && isset( $error['time'] ) ) {
+	if ( null !== $error ) {
 		undergrowth_print_failure_notice( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ), 'undergrowth-discord-error' );
 	}
 }
@@ -253,13 +257,13 @@ function undergrowth_render_discord_field( array $args ): void {
 		printf( '<p class="description" id="%1$s">%2$s</p>', esc_attr( $description ), esc_html( $where[ $name ] ) );
 		return;
 	}
-	$error = get_option( 'undergrowth_last_discord_error' );
+	$error = undergrowth_last_failure( 'undergrowth_last_discord_error' );
 
 	// The saved token's line and the last failure describe the field too, so
 	// a screen reader reads "leave the field blank to keep it" on focus.
 	$described = $description
 		. ( '' !== $value ? ' undergrowth-discord-bot-token-saved' : '' )
-		. ( is_array( $error ) && isset( $error['time'] ) ? ' undergrowth-discord-error' : '' );
+		. ( null !== $error ? ' undergrowth-discord-error' : '' );
 	?>
 	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $described ); ?>" />
 	<p class="description" id="<?php echo esc_attr( $description ); ?>"><?php echo esc_html( $where[ $name ] ); ?></p>

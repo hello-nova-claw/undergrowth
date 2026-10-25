@@ -216,4 +216,17 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 			$this->assertSame( 'missing', get_option( $option, 'missing' ) );
 		}
 	}
+
+	public function test_discord_fields_are_listed_once_and_named_by_every_option() {
+		$this->assertSame( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ), undergrowth_discord_fields() );
+		$this->assertSame(
+			array_map(
+				static function ( $name ) {
+					return 'undergrowth_discord_' . $name;
+				},
+				undergrowth_discord_fields()
+			),
+			undergrowth_discord_options()
+		);
+	}
 }
