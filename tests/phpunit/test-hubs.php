@@ -352,10 +352,10 @@ class Test_Hubs extends WP_UnitTestCase {
 	}
 
 	public function test_group_that_changed_by_more_than_half_is_a_new_group() {
-		$this->assertTrue( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 6, 7 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 6, 7, 8 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array(), array() ) );
+		$this->assertTrue( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 6, 7 ) ) );
+		$this->assertFalse( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 6, 7, 8 ) ) );
+		$this->assertFalse( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ) ) );
+		$this->assertFalse( undergrowth_same_group( array(), array() ) );
 	}
 
 	public function test_malformed_vetoes_are_left_out() {
