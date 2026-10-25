@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 6;
+const UNDERGROWTH_SCHEMA_VERSION = 7;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -33,6 +33,7 @@ function undergrowth_protected_meta_keys(): array {
 		'undergrowth_stage',
 		'undergrowth_stage_log',
 		'undergrowth_stage_pinned',
+		'undergrowth_tend_dismissed',
 	);
 }
 
@@ -113,6 +114,7 @@ function undergrowth_install_schema(): bool {
 			anchor varchar(255) NOT NULL DEFAULT '',
 			anchor_offset int(11) NOT NULL DEFAULT -1,
 			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
+			kind varchar(20) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
@@ -411,6 +413,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	delete_post_meta_by_key( 'undergrowth_similar' );
 	delete_post_meta_by_key( 'undergrowth_similar_hidden' );
+	delete_post_meta_by_key( 'undergrowth_tend_dismissed' );
 	delete_option( 'undergrowth_similar_generation' );
 	delete_option( 'undergrowth_popularity' );
 	undergrowth_delete_memory_folder();

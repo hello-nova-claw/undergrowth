@@ -300,6 +300,34 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
 	}
 
+	public function test_upgrade_to_version_7_marks_every_stored_link_as_usual() {
+		global $wpdb;
+
+		$current = $this->install_version( 2 );
+		$links   = undergrowth_links_table();
+
+		$wpdb->insert(
+			$links,
+			array(
+				'source_id'  => 1,
+				'target_id'  => 2,
+				'state'      => 'proposed',
+				'score'      => 0.5,
+				'sentence'   => 'Oca grows here.',
+				'created_at' => '2026-10-01 00:00:00',
+				'updated_at' => '2026-10-01 00:00:00',
+			)
+		);
+		update_option( 'undergrowth_schema_version', 6 );
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assert_current_columns( $current );
+		// MariaDB fills the default in; the SQLite driver leaves it null. The
+		// code reads either as a usual link.
+		$this->assertSame( '', (string) $wpdb->get_var( $wpdb->prepare( 'SELECT kind FROM %i WHERE source_id = 1', $links ) ) );
+	}
+
 	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
 		global $wpdb;
 

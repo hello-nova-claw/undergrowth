@@ -44,6 +44,7 @@ require_once __DIR__ . '/src/stages.php';
 require_once __DIR__ . '/src/visibility.php';
 require_once __DIR__ . '/src/popularity.php';
 require_once __DIR__ . '/src/similar.php';
+require_once __DIR__ . '/src/tend.php';
 require_once __DIR__ . '/src/abilities.php';
 require_once __DIR__ . '/src/resurfacing.php';
 require_once __DIR__ . '/src/settings.php';

@@ -186,6 +186,22 @@ export default function StagePanel( { postId, status } ) {
 							'undergrowth'
 						) }
 			</p>
+			{ stage.tend && (
+				// A note to the author only, never shown to readers.
+				<Notice
+					className="undergrowth-tend"
+					status="info"
+					isDismissible={ false }
+				>
+					<p>{ stage.tend }</p>
+					{ button(
+						'undergrowth-dismiss-tend',
+						__( 'Dismiss note', 'undergrowth' ),
+						{ action: 'dismiss_tend' },
+						'link'
+					) }
+				</Notice>
+			) }
 			{ ! composting && ! stage.pinned && (
 				<>
 					<SelectControl

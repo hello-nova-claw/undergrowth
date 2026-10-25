@@ -717,6 +717,79 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
 }
 
 /**
+ * Stores one proposal, or updates the one already stored for the pair.
+ *
+ * Accepted and vetoed rows are never touched. Words the author chose stay
+ * theirs while the sentence they chose them in is still the one suggested.
+ *
+ * @param int    $post_id   Source post ID.
+ * @param int    $target_id Target post ID.
+ * @param float  $score     Similarity of the two posts.
+ * @param string $sentence  Sentence the link would sit in.
+ * @param array  $corpus    Word counts across the pool.
+ * @param string $kind      'cross' for a cross-pollination link, or an empty string.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ */
+function undergrowth_store_proposal( int $post_id, int $target_id, float $score, string $sentence, array $corpus, string $kind ): void {
+	global $wpdb;
+
+	$table   = undergrowth_links_table();
+	$now     = current_time( 'mysql', true );
+	$state   = undergrowth_link_state( $post_id, $target_id );
+	$anchor  = undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus );
+	$fields  = array(
+		'score'         => $score,
+		'sentence'      => $sentence,
+		'kind'          => $kind,
+		'anchor'        => $anchor['anchor'],
+		'anchor_offset' => $anchor['offset'],
+		'anchor_chosen' => 0,
+		'updated_at'    => $now,
+	);
+	$formats = array( '%f', '%s', '%s', '%s', '%d', '%d', '%s' );
+
+	if ( 'proposed' === $state ) {
+		// Words the author chose stay theirs while the sentence they
+		// chose them in is still the one suggested.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+		$chosen = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d AND anchor_chosen = 1', $table, $post_id, $target_id ) );
+
+		if ( $sentence === $chosen ) {
+			unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
+			$formats = array( '%f', '%s', '%s', '%s' );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
+		$wpdb->update(
+			$table,
+			$fields,
+			array(
+				'source_id' => $post_id,
+				'target_id' => $target_id,
+			),
+			$formats,
+			array( '%d', '%d' )
+		);
+	} elseif ( '' === $state ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- The plugin's own table has no core API.
+		$wpdb->insert(
+			$table,
+			array_merge(
+				array(
+					'source_id'  => $post_id,
+					'target_id'  => $target_id,
+					'state'      => 'proposed',
+					'created_at' => $now,
+				),
+				$fields
+			),
+			array_merge( array( '%d', '%d', '%s', '%s' ), $formats )
+		);
+	}
+}
+
+/**
  * Rewrites a post's proposed links to match its current best targets.
  *
  * A target only counts when the source post has a sentence where the link
@@ -750,7 +823,6 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$pool    = $pool ?? undergrowth_comparable_vectors( $post_id );
 	$corpus  = $corpus ?? undergrowth_build_corpus( array_keys( $pool ) );
 	$table   = undergrowth_links_table();
-	$now     = current_time( 'mysql', true );
 	$targets = array();
 	$taken   = array();
 
@@ -764,59 +836,27 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 		$targets[ $target_id ] = $score;
 		$taken[]               = $sentence['text'];
-		$state                 = undergrowth_link_state( $post_id, $target_id );
-		$anchor                = undergrowth_proposal_anchor( $post_id, $target_id, $sentence['text'], $corpus );
-		$fields                = array(
-			'score'         => $score,
-			'sentence'      => $sentence['text'],
-			'anchor'        => $anchor['anchor'],
-			'anchor_offset' => $anchor['offset'],
-			'anchor_chosen' => 0,
-			'updated_at'    => $now,
-		);
-		$formats               = array( '%f', '%s', '%s', '%d', '%d', '%s' );
 
-		if ( 'proposed' === $state ) {
-			// Words the author chose stay theirs while the sentence they
-			// chose them in is still the one suggested.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
-			$chosen = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d AND anchor_chosen = 1', $table, $post_id, $target_id ) );
-
-			if ( $sentence['text'] === $chosen ) {
-				unset( $fields['anchor'], $fields['anchor_offset'], $fields['anchor_chosen'] );
-				$formats = array( '%f', '%s', '%s' );
-			}
-
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table has no core API.
-			$wpdb->update(
-				$table,
-				$fields,
-				array(
-					'source_id' => $post_id,
-					'target_id' => $target_id,
-				),
-				$formats,
-				array( '%d', '%d' )
-			);
-		} elseif ( '' === $state ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- The plugin's own table has no core API.
-			$wpdb->insert(
-				$table,
-				array_merge(
-					array(
-						'source_id'  => $post_id,
-						'target_id'  => $target_id,
-						'state'      => 'proposed',
-						'created_at' => $now,
-					),
-					$fields
-				),
-				array_merge( array( '%d', '%d', '%s', '%s' ), $formats )
-			);
-		}
+		undergrowth_store_proposal( $post_id, $target_id, $score, $sentence['text'], $corpus, '' );
 
 		if ( count( $targets ) >= UNDERGROWTH_MAX_PROPOSALS ) {
 			break;
+		}
+	}
+
+	// At most one cross-pollination link on top, to a post in a group that
+	// sits apart, so the usual suggestions stay the majority.
+	// Both ends must still be in this post's provider, model and language,
+	// which the pairs, found once a month, cannot promise.
+	$cross = isset( $pool[ $post_id ] ) ? undergrowth_cross_link_target( $post_id, array_keys( $targets ), array_keys( $pool ) ) : null;
+
+	if ( null !== $cross ) {
+		$sentence = undergrowth_choose_sentence( $post_id, $cross[0], $corpus, $taken );
+
+		if ( null !== $sentence ) {
+			$targets[ $cross[0] ] = $cross[1];
+
+			undergrowth_store_proposal( $post_id, $cross[0], $cross[1], $sentence['text'], $corpus, 'cross' );
 		}
 	}
 

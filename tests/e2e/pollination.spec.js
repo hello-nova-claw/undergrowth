@@ -153,3 +153,60 @@ test.describe( 'Cross-pollination', () => {
 		await expect( page.locator( '#undergrowth_surprise_2' ) ).toBeChecked();
 	} );
 } );
+
+test.describe( 'Cross-pollination links', () => {
+	let mixed;
+	let roots;
+
+	test.beforeEach( async ( { requestUtils, admin } ) => {
+		await requestUtils.deleteAllPosts();
+
+		for ( const title of [ 'First', 'Second', 'Third' ] ) {
+			await publish( requestUtils, title, { yacon: 6 } );
+		}
+
+		roots = await publish( requestUtils, 'Roots', { oca: 6 } );
+
+		for ( const title of [ 'Old roots', 'Deep roots' ] ) {
+			await publish( requestUtils, title, { oca: 6 } );
+		}
+
+		// Mostly yacon, so it joins that group, with enough oca to sit in
+		// the sweet spot of the other.
+		mixed = await requestUtils.createPost( {
+			title: 'Mixed',
+			content:
+				'<p>Yacon grows tall. Yacon roots are sweet. Yacon needs sun. Yacon flowers late. Yacon keeps well. Yacon again. Oca seed came too. Oca and oca.</p>',
+			status: 'publish',
+		} );
+
+		const pass = await requestUtils.request.get(
+			'wp-admin/index.php?undergrowth_e2e_cluster=1'
+		);
+		expect( pass.ok() ).toBe( true );
+
+		await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
+	} );
+
+	test.afterEach( async ( { requestUtils } ) => {
+		await requestUtils.deleteAllPosts();
+	} );
+
+	test( 'labels the one cross-pollination suggestion, with no WCAG 2.2 AA violations', async ( {
+		page,
+	} ) => {
+		const label = page.locator( '.undergrowth-cross' );
+
+		await expect( label ).toHaveCount( 1 );
+
+		const row = page.locator( 'tr', { has: label } );
+
+		await expect(
+			row.locator( `a[href*="post=${ mixed.id }&"]` ).first()
+		).toBeVisible();
+		await expect(
+			row.locator( `a.row-title[href*="post=${ roots.id }&"]` )
+		).toHaveCount( 1 );
+		await expectNoA11yViolations( page, '.wrap' );
+	} );
+} );
