@@ -76,3 +76,41 @@ test.describe( 'Discord user field on the profile screen', () => {
 		expect( width ).toBeLessThanOrEqual( 390 );
 	} );
 } );
+
+test.describe( 'Monthly email on the profile screen', () => {
+	const section = 'table.form-table:has( #undergrowth_digest )';
+
+	test.beforeEach( async ( { admin } ) => {
+		await admin.visitAdminPage( 'profile.php' );
+	} );
+
+	test.afterEach( async ( { admin, page } ) => {
+		await admin.visitAdminPage( 'profile.php' );
+		await page.locator( '#undergrowth_digest' ).uncheck();
+		await page.locator( '#submit' ).click();
+	} );
+
+	test( 'has no WCAG 2.2 AA violations', async ( { page } ) => {
+		await expectNoA11yViolations( page, section );
+	} );
+
+	test( 'is off until turned on, and turns on by keyboard', async ( {
+		page,
+	} ) => {
+		const box = page.locator( '#undergrowth_digest' );
+
+		await expect( box ).not.toBeChecked();
+		await expect( box ).toHaveAttribute(
+			'aria-describedby',
+			'undergrowth-digest-description'
+		);
+
+		await box.focus();
+		await page.keyboard.press( 'Space' );
+		await page.locator( '#submit' ).click();
+
+		await expect( page.locator( '#message.updated' ) ).toBeVisible();
+		await page.reload();
+		await expect( box ).toBeChecked();
+	} );
+} );
