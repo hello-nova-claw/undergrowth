@@ -67,6 +67,10 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 |---|---|---|
 | `undergrowth_similar_stage_weights` | `src/similar.php` | How much each growth stage lifts or sinks a post in "More like this", as a multiplier keyed by stage. Default Evergreen 1.15, Budding 1.1, Sprout 1, Seedling 0.9. |
 | `undergrowth_similar_freshness` | `src/similar.php` | The lift a recently updated post gets in "More like this", as `array( 'lift' => …, 'half_life' => … )`. Default a lift of 0.1 for a post updated today, halving every 180 days. |
+| `undergrowth_similar_popularity_cap` | `src/similar.php` | The most recent views can lift a post in "More like this", from 0 to 1. The most viewed post on the list gets the whole lift, others a share in proportion. Default 0.15. |
+| `undergrowth_post_popularity` | `src/popularity.php` | A post's recent views, faded with age, or `null` when not known. Default from Jetpack Stats, Koko Analytics or Post Views Counter, whichever is active. Return a number to supply views from another source. |
+| `undergrowth_popularity_sources` | `src/popularity.php` | The stats plugins popularity is read from, first choice first, as `array( slug => array( 'label', 'active', 'read' ) )`. The first active one is read once a day; `read` takes a number of days and returns daily views keyed by post ID, then by date as `Y-m-d`. |
+| `undergrowth_popularity_half_life` | `src/popularity.php` | How many days it takes a view to count half as much towards popularity. Default 7. |
 
 ### Writing prompts
 
@@ -100,4 +104,4 @@ Each action passes the post ID first.
 
 Each is unscheduled on deactivation and on uninstall (`tests/phpunit/test-uninstall.php` checks both against `src/`). They are listed here so a site can see them in a cron viewer. They are not for hooking.
 
-`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_stale_check`, `undergrowth_memory_folder_check`, `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`.
+`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_stale_check`, `undergrowth_memory_folder_check`, `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`, `undergrowth_measure_similar`, `undergrowth_read_popularity` (daily).

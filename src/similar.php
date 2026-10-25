@@ -24,6 +24,7 @@ const UNDERGROWTH_SIMILAR_STAGES     = array(
 );
 const UNDERGROWTH_SIMILAR_FRESH_LIFT = 0.1;
 const UNDERGROWTH_SIMILAR_FRESH_HALF = 180;
+const UNDERGROWTH_SIMILAR_POPULAR    = 0.15;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_forget_similar' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_similar' );
@@ -112,36 +113,19 @@ function undergrowth_measure_similar( int $post_id ): array {
 		}
 	);
 
-	// Every candidate is weighed here, so a post far down by meaning alone
-	// that rises on its stage and freshness is kept. The closest by meaning
-	// are kept too, for the quiet slot. The bound keeps one post's list from
-	// holding the whole archive; stage changes measure it again, and
-	// freshness fades too slowly to reorder much before the next measure.
 	// Posts readers may not see, or the author hid, are left out first, so
 	// they never take the place of one that can be shown. Each change to
 	// either measures the list again.
 	$hidden = array_flip( undergrowth_similar_hidden( $post_id ) );
 	$scores = array_intersect_key( $scores, array_flip( undergrowth_filter_garden_visible( array_keys( array_diff_key( $scores, $hidden ) ) ) ) );
 
-	$now      = time();
-	$weighted = array();
-
-	foreach ( $scores as $id => $score ) {
-		$post = get_post( $id );
-
-		if ( $post instanceof WP_Post ) {
-			$weighted[ $id ] = undergrowth_similar_weight( $post, $score, $now );
-		}
-	}
-
-	uksort(
-		$weighted,
-		static function ( $a, $b ) use ( $weighted ) {
-			$order = $weighted[ $b ] <=> $weighted[ $a ];
-
-			return 0 === $order ? $a <=> $b : $order;
-		}
-	);
+	// Every candidate is weighed here, so a post far down by meaning alone
+	// that rises on its stage, freshness or views is kept. The closest by
+	// meaning are kept too, for the quiet slot. The bound keeps one post's
+	// list from holding the whole archive. Stage changes and each day's
+	// views measure it again, and freshness fades too slowly to reorder
+	// much before the next measure.
+	$weighted = undergrowth_similar_rank( $scores, undergrowth_posts_popularity( array_keys( $scores ) ) );
 
 	$keep   = array_slice( array_keys( $weighted ), 0, UNDERGROWTH_SIMILAR_CACHED );
 	$keep   = array_merge( $keep, array_slice( array_keys( $scores ), 0, UNDERGROWTH_SIMILAR_CACHED ) );
@@ -228,10 +212,69 @@ function undergrowth_similar_weight( WP_Post $post, float $similarity, int $now 
 }
 
 /**
+ * Returns the most popularity can lift a post.
+ *
+ * The most viewed post on the list gets the whole lift, the others a share
+ * in proportion to their views, so popularity can never carry a post past
+ * one that is closer by more than this.
+ *
+ * @return float The lift for the most viewed post, from 0 to 1.
+ */
+function undergrowth_similar_popularity_cap(): float {
+	/**
+	 * Filters the most popularity can lift a post in "More like this".
+	 *
+	 * @param float $cap The lift for the most viewed post on the list, from 0 to 1. Default 0.15.
+	 */
+	return max( 0.0, min( 1.0, (float) apply_filters( 'undergrowth_similar_popularity_cap', UNDERGROWTH_SIMILAR_POPULAR ) ) );
+}
+
+/**
+ * Weighs posts by their similarity, stage, freshness and recent views, and
+ * orders them best first.
+ *
+ * The most viewed post gets the whole popularity lift, the others a share
+ * in proportion to their views. A post deleted meanwhile is left out.
+ *
+ * @param array<int, float>      $scores Similarity keyed by post ID.
+ * @param array<int, float|null> $views  Recent views keyed by post ID, null where not known.
+ * @return array<int, float> Weighted scores keyed by post ID, best first, ties to the lower ID.
+ */
+function undergrowth_similar_rank( array $scores, array $views ): array {
+	$known    = array_filter( $views, 'is_float' );
+	$most     = array() === $known ? 0.0 : max( $known );
+	$cap      = undergrowth_similar_popularity_cap();
+	$now      = time();
+	$weighted = array();
+
+	_prime_post_caches( array_keys( $scores ), false, true );
+
+	foreach ( $scores as $id => $score ) {
+		$post = get_post( $id );
+
+		if ( $post instanceof WP_Post ) {
+			$lift            = $most > 0 ? 1 + $cap * ( $views[ $id ] ?? 0.0 ) / $most : 1.0;
+			$weighted[ $id ] = undergrowth_similar_weight( $post, $score, $now ) * $lift;
+		}
+	}
+
+	uksort(
+		$weighted,
+		static function ( $a, $b ) use ( $weighted ) {
+			$order = $weighted[ $b ] <=> $weighted[ $a ];
+
+			return 0 === $order ? $a <=> $b : $order;
+		}
+	);
+
+	return $weighted;
+}
+
+/**
  * Counts the accepted links pointing to each of some posts.
  *
- * Until a site's view counts can be read, this is how "under-read" is told:
- * a post few others link to is one readers rarely reach.
+ * When a site's view counts cannot be read, this is how "under-read" is
+ * told: a post few others link to is one readers rarely reach.
  *
  * @param int[] $post_ids Post IDs.
  * @return array<int, int> Accepted links in, keyed by post ID, zero for none.
@@ -302,9 +345,11 @@ function undergrowth_set_similar_hidden( int $post_id, int $target_id, bool $hid
  * Returns the posts "More like this" shows for a post, in order.
  *
  * Posts readers may not see, and posts the author hid, are left out before
- * the list is weighed. When there is room for more than one post, the last
- * slot goes to the close post with the fewest links in, if it did not make
- * the list on its own.
+ * the list is weighed. Recent views, where a stats plugin gives them, lift
+ * a post by up to undergrowth_similar_popularity_cap(). When there is room
+ * for more than one post, the last slot goes to the close post with the
+ * fewest recent views, or the fewest links in when views are not known, if
+ * it did not make the list on its own.
  *
  * @param int $post_id Post the list is for.
  * @param int $count   How many posts to show, 1 to 6.
@@ -325,28 +370,10 @@ function undergrowth_more_like_this( int $post_id, int $count ): array {
 		return array();
 	}
 
-	$now      = time();
-	$weighted = array();
-
-	foreach ( $visible as $id ) {
-		$post = get_post( $id );
-
-		// A post deleted since it was checked is left out.
-		if ( $post instanceof WP_Post ) {
-			$weighted[ $id ] = undergrowth_similar_weight( $post, $scores[ $id ], $now );
-		}
-	}
-
-	$visible = array_keys( array_intersect_key( array_flip( $visible ), $weighted ) );
-
-	uksort(
-		$weighted,
-		static function ( $a, $b ) use ( $weighted ) {
-			$order = $weighted[ $b ] <=> $weighted[ $a ];
-
-			return 0 === $order ? $a <=> $b : $order;
-		}
-	);
+	$views    = undergrowth_posts_popularity( $visible );
+	$known    = array_filter( $views, 'is_float' );
+	$weighted = undergrowth_similar_rank( array_intersect_key( $scores, array_flip( $visible ) ), $views );
+	$visible  = array_keys( array_intersect_key( array_flip( $visible ), $weighted ) );
 
 	$shown = array_slice( array_keys( $weighted ), 0, $count );
 
@@ -356,9 +383,14 @@ function undergrowth_more_like_this( int $post_id, int $count ): array {
 
 	// The under-read post is chosen among the closest in meaning alone, so
 	// it is always close, however its stage or age weighs it.
-	$close = array_slice( $visible, 0, $count * 2 );
-	$links = undergrowth_similar_links_in( array_values( array_unique( array_merge( $close, $shown ) ) ) );
-	$quiet = null;
+	// Views decide only when every post in question has them; otherwise an
+	// unknown count would pass for none.
+	$close     = array_slice( $visible, 0, $count * 2 );
+	$candidate = array_values( array_unique( array_merge( $close, $shown ) ) );
+	$links     = count( array_intersect_key( $known, array_flip( $candidate ) ) ) === count( $candidate )
+		? $known
+		: undergrowth_similar_links_in( $candidate );
+	$quiet     = null;
 
 	foreach ( $close as $id ) {
 		if ( null === $quiet || $links[ $id ] < $links[ $quiet ] ) {
@@ -366,8 +398,8 @@ function undergrowth_more_like_this( int $post_id, int $count ): array {
 		}
 	}
 
-	// Only when every post on the list is better linked than it, so a list
-	// that already holds a quiet post is left as it is.
+	// Only when every post on the list is better read or linked than it, so
+	// a list that already holds a quiet post is left as it is.
 	if ( null !== $quiet && $links[ $quiet ] < min( array_intersect_key( $links, array_flip( $shown ) ) ) ) {
 		$shown[ $count - 1 ] = $quiet;
 	}
