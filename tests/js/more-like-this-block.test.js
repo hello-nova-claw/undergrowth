@@ -88,7 +88,11 @@ describe( 'More like this block', () => {
 
 		const container = mount(
 			<Edit
-				attributes={ ATTRIBUTES }
+				attributes={ {
+					...ATTRIBUTES,
+					backgroundColor: 'accent',
+					style: { spacing: { padding: { top: '2em' } } },
+				} }
 				setAttributes={ () => {} }
 				context={ { postId: 42, postType: 'post' } }
 			/>
@@ -103,6 +107,13 @@ describe( 'More like this block', () => {
 			/^\/wp\/v2\/block-renderer\/undergrowth\/more-like-this\?/
 		);
 		expect( render.path ).toContain( 'post_id=42' );
+		// The wrapper carries the supports, so the preview never doubles them.
+		expect( decodeURIComponent( render.path ) ).toContain(
+			'attributes[postsToShow]=3'
+		);
+		expect( decodeURIComponent( render.path ) ).not.toMatch(
+			/backgroundColor|padding/
+		);
 		expect( container.textContent ).toContain( 'Yacon' );
 	} );
 
