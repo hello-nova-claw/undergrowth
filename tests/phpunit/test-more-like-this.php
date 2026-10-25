@@ -166,6 +166,28 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( $evergreen, undergrowth_more_like_this( $this->source, 3 )[0] );
 	}
 
+	public function test_a_post_beyond_the_kept_closest_can_still_rise_on_its_weights() {
+		foreach ( range( 1, 110 ) as $n ) {
+			$this->old( 'Post ' . $n, array( 1, 0.1 + $n / 10000, 0 ) );
+		}
+
+		$evergreen = $this->old( 'Mashua', array( 1, 0.15, 0 ) );
+		update_post_meta( $evergreen, 'undergrowth_stage', 'evergreen' );
+		$this->changed( $evergreen, 'now' );
+
+		$this->assertSame( $evergreen, undergrowth_more_like_this( $this->source, 3 )[0] );
+	}
+
+	public function test_a_new_stage_measures_the_lists_again() {
+		$yacon = $this->old( 'Yacon', array( 1, 0, 0 ) );
+		undergrowth_similar_scores( $this->source );
+
+		do_action( 'undergrowth_stage_changed', $yacon );
+		undergrowth_similar_scores( $this->source );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+	}
+
 	public function test_stage_weights_can_be_filtered() {
 		$seedling = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
 		$budding  = $this->old( 'Mashua', array( 1, 0.5, 0 ) );

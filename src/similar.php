@@ -27,14 +27,15 @@ const UNDERGROWTH_SIMILAR_FRESH_HALF = 180;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_forget_similar' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_similar' );
+add_action( 'undergrowth_stage_changed', 'undergrowth_forget_similar' );
 add_action( 'undergrowth_measure_similar', 'undergrowth_remeasure_similar' );
 add_action( 'rest_api_init', 'undergrowth_register_similar_routes' );
 
 /**
  * Marks every cached list as stale.
  *
- * A new or changed vector can enter any post's list, so one counter covers
- * them all, and each list is measured again in cron once it is next shown.
+ * A new or changed vector, or a new stage, can change any post's list, so
+ * one counter covers them all, and each list is measured again in cron once it is next shown.
  */
 function undergrowth_forget_similar(): void {
 	update_option( 'undergrowth_similar_generation', (int) get_option( 'undergrowth_similar_generation', 0 ) + 1, false );
@@ -111,10 +112,36 @@ function undergrowth_measure_similar( int $post_id ): array {
 		}
 	);
 
-	// The list is weighed after this, so enough are kept for a post far down
-	// by meaning alone to rise on its stage and freshness. The bound keeps
-	// one post's list from holding the whole archive.
-	$scores = array_slice( $scores, 0, UNDERGROWTH_SIMILAR_CACHED, true );
+	// Every candidate is weighed here, so a post far down by meaning alone
+	// that rises on its stage and freshness is kept. The closest by meaning
+	// are kept too, for the quiet slot. The bound keeps one post's list from
+	// holding the whole archive; stage changes measure it again, and
+	// freshness fades too slowly to reorder much before the next measure.
+	_prime_post_caches( array_keys( $scores ), false, true );
+
+	$now      = time();
+	$weighted = array();
+
+	foreach ( $scores as $id => $score ) {
+		$post = get_post( $id );
+
+		if ( $post instanceof WP_Post ) {
+			$weighted[ $id ] = undergrowth_similar_weight( $post, $score, $now );
+		}
+	}
+
+	uksort(
+		$weighted,
+		static function ( $a, $b ) use ( $weighted ) {
+			$order = $weighted[ $b ] <=> $weighted[ $a ];
+
+			return 0 === $order ? $a <=> $b : $order;
+		}
+	);
+
+	$keep   = array_slice( array_keys( $weighted ), 0, UNDERGROWTH_SIMILAR_CACHED );
+	$keep   = array_merge( $keep, array_slice( array_keys( $scores ), 0, UNDERGROWTH_SIMILAR_CACHED ) );
+	$scores = array_intersect_key( $scores, array_flip( $keep ) );
 
 	update_post_meta(
 		$post_id,
