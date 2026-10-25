@@ -119,11 +119,16 @@ test.describe( 'Growth stage block', () => {
 		await expectNoA11yViolations( page, BADGE );
 
 		// A classic theme may drop the block library's styles, and with them
-		// the rule that hides .screen-reader-text. The label still stays hidden.
+		// the rule that hides .screen-reader-text. With every sheet but the
+		// block's own gone, the label still stays hidden.
 		await page.evaluate( () =>
 			document
 				.querySelectorAll( 'link[rel="stylesheet"], style' )
-				.forEach( ( sheet ) => sheet.remove() )
+				.forEach(
+					( sheet ) =>
+						sheet.id !== 'undergrowth-growth-stage-css' &&
+						sheet.remove()
+				)
 		);
 		const label = await badge
 			.locator( '.screen-reader-text' )

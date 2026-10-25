@@ -70,6 +70,15 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertFalse( $type->supports['html'] );
 	}
 
+	public function test_block_brings_its_own_rule_to_hide_the_label() {
+		$type = WP_Block_Type_Registry::get_instance()->get_registered( 'undergrowth/growth-stage' );
+
+		$this->assertSame( array( 'undergrowth-growth-stage' ), $type->style_handles );
+		$this->assertTrue( wp_style_is( 'undergrowth-growth-stage', 'registered' ) );
+		$this->assertSame( array(), wp_styles()->registered['undergrowth-growth-stage']->deps );
+		$this->assertStringContainsString( '.wp-block-undergrowth-growth-stage .screen-reader-text', (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/growth-stage.css' ) );
+	}
+
 	/**
 	 * Shows the stage's name, and a label saying what the name is.
 	 *
@@ -82,7 +91,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$html = $this->render( $this->post_at( $stage ) );
 
 		$this->assertStringContainsString( 'class="is-stage-' . $stage . ' wp-block-undergrowth-growth-stage"', $html );
-		$this->assertMatchesRegularExpression( '#<span class="screen-reader-text" style="[^"]*clip:[^"]*">Growth stage: ' . $name . '</span>#', $html );
+		$this->assertStringContainsString( '<span class="screen-reader-text">Growth stage: ' . $name . '</span>', $html );
 		$this->assertStringContainsString( '<span aria-hidden="true">' . $name . '</span>', $html );
 		$this->assertStringStartsWith( '<p ', $html );
 	}

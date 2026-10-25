@@ -20,7 +20,19 @@ add_action( 'init', 'undergrowth_register_blocks' );
  */
 function undergrowth_register_blocks(): void {
 	$folder = dirname( UNDERGROWTH_FILE ) . '/build/blocks/growth-stage';
-	$args   = array( 'render_callback' => 'undergrowth_render_growth_stage_block' );
+	$args   = array(
+		'render_callback' => 'undergrowth_render_growth_stage_block',
+		'style_handles'   => array( 'undergrowth-growth-stage' ),
+	);
+
+	// The badge hides its own screen-reader label, since a classic theme may
+	// drop the block library's styles and with them .screen-reader-text.
+	wp_register_style(
+		'undergrowth-growth-stage',
+		plugins_url( 'assets/growth-stage.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
+	);
 
 	if ( ! file_exists( $folder . '/block.json' ) ) {
 		$folder                        = dirname( UNDERGROWTH_FILE ) . '/src/blocks/growth-stage';
@@ -66,10 +78,9 @@ function undergrowth_render_growth_stage_block( $attributes, $content, $block ):
 	$name = undergrowth_stage_label( $stage );
 
 	// The visible word alone does not say what it is, so screen readers get
-	// the whole label instead. The label hides itself, since a classic theme
-	// may drop the block library's styles and with them .screen-reader-text.
+	// the whole label instead.
 	return sprintf(
-		'<p %1$s><span class="screen-reader-text" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%%);white-space:nowrap;border:0">%2$s</span><span aria-hidden="true">%3$s</span></p>',
+		'<p %1$s><span class="screen-reader-text">%2$s</span><span aria-hidden="true">%3$s</span></p>',
 		get_block_wrapper_attributes( array( 'class' => 'is-stage-' . $stage ) ),
 		esc_html(
 			sprintf(
