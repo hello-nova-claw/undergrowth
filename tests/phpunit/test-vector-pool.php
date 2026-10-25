@@ -61,11 +61,15 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 	}
 
 	public function test_comparable_vectors_are_the_same_whatever_the_chunk_size() {
+		global $wpdb;
+
 		for ( $i = 1; $i <= 5; $i++ ) {
 			$this->store( 100000 + $i, array( 1.0, (float) $i ) );
 		}
 
-		$full = undergrowth_comparable_vectors( 100001 );
+		$queries = $wpdb->num_queries;
+		$full    = undergrowth_comparable_vectors( 100001 );
+		$once    = $wpdb->num_queries - $queries;
 
 		add_filter(
 			'undergrowth_vector_chunk_size',
@@ -73,9 +77,12 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 				return 2;
 			}
 		);
+		$queries = $wpdb->num_queries;
+		$chunked = undergrowth_comparable_vectors( 100001 );
 
 		$this->assertCount( 5, $full );
-		$this->assertSame( $full, undergrowth_comparable_vectors( 100001 ) );
+		$this->assertSame( $full, $chunked );
+		$this->assertSame( $once + 2, $wpdb->num_queries - $queries );
 	}
 
 	public function test_comparable_vectors_leave_no_rows_behind_in_wpdb() {

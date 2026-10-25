@@ -145,8 +145,12 @@ class Test_Corpus extends WP_UnitTestCase {
 	}
 
 	public function test_corpus_is_the_same_whatever_the_chunk_size() {
-		$ids  = self::factory()->post->create_many( 5, array( 'post_content' => 'Oca and yacon grow in the cool hills.' ) );
-		$full = undergrowth_build_corpus( $ids );
+		global $wpdb;
+
+		$ids     = self::factory()->post->create_many( 5, array( 'post_content' => 'Oca and yacon grow in the cool hills.' ) );
+		$queries = $wpdb->num_queries;
+		$full    = undergrowth_build_corpus( $ids );
+		$once    = $wpdb->num_queries - $queries;
 
 		add_filter(
 			'undergrowth_post_chunk_size',
@@ -154,9 +158,41 @@ class Test_Corpus extends WP_UnitTestCase {
 				return 2;
 			}
 		);
+		$queries = $wpdb->num_queries;
+		$chunked = undergrowth_build_corpus( $ids );
 
 		$this->assertSame( 5, $full['documents'] );
-		$this->assertSame( $full, undergrowth_build_corpus( $ids ) );
+		$this->assertSame( $full, $chunked );
+		$this->assertSame( $once + 2, $wpdb->num_queries - $queries );
+	}
+
+	public function test_chunks_keep_keys_and_order_and_split_at_the_size() {
+		$this->assertSame(
+			array( array( 7 => 'a', 3 => 'b' ), array( 9 => 'c' ) ),
+			iterator_to_array( undergrowth_chunks( array( 7 => 'a', 3 => 'b', 9 => 'c' ), 2, true ), false )
+		);
+		$this->assertSame(
+			array( array( 'a', 'b' ), array( 'c' ) ),
+			iterator_to_array( undergrowth_chunks( array( 7 => 'a', 3 => 'b', 9 => 'c' ), 2 ), false )
+		);
+		$this->assertSame( array(), iterator_to_array( undergrowth_chunks( array(), 2 ), false ) );
+	}
+
+	public function test_chunks_are_built_one_at_a_time() {
+		$read  = 0;
+		$items = ( static function () use ( &$read ) {
+			for ( $i = 0; $i < 100000; $i++ ) {
+				++$read;
+				yield $i;
+			}
+		} )();
+
+		foreach ( undergrowth_chunks( $items, 1 ) as $chunk ) {
+			$this->assertSame( array( 0 ), $chunk );
+			break;
+		}
+
+		$this->assertSame( 1, $read );
 	}
 
 	public function test_chunk_sizes_follow_their_filters_and_stay_positive() {
@@ -466,6 +502,8 @@ class Test_Corpus extends WP_UnitTestCase {
 	}
 
 	public function test_open_targets_are_the_same_whatever_the_chunk_size() {
+		global $wpdb;
+
 		add_filter(
 			'undergrowth_min_link_similarity',
 			static function () {
@@ -487,7 +525,9 @@ class Test_Corpus extends WP_UnitTestCase {
 			)
 		);
 
-		$full = undergrowth_test_rank_targets( $source, null, 0 );
+		$queries = $wpdb->num_queries;
+		$full    = undergrowth_test_rank_targets( $source, null, 0 );
+		$once    = $wpdb->num_queries - $queries;
 
 		add_filter(
 			'undergrowth_post_chunk_size',
@@ -495,9 +535,12 @@ class Test_Corpus extends WP_UnitTestCase {
 				return 1;
 			}
 		);
+		$queries = $wpdb->num_queries;
+		$chunked = undergrowth_test_rank_targets( $source, null, 0 );
 
 		$this->assertCount( 5, $full );
-		$this->assertSame( $full, undergrowth_test_rank_targets( $source, null, 0 ) );
+		$this->assertSame( $full, $chunked );
+		$this->assertGreaterThan( $once, $wpdb->num_queries - $queries );
 	}
 
 	public function test_post_deleted_after_the_corpus_was_built_has_no_distinctive_terms() {
