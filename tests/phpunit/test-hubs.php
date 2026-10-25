@@ -431,6 +431,29 @@ class Test_Hubs extends WP_UnitTestCase {
 		$this->assertSame( 'seedling', undergrowth_measure_stage( $ids[1] ) );
 	}
 
+	public function test_accepted_link_from_the_hub_is_not_one_of_the_three() {
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'page' );
+			}
+		);
+
+		$ids = $this->dense_group();
+		$hub = undergrowth_start_hub( $ids[0] );
+
+		wp_publish_post( $hub );
+		$this->link( $ids[3], $ids[0] );
+		$this->link( $hub, $ids[0] );
+
+		// Ulluco's link is out; Mashua's, Yacon's and the hub's are in.
+		$this->assertSame( 'budding', undergrowth_measure_stage( $ids[0] ) );
+
+		$this->link( $ids[4], $ids[0] );
+
+		$this->assertSame( 'evergreen', undergrowth_measure_stage( $ids[0] ) );
+	}
+
 	public function test_post_out_of_any_group_is_not_evergreen_even_with_a_hub_link() {
 		list( $post_id, $hub ) = $this->post_with_hub();
 
