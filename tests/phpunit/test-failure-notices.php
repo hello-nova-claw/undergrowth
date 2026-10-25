@@ -47,7 +47,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 	 * @return string
 	 */
 	private function when(): string {
-		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 );
+		return wp_date( get_option( 'date_format' ), 1767225600 ) . ' at ' . wp_date( get_option( 'time_format' ), 1767225600 );
 	}
 
 	/**
@@ -234,7 +234,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		);
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Undergrowth waits until ' . wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $retry ) . ', then sends the posts that were not read.', $html );
+		$this->assertStringContainsString( 'Undergrowth waits until ' . wp_date( get_option( 'date_format' ), $retry ) . ' at ' . wp_date( get_option( 'time_format' ), $retry ) . ', then sends the posts that were not read.', $html );
 		$this->assertStringNotContainsString( 'within the hour', $html );
 	}
 
