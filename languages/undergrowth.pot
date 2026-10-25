@@ -1463,6 +1463,18 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
+#: src/popularity.php
+msgid "Jetpack Stats"
+msgstr ""
+
+#: src/popularity.php
+msgid "Koko Analytics"
+msgstr ""
+
+#: src/popularity.php
+msgid "Post Views Counter"
+msgstr ""
+
 #. translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
@@ -1558,7 +1570,7 @@ msgid "A site user who links their Discord account on their profile has their Di
 msgstr ""
 
 #: src/privacy.php
-msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth."
+msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads how often each post was viewed from it once a day, and sends that nowhere."
 msgstr ""
 
 #: src/privacy.php
@@ -1597,6 +1609,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Per-post files"
+msgstr ""
+
+#: src/settings.php
+msgid "Popularity"
 msgstr ""
 
 #: src/settings.php
@@ -1799,6 +1815,20 @@ msgstr[1] ""
 
 #: src/settings.php
 msgid "The rest are read in the background, a few at a time."
+msgstr ""
+
+#: src/settings.php
+msgid "No stats plugin found, so “More like this” leaves popularity out. It can read Jetpack Stats, Koko Analytics or Post Views Counter."
+msgstr ""
+
+#. translators: %s: name of a stats plugin, such as Jetpack Stats.
+#: src/settings.php
+#, php-format
+msgid "“More like this” reads recent views from %s once a day."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself, and nothing new leaves your site."
 msgstr ""
 
 #: src/settings.php

@@ -151,6 +151,7 @@ function undergrowth_register_settings(): void {
 	}
 
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
@@ -701,6 +702,34 @@ function undergrowth_render_posts_read_field(): void {
 	if ( undergrowth_backfill_stalled() ) {
 		undergrowth_print_failure_notice( undergrowth_backfill_stalled_text(), 'undergrowth-backfill-stalled' );
 	}
+}
+
+/**
+ * Says which stats plugin "More like this" reads recent views from, or that
+ * none is active.
+ */
+function undergrowth_render_popularity_field(): void {
+	$label = undergrowth_popularity_source_label();
+	?>
+	<p id="undergrowth-popularity">
+		<?php
+		if ( null === $label ) {
+			esc_html_e( 'No stats plugin found, so “More like this” leaves popularity out. It can read Jetpack Stats, Koko Analytics or Post Views Counter.', 'undergrowth' );
+		} else {
+			echo esc_html(
+				sprintf(
+					/* translators: %s: name of a stats plugin, such as Jetpack Stats. */
+					__( '“More like this” reads recent views from %s once a day.', 'undergrowth' ),
+					$label
+				)
+			);
+		}
+		?>
+	</p>
+	<p class="description">
+		<?php esc_html_e( 'Undergrowth counts no views itself, and nothing new leaves your site.', 'undergrowth' ); ?>
+	</p>
+	<?php
 }
 
 /**
