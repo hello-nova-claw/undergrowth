@@ -307,8 +307,18 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				'choose' => $item['source_id'] . '-' . $item['target_id'],
 				'paged'  => $pagenum > 1 ? $pagenum : false,
 			),
-			0 === $this->to ? undergrowth_suggestions_url() : undergrowth_links_in_url( $this->to )
+			$this->view_url()
 		) . '#' . $this->form_id( $item, 'choose' );
+	}
+
+	/**
+	 * Returns the address of the view this table shows: every suggestion, or
+	 * those that would link to one post.
+	 *
+	 * @return string Admin URL.
+	 */
+	private function view_url(): string {
+		return 0 === $this->to ? undergrowth_suggestions_url() : undergrowth_links_in_url( $this->to );
 	}
 
 	/**
@@ -394,7 +404,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			esc_attr( undergrowth_sentence_version( $item['sentence'] ) ),
 			wp_nonce_field( 'undergrowth_choose_words_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false ),
 			esc_html__( 'Save words', 'undergrowth' ),
-			esc_url( undergrowth_suggestions_url() ),
+			esc_url( $this->view_url() ),
 			esc_html__( 'Cancel', 'undergrowth' )
 		) . wp_get_inline_script_tag( "window.addEventListener( 'load', function () { var first = document.getElementById( " . wp_json_encode( 'undergrowth-first-' . $suffix ) . ' ); if ( first ) { first.focus(); } } );' );
 	}

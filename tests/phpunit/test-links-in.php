@@ -140,6 +140,31 @@ class Test_Links_In extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'undergrowth_to=' . $oca, $link[1] );
 	}
 
+	public function test_choose_words_cancel_returns_to_the_view() {
+		list( $oca, $yacon ) = $this->garden();
+		$_GET['choose']      = $yacon . '-' . $oca;
+
+		$html = $this->render( $oca );
+
+		$this->assertSame( 1, preg_match( '/<form[^>]*class="undergrowth-choose-words".*?<a href="([^"]*)" class="button">/s', $html, $cancel ) );
+		$this->assertStringContainsString( 'undergrowth_to=' . $oca, $cancel[1] );
+	}
+
+	public function test_a_post_the_user_cannot_read_does_not_narrow_the_view() {
+		list( $oca, $yacon ) = $this->garden();
+		$deny                = static function ( $caps, $cap, $user_id, $args ) use ( $oca ) {
+			return 'read_post' === $cap && isset( $args[0] ) && $oca === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+		};
+		add_filter( 'map_meta_cap', $deny, 10, 4 );
+
+		$html = $this->render( $oca );
+
+		remove_filter( 'map_meta_cap', $deny, 10 );
+
+		$this->assertDoesNotMatchRegularExpression( '/<h2>[^<]*<bdi>/', $html );
+		$this->assertStringContainsString( 'value="' . $oca . '-' . $yacon . '"', $html );
+	}
+
 	public function test_the_posts_list_row_leads_to_the_view() {
 		list( $oca ) = $this->garden();
 

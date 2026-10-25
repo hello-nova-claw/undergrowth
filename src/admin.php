@@ -141,8 +141,9 @@ function undergrowth_links_in_url( int $post_id ): string {
 /**
  * Reads the post the Suggestions tab is narrowed to, from an address.
  *
- * Only a post that is read can have suggestions to it, so any other is
- * ignored and every suggestion is shown.
+ * Only a post that is read can have suggestions to it, and only one the
+ * user may read is named, so any other is ignored and every suggestion is
+ * shown.
  *
  * @param string $url Address to read, or an empty string for this request's.
  * @return int Post ID, or 0 when the tab shows every suggestion.
@@ -159,7 +160,8 @@ function undergrowth_links_in_post( string $url = '' ): int {
 
 	$post = $post_id > 0 ? get_post( $post_id ) : null;
 
-	return $post instanceof WP_Post && undergrowth_is_indexable( $post ) ? $post->ID : 0;
+	// The view names the post, so only one the user may read narrows it.
+	return $post instanceof WP_Post && undergrowth_is_indexable( $post ) && current_user_can( 'read_post', $post->ID ) ? $post->ID : 0;
 }
 
 /**
