@@ -73,6 +73,10 @@ Only if you set Discord up: for each new suggestion, the titles of both posts, t
 
 Only the site's total page views for each of the last 30 days, added up into one number, once a day. Jetpack fetches them from WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/). Undergrowth contacts no one itself.
 
+= Does "More like this" count my visitors? =
+
+No. Undergrowth has no view counter of its own. If Jetpack Stats, Koko Analytics or Post Views Counter is active, it reads your posts' views over the last 30 days from that plugin once a day (from Jetpack, only its most viewed 500), in the background, so recent views can lift a post a little. Recent days count more and older views fade. Nothing new leaves your site: Koko Analytics and Post Views Counter are read from your own database, and Jetpack fetches its numbers from WordPress.com as it does for its own Stats screen. With none of them, the block leaves popularity out, unless code on your site supplies views through the `undergrowth_post_popularity` filter. Settings > Undergrowth says which one is used.
+
 = What does it cost? =
 
 Undergrowth is free. The services bill your own accounts. At OpenAI's published price for text-embedding-3-small, reading 500 posts of about 1,500 words costs about two cents. Each question from Claude is one or two short requests, usually one or two cents each.
