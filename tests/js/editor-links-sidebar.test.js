@@ -394,6 +394,37 @@ describe( 'Editor links sidebar', () => {
 		);
 	} );
 
+	test( 'links on to the Posts > Undergrowth view for those who can open it', async () => {
+		const incoming = [
+			{
+				source: 3,
+				title: 'Oca & mashua',
+				url: 'https://example.org/oca/',
+				edit_url: 'https://example.org/wp-admin/post.php?post=3',
+			},
+		];
+		const screen =
+			'https://example.org/wp-admin/edit.php?page=undergrowth-links&undergrowth_to=7';
+
+		replies = [
+			suggestions( { incoming, incoming_screen: screen } ),
+			suggestions( { incoming, incoming_screen: null } ),
+		];
+
+		const first = await renderSidebar();
+		const review = first.container.querySelector(
+			'a.undergrowth-incoming-screen'
+		);
+
+		expect( review.getAttribute( 'href' ) ).toBe( screen );
+
+		const second = await renderSidebar();
+
+		expect(
+			second.container.querySelector( 'a.undergrowth-incoming-screen' )
+		).toBeNull();
+	} );
+
 	test( 'names the target in each action, for screen readers', async () => {
 		replies = [ suggestions() ];
 

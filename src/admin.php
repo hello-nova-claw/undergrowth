@@ -128,6 +128,57 @@ function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): s
 }
 
 /**
+ * Returns the address of the Suggestions tab narrowed to the suggestions
+ * that would link to one post.
+ *
+ * @param int $post_id Post the suggestions would link to.
+ * @return string Admin URL.
+ */
+function undergrowth_links_in_url( int $post_id ): string {
+	return add_query_arg( 'undergrowth_to', $post_id, undergrowth_suggestions_url() );
+}
+
+/**
+ * Reads the post the Suggestions tab is narrowed to, from an address.
+ *
+ * Only a post that is read can have suggestions to it, and only one the
+ * user may read is named, so any other is ignored and every suggestion is
+ * shown.
+ *
+ * @param string $url Address to read, or an empty string for this request's.
+ * @return int Post ID, or 0 when the tab shows every suggestion.
+ */
+function undergrowth_links_in_post( string $url = '' ): int {
+	if ( '' === $url ) {
+		// The address only narrows what is listed; nothing is changed.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$post_id = isset( $_GET['undergrowth_to'] ) ? absint( wp_unslash( $_GET['undergrowth_to'] ) ) : 0;
+	} else {
+		wp_parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+		$post_id = isset( $query['undergrowth_to'] ) && is_string( $query['undergrowth_to'] ) ? absint( $query['undergrowth_to'] ) : 0;
+	}
+
+	$post = $post_id > 0 ? get_post( $post_id ) : null;
+
+	// The view names the post, so only one the user may read narrows it.
+	return $post instanceof WP_Post && undergrowth_is_indexable( $post ) && current_user_can( 'read_post', $post->ID ) ? $post->ID : 0;
+}
+
+/**
+ * Returns the address a Suggestions action goes back to: the view it was
+ * taken from, narrowed to one post or not, with its notice.
+ *
+ * @param string $notice Notice to show on arrival.
+ * @return string Admin URL.
+ */
+function undergrowth_suggestions_return_url( string $notice ): string {
+	$referer = wp_get_referer();
+	$to      = false === $referer ? 0 : undergrowth_links_in_post( $referer );
+
+	return 0 === $to ? undergrowth_suggestions_url( $notice ) : add_query_arg( 'undergrowth_notice', $notice, undergrowth_links_in_url( $to ) );
+}
+
+/**
  * Reads the pair a link action names, and lets the request go on only with
  * that action's nonce and when the user may edit the post the link sits in.
  *
@@ -179,7 +230,7 @@ function undergrowth_handle_veto(): void {
 	list( $source, $target ) = undergrowth_posted_link_pair( 'veto' );
 
 	$result = undergrowth_veto_result( $source, $target );
-	$url    = undergrowth_suggestions_url( $result );
+	$url    = undergrowth_suggestions_return_url( $result );
 
 	// The notice offers an Undo for this pair, since one keypress is not
 	// always a decision.
@@ -198,7 +249,7 @@ function undergrowth_handle_veto(): void {
 function undergrowth_handle_unveto(): void {
 	list( $source, $target ) = undergrowth_posted_link_pair( 'unveto', true );
 
-	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_unveto_link( $source, $target ) ? 'unvetoed' : 'unveto_gone' ) );
+	wp_safe_redirect( undergrowth_suggestions_return_url( undergrowth_unveto_link( $source, $target ) ? 'unvetoed' : 'unveto_gone' ) );
 	exit;
 }
 
@@ -246,7 +297,7 @@ function undergrowth_handle_accept(): void {
 	list( $source, $target ) = undergrowth_posted_link_pair( 'accept' );
 
 	$result = undergrowth_accept_link( $source, $target );
-	$url    = undergrowth_suggestions_url( $result );
+	$url    = undergrowth_suggestions_return_url( $result );
 
 	if ( 'accepted' === $result ) {
 		$revisions = wp_get_post_revisions( $source, array( 'posts_per_page' => 1 ) );
@@ -272,7 +323,7 @@ function undergrowth_handle_choose_words(): void {
 	$shown = isset( $_POST['shown'] ) ? sanitize_key( wp_unslash( $_POST['shown'] ) ) : '';
 	// phpcs:enable
 
-	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
+	wp_safe_redirect( undergrowth_suggestions_return_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
 	exit;
 }
 
@@ -305,7 +356,7 @@ function undergrowth_handle_accept_selected(): void {
 	}
 
 	if ( ! in_array( 'accept', array( $top, $bottom ), true ) || array() === $pairs ) {
-		wp_safe_redirect( undergrowth_suggestions_url( 'nothing_selected' ) );
+		wp_safe_redirect( undergrowth_suggestions_return_url( 'nothing_selected' ) );
 		exit;
 	}
 
@@ -315,7 +366,7 @@ function undergrowth_handle_accept_selected(): void {
 		$results[] = $pair[0] . '-' . $pair[1] . '.' . undergrowth_accept_link( $pair[0], $pair[1] );
 	}
 
-	wp_safe_redirect( add_query_arg( 'undergrowth_results', implode( ',', $results ), undergrowth_suggestions_url( 'accepted_selected' ) ) );
+	wp_safe_redirect( add_query_arg( 'undergrowth_results', implode( ',', $results ), undergrowth_suggestions_return_url( 'accepted_selected' ) ) );
 	exit;
 }
 
@@ -1154,10 +1205,32 @@ function undergrowth_render_suggestions_tab(): void {
 		echo '</p>';
 	} else {
 		undergrowth_load_list_table();
-		$table = new Undergrowth_Links_List_Table();
+		$to    = undergrowth_links_in_post();
+		$table = new Undergrowth_Links_List_Table( $to );
 		$table->prepare_items();
 
-		if ( ! $table->has_items() ) {
+		if ( $to > 0 ) {
+			printf(
+				'<h2>%1$s</h2><p><a href="%2$s">%3$s</a></p>',
+				sprintf(
+					/* translators: %1$s: title of the post the suggestions would link to. */
+					esc_html__( 'Posts that could link to “%1$s”', 'undergrowth' ),
+					'<bdi>' . esc_html( undergrowth_post_title( $to ) ) . '</bdi>'
+				),
+				esc_url( undergrowth_suggestions_url() ),
+				esc_html__( 'Show all suggestions', 'undergrowth' )
+			);
+		}
+
+		if ( $to > 0 && ! $table->has_items() ) {
+			echo '<p>' . esc_html(
+				sprintf(
+					/* translators: %1$s: post title. */
+					__( 'No other post is suggested to link to %1$s yet.', 'undergrowth' ),
+					undergrowth_post_title( $to )
+				)
+			) . '</p>';
+		} elseif ( ! $table->has_items() ) {
 			echo '<p>' . esc_html__( 'No link suggestions yet. They appear here once your published posts have been read, which happens a moment after each post is saved.', 'undergrowth' ) . '</p>';
 		} else {
 			echo '<p>' . esc_html__( 'Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion.', 'undergrowth' ) . '</p>';

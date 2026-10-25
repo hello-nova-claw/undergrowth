@@ -306,6 +306,30 @@ const WITH_POSTS = [
 			return true;
 		},
 	},
+	// Posts that could link to one post, as its row on Posts opens it.
+	{
+		screen: 'suggestions',
+		state: 'links-in',
+		page: SUGGESTIONS,
+		open: async ( page, admin ) => {
+			const box = page.locator( 'input[name="link[]"]' ).first();
+
+			if ( ( await box.count() ) === 0 ) {
+				return false;
+			}
+
+			const target = ( await box.getAttribute( 'value' ) ).split(
+				'-'
+			)[ 1 ];
+
+			await admin.visitAdminPage(
+				SUGGESTIONS[ 0 ],
+				`${ SUGGESTIONS[ 1 ] }&undergrowth_to=${ target }`
+			);
+
+			return true;
+		},
+	},
 	{
 		screen: 'suggestions',
 		state: 'off',

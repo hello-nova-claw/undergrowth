@@ -1,0 +1,1 @@
+Posts > Undergrowth can show only the suggestions that would link to one post, with Accept, Veto and Choose words as usual. Open it with Links in under the post on the Posts screen, or from Posts that could link here in the editor.
