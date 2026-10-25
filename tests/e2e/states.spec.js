@@ -333,7 +333,7 @@ const WITH_POSTS = [
 		state,
 		page: SUGGESTIONS,
 		notice: true,
-		open: async ( page ) => {
+		open: async ( page, admin ) => {
 			const boxes = page.locator( 'input[name="link[]"]' );
 
 			if ( ( await boxes.count() ) < outcomes.length ) {
@@ -348,13 +348,11 @@ const WITH_POSTS = [
 				results.push( `${ pair }.${ outcome }` );
 			}
 
-			await page.goto(
-				`${ page
-					.url()
-					.replace(
-						/#.*$/,
-						''
-					) }&undergrowth_notice=accepted_selected&undergrowth_results=${ results.join(
+			await admin.visitAdminPage(
+				SUGGESTIONS[ 0 ],
+				`${
+					SUGGESTIONS[ 1 ]
+				}&undergrowth_notice=accepted_selected&undergrowth_results=${ results.join(
 					','
 				) }`
 			);
@@ -754,7 +752,9 @@ function capture( states ) {
 
 				// Opens what this state is about, such as a row's form. A build
 				// without it is listed as skipped, as a missing notice is.
-				const opened = entry.open ? await entry.open( page ) : true;
+				const opened = entry.open
+					? await entry.open( page, admin )
+					: true;
 
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help
