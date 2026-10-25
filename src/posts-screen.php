@@ -183,7 +183,7 @@ function undergrowth_render_stage_column( $column, $post_id ): void {
 	$post = get_post( (int) $post_id );
 
 	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
-		printf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>', esc_html__( 'No growth stage', 'undergrowth' ) );
+		echo undergrowth_empty_cell( __( 'No growth stage', 'undergrowth' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped where it is built.
 		return;
 	}
 
@@ -410,13 +410,7 @@ function undergrowth_composting_view( $views ) {
 
 	$current = undergrowth_is_composting_view();
 
-	$views['undergrowth_composting'] = sprintf(
-		'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
-		esc_url( $url ),
-		$current ? ' class="current" aria-current="page"' : '',
-		esc_html( undergrowth_stage_label( 'composting' ) ),
-		esc_html( number_format_i18n( (int) $count->found_posts ) )
-	);
+	$views['undergrowth_composting'] = undergrowth_view_link( $url, undergrowth_stage_label( 'composting' ), (int) $count->found_posts, $current );
 
 	return $views;
 }
