@@ -147,9 +147,9 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 		true
 	);
 
-	if ( is_wp_error( $updated ) || 0 === $updated ) {
+	if ( is_wp_error( $updated ) ) {
 		// Only WordPress's code is kept; its message can quote the post.
-		undergrowth_record_failure( 'undergrowth_last_accept_error', $updated instanceof WP_Error ? (string) $updated->get_error_code() : 'not_saved' );
+		undergrowth_record_failure( 'undergrowth_last_accept_error', (string) $updated->get_error_code() );
 
 		return 'not_saved';
 	}
