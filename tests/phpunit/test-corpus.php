@@ -372,10 +372,21 @@ class Test_Corpus extends WP_UnitTestCase {
 		$positions = array_flip( $ids );
 		$rows      = array_map(
 			static function ( $row ) use ( $positions ) {
-				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], (int) $row[2] );
+				// The sentence's place among the post's sentences, as the
+				// sentence_index column recorded it before #339 dropped it.
+				$index = -1;
+
+				foreach ( undergrowth_split_sentences( get_post( (int) $row[0] )->post_content ) as $i => $sentence ) {
+					if ( $row[2] === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
+						$index = $i;
+						break;
+					}
+				}
+
+				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], $index );
 			},
 			(array) $wpdb->get_results(
-				$wpdb->prepare( 'SELECT source_id, target_id, sentence_index FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
+				$wpdb->prepare( 'SELECT source_id, target_id, sentence FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
 				ARRAY_N
 			)
 		);

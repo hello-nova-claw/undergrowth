@@ -577,7 +577,7 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -598,7 +598,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -645,14 +645,11 @@ function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array 
 		return null;
 	}
 
-	// The index is where the sentence sits among all of the post's
-	// sentences: the first unlinked one with the same text.
-	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
+	// The sentence must also stand unlinked and unquoted among all of the
+	// post's sentences, which is where Accept looks for it.
+	foreach ( undergrowth_split_sentences( $source->post_content ) as $sentence ) {
 		if ( $best === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
-			return array(
-				'text'  => $best,
-				'index' => $index,
-			);
+			return array( 'text' => $best );
 		}
 	}
 

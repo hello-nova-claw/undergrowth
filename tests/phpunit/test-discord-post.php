@@ -530,6 +530,17 @@ class Test_Discord_Post extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->requests );
 	}
 
+	public function test_a_message_with_buttons_says_a_veto_is_permanent() {
+		list( $oca, $yacon ) = $this->pair();
+
+		$asking = undergrowth_discord_proposal_message( get_post( $oca ), get_post( $yacon ), 'Like yacon, it is a tuber.' );
+		$done   = undergrowth_discord_proposal_message( get_post( $oca ), get_post( $yacon ), 'Like yacon, it is a tuber.', 'Done.' );
+
+		// Discord has no Undo, unlike the Suggestions screen.
+		$this->assertStringContainsString( 'A veto is permanent.', $asking['content'] );
+		$this->assertStringNotContainsString( 'A veto is permanent.', $done['content'] );
+	}
+
 	public function test_long_titles_and_addresses_still_fit_one_message() {
 		$this->configure();
 		$long  = str_repeat( '*Oca_ ', 400 );

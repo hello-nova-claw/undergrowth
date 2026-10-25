@@ -28,6 +28,8 @@ const PROFILE = [ 'profile.php', '' ];
 // action, which shows exactly what the user sees without changing any data.
 const NOTICES = [
 	'vetoed',
+	'unvetoed',
+	'unveto_gone',
 	'unchanged',
 	'gone',
 	'accepted',
@@ -57,7 +59,12 @@ const DEV_NOTICES = [
 	'dev_cycle_queued',
 	'dev_busy',
 ];
-const PROMPT_NOTICES = [ 'prompt_dismissed', 'prompt_snoozed', 'prompt_gone' ];
+const PROMPT_NOTICES = [
+	'prompt_dismissed',
+	'prompt_snoozed',
+	'prompt_gone',
+	'prompt_restored',
+];
 
 const WITHOUT_POSTS = [
 	// The test site's own provider is code, which the OpenAI states stand aside.
@@ -91,6 +98,12 @@ const WITHOUT_POSTS = [
 		state: 'file-last-error',
 		page: SETTINGS,
 		fixture: 'file-last-error',
+	},
+	{
+		screen: 'settings',
+		state: 'post-types-by-code',
+		page: SETTINGS,
+		fixture: 'post-types-by-code',
 	},
 	{
 		screen: 'settings',
@@ -142,6 +155,12 @@ const WITHOUT_POSTS = [
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	{
+		screen: 'profile',
+		state: 'digest-on',
+		page: PROFILE,
+		fixture: 'digest-on',
+	},
+	{
 		screen: 'privacy',
 		state: 'policy-guide',
 		page: [ 'options-privacy.php', 'tab=policyguide' ],
@@ -169,6 +188,21 @@ const WITHOUT_POSTS = [
 		state: 'first-run',
 		page: [ 'plugins.php', '' ],
 		fixture: 'first-run',
+	},
+	// Plugins after Dismiss for good on the first-run notice.
+	{
+		screen: 'plugins',
+		state: 'notice-first-run-dismissed',
+		page: [ 'plugins.php', 'undergrowth_notice=first_run_dismissed' ],
+		fixture: 'no-provider',
+		notice: true,
+	},
+	{
+		screen: 'plugins',
+		state: 'notice-first-run-restored',
+		page: [ 'plugins.php', 'undergrowth_notice=first_run_restored' ],
+		fixture: 'first-run',
+		notice: true,
 	},
 	// Settings right after the first key is saved, linking on to suggestions.
 	{

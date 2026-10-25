@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 5;
+const UNDERGROWTH_SCHEMA_VERSION = 6;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -106,7 +106,6 @@ function undergrowth_install_schema(): bool {
 			state varchar(20) NOT NULL,
 			score double NOT NULL,
 			sentence text NOT NULL,
-			sentence_index int(11) NOT NULL DEFAULT -1,
 			anchor varchar(255) NOT NULL DEFAULT '',
 			anchor_offset int(11) NOT NULL DEFAULT -1,
 			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
@@ -118,6 +117,17 @@ function undergrowth_install_schema(): bool {
 			) {$charset_collate};",
 		)
 	);
+
+	// dbDelta() never drops a column, so one that nothing reads any more is
+	// dropped here. Version 6 dropped sentence_index. A drop that fails
+	// leaves the version unrecorded, so the next load tries again.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table.
+	if ( array() !== (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $links, 'sentence_index' ) ) ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrading the plugin's own table.
+		if ( false === $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN sentence_index', $links ) ) ) {
+			return false;
+		}
+	}
 
 	// dbDelta() reports no errors, so check the result. Recording the version
 	// after a failed CREATE would stop every later load from retrying it.
@@ -257,10 +267,13 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	wp_unschedule_hook( 'undergrowth_memory_folder_check' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_forget_unindexed_posts' );
 	wp_unschedule_hook( 'undergrowth_refresh_sources' );
+	wp_unschedule_hook( 'undergrowth_refresh_index' );
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
+	wp_unschedule_hook( 'undergrowth_send_digests' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
@@ -268,6 +281,7 @@ function undergrowth_deactivate_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
@@ -295,8 +309,12 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_discord_error' );
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
+	wp_unschedule_hook( 'undergrowth_send_digests' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest_key', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest_sent', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_scan_until', '', true );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_embed_retry_at' );
@@ -304,15 +322,19 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_config_prompt_queued' );
 	delete_option( 'undergrowth_snoozed_prompts' );
+	delete_option( 'undergrowth_dismissed_prompt' );
 	delete_option( 'undergrowth_prompt_written' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_memory_exposed' );
 	delete_option( 'undergrowth_suggest_links' );
+	delete_option( 'undergrowth_post_types' );
 	delete_option( 'undergrowth_first_run' );
 	delete_option( 'undergrowth_schema_version' );
 	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
+	wp_unschedule_hook( 'undergrowth_forget_unindexed_posts' );
 	wp_unschedule_hook( 'undergrowth_refresh_sources' );
+	wp_unschedule_hook( 'undergrowth_refresh_index' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	wp_unschedule_hook( 'undergrowth_memory_folder_check' );
@@ -321,6 +343,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );

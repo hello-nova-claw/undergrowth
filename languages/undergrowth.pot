@@ -18,6 +18,7 @@ msgstr ""
 #: src/abilities.php
 #: src/admin.php
 #: src/dashboard.php
+#: src/digest.php
 #: src/discord-clicks.php
 #: src/privacy.php
 #: src/settings.php
@@ -33,7 +34,7 @@ msgstr ""
 
 #. Description of the plugin
 #: undergrowth.php
-msgid "Uses AI to read your site and ask you questions. It never writes a word your readers will see."
+msgid "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide."
 msgstr ""
 
 #. Author of the plugin
@@ -156,6 +157,12 @@ msgstr ""
 
 #: src/admin.php
 msgid "You cannot change links in this post."
+msgstr ""
+
+#: src/admin.php
+#: src/dashboard.php
+#: src/first-run.php
+msgid "Undo"
 msgstr ""
 
 #: src/admin.php
@@ -341,6 +348,14 @@ msgstr ""
 
 #: src/admin.php
 msgid "That post has no signal to dismiss, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "Undone. This link can be suggested again."
+msgstr ""
+
+#: src/admin.php
+msgid "That veto can no longer be undone, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -593,6 +608,10 @@ msgstr ""
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
+#: src/dashboard.php
+msgid "Undone. The question is back."
+msgstr ""
+
 #: src/dev-tools.php
 msgid "Dev tools"
 msgstr ""
@@ -791,6 +810,80 @@ msgstr ""
 msgid "Yes, undo everything"
 msgstr ""
 
+#: src/digest.php
+msgid "Undergrowth monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "The monthly email is off. You can turn it back on from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "This link no longer works. You can turn the monthly email off from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "Stop the monthly email of new link suggestions?"
+msgstr ""
+
+#: src/digest.php
+msgid "Turn off the monthly email"
+msgstr ""
+
+#. translators: %s: site title.
+#: src/digest.php
+#, php-format
+msgid "[%s] Link suggestions worth a look"
+msgstr ""
+
+#: src/digest.php
+msgid "These are the strongest link suggestions Undergrowth made since its last email. Nothing changes on your site until you accept one."
+msgstr ""
+
+#. translators: 1: number of the suggestion in the list, 2: title of the post the link would point to.
+#: src/digest.php
+#, php-format
+msgid "%1$s. A link to “%2$s”"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: the sentence, with the words to link in square brackets.
+#: src/digest.php
+#, php-format
+msgid "In “%1$s”: %2$s"
+msgstr ""
+
+#: src/digest.php
+msgid "Accept or veto them on Posts > Undergrowth:"
+msgstr ""
+
+#: src/digest.php
+msgid "You get this email because you turned it on in your profile. To stop it:"
+msgstr ""
+
+#. translators: %s: title of the post nearest the middle of the group.
+#: src/digest.php
+#, php-format
+msgid "Both posts are in the group around “%s” on the Map."
+msgstr ""
+
+#. translators: %s: words from the sentence that the other post uses too.
+#: src/digest.php
+#, php-format
+msgid "Both posts use the words “%s”."
+msgstr ""
+
+#: src/digest.php
+msgid "Monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "Email me the best new link suggestions once a month"
+msgstr ""
+
+#: src/digest.php
+msgid "At most five, after the monthly cycle, and only when there are new ones. Each email has a link to turn it off."
+msgstr ""
+
 #: src/discord-clicks.php
 msgid "Undergrowth does not know this button, so nothing was changed."
 msgstr ""
@@ -844,6 +937,10 @@ msgstr ""
 #: src/discord-messages.php
 #, php-format
 msgid "To: %s"
+msgstr ""
+
+#: src/discord-messages.php
+msgid "A veto is permanent."
 msgstr ""
 
 #: src/discord-messages.php
@@ -988,6 +1085,14 @@ msgid "Choose a stage to pin."
 msgstr ""
 
 #: src/first-run.php
+msgid "Undone. The notice is back."
+msgstr ""
+
+#: src/first-run.php
+msgid "That notice can no longer come back, so nothing was changed."
+msgstr ""
+
+#: src/first-run.php
 msgid "Add a key in Settings"
 msgstr ""
 
@@ -997,6 +1102,10 @@ msgstr ""
 
 #: src/first-run.php
 msgid "You cannot change Undergrowth’s settings."
+msgstr ""
+
+#: src/first-run.php
+msgid "Dismissed. This notice won’t come back."
 msgstr ""
 
 #. translators: %1$s: link to the suggestions screen.
@@ -1030,7 +1139,7 @@ msgid "Choose words lets you pick other words of the same sentence for the link:
 msgstr ""
 
 #: src/help.php
-msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post. The notice after a veto has an Undo, in case you chose it by mistake."
 msgstr ""
 
 #: src/help.php
@@ -1308,6 +1417,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Post types"
+msgstr ""
+
+#: src/settings.php
 msgid "Per-post files"
 msgstr ""
 
@@ -1317,6 +1430,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Anthropic API key"
+msgstr ""
+
+#: src/settings.php
+msgid "Choose at least one post type for Undergrowth to read. The ones chosen before are kept."
 msgstr ""
 
 #: src/settings.php
@@ -1427,6 +1544,14 @@ msgstr ""
 
 #: src/settings.php
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
+msgstr ""
+
+#: src/settings.php
+msgid "Code on this site chooses which post types are read, so these boxes cannot be changed here."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map."
 msgstr ""
 
 #. translators: %1$s: service name, such as Anthropic.

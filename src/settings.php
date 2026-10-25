@@ -91,6 +91,17 @@ function undergrowth_register_settings(): void {
 		)
 	);
 
+	register_setting(
+		'undergrowth',
+		'undergrowth_post_types',
+		array(
+			'type'              => 'array',
+			'default'           => array( 'post' ),
+			'show_in_rest'      => false,
+			'sanitize_callback' => 'undergrowth_sanitize_post_types',
+		)
+	);
+
 	foreach ( $keys as $option => $sanitize_callback ) {
 		register_setting(
 			'undergrowth',
@@ -132,6 +143,7 @@ function undergrowth_register_settings(): void {
 		add_settings_field( 'undergrowth_suggest_links', __( 'Suggestions', 'undergrowth' ), 'undergrowth_render_suggest_links_field', 'undergrowth', 'undergrowth_links' );
 	}
 
+	add_settings_field( 'undergrowth_post_types', __( 'Post types', 'undergrowth' ), 'undergrowth_render_post_types_field', 'undergrowth', 'undergrowth_links' );
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
@@ -202,6 +214,52 @@ function undergrowth_sanitize_suggest_links( $value ): string {
 	}
 
 	return '1' === $value ? '1' : '0';
+}
+
+/**
+ * Lists the post types the author can choose: the public ones, apart from
+ * media.
+ *
+ * @return array<string, WP_Post_Type> Post type objects, by name.
+ */
+function undergrowth_selectable_post_types(): array {
+	$post_types = get_post_types( array( 'public' => true ), 'objects' );
+	unset( $post_types['attachment'] );
+
+	return $post_types;
+}
+
+/**
+ * Cleans the submitted post types.
+ *
+ * Saving with none ticked keeps the ones chosen before, and says so, since
+ * an empty choice would take every post out of the index.
+ *
+ * @param mixed $value Submitted value.
+ * @return string[] The post types to save.
+ */
+function undergrowth_sanitize_post_types( $value ): array {
+	$saved = undergrowth_saved_post_types();
+
+	// options.php has already checked the nonce and capability for this form.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing
+	if ( empty( $_POST['undergrowth_post_types_shown'] ) ) {
+		return $saved;
+	}
+
+	$submitted = array_filter( (array) $value, 'is_string' );
+	$chosen    = array_values( array_intersect( array_keys( undergrowth_selectable_post_types() ), $submitted ) );
+
+	if ( array() !== $chosen ) {
+		return $chosen;
+	}
+
+	// Core runs this twice when the option is first added.
+	if ( array() === get_settings_errors( 'undergrowth_post_types' ) ) {
+		add_settings_error( 'undergrowth_post_types', 'undergrowth_post_types', __( 'Choose at least one post type for Undergrowth to read. The ones chosen before are kept.', 'undergrowth' ) );
+	}
+
+	return $saved;
 }
 
 /**
@@ -463,6 +521,38 @@ function undergrowth_render_suggest_links_field(): void {
 		<?php esc_html_e( 'Suggest links between my posts', 'undergrowth' ); ?>
 	</label>
 	<p class="description"><?php esc_html_e( 'Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on.', 'undergrowth' ); ?></p>
+	<?php
+}
+
+/**
+ * Prints a checkbox for each post type the author can choose. While code
+ * chooses the post types, the boxes show its choice and cannot be changed.
+ */
+function undergrowth_render_post_types_field(): void {
+	$by_code = has_filter( 'undergrowth_post_types' );
+	$indexed = undergrowth_indexed_post_types();
+	?>
+	<fieldset>
+		<legend class="screen-reader-text"><?php esc_html_e( 'Post types', 'undergrowth' ); ?></legend>
+		<?php if ( ! $by_code ) : ?>
+			<input type="hidden" name="undergrowth_post_types_shown" value="1" />
+		<?php endif; ?>
+		<?php foreach ( undergrowth_selectable_post_types() as $name => $post_type ) : ?>
+			<label for="undergrowth_post_type_<?php echo esc_attr( $name ); ?>">
+				<input type="checkbox" id="undergrowth_post_type_<?php echo esc_attr( $name ); ?>" name="undergrowth_post_types[]" value="<?php echo esc_attr( $name ); ?>"<?php checked( in_array( $name, $indexed, true ) ); ?><?php disabled( $by_code ); ?> />
+				<?php echo esc_html( $post_type->labels->name ); ?>
+			</label><br />
+		<?php endforeach; ?>
+	</fieldset>
+	<p class="description">
+		<?php
+		if ( $by_code ) {
+			esc_html_e( 'Code on this site chooses which post types are read, so these boxes cannot be changed here.', 'undergrowth' );
+		} else {
+			esc_html_e( 'Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map.', 'undergrowth' );
+		}
+		?>
+	</p>
 	<?php
 }
 
