@@ -88,6 +88,57 @@ trait Plants_Posts {
 	}
 
 	/**
+	 * Publishes a post and stores a known vector for it, firing nothing.
+	 *
+	 * Unlike plant(), no embed runs, so no proposals are refreshed, no file
+	 * is written and nothing is queued for Discord. Use it wherever those
+	 * are not under test: planting many posts stays linear.
+	 *
+	 * @param string               $title  Post title, also the vector's key; empty for the factory's own.
+	 * @param float[]              $vector Vector to store.
+	 * @param array<string, mixed> $args   Other post fields.
+	 * @param array<string, mixed> $meta   Provider, model, language or content hash to store instead.
+	 * @return int Post ID.
+	 */
+	private function seed( string $title, array $vector, array $args = array(), array $meta = array() ): int {
+		$fields = array(
+			'post_content' => 'Notes about ' . ( '' === $title ? 'a post' : $title ) . '.',
+			'post_status'  => 'publish',
+		);
+
+		if ( '' !== $title ) {
+			$fields['post_title']    = $title;
+			$this->vectors[ $title ] = $vector;
+		}
+
+		$post_id  = self::factory()->post->create( array_merge( $fields, $args ) );
+		$post     = get_post( $post_id );
+		$identity = undergrowth_embed_identity();
+
+		// As an embed would store it: under the site's provider and model,
+		// or the test provider's when none is set.
+		if ( ! undergrowth_identity_is_complete( $identity ) ) {
+			$identity = $this->identity();
+		}
+
+		undergrowth_save_vector(
+			$post_id,
+			$vector,
+			array_merge(
+				array(
+					'provider'     => $identity['provider'],
+					'model'        => $identity['model'],
+					'language'     => undergrowth_post_language( $post ),
+					'content_hash' => hash( 'sha256', undergrowth_post_text( $post ) ),
+				),
+				$meta
+			)
+		);
+
+		return $post_id;
+	}
+
+	/**
 	 * Returns a post's proposed targets, best first.
 	 *
 	 * @param int $source_id Source post ID.

@@ -10,6 +10,8 @@
  */
 class Test_Admin_Map extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -47,23 +49,8 @@ class Test_Admin_Map extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function member( string $title, array $vector, int $leader = 0 ): int {
-		$post_id = self::factory()->post->create(
-			array(
-				'post_title'  => $title,
-				'post_status' => 'publish',
-			)
-		);
+		$post_id = $this->seed( $title, $vector );
 
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array(
-				'provider'     => 'test-provider',
-				'model'        => 'test-model',
-				'language'     => 'en_US',
-				'content_hash' => 'hash',
-			)
-		);
 		if ( $leader >= 0 ) {
 			update_post_meta( $post_id, 'undergrowth_cluster', 0 === $leader ? $post_id : $leader );
 		}
