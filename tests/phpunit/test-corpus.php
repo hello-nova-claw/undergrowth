@@ -168,12 +168,39 @@ class Test_Corpus extends WP_UnitTestCase {
 
 	public function test_chunks_keep_keys_and_order_and_split_at_the_size() {
 		$this->assertSame(
-			array( array( 7 => 'a', 3 => 'b' ), array( 9 => 'c' ) ),
-			iterator_to_array( undergrowth_chunks( array( 7 => 'a', 3 => 'b', 9 => 'c' ), 2, true ), false )
+			array(
+				array(
+					7 => 'a',
+					3 => 'b',
+				),
+				array( 9 => 'c' ),
+			),
+			iterator_to_array(
+				undergrowth_chunks(
+					array(
+						7 => 'a',
+						3 => 'b',
+						9 => 'c',
+					),
+					2,
+					true
+				),
+				false
+			)
 		);
 		$this->assertSame(
 			array( array( 'a', 'b' ), array( 'c' ) ),
-			iterator_to_array( undergrowth_chunks( array( 7 => 'a', 3 => 'b', 9 => 'c' ), 2 ), false )
+			iterator_to_array(
+				undergrowth_chunks(
+					array(
+						7 => 'a',
+						3 => 'b',
+						9 => 'c',
+					),
+					2
+				),
+				false
+			)
 		);
 		$this->assertSame( array(), iterator_to_array( undergrowth_chunks( array(), 2 ), false ) );
 	}
