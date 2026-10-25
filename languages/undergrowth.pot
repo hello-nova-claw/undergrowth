@@ -336,6 +336,7 @@ msgid "Dismiss"
 msgstr ""
 
 #: src/admin.php
+#: src/block-linked-from.php
 msgid "(no title)"
 msgstr ""
 
@@ -415,6 +416,12 @@ msgstr ""
 
 #: src/admin.php
 msgid "See the change"
+msgstr ""
+
+#: src/block-linked-from.php
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Linked from"
 msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
@@ -1522,6 +1529,8 @@ msgid "The linked Discord user ID could not be removed. Try again, or clear it o
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
 msgid "Settings"
 msgstr ""
 
@@ -2076,6 +2085,31 @@ msgstr ""
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Readers see nothing here yet. This lists your published posts that link to this one through a suggestion you accepted."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Heading"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Leave empty to use “Linked from”."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Maximum posts"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Lists the posts that link to the post it is placed in."
+msgstr ""
+
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Suggested links"
@@ -2226,4 +2260,34 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block title"
+msgid "Linked from"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block description"
+msgid "Lists your published posts that link to this one through a link you accepted in Undergrowth."
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "backlinks"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "links"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "garden"
 msgstr ""
