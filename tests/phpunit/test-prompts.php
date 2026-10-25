@@ -44,7 +44,7 @@ class Test_Prompts extends WP_UnitTestCase {
 			)
 		);
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
-		delete_option( 'undergrowth_prompt' );
+		delete_option( 'undergrowth_prompts' );
 		// Saving the key above queues a first prompt; each test starts clean.
 		undergrowth_unschedule_prompts();
 		add_filter( 'pre_http_request', array( $this, 'fake_http' ), 10, 3 );
@@ -449,13 +449,25 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertCount( 2, $this->requests );
 	}
 
-	public function test_nothing_is_written_while_a_prompt_is_waiting() {
+	public function test_each_run_adds_one_more_new_question() {
 		$this->comment( $this->post() );
 		$this->comment( $this->post() );
 
 		undergrowth_write_prompt();
 
-		$this->assertFalse( undergrowth_write_prompt() );
+		$this->assertTrue( undergrowth_write_prompt() );
+		$this->assertCount( 2, $this->requests );
+		$this->assertCount( 2, undergrowth_prompts( 'new' ) );
+	}
+
+	public function test_the_cycle_writes_nothing_while_a_new_question_waits() {
+		$this->comment( $this->post() );
+		$this->comment( $this->post() );
+		undergrowth_write_prompt();
+
+		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_write_prompt' );
+
 		$this->assertCount( 1, $this->requests );
 	}
 

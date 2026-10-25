@@ -1,7 +1,7 @@
 <?php
 /**
- * Tests for the one Undergrowth widget on the Dashboard, which holds the
- * question and, only with Jetpack Stats, the meter line.
+ * Tests for the one Undergrowth widget on the Dashboard, which points to the
+ * Prompt studio and, only with Jetpack Stats, holds the meter line.
  *
  * @package Undergrowth
  */
@@ -23,7 +23,7 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 		WPCOM_Stats::$visits   = array();
 		WPCOM_Stats::$requests = array();
 		delete_transient( 'undergrowth_meter' );
-		delete_option( 'undergrowth_prompt' );
+		delete_option( 'undergrowth_prompts' );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
 
 		$editor = self::factory()->user->create_and_get( array( 'role' => 'editor' ) );
@@ -39,17 +39,20 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Waits a prompt about a new post.
+	 * Adds a new question about a new post.
 	 */
 	private function prompt(): void {
 		update_option(
-			'undergrowth_prompt',
+			'undergrowth_prompts',
 			array(
-				'key'      => 'gap:1',
-				'source'   => 'gap',
-				'post_id'  => self::factory()->post->create( array( 'post_status' => 'publish' ) ),
-				'question' => 'What sits between these posts?',
-				'time'     => time(),
+				array(
+					'key'      => 'gap:1',
+					'source'   => 'gap',
+					'post_id'  => self::factory()->post->create( array( 'post_status' => 'publish' ) ),
+					'question' => 'What sits between these posts?',
+					'time'     => time(),
+					'status'   => 'new',
+				),
 			)
 		);
 	}
@@ -120,7 +123,7 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<div class="undergrowth-prompt"><h3>A question for you</h3>.*What sits between these posts\?.*</div><div class="undergrowth-meter"><h3>Page views, last 30 days</h3>.*412 of 1,000 views.*</div>#s', $html );
+		$this->assertMatchesRegularExpression( '#<div class="undergrowth-prompt"><h3>Prompt studio</h3>.*1 new question from your own posts is in the Prompt studio\..*</div><div class="undergrowth-meter"><h3>Page views, last 30 days</h3>.*412 of 1,000 views.*</div>#s', $html );
 	}
 
 	public function test_the_question_alone() {
@@ -130,7 +133,9 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<h3>A question for you</h3>', $html );
+		$this->assertStringContainsString( '<h3>Prompt studio</h3>', $html );
+		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'edit.php?page=undergrowth-studio' ) ) . '"', $html );
+		$this->assertStringNotContainsString( 'What sits between', $html );
 		$this->assertStringNotContainsString( 'Page views', $html );
 	}
 
@@ -142,7 +147,7 @@ class Test_Dashboard_Widget extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<h3>Page views, last 30 days</h3>', $html );
-		$this->assertStringNotContainsString( 'A question for you', $html );
+		$this->assertStringNotContainsString( 'Prompt studio', $html );
 	}
 
 	public function test_a_user_who_can_see_neither_part_gets_no_widget() {

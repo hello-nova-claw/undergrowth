@@ -14,7 +14,7 @@ Links your posts to each other in your own words, and shows you what your archiv
 
 * **Your old posts get read again.** Each post gets up to three links to your closest other posts, each at a sentence you already wrote.
 * **You see what you have been circling.** Once a month the Map groups your posts by meaning, names each group from your own words, and shows the gaps between them.
-* **A question to start your next post.** With an Anthropic key, Claude now and then asks you one on your Dashboard, drawn from your posts and your readers' comments. Never a draft, never a streak.
+* **Questions to start your next post.** With an Anthropic key, Claude asks you questions in a Prompt studio, drawn from your posts and your readers' comments. Save the ones you like to an idea bank. Never a draft, never a streak.
 
 You stay in charge:
 
@@ -38,14 +38,14 @@ Undergrowth finds which posts are close by turning each into a vector with an em
 
 = External services =
 
-Undergrowth contacts three services, each only once you set it up: OpenAI, to read your posts, once you add its key; Anthropic, to write your Dashboard question, once you add its key; and Discord, once you fill in its settings. It also reads one number through Jetpack Stats when Jetpack is connected and Stats is on. The first four questions in the FAQ say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its developers and loads nothing from outside the plugin.
+Undergrowth contacts three services, each only once you set it up: OpenAI, to read your posts, once you add its key; Anthropic, to write the questions in your Prompt studio, once you add its key; and Discord, once you fill in its settings. It also reads one number through Jetpack Stats when Jetpack is connected and Stats is on. The first four questions in the FAQ say what each is sent, when, and where its terms and privacy policy are. Undergrowth sends nothing to its developers and loads nothing from outside the plugin.
 
 == Installation ==
 
 1. Install and activate the plugin.
 2. Go to Settings > Undergrowth and paste an OpenAI API key. The page says what is sent before anything is. With neither a key nor your own provider through the `undergrowth_embed_provider` and `undergrowth_embed_identity` filters, Undergrowth sends nothing and suggests nothing.
 3. Posts you published earlier are read in the background as WP-Cron runs. The settings page shows how many are done.
-4. Optionally, add an Anthropic API key for the Dashboard question, and set up Discord (see the FAQ).
+4. Optionally, add an Anthropic API key for the Prompt studio, and set up Discord (see the FAQ).
 
 = Requirements =
 
@@ -62,7 +62,7 @@ With an OpenAI key saved, the title and text of each published post that is not 
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only on your Dashboard. Requests go to `api.anthropic.com` from WP-Cron, a handful a month at most, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
+With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only in your Prompt studio. Requests go to `api.anthropic.com` from WP-Cron, a handful a month at most, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
 
 = What is sent to Discord? =
 
@@ -111,7 +111,7 @@ Create a new Discord application just for Undergrowth, never an existing bot, th
 2. The Growth stages tab: every post's stage, with a pin to keep one as it is.
 3. The Map tab: your posts in groups that are close in meaning, with any gap between them flagged.
 4. Settings > Undergrowth: the keys, what is sent to each service, and how many of your posts have been read.
-5. The Dashboard widget with the one question waiting for you, to snooze until next month or dismiss for good.
+5. The Prompt studio: questions Claude wrote from your own posts, to save to your idea bank, replace or dismiss.
 6. The Growth stage block on a post, showing readers its stage as a line of text your theme styles.
 
 == Changelog ==

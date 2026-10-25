@@ -387,7 +387,8 @@ function undergrowth_memory_resurfacing( int $post_id ): array {
 
 /**
  * Builds the prompts section of a post's file: one line for each prompt
- * asked, dismissed, snoozed or brought back, oldest first.
+ * asked, dismissed, replaced, saved, removed from the idea bank or brought
+ * back, oldest first.
  *
  * @param int $post_id Post ID.
  * @return string[] Lines of the section, without its heading.

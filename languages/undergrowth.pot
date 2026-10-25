@@ -160,8 +160,8 @@ msgid "You cannot change links in this post."
 msgstr ""
 
 #: src/admin.php
-#: src/dashboard.php
 #: src/first-run.php
+#: src/studio.php
 msgid "Undo"
 msgstr ""
 
@@ -332,6 +332,7 @@ msgid "Return to garden"
 msgstr ""
 
 #: src/admin.php
+#: src/studio.php
 msgid "Dismiss"
 msgstr ""
 
@@ -631,64 +632,24 @@ msgid "Pin"
 msgstr ""
 
 #: src/dashboard.php
-msgid "A question for you"
+#: src/studio.php
+msgid "Prompt studio"
 msgstr ""
 
 #: src/dashboard.php
 msgid "Page views, last 30 days"
 msgstr ""
 
-#. translators: %1$s: title of the post, linked to its editor.
+#. translators: %s: number of new questions.
 #: src/dashboard.php
 #, php-format
-msgid "Claude wrote this question from a reader’s comment on %1$s and your own words there. Only you can see it."
-msgstr ""
-
-#. translators: %1$s: title of the post, linked to its editor.
-#: src/dashboard.php
-#, php-format
-msgid "Claude wrote this question from %1$s, a post you moved to compost. Only you can see it."
-msgstr ""
-
-#. translators: %1$s: title of the post, linked to its editor.
-#: src/dashboard.php
-#, php-format
-msgid "Claude wrote this question from a gap among your posts, next to %1$s. Only you can see it."
-msgstr ""
-
-#. translators: %1$s: title of the post, linked to its editor.
-#: src/dashboard.php
-#, php-format
-msgid "Claude wrote this question from your post %1$s. Only you can see it."
-msgstr ""
+msgid "%s new question from your own posts is in the Prompt studio."
+msgid_plural "%s new questions from your own posts are in the Prompt studio."
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/dashboard.php
-msgid "Ask me next month"
-msgstr ""
-
-#: src/dashboard.php
-#: src/first-run.php
-msgid "Dismiss for good"
-msgstr ""
-
-#: src/dashboard.php
-msgid "You cannot answer questions about this post."
-msgstr ""
-
-#: src/dashboard.php
-msgid "Dismissed. Undergrowth won’t ask that again."
-msgstr ""
-
-#: src/dashboard.php
-msgid "Snoozed. This question comes back next month."
-msgstr ""
-
-#: src/dashboard.php
-msgid "That question is no longer waiting, so nothing was changed."
-msgstr ""
-
-#: src/dashboard.php
-msgid "Undone. The question is back."
+msgid "Open the Prompt studio"
 msgstr ""
 
 #: src/dev-tools.php
@@ -1176,6 +1137,10 @@ msgid "Add a key in Settings"
 msgstr ""
 
 #: src/first-run.php
+msgid "Dismiss for good"
+msgstr ""
+
+#: src/first-run.php
 msgid "Undergrowth suggests links between your own posts once it has an OpenAI API key to read them with."
 msgstr ""
 
@@ -1546,7 +1511,7 @@ msgid "Per-post files"
 msgstr ""
 
 #: src/settings.php
-msgid "Questions on your Dashboard"
+msgid "Questions in your Prompt studio"
 msgstr ""
 
 #: src/settings.php
@@ -1576,7 +1541,7 @@ msgid "Posts are read by %1$s (%2$s), set up by code on this site. Nothing is se
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth asks Claude to write you an occasional question about your own writing, shown only to you, on your Dashboard."
+msgid "Undergrowth asks Claude to write you questions about your own writing, shown only to you, in Posts › Prompt studio."
 msgstr ""
 
 #: src/settings.php
@@ -1840,7 +1805,7 @@ msgid "Questions"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers."
+msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only in your Prompt studio, never to your readers."
 msgstr ""
 
 #: src/settings.php
@@ -2064,6 +2029,118 @@ msgstr ""
 
 #: src/stages.php
 msgid "This post is not composting."
+msgstr ""
+
+#. translators: %s: number of new questions.
+#: src/studio.php
+#, php-format
+msgid "New questions (%s)"
+msgstr ""
+
+#. translators: %s: number of saved questions.
+#: src/studio.php
+#, php-format
+msgid "Idea bank (%s)"
+msgstr ""
+
+#: src/studio.php
+msgid "The Prompt studio is off until an Anthropic API key is saved in Settings › Undergrowth. Then Claude writes questions for you from your own posts."
+msgstr ""
+
+#: src/studio.php
+msgid "Open Settings › Undergrowth"
+msgstr ""
+
+#: src/studio.php
+msgid "Claude writes each question from your own posts. Only you can see them. Nothing here is ever shown to readers."
+msgstr ""
+
+#: src/studio.php
+msgid "No new questions right now. Undergrowth writes another from your posts each month, and the questions you saved are in the idea bank."
+msgstr ""
+
+#: src/studio.php
+msgid "Replace asks Claude for a different question straight away, using this site’s Anthropic API key."
+msgstr ""
+
+#: src/studio.php
+msgid "Save to idea bank"
+msgstr ""
+
+#: src/studio.php
+msgid "Replace"
+msgstr ""
+
+#: src/studio.php
+msgid "Your idea bank is empty. Save a new question to keep it here for as long as you like."
+msgstr ""
+
+#: src/studio.php
+msgid "Remove from idea bank"
+msgstr ""
+
+#. translators: %1$s: title of the post, linked to its editor.
+#: src/studio.php
+#, php-format
+msgid "From a reader’s comment on %1$s, and your own words there."
+msgstr ""
+
+#. translators: %1$s: title of the post, linked to its editor.
+#: src/studio.php
+#, php-format
+msgid "From %1$s, a post you moved to compost."
+msgstr ""
+
+#. translators: %1$s: titles of the posts, each linked to its editor, separated by commas.
+#: src/studio.php
+#, php-format
+msgid "From a gap among your posts: %1$s."
+msgstr ""
+
+#. translators: %1$s: titles of the posts, each linked to its editor, separated by commas.
+#: src/studio.php
+#, php-format
+msgid "From your posts: %1$s."
+msgstr ""
+
+#: src/studio.php
+msgid "You cannot answer questions about this post."
+msgstr ""
+
+#: src/studio.php
+msgid "Dismissed. Undergrowth won’t ask that again."
+msgstr ""
+
+#: src/studio.php
+msgid "Saved to your idea bank."
+msgstr ""
+
+#: src/studio.php
+msgid "Replaced. The new question is at the end of the list."
+msgstr ""
+
+#: src/studio.php
+msgid "Removed from your idea bank."
+msgstr ""
+
+#: src/studio.php
+msgid "Undone. The question is back."
+msgstr ""
+
+#: src/studio.php
+msgid "That question is no longer here, so nothing was changed."
+msgstr ""
+
+#: src/studio.php
+msgid "Claude could not write a different question just now, so this one stays. Try again later."
+msgstr ""
+
+#: src/studio.php
+msgid "Claude writes each question from your own posts: a gap among them, a post you moved to compost, or a reader’s question in a comment. It only ever asks; it never writes a draft, a title or an outline, and it quotes nobody but you."
+msgstr ""
+
+#: src/studio.php
+msgid "Save keeps a question in your idea bank, with the posts it came from, until you remove it. Dismiss removes it for good, and its notice has an Undo. Replace asks Claude for a different question straight away, using this site’s Anthropic API key."
 msgstr ""
 
 #: build/blocks/growth-stage/index.js

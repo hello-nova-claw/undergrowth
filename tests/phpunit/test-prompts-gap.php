@@ -39,8 +39,7 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
 		undergrowth_unschedule_prompts();
-		delete_option( 'undergrowth_prompt' );
-		delete_option( 'undergrowth_snoozed_prompts' );
+		delete_option( 'undergrowth_prompts' );
 		add_filter( 'pre_http_request', array( $this, 'fake_http' ), 10, 2 );
 	}
 
@@ -209,6 +208,15 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		$this->assertSame( $oca, undergrowth_current_prompt()['post_id'] );
 	}
 
+	public function test_gap_question_keeps_every_post_it_quotes() {
+		$posts = $this->gap();
+
+		undergrowth_write_prompt();
+
+		$this->assertEqualsCanonicalizing( $posts, undergrowth_current_prompt()['posts'] );
+		$this->assertSame( $posts[0], undergrowth_current_prompt()['posts'][0] );
+	}
+
 	public function test_question_quoting_anything_else_is_thrown_away() {
 		$this->gap();
 		$this->reply = 'You wrote "tubers are easy" there. Are they?';
@@ -237,12 +245,12 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		$this->assertStringContainsString( ': asked (gap) "', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 	}
 
-	public function test_widget_says_the_question_comes_from_a_gap() {
+	public function test_studio_says_the_question_comes_from_a_gap() {
 		$this->gap();
 		undergrowth_write_prompt();
 
 		ob_start();
-		undergrowth_render_prompt_widget();
+		undergrowth_render_new_prompts( undergrowth_prompts( 'new' ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'gap among your posts', $html );

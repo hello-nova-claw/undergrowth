@@ -21,6 +21,7 @@ const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
 const DEV = [ 'edit.php', 'page=undergrowth-links&tab=dev' ];
 const DASHBOARD = [ 'index.php' ];
+const STUDIO = [ 'edit.php', 'page=undergrowth-studio' ];
 const POSTS_LIST = [ 'edit.php', '' ];
 const PROFILE = [ 'profile.php', '' ];
 
@@ -53,18 +54,21 @@ const STAGE_NOTICES = [
 	'stage_not_saved',
 ];
 
-// Notices the Dashboard returns with after a prompt is dismissed or snoozed.
 const DEV_NOTICES = [
 	'dev_accept_started',
 	'dev_reset_started',
 	'dev_cycle_queued',
 	'dev_busy',
 ];
+// Notices the Prompt studio returns with after a choice on a question.
 const PROMPT_NOTICES = [
 	'prompt_dismissed',
-	'prompt_snoozed',
-	'prompt_gone',
+	'prompt_saved',
+	'prompt_replaced',
+	'prompt_not_replaced',
+	'prompt_removed',
 	'prompt_restored',
+	'prompt_gone',
 ];
 
 const WITHOUT_POSTS = [
@@ -116,6 +120,19 @@ const WITHOUT_POSTS = [
 		screen: 'settings',
 		state: 'prompt-key-saved',
 		page: SETTINGS,
+		fixture: 'prompt-key-saved',
+	},
+	{ screen: 'studio', state: 'off', page: STUDIO },
+	{
+		screen: 'studio',
+		state: 'empty',
+		page: STUDIO,
+		fixture: 'prompt-key-saved',
+	},
+	{
+		screen: 'studio',
+		state: 'idea-bank-empty',
+		page: [ STUDIO[ 0 ], `${ STUDIO[ 1 ] }&view=saved` ],
 		fixture: 'prompt-key-saved',
 	},
 	{
@@ -410,10 +427,33 @@ const WITH_POSTS = [
 		page: DASHBOARD,
 		fixture: 'prompt',
 	},
+	{
+		screen: 'studio',
+		state: 'batch',
+		page: STUDIO,
+		fixture: 'prompt-studio',
+	},
+	{
+		screen: 'studio',
+		state: 'idea-bank',
+		page: [ STUDIO[ 0 ], `${ STUDIO[ 1 ] }&view=saved` ],
+		fixture: 'prompt-studio',
+	},
+	{
+		screen: 'studio',
+		state: 'help-studio',
+		page: STUDIO,
+		fixture: 'prompt-studio',
+		help: 'undergrowth-studio',
+	},
 	...PROMPT_NOTICES.map( ( notice ) => ( {
-		screen: 'dashboard',
+		screen: 'studio',
 		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
-		page: [ DASHBOARD[ 0 ], `undergrowth_notice=${ notice }` ],
+		page: [
+			STUDIO[ 0 ],
+			`${ STUDIO[ 1 ] }&undergrowth_notice=${ notice }`,
+		],
+		fixture: 'prompt-studio',
 		notice: true,
 	} ) ),
 	...STAGE_NOTICES.map( ( notice ) => ( {

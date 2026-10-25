@@ -50,6 +50,7 @@ require_once __DIR__ . '/src/discord-clicks.php';
 require_once __DIR__ . '/src/digest.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/dashboard.php';
+require_once __DIR__ . '/src/studio.php';
 require_once __DIR__ . '/src/meter.php';
 require_once __DIR__ . '/src/posts-screen.php';
 require_once __DIR__ . '/src/help.php';
