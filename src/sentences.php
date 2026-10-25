@@ -20,9 +20,10 @@ add_action( 'clean_post_cache', 'undergrowth_forget_reusable_corpus' );
 // Another site's posts table can hold the same IDs.
 add_action( 'switch_blog', 'undergrowth_forget_reusable_corpus' );
 
-// Hiragana, katakana and CJK ideographs. These scripts do not separate words
-// with spaces, so they are matched as overlapping pairs of characters.
-const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}';
+// Thai, Lao, Tibetan, Burmese, Khmer, hiragana, katakana and CJK ideographs.
+// These scripts do not separate words with spaces, so they are matched as
+// overlapping pairs of characters.
+const UNDERGROWTH_UNSPACED_SCRIPTS = '\x{0E00}-\x{0EFF}\x{0F00}-\x{0FFF}\x{1000}-\x{109F}\x{1780}-\x{17FF}\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}';
 
 /**
  * Splits post content into sentences, in order.
@@ -80,9 +81,14 @@ function undergrowth_split_sentences( string $html ): array {
 	$inside = false;
 
 	foreach ( preg_split( '/\n+/u', $text ) as $block ) {
-		// A closing quotation mark or bracket can sit between the stop and the space.
+		// A closing quotation mark or bracket can sit between the stop and the
+		// space. Besides Latin stops, these are the danda, Urdu, Armenian and
+		// Ethiopic full stops and the Greek and Arabic question marks. Unicode
+		// normalisation turns the Greek one into a semicolon, which ends a
+		// sentence only after a Greek letter. CJK and Burmese stops need no
+		// space after them.
 		$in_quote = false !== strpos( $block, $quoted );
-		$parts    = preg_split( '/[.!?…][”’"\'»)\]]*\K\s+|(?<=[。！？])/u', str_replace( $quoted, '', $block ) );
+		$parts    = preg_split( '/(?:[.!?…।॥۔։።؟\x{037E}]|(?<=\p{Greek});)[”’"\'»)\]]*\K\s+|(?<=[。！？။])/u', str_replace( $quoted, '', $block ) );
 
 		foreach ( (array) $parts as $part ) {
 			$linked = false;
@@ -189,10 +195,27 @@ function undergrowth_inside_others_words( string $before ): bool {
 }
 
 /**
+ * Tells whether a word is long enough to say what a post is about.
+ *
+ * Latin and Cyrillic have many two-letter function words, such as "of" and
+ * "он", so their words and numbers need three characters. In Hebrew, Arabic,
+ * Korean and other scripts, many content words have two.
+ *
+ * @param string $word A word of a spaced script.
+ * @return bool
+ */
+function undergrowth_is_long_enough( string $word ): bool {
+	$fewest = preg_match( '/(?![\p{Latin}\p{Cyrillic}])\p{L}/u', $word ) ? 2 : 3;
+
+	return mb_strlen( $word, 'UTF-8' ) >= $fewest;
+}
+
+/**
  * Breaks text into lowercase words for matching.
  *
- * Latin and other spaced scripts give whole words of three letters or more;
- * unspaced scripts give overlapping pairs of characters.
+ * Spaced scripts give whole words long enough to count, see
+ * undergrowth_is_long_enough(); unspaced scripts give overlapping pairs of
+ * characters.
  *
  * @param string $text Plain text.
  * @return string[] Tokens in order, with repeats.
@@ -200,7 +223,9 @@ function undergrowth_inside_others_words( string $before ): bool {
 function undergrowth_tokens( string $text ): array {
 	$unspaced = UNDERGROWTH_UNSPACED_SCRIPTS;
 
-	if ( ! preg_match_all( "/[{$unspaced}]+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", mb_strtolower( $text, 'UTF-8' ), $matches ) ) {
+	// Only letters, marks and digits of an unspaced script count, so a stop
+	// such as the Burmese one is never part of a pair.
+	if ( ! preg_match_all( "/(?:(?=[\\p{L}\\p{M}\\p{N}])[{$unspaced}])+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", mb_strtolower( $text, 'UTF-8' ), $matches ) ) {
 		return array();
 	}
 
@@ -218,7 +243,7 @@ function undergrowth_tokens( string $text ): array {
 			for ( $i = 0; $i < $last; $i++ ) {
 				$tokens[] = $chars[ $i ] . $chars[ $i + 1 ];
 			}
-		} elseif ( mb_strlen( $run, 'UTF-8' ) >= 3 ) {
+		} elseif ( undergrowth_is_long_enough( $run ) ) {
 			$tokens[] = $run;
 		}
 	}
@@ -472,15 +497,32 @@ function undergrowth_word_stem( string $token ): string {
 /**
  * Lists the plain text of a post's headings.
  *
+ * The tag processor leaves out comments and markup inside attributes, and
+ * decodes the text. A heading whose closing tag is missing is left out.
+ *
  * @param string $content Post content.
  * @return string[] Each heading's text, in order.
  */
 function undergrowth_headings( string $content ): array {
-	if ( ! preg_match_all( '#<h[1-6]\b[^>]*>(.*?)</h[1-6]\s*>#is', $content, $matches ) ) {
-		return array();
+	$html     = new WP_HTML_Tag_Processor( $content );
+	$headings = array();
+	$text     = null;
+
+	while ( $html->next_token() ) {
+		$tag = (string) $html->get_tag();
+
+		if ( 1 === preg_match( '/^H[1-6]$/', $tag ) ) {
+			if ( $html->is_tag_closer() && null !== $text ) {
+				$headings[] = $text;
+			}
+
+			$text = $html->is_tag_closer() ? null : '';
+		} elseif ( null !== $text && '#text' === $html->get_token_type() ) {
+			$text .= $html->get_modifiable_text();
+		}
 	}
 
-	return array_map( 'wp_strip_all_tags', $matches[1] );
+	return $headings;
 }
 
 /**
@@ -535,7 +577,7 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -556,7 +598,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -603,14 +645,11 @@ function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array 
 		return null;
 	}
 
-	// The index is where the sentence sits among all of the post's
-	// sentences: the first unlinked one with the same text.
-	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
+	// The sentence must also stand unlinked and unquoted among all of the
+	// post's sentences, which is where Accept looks for it.
+	foreach ( undergrowth_split_sentences( $source->post_content ) as $sentence ) {
 		if ( $best === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
-			return array(
-				'text'  => $best,
-				'index' => $index,
-			);
+			return array( 'text' => $best );
 		}
 	}
 

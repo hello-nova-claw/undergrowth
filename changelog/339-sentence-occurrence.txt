@@ -1,0 +1,1 @@
+Accepting a link now works when the same sentence appears twice in a paragraph and the first copy already holds a link. Before, Accept stopped at the first copy and said no words could be linked.
