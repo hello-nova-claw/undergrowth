@@ -7,6 +7,8 @@
  * put in $visits and records each request. PHPStan reads it for the
  * signatures too.
  *
+ * Mirrors get_visits() as of automattic/jetpack-stats v0.23.0.
+ *
  * @package Undergrowth
  */
 

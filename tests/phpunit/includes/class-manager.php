@@ -7,6 +7,8 @@
  * in their connection package. This one answers from a property a test sets.
  * PHPStan reads it for the signatures too.
  *
+ * Mirrors is_connected() as of automattic/jetpack-connection v9.13.0.
+ *
  * @package Undergrowth
  */
 
