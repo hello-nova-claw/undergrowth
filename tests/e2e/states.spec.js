@@ -155,6 +155,12 @@ const WITHOUT_POSTS = [
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	{
+		screen: 'profile',
+		state: 'digest-on',
+		page: PROFILE,
+		fixture: 'digest-on',
+	},
+	{
 		screen: 'privacy',
 		state: 'policy-guide',
 		page: [ 'options-privacy.php', 'tab=policyguide' ],

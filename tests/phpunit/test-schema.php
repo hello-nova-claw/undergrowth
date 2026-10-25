@@ -303,7 +303,7 @@ class Test_Schema extends WP_UnitTestCase {
 	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
 		global $wpdb;
 
-		$current = $this->install_version_one();
+		$current = $this->install_version( 2 );
 		$links   = undergrowth_links_table();
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
 		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
@@ -318,7 +318,7 @@ class Test_Schema extends WP_UnitTestCase {
 	public function test_version_is_not_recorded_when_the_sentence_index_stays() {
 		global $wpdb;
 
-		$this->install_version_one();
+		$this->install_version( 2 );
 		$links = undergrowth_links_table();
 		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
 		update_option( 'undergrowth_schema_version', 5 );

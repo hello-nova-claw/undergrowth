@@ -272,6 +272,7 @@ function undergrowth_deactivate_site(): void {
 	// A suggestion left unposted is posted with the post's next refresh.
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
+	wp_unschedule_hook( 'undergrowth_send_digests' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
@@ -279,6 +280,7 @@ function undergrowth_deactivate_site(): void {
 	delete_option( 'undergrowth_backfill.lock' );
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
@@ -306,8 +308,12 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_discord_error' );
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
+	wp_unschedule_hook( 'undergrowth_send_digests' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest_key', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_digest_sent', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_scan_until', '', true );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_embed_retry_at' );
@@ -334,6 +340,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_backfill_progress' );
 	delete_option( 'undergrowth_index_identity' );
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_cycle.lock' );
 	delete_option( 'undergrowth_cluster_cycle_pass' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
