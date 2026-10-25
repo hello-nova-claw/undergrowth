@@ -36,7 +36,7 @@ test.describe( 'Map tab', () => {
 	} ) => {
 		await admin.visitAdminPage( 'edit.php', 'page=undergrowth-links' );
 
-		await expect( page.locator( '.nav-tab' ) ).toHaveCount( 2 );
+		await expect( page.locator( '.nav-tab' ) ).toHaveCount( 3 );
 		await expect( page.locator( '.nav-tab[href*="tab=map"]' ) ).toHaveCount(
 			0
 		);
