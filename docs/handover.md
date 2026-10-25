@@ -324,6 +324,7 @@ Everything in sections 4 "Reader mode" is v2.
 Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. These decisions are locked. The reasoning is in that document.
 
 ### 12.1 Prompt studio
+
 - Replaces the single Dashboard question (5b, "One at a time").
 - A weekly cron batch of up to five questions, from the garden sources in 5b and section 5 (Map gaps and composted posts now; comments, wilting posts and Search Console mismatches with reader mode). Never trends or keyword data.
 - Each question can be dismissed, replaced, or saved to an idea bank. A saved question keeps the posts it came from.
@@ -332,6 +333,7 @@ Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. The
 - Never nags. The monthly email (#385) may carry one line, "New questions are waiting in your Prompt studio", only when the batch is fresh and unread, and only for authors who opted in.
 
 ### 12.2 "More like this" block
+
 - Named "More like this", never "Related by readers" (#97 keeps that name for reader mode).
 - Ranked by meaning (vector similarity), then weighted by growth stage, freshness with decay, and popularity with decay. One slot may go to a closely related but under-read post.
 - Popularity is pluggable: an `undergrowth_post_popularity` filter with adapters for Jetpack Stats (public `WPCOM_Stats` class), Koko Analytics and Post Views Counter. With none, popularity is left out. No built-in view counter.
@@ -339,23 +341,27 @@ Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. The
 - Titles, author-written excerpts, featured images and links only. No model text.
 
 ### 12.3 Garden SEO without reader data
+
 - Orphans: posts nothing links to, with link-in suggestions.
 - Hubs proposed from dense Map groups. The author writes the hub. A draft may hold titles and links only.
 - "Tend this post": a gentle admin-only note on stale Evergreen posts. Never a demotion, never shown to readers.
 - A "Linked from" block built only from accepted links.
 
 ### 12.4 Reader-facing garden
+
 - A garden index **block** (not a ready-made page) listing posts by Map group and growth stage.
 - Stage badge and "Linked from" blocks.
 - One visibility rule for every reader-facing surface: a post appears only if published, public, not password-protected, indexed and not composted. "Linked from" applies it to the linking posts too.
 
 ### 12.6 Cross-pollination (decided 2026-10-25)
+
 - Finds pairs of the author's own posts or groups that are apart but could combine: a moderate-similarity sweet spot across groups, bridges between unlinked groups, and shared rare threads.
 - A surprise scale setting (close cousins to wild) controls the similarity band and bridge strength. The default is cautious.
 - Outputs: questions in the Prompt studio (5b rules hold), with at least one in each weekly batch when a good pair exists; bridge post ideas (structure, never keyword research); and cross-group link suggestions, approved like any link.
 - Shown in a Cross-pollination view on the Map. Dismissals and vetoes are kept forever.
 
 ### 12.5 Order and release
+
 - Build all four pillars on germination data first. Reader signals feed them later, when reader mode (v2) arrives behind the meter.
-- Build order: Prompt studio, "More like this", garden SEO, garden index, hubs. Then the first public release (0.1.0), then reader mode.
+- Build order: Prompt studio, "More like this", garden SEO, garden index, hubs, then cross-pollination (12.6). Then the first public release (0.1.0), then reader mode.
 - Free, GPL and open source. No premium tier, upsells, ads, affiliate links or donate link.
