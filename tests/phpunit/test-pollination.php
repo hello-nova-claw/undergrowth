@@ -99,6 +99,24 @@ class Test_Pollination extends WP_UnitTestCase {
 	private function find(): void {
 		undergrowth_start_cluster_labels();
 		undergrowth_start_pollination();
+		$this->run_batches();
+	}
+
+	/**
+	 * Runs the queued batches of the pass under way, as cron would.
+	 *
+	 * @param int $most Most batches to run.
+	 */
+	private function run_batches( int $most = 10 ): void {
+		for ( $i = 0; $i < $most; $i++ ) {
+			$record = get_option( 'undergrowth_pollination_cycle_pass' );
+
+			if ( ! is_array( $record ) ) {
+				return;
+			}
+
+			undergrowth_run_pollination_cycle( $record['after'], $record['pass'] );
+		}
 	}
 
 	/**
@@ -377,7 +395,74 @@ class Test_Pollination extends WP_UnitTestCase {
 			)
 		);
 
-		undergrowth_run_pollination_cycle( 0 );
+		undergrowth_run_pollination_cycle( 0, '' );
+
+		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+	}
+
+	public function test_a_batch_of_another_run_of_the_pass_stops() {
+		$this->two_groups( 0.46 );
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+
+		undergrowth_run_pollination_cycle( 0, 'another-run' );
+
+		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_cycle', array( 0, get_option( 'undergrowth_pollination_work' )['pass'] ) ) );
+	}
+
+	public function test_the_first_batch_waits_for_cron() {
+		$this->two_groups( 0.46 );
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+
+		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+
+		$this->run_batches();
+
+		$this->assertNotNull( $this->sweet( 2 ) );
+		$this->assertFalse( get_option( 'undergrowth_pollination_cycle_pass' ) );
+	}
+
+	public function test_hourly_check_runs_a_stalled_batch_again() {
+		$this->two_groups( 0.46 );
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+
+		$work = get_option( 'undergrowth_pollination_work' );
+
+		// The queued batch died, an hour and more ago.
+		wp_clear_scheduled_hook( 'undergrowth_pollination_cycle', array( 0, $work['pass'] ) );
+		$record       = get_option( 'undergrowth_pollination_cycle_pass' );
+		$record['at'] = time() - UNDERGROWTH_PASS_STALL - 1;
+		update_option( 'undergrowth_pollination_cycle_pass', $record );
+
+		undergrowth_resume_stalled_passes();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_cycle', array( 0, $work['pass'] ) ) );
+	}
+
+	public function test_a_run_that_lost_its_pass_stores_nothing() {
+		$this->two_groups( 0.46 );
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+
+		$pass = get_option( 'undergrowth_pollination_work' )['pass'];
+
+		// The hourly check took the pass over while this run was comparing.
+		add_filter(
+			'pre_option_undergrowth_pollination_cycle_pass',
+			static function () use ( $pass ) {
+				return array(
+					'after' => 0,
+					'at'    => time(),
+					'run'   => 'someone-else',
+					'pass'  => $pass,
+				);
+			}
+		);
+
+		undergrowth_run_pollination_cycle( 0, $pass );
 
 		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
 	}
@@ -389,33 +474,17 @@ class Test_Pollination extends WP_UnitTestCase {
 			$this->seed( '', array( 0.0, 0.0, 1.0, 0.0 ) );
 		}
 
-		$this->find();
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+		$this->run_batches( 1 );
 
 		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+		$this->assertGreaterThan( 0, get_option( 'undergrowth_pollination_cycle_pass' )['after'] );
 
-		$after = $this->last_scheduled_after();
-
-		$this->assertGreaterThan( 0, $after );
-
-		undergrowth_run_pollination_cycle( $after );
+		$this->run_batches();
 
 		$this->assertNotNull( $this->sweet( 2 ) );
 		$this->assertFalse( get_option( 'undergrowth_pollination_work' ) );
-	}
-
-	/**
-	 * Returns the post ID the next scheduled pollination batch starts after.
-	 *
-	 * @return int
-	 */
-	private function last_scheduled_after(): int {
-		foreach ( _get_cron_array() as $hooks ) {
-			foreach ( $hooks['undergrowth_pollination_cycle'] ?? array() as $event ) {
-				return (int) $event['args'][0];
-			}
-		}
-
-		return 0;
 	}
 
 	public function test_pairs_with_more_signals_come_first_and_limit_applies() {
@@ -604,6 +673,7 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertContains( 'Moonlight', $labels['threads'][ undergrowth_pollination_key( $a[0], $b[0] ) ] );
 
 		undergrowth_start_pollination();
+		$this->run_batches();
 
 		$pairs = undergrowth_pollination_pairs( 0, 1 );
 
@@ -615,6 +685,7 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->two_groups( 0.46 );
 
 		undergrowth_run_cluster_cycle( 0 );
+		$this->run_batches();
 
 		$stored = get_option( 'undergrowth_pollination' );
 

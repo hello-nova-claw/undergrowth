@@ -134,7 +134,8 @@ test.describe( 'Cross-pollination', () => {
 		}
 		await expect( wild ).toBeChecked();
 
-		await page.locator( '#submit' ).click();
+		await page.locator( '#submit' ).focus();
+		await page.keyboard.press( 'Enter' );
 		await expect( page.locator( '#undergrowth_surprise_5' ) ).toBeChecked();
 
 		await admin.visitAdminPage(
