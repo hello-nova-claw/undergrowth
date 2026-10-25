@@ -533,7 +533,18 @@ const WITH_RESURFACING = [
 // two posts outside any group: one too far from the rest, one read since.
 const WITH_CLUSTERS = [
 	{ screen: 'map', state: 'clusters', page: MAP, fixture: 'tight-gaps' },
+	// Every group is proposed a hub, as a dense one would be.
+	{ screen: 'map', state: 'hub-proposal', page: MAP, fixture: 'hubs' },
+	...[ 'hub_started', 'hub_vetoed', 'hub_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
 ];
+
+// The same, once the first group has a hub draft.
+const WITH_HUB_DRAFT = [ { screen: 'map', state: 'hub-draft', page: MAP } ];
 
 // The same, with so many posts outside a group that their list starts
 // collapsed.
@@ -1135,6 +1146,26 @@ test.describe( 'Screenshot catalogue', () => {
 			} );
 
 			capture( WITH_MANY_UNGROUPED );
+		} );
+
+		test.describe( 'and a hub draft', () => {
+			test.beforeAll( async ( { requestUtils } ) => {
+				const response = await requestUtils.request.get(
+					'wp-admin/index.php?undergrowth_e2e_hub=1'
+				);
+
+				if ( ! response.ok() ) {
+					throw new Error(
+						`Starting a hub failed with HTTP ${ response.status() }.`
+					);
+				}
+			} );
+
+			test.afterAll( async ( { requestUtils } ) => {
+				await requestUtils.deleteAllPages();
+			} );
+
+			capture( WITH_HUB_DRAFT );
 		} );
 	} );
 

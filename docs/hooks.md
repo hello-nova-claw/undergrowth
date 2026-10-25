@@ -41,6 +41,13 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 | `undergrowth_min_resurfacing_similarity` | `src/resurfacing.php` | How close a composting post must be to a new cluster's leader to resurface. Defaults to the cluster threshold, so a signal means the post would have joined. |
 | `undergrowth_fixed_threshold_providers` | `src/thresholds.php` | Providers that keep the fixed thresholds whatever their scores. Default `array( 'openai' )`. Their scores are still measured. |
 
+### Hubs
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_hub_min_size` | `src/hubs.php` | The fewest posts a Map group needs before a hub is proposed for it. Default 5, never below 3. |
+| `undergrowth_hub_min_linked_share` | `src/hubs.php` | The smallest share of a group's posts that must already have an accepted link to or from another post in the group. Default 0.5. |
+
 ### Links
 
 | Filter | Where | What it changes |

@@ -69,7 +69,7 @@ function undergrowth_add_screen_help(): void {
 			__( 'Seedling: a new post, with no more than one accepted link in or out.', 'undergrowth' ),
 			__( 'Sprout: two or more accepted links, but not yet in a group of three or more posts on the Map.', 'undergrowth' ),
 			__( 'Budding: in a group, with accepted links both in and out.', 'undergrowth' ),
-			__( 'Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there.', 'undergrowth' ),
+			__( 'Evergreen: in a group, with three or more accepted links in, and a published hub page that links to it. A hub is a page you started from the Map, wrote and published yourself.', 'undergrowth' ),
 			__( 'Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again.', 'undergrowth' ),
 		)
 	);
@@ -81,6 +81,7 @@ function undergrowth_add_screen_help(): void {
 			__( 'Each group is a set of your posts that are close in meaning, found once a month. A group is named after the title of its post nearest the middle, with a few words its posts share that the rest of your site rarely uses. Every word is your own; nothing on the Map is written by a model.', 'undergrowth' ),
 			__( 'A post is not in a group yet when it has not been read, was read after the groups were last found, or is not close enough in meaning to two other posts. Composting posts rest outside the groups and are only counted.', 'undergrowth' ),
 			__( 'A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you.', 'undergrowth' ),
+			__( 'A large group whose posts already link to each other may get a hub proposal: a page that ties the group together for readers. You write the hub. Start a hub draft makes a draft page holding only the group’s titles, each linked to its post, and Undergrowth never publishes it. Not for this group means it is never proposed for that group again.', 'undergrowth' ),
 			__( 'When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine.', 'undergrowth' ),
 			__( 'Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group\'s words, its link, its stage and whether its group has a gap.', 'undergrowth' ),
 		)
