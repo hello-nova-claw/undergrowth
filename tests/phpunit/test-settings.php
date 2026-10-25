@@ -196,7 +196,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning inline" id="undergrowth-file-error">\s*<p>[^<]*' . preg_quote( $words, '#' ) . '#', $html );
-		$this->assertStringContainsString( wp_date( get_option( 'date_format' ), 1767225600 ) . ' at ' . wp_date( get_option( 'time_format' ), 1767225600 ), $html );
+		$this->assertStringContainsString( undergrowth_date_time( 1767225600 ), $html );
 	}
 
 	/**
@@ -727,7 +727,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#<th scope="row">Accept</th>#', $html );
 		$this->assertStringContainsString( 'id="undergrowth-accept-error"', $html );
 		$this->assertStringContainsString( 'WordPress treated the post as empty and refused to save it, so the link was not added.', $html );
-		$this->assertStringContainsString( wp_date( get_option( 'date_format' ), 1767225600 ) . ' at ' . wp_date( get_option( 'time_format' ), 1767225600 ), $html );
+		$this->assertStringContainsString( undergrowth_date_time( 1767225600 ), $html );
 	}
 
 	public function test_accept_row_names_an_error_code_it_has_no_sentence_for() {

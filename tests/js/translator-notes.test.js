@@ -34,7 +34,7 @@ describe( 'Translators notes', () => {
 		[ 'Choose words for the link from %1$s to %2$s', 'Choose words' ],
 		[ 'Unpin the stage of %1$s', 'Unpin' ],
 		[ 'Pin the stage of %1$s', 'Pin' ],
-		[ 'Return to garden: &#8220;%s&#8221;', 'Return to garden' ],
+		[ 'Return to garden: &#8220;%1$s&#8221;', 'Return to garden' ],
 		[ 'Compost &#8220;%s&#8221;', 'Compost' ],
 	] )(
 		'say that “%s” must begin with the words on its button',

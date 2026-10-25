@@ -1351,10 +1351,10 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
-#. translators: %s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
+#. translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
-msgid "Return to garden: &#8220;%s&#8221;"
+msgid "Return to garden: &#8220;%1$s&#8221;"
 msgstr ""
 
 #. translators: %s: post title. Must begin with the translation of “Compost”, the word on the link, so voice control can find it.

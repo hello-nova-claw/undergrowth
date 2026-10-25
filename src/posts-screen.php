@@ -40,8 +40,8 @@ function undergrowth_compost_row_actions( $actions, $post ) {
 
 	if ( 'composting' === undergrowth_get_stage( $post->ID ) ) {
 		$action = 'return';
-		/* translators: %s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it. */
-		$label = sprintf( __( 'Return to garden: &#8220;%s&#8221;', 'undergrowth' ), $title );
+		/* translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it. */
+		$label = sprintf( __( 'Return to garden: &#8220;%1$s&#8221;', 'undergrowth' ), $title );
 		$text  = __( 'Return to garden', 'undergrowth' );
 	} else {
 		$action = 'compost';
