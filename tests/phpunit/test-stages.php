@@ -272,8 +272,8 @@ class Test_Stages extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Evergreen also needs a hub linking to the post, and hubs come only from
-	 * reader-mode fusion, so no post measures Evergreen yet.
+	 * Evergreen also needs a published hub linking to the post (see
+	 * Test_Hubs), so links alone never reach it.
 	 */
 	public function test_post_with_every_link_but_no_hub_stays_budding() {
 		$posts   = $this->publish( 8 );

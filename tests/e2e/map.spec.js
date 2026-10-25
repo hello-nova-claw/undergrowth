@@ -303,4 +303,152 @@ test.describe( 'Map tab', () => {
 			await expectNoA11yViolations( page, '.wrap' );
 		} );
 	} );
+
+	test.describe( 'with a group dense enough for a hub', () => {
+		let posts;
+
+		test.beforeEach(
+			async ( { requestUtils, admin, context, baseURL } ) => {
+				await requestUtils.deleteAllPages();
+
+				posts = [];
+
+				for ( const title of [ 'First', 'Second', 'Third' ] ) {
+					posts.push(
+						await publish( requestUtils, title, { yacon: 6 } )
+					);
+				}
+
+				const pass = await requestUtils.request.get(
+					'wp-admin/index.php?undergrowth_e2e_cluster=1'
+				);
+				expect( pass.ok() ).toBe( true );
+
+				// The fixture makes any group dense, as accepted links would.
+				await context.addCookies( [
+					{
+						name: 'undergrowth_e2e_fixture',
+						value: 'hubs',
+						url: baseURL,
+					},
+				] );
+				await admin.visitAdminPage(
+					'edit.php',
+					'page=undergrowth-links&tab=map'
+				);
+			}
+		);
+
+		test.afterEach( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPages();
+		} );
+
+		test( 'starts a draft holding only the titles as links, by keyboard, with no WCAG 2.2 AA violations', async ( {
+			page,
+			requestUtils,
+		} ) => {
+			const proposal = page.locator( '.undergrowth-hub-proposal' );
+			const start = proposal.locator(
+				'form:has([value="undergrowth_start_hub"]) button'
+			);
+
+			await expect( proposal ).toHaveCount( 1 );
+			await expectNoA11yViolations( page, '.wrap' );
+
+			await start.focus();
+			await page.keyboard.press( 'Enter' );
+
+			const notice = page.locator( '#undergrowth-notice' );
+			await expect( notice ).toHaveClass( /notice-success/ );
+			await expect( notice ).toBeFocused();
+			await expect(
+				page.locator( '.undergrowth-hub-proposal' )
+			).toHaveCount( 0 );
+			await expect( page.locator( 'p.undergrowth-hub' ) ).toHaveCount(
+				1
+			);
+			await expectNoA11yViolations( page, '.wrap' );
+
+			const pages = await requestUtils.rest( {
+				path: '/wp/v2/pages',
+				params: { status: 'draft', context: 'edit' },
+			} );
+
+			expect( pages ).toHaveLength( 1 );
+			expect( pages[ 0 ].status ).toBe( 'draft' );
+			expect( pages[ 0 ].title.raw ).toBe( '' );
+
+			const content = pages[ 0 ].content.raw;
+			const items = [
+				...content.matchAll(
+					/<li><a href="([^"]+)">([^<]*)<\/a><\/li>/g
+				),
+			];
+
+			expect( items.map( ( item ) => item[ 2 ] ).sort() ).toEqual( [
+				'First',
+				'Second',
+				'Third',
+			] );
+			expect( items.map( ( item ) => item[ 1 ] ).sort() ).toEqual(
+				posts.map( ( post ) => post.link ).sort()
+			);
+			// Nothing but the list: no heading, no paragraph, no other text.
+			expect(
+				content
+					.replace( /<!--[^>]*-->/g, '' )
+					.replace( /<a [^>]*>[^<]*<\/a>/g, '' )
+					.replace( /<[^>]+>/g, '' )
+					.trim()
+			).toBe( '' );
+
+			// The notice leads to the draft in the editor.
+			await expect( notice.locator( 'a' ) ).toHaveAttribute(
+				'href',
+				new RegExp( `post=${ pages[ 0 ].id }&` )
+			);
+		} );
+
+		test( 'never proposes a vetoed group again', async ( {
+			page,
+			admin,
+			requestUtils,
+		} ) => {
+			await page
+				.locator(
+					'.undergrowth-hub-proposal form:has([value="undergrowth_veto_hub"]) button'
+				)
+				.click();
+
+			await expect( page.locator( '#undergrowth-notice' ) ).toHaveClass(
+				/notice-success/
+			);
+			await expect(
+				page.locator( '.undergrowth-hub-proposal' )
+			).toHaveCount( 0 );
+
+			// Next month's pass finds the same group again.
+			const pass = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+			expect( pass.ok() ).toBe( true );
+
+			await admin.visitAdminPage(
+				'edit.php',
+				'page=undergrowth-links&tab=map'
+			);
+			await expect(
+				page.locator( 'ul.undergrowth-cluster' )
+			).toHaveCount( 1 );
+			await expect(
+				page.locator( '.undergrowth-hub-proposal' )
+			).toHaveCount( 0 );
+			expect(
+				await requestUtils.rest( {
+					path: '/wp/v2/pages',
+					params: { status: 'draft' },
+				} )
+			).toHaveLength( 0 );
+		} );
+	} );
 } );
