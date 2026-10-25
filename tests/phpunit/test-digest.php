@@ -80,16 +80,15 @@ class Test_Digest extends WP_UnitTestCase {
 			undergrowth_links_table(),
 			array_merge(
 				array(
-					'source_id'      => $source,
-					'target_id'      => $target,
-					'state'          => 'proposed',
-					'score'          => 0.7,
-					'sentence'       => 'Oca keeps well after the first frost.',
-					'sentence_index' => 0,
-					'anchor'         => 'first frost',
-					'anchor_offset'  => 25,
-					'created_at'     => $now,
-					'updated_at'     => $now,
+					'source_id'     => $source,
+					'target_id'     => $target,
+					'state'         => 'proposed',
+					'score'         => 0.7,
+					'sentence'      => 'Oca keeps well after the first frost.',
+					'anchor'        => 'first frost',
+					'anchor_offset' => 25,
+					'created_at'    => $now,
+					'updated_at'    => $now,
 				),
 				$fields
 			)
