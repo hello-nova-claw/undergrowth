@@ -342,6 +342,33 @@ class Test_Memory extends WP_UnitTestCase {
 		$this->assertSame( array( 'seedling' ), $this->section( (string) $this->read( $oca ), 'stage' ) );
 	}
 
+	/**
+	 * The file is the same wherever the site is: its dates are UTC days, not
+	 * the site's.
+	 */
+	public function test_dates_in_the_file_are_utc_days_whatever_the_site_timezone() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		update_option( 'timezone_string', 'Pacific/Auckland' );
+
+		// 23:30 UTC on 1 January is already 2 January in Auckland.
+		add_post_meta(
+			$oca,
+			'undergrowth_stage_log',
+			array(
+				'time'   => 1767310200,
+				'from'   => 'seedling',
+				'to'     => 'sprout',
+				'reason' => 'cycle',
+			)
+		);
+		undergrowth_write_memory( $oca );
+		$file = (string) $this->read( $oca );
+
+		$this->assertContains( '- 2026-01-01: seedling -> sprout (monthly cycle)', $this->section( $file, 'stage' ) );
+		$this->assertMatchesRegularExpression( '/^updated: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/m', $file );
+	}
+
 	public function test_stage_section_lists_each_change_after_the_current_stage() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
