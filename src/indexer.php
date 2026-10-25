@@ -21,6 +21,8 @@ add_action( 'undergrowth_backfill_check', 'undergrowth_queue_stale_embeds' );
 add_action( 'init', 'undergrowth_schedule_backfill_check' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 20, 0 );
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 10, 0 );
+// Polylang and WPML load their functions with the other plugins.
+add_action( 'init', 'undergrowth_hook_multilingual_language', 0 );
 add_action( 'add_option_undergrowth_post_types', 'undergrowth_post_types_changed', 10, 0 );
 add_action( 'update_option_undergrowth_post_types', 'undergrowth_post_types_changed', 10, 0 );
 add_action( 'undergrowth_forget_unindexed_posts', 'undergrowth_forget_unindexed_posts', 10, 0 );
@@ -368,6 +370,43 @@ function undergrowth_post_language( WP_Post $post ): string {
 }
 
 /**
+ * Takes each post's language from Polylang or WPML, when either is active.
+ *
+ * Only then is the filter added, so a site without one keeps comparing every
+ * post in the site language.
+ */
+function undergrowth_hook_multilingual_language(): void {
+	if ( function_exists( 'pll_get_post_language' ) || has_filter( 'wpml_post_language_details' ) ) {
+		add_filter( 'undergrowth_post_language', 'undergrowth_multilingual_language', 5, 2 );
+	}
+}
+
+/**
+ * Reads a post's language from Polylang or WPML.
+ *
+ * @param mixed   $locale Language so far.
+ * @param WP_Post $post   Post being embedded.
+ * @return mixed The post's locale, or the language so far when neither plugin gives one.
+ */
+function undergrowth_multilingual_language( $locale, $post ) {
+	if ( ! $post instanceof WP_Post ) {
+		return $locale;
+	}
+
+	if ( function_exists( 'pll_get_post_language' ) ) {
+		$language = pll_get_post_language( $post->ID, 'locale' );
+
+		if ( is_string( $language ) && '' !== $language ) {
+			return $language;
+		}
+	}
+
+	$details = apply_filters( 'wpml_post_language_details', null, $post->ID ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own hook.
+
+	return is_array( $details ) && is_string( $details['locale'] ?? null ) && '' !== $details['locale'] ? $details['locale'] : $locale;
+}
+
+/**
  * Fits a language to the 20 characters its column holds.
  *
  * The value stored is then the value compared on the next save. A longer
@@ -467,6 +506,7 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	global $wpdb;
 
 	$indexable = undergrowth_indexable_sql( 'p.' );
+	$stale     = undergrowth_stale_index_language( $identity );
 
 	if ( null === $indexable ) {
 		return array();
@@ -476,13 +516,42 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id ), $indexable[1], array( $limit ) )
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE ( v.post_id IS NULL OR ( %s <> '' AND v.language = %s ) ) AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $stale, $stale, $after_id ), $indexable[1], array( $limit ) )
 		)
 	);
 	// phpcs:enable
 
 	return array_map( 'intval', $post_ids );
+}
+
+/**
+ * Returns the site language the index was filled in, once posts have
+ * started to take their own language, as when Polylang or WPML is turned on.
+ *
+ * Vectors still in that language may be in the wrong one, so a pass reads
+ * them again. Embedding a post whose language has not changed sends nothing.
+ * Once the pass fills the index in the new way, there is none.
+ *
+ * @param array $identity {
+ *     The target, as from undergrowth_index_target().
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @return string The old site language, or an empty string.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_stale_index_language( array $identity ): string {
+	$recorded = get_option( 'undergrowth_index_identity' );
+
+	if ( '' !== $identity['language'] || ! is_array( $recorded ) || ( $recorded['provider'] ?? '' ) !== $identity['provider'] || ( $recorded['model'] ?? '' ) !== $identity['model'] ) {
+		return '';
+	}
+
+	return is_string( $recorded['language'] ?? null ) ? $recorded['language'] : '';
 }
 
 /**
@@ -562,7 +631,8 @@ function undergrowth_start_backfill(): void {
  * so a pass whose embeds mostly failed does not cluster a nearly empty
  * index, or while there is no indexable post yet, so the first posts on a
  * new site are still clustered early. Once the identity is recorded,
- * clustering is left to the monthly cycle.
+ * clustering is left to the monthly cycle. Every post's proposals are
+ * refreshed once too, with the word counts of the whole site.
  *
  * @param array $identity {
  *     The current provider and model, and the site language when posts take theirs from the site.
@@ -589,6 +659,7 @@ function undergrowth_record_index_identity( array $identity ): void {
 
 	update_option( 'undergrowth_index_identity', $identity, false );
 	wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 0 ) );
+	wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );
 }
 
 /**

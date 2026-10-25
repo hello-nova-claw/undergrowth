@@ -60,7 +60,7 @@ class Test_Links extends WP_UnitTestCase {
 
 		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', undergrowth_links_table() ) );
 
-		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'sentence_index', 'anchor', 'anchor_offset', 'anchor_chosen', 'created_at', 'updated_at' ), $columns );
+		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'anchor', 'anchor_offset', 'anchor_chosen', 'created_at', 'updated_at' ), $columns );
 	}
 
 	public function test_closest_posts_are_proposed_best_first() {
@@ -491,7 +491,7 @@ class Test_Links extends WP_UnitTestCase {
 		undergrowth_refresh_around( $bare );
 
 		$this->assertSame( array(), undergrowth_comparable_vectors( $bare ) );
-		$this->assertSame( array(), undergrowth_rank_targets( $bare ) );
+		$this->assertSame( array(), undergrowth_test_rank_targets( $bare ) );
 		$this->assertSame( array(), $this->proposed( $bare ) );
 	}
 
@@ -502,7 +502,7 @@ class Test_Links extends WP_UnitTestCase {
 		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $oca ) );
 		clean_post_cache( $oca );
 
-		$this->assertSame( array(), undergrowth_rank_targets( $oca ) );
+		$this->assertSame( array(), undergrowth_test_rank_targets( $oca ) );
 	}
 
 	public function test_target_with_a_stale_vector_is_not_proposed() {

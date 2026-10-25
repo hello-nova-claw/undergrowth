@@ -221,10 +221,7 @@ class Test_Accept extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->update(
 			undergrowth_links_table(),
-			array(
-				'sentence'       => 'I keep yacon plants for their syrup.',
-				'sentence_index' => 2,
-			),
+			array( 'sentence' => 'I keep yacon plants for their syrup.' ),
 			array(
 				'source_id' => $oca,
 				'target_id' => $yacon,
@@ -236,6 +233,29 @@ class Test_Accept extends WP_UnitTestCase {
 
 		$this->assertStringStartsWith( '<p>Yacon is not grown here.', $content );
 		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
+	}
+
+	public function test_a_copy_of_the_sentence_after_one_already_linked_is_linked() {
+		list( $oca, $yacon ) = $this->pair( '<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep yacon plants nearby.</p>' );
+		global $wpdb;
+		$wpdb->replace(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => 'I keep yacon plants nearby.',
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame(
+			'<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants nearby.</p>',
+			get_post( $oca )->post_content
+		);
 	}
 
 	public function test_paragraphs_without_the_sentence_are_skipped() {
@@ -407,6 +427,29 @@ class Test_Accept extends WP_UnitTestCase {
 		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
 		$this->assertSame( $before, get_post( $oca )->post_content );
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_a_failed_save_records_wordpress_error_code_and_no_message() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		undergrowth_accept_link( $oca, $yacon );
+
+		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
+		$error = get_option( 'undergrowth_last_accept_error' );
+		$this->assertSame( 'empty_content', $error['code'] );
+		$this->assertSame( 0, $error['status'] );
+		$this->assertGreaterThan( time() - MINUTE_IN_SECONDS, $error['time'] );
+		$this->assertSame( array( 'code', 'status', 'time' ), array_keys( $error ) );
+	}
+
+	public function test_a_successful_accept_clears_the_last_failed_save() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		undergrowth_record_failure( 'undergrowth_last_accept_error', 'empty_content' );
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+
+		$this->assertFalse( get_option( 'undergrowth_last_accept_error' ) );
 	}
 
 	public function test_screen_says_a_post_could_not_be_saved() {
@@ -739,14 +782,13 @@ class Test_Accept extends WP_UnitTestCase {
 		$wpdb->replace(
 			undergrowth_links_table(),
 			array(
-				'source_id'      => $oca,
-				'target_id'      => $yacon,
-				'state'          => 'proposed',
-				'score'          => 0.9,
-				'sentence'       => $sentence,
-				'sentence_index' => 1,
-				'created_at'     => current_time( 'mysql', true ),
-				'updated_at'     => current_time( 'mysql', true ),
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => $sentence,
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
 			)
 		);
 

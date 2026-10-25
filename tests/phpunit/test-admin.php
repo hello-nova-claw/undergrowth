@@ -35,7 +35,7 @@ class Test_Admin extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		unset( $_POST['source'], $_POST['target'], $_POST['_wpnonce'], $_POST['undergrowth_suggest_links'], $_REQUEST['_wpnonce'] );
+		unset( $_POST['source'], $_POST['target'], $_POST['post'], $_POST['_wpnonce'], $_POST['undergrowth_suggest_links'], $_GET['source'], $_GET['target'], $_REQUEST['_wpnonce'] );
 		undergrowth_delete_memory_folder();
 
 		parent::tear_down();
@@ -124,8 +124,8 @@ class Test_Admin extends WP_UnitTestCase {
 		$post_id = self::factory()->post->create( array( 'post_title' => 'Oca' ) );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
-		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*">Oca</a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
-		$this->assertMatchesRegularExpression( '#^<a href="[^"]+">Oca</a>$#', undergrowth_post_link( $post_id ) );
+		$this->assertMatchesRegularExpression( '#^<a class="row-title" href="[^"]+post=' . $post_id . '[^"]*"><bdi>Oca</bdi></a>$#', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertMatchesRegularExpression( '#^<a href="[^"]+"><bdi>Oca</bdi></a>$#', undergrowth_post_link( $post_id ) );
 	}
 
 	public function test_post_link_is_plain_text_when_the_edit_address_is_empty() {
@@ -133,7 +133,7 @@ class Test_Admin extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		add_filter( 'get_edit_post_link', '__return_empty_string' );
 
-		$this->assertSame( 'Oca', undergrowth_post_link( $post_id, 'row-title' ) );
+		$this->assertSame( '<bdi>Oca</bdi>', undergrowth_post_link( $post_id, 'row-title' ) );
 	}
 
 	public function test_suggestions_url_opens_each_tab_with_its_notice() {
@@ -369,8 +369,8 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '">Yacon</a></p>#', $html );
-		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '">Oca</a>#', $html );
+		$this->assertMatchesRegularExpression( '#</q>\s*<p>Link to <a class="row-title" href="' . preg_quote( esc_url( (string) get_edit_post_link( $yacon, 'raw' ) ), '#' ) . '"><bdi>Yacon</bdi></a></p>#', $html );
+		$this->assertMatchesRegularExpression( '#<td class=.source column-source. data-colname="In this post"><a href="' . preg_quote( esc_url( (string) get_edit_post_link( $oca, 'raw' ) ), '#' ) . '"><bdi>Oca</bdi></a>#', $html );
 		$this->assertStringNotContainsString( 'href="' . esc_url( (string) get_permalink( $yacon ) ) . '"', $html );
 	}
 
@@ -395,7 +395,7 @@ class Test_Admin extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( '<p>Link to <a class="row-title" href="', $html );
-		$this->assertStringContainsString( '">(no title)</a></p>', $html );
+		$this->assertStringContainsString( '"><bdi>(no title)</bdi></a></p>', $html );
 		$this->assertStringContainsString( 'aria-label="Accept the link from Oca to (no title)"', $html );
 	}
 
@@ -412,7 +412,7 @@ class Test_Admin extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( '<p>Link to <strong>Yacon</strong></p>', $html );
+		$this->assertStringContainsString( '<p>Link to <strong><bdi>Yacon</bdi></strong></p>', $html );
 		$this->assertStringNotContainsString( 'href=""', $html );
 	}
 
@@ -585,5 +585,104 @@ class Test_Admin extends WP_UnitTestCase {
 		undergrowth_uninstall_site();
 
 		$this->assertFalse( get_option( 'undergrowth_suggest_links' ) );
+	}
+
+	public function test_a_row_action_button_points_at_its_form_by_id() {
+		$this->assertSame(
+			'<button type="submit" form="undergrowth-veto-4-5" class="button-link" aria-label="Veto &quot;Oca&quot;">Veto</button>',
+			undergrowth_row_action_button(
+				'veto',
+				array(
+					'source' => 4,
+					'target' => 5,
+				),
+				'Veto "Oca"',
+				'Veto'
+			)
+		);
+		$this->assertSame( 'undergrowth-pin-7', undergrowth_row_action_form_id( 'pin', array( 'post' => 7 ) ) );
+	}
+
+	public function test_a_row_action_form_holds_its_fields_in_order_and_a_nonce_for_them() {
+		$form = undergrowth_row_action_form(
+			'accept',
+			array(
+				'source' => 4,
+				'target' => 5,
+			)
+		);
+
+		$this->assertStringStartsWith( '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="undergrowth-accept-4-5"><input type="hidden" name="action" value="undergrowth_accept" /><input type="hidden" name="source" value="4" /><input type="hidden" name="target" value="5" />', $form );
+		$this->assertStringContainsString( 'value="' . wp_create_nonce( 'undergrowth_accept_4_5' ) . '"', $form );
+		$this->assertStringEndsWith( '</form>', $form );
+
+		$this->assertStringContainsString( '<input type="hidden" name="post" value="7" />', undergrowth_row_action_form( 'pin', array( 'post' => 7 ) ) );
+		$this->assertStringContainsString( wp_create_nonce( 'undergrowth_pin_7' ), undergrowth_row_action_form( 'pin', array( 'post' => 7 ) ) );
+	}
+
+	public function test_neither_list_table_builds_its_own_row_action_markup() {
+		foreach ( array( 'class-undergrowth-links-list-table.php', 'class-undergrowth-stages-list-table.php' ) as $file ) {
+			$this->assertStringNotContainsString( '<button type="submit" form=', (string) file_get_contents( dirname( __DIR__, 2 ) . '/src/' . $file ), $file );
+		}
+	}
+
+	public function test_the_link_gate_returns_the_posted_pair_once_the_nonce_and_capability_pass() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->veto_form( $oca, $yacon );
+
+		$this->assertSame( array( $oca, $yacon ), undergrowth_posted_link_pair( 'veto' ) );
+	}
+
+	public function test_the_link_gate_reads_an_undo_link_from_the_address() {
+		$oca                  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon                = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$_GET['source']       = (string) $oca;
+		$_GET['target']       = (string) $yacon;
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_unveto_' . $oca . '_' . $yacon );
+
+		$this->assertSame( array( $oca, $yacon ), undergrowth_posted_link_pair( 'unveto', true ) );
+	}
+
+	public function test_the_link_gate_checks_the_nonce_for_its_own_action() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->veto_form( $oca, $yacon );
+
+		$this->expectException( WPDieException::class );
+		undergrowth_posted_link_pair( 'accept' );
+	}
+
+	public function test_the_link_gate_refuses_a_user_who_cannot_edit_the_source() {
+		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
+		$this->veto_form( $oca, $yacon );
+
+		try {
+			undergrowth_posted_link_pair( 'veto' );
+			$this->fail( 'The gate let the request through.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 'You cannot change links in this post.', $e->getMessage() );
+		}
+	}
+
+	public function test_every_link_handler_is_refused_with_one_message() {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/src/admin.php' );
+
+		// One gate holds the refusal, so no handler can drift from the others.
+		$this->assertSame( 1, substr_count( $source, "'You cannot change links in this post.'" ) );
+		$this->assertSame( 0, preg_match_all( "/check_admin_referer\\( 'undergrowth_[a-z_]+_' \\./", $source ) );
+	}
+
+	public function test_the_post_gate_returns_the_posted_post_once_the_nonce_passes() {
+		$oca                  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$_POST['post']        = (string) $oca;
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_pin_' . $oca );
+
+		$this->assertSame( $oca, undergrowth_posted_post_id( 'pin' ) );
+
+		$this->expectException( WPDieException::class );
+		undergrowth_posted_post_id( 'unpin' );
 	}
 }

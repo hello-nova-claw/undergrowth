@@ -91,6 +91,36 @@ test.describe( 'Prompt on the Dashboard', () => {
 		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
 	} );
 
+	test( 'undoes a dismissal by keyboard and brings the question back', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( 'index.php' );
+		await page.locator( `${ WIDGET } button[value="dismiss"]` ).focus();
+		await page.keyboard.press( 'Enter' );
+
+		const notice = page.locator( '#undergrowth-notice' );
+		const undo = notice.locator(
+			'a[href*="action=undergrowth_restore_prompt"]'
+		);
+
+		await expect( notice ).toBeFocused();
+		await expectNoA11yViolations( page, '#undergrowth-notice' );
+
+		// The Undo is the first stop after the notice.
+		await page.keyboard.press( 'Tab' );
+		await expect( undo ).toBeFocused();
+		await page.keyboard.press( 'Enter' );
+
+		await expect( notice ).toBeFocused();
+		await expect( notice ).toHaveClass( /notice-success/ );
+		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
+		await expect(
+			page.locator( `${ WIDGET } button[value="dismiss"]` )
+		).toBeVisible();
+		await expectNoA11yViolations( page, '#undergrowth-notice' );
+	} );
+
 	test( 'fits a phone screen without scrolling sideways', async ( {
 		admin,
 		page,

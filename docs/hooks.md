@@ -17,6 +17,8 @@ Undergrowth's rules are fixed in code (handover section 2, principle 6). These h
 | `undergrowth_backfill_batch_size` | `src/indexer.php` | How many posts one backfill run embeds. Default 20. |
 | `undergrowth_backfill_time_budget` | `src/indexer.php` | How many seconds one backfill run may keep starting new posts. Default 15. |
 | `undergrowth_stale_check_size` | `src/indexer.php` | How many posts saved since their vector was made one hourly check reads, to find text that changed without being embedded again. Default 100. |
+| `undergrowth_post_chunk_size` | `src/links.php` | How many posts are read in one query wherever posts are read in chunks, such as building the word counts or checking link targets. Default 100. A smaller chunk holds less in memory and sends more queries. |
+| `undergrowth_vector_chunk_size` | `src/links.php` | How many stored vectors are read in one query. Default 100. |
 
 ### Thresholds
 
@@ -77,4 +79,4 @@ Each action passes the post ID first.
 
 Each is unscheduled on deactivation and on uninstall (`tests/phpunit/test-uninstall.php` checks both against `src/`). They are listed here so a site can see them in a cron viewer. They are not for hooking.
 
-`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`.
+`undergrowth_embed_post`, `undergrowth_backfill`, `undergrowth_backfill_check` (hourly), `undergrowth_memory_folder_check`, `undergrowth_cluster_cycle` (monthly), `undergrowth_stage_cycle`, `undergrowth_resurfacing_cycle`, `undergrowth_prompt_cycle` (monthly), `undergrowth_write_prompt`, `undergrowth_discord_post_proposals`, `undergrowth_discord_finish_click`.

@@ -28,6 +28,9 @@ const PROFILE = [ 'profile.php', '' ];
 // action, which shows exactly what the user sees without changing any data.
 const NOTICES = [
 	'vetoed',
+	'unvetoed',
+	'unveto_gone',
+	'nothing_selected',
 	'unchanged',
 	'gone',
 	'accepted',
@@ -57,7 +60,12 @@ const DEV_NOTICES = [
 	'dev_cycle_queued',
 	'dev_busy',
 ];
-const PROMPT_NOTICES = [ 'prompt_dismissed', 'prompt_snoozed', 'prompt_gone' ];
+const PROMPT_NOTICES = [
+	'prompt_dismissed',
+	'prompt_snoozed',
+	'prompt_gone',
+	'prompt_restored',
+];
 
 const WITHOUT_POSTS = [
 	// The test site's own provider is code, which the OpenAI states stand aside.
@@ -85,6 +93,12 @@ const WITHOUT_POSTS = [
 		state: 'last-error',
 		page: SETTINGS,
 		fixture: 'last-error',
+	},
+	{
+		screen: 'settings',
+		state: 'accept-last-error',
+		page: SETTINGS,
+		fixture: 'accept-last-error',
 	},
 	{
 		screen: 'settings',
@@ -148,6 +162,12 @@ const WITHOUT_POSTS = [
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
 	{
+		screen: 'profile',
+		state: 'digest-on',
+		page: PROFILE,
+		fixture: 'digest-on',
+	},
+	{
 		screen: 'privacy',
 		state: 'policy-guide',
 		page: [ 'options-privacy.php', 'tab=policyguide' ],
@@ -175,6 +195,21 @@ const WITHOUT_POSTS = [
 		state: 'first-run',
 		page: [ 'plugins.php', '' ],
 		fixture: 'first-run',
+	},
+	// Plugins after Dismiss for good on the first-run notice.
+	{
+		screen: 'plugins',
+		state: 'notice-first-run-dismissed',
+		page: [ 'plugins.php', 'undergrowth_notice=first_run_dismissed' ],
+		fixture: 'no-provider',
+		notice: true,
+	},
+	{
+		screen: 'plugins',
+		state: 'notice-first-run-restored',
+		page: [ 'plugins.php', 'undergrowth_notice=first_run_restored' ],
+		fixture: 'first-run',
+		notice: true,
 	},
 	// Settings right after the first key is saved, linking on to suggestions.
 	{
@@ -287,6 +322,43 @@ const WITH_POSTS = [
 			}`,
 		],
 		notice: true,
+	} ) ),
+	// The one notice after Accept selected, built from the table's own
+	// suggestions, so nothing is changed: all linked, then one refused.
+	...[
+		[ 'notice-accepted-selected', [ 'accepted', 'accepted' ] ],
+		[ 'notice-accepted-selected-refused', [ 'accepted', 'edited' ] ],
+	].map( ( [ state, outcomes ] ) => ( {
+		screen: 'suggestions',
+		state,
+		page: SUGGESTIONS,
+		notice: true,
+		open: async ( page, admin ) => {
+			const boxes = page.locator( 'input[name="link[]"]' );
+
+			if ( ( await boxes.count() ) < outcomes.length ) {
+				return false;
+			}
+
+			const results = [];
+
+			for ( const [ index, outcome ] of outcomes.entries() ) {
+				const pair = await boxes.nth( index ).getAttribute( 'value' );
+
+				results.push( `${ pair }.${ outcome }` );
+			}
+
+			await admin.visitAdminPage(
+				SUGGESTIONS[ 0 ],
+				`${
+					SUGGESTIONS[ 1 ]
+				}&undergrowth_notice=accepted_selected&undergrowth_results=${ results.join(
+					','
+				) }`
+			);
+
+			return true;
+		},
 	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
 	...[
@@ -680,7 +752,9 @@ function capture( states ) {
 
 				// Opens what this state is about, such as a row's form. A build
 				// without it is listed as skipped, as a missing notice is.
-				const opened = entry.open ? await entry.open( page ) : true;
+				const opened = entry.open
+					? await entry.open( page, admin )
+					: true;
 
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help

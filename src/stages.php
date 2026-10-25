@@ -414,28 +414,48 @@ function undergrowth_store_stage( int $post_id, string $stage, string $reason ):
  * @return array<int, array{time: int, from: string, to: string, reason: string}> Changes.
  */
 function undergrowth_stage_log( int $post_id ): array {
+	return undergrowth_read_log(
+		$post_id,
+		'undergrowth_stage_log',
+		array(
+			'from'   => UNDERGROWTH_STAGES,
+			'to'     => UNDERGROWTH_STAGES,
+			'reason' => array_keys( UNDERGROWTH_STAGE_REASONS ),
+		)
+	);
+}
+
+/**
+ * Reads a post's log rows, leaves out any that are malformed, and puts the
+ * rest in time order.
+ *
+ * Every row has a positive integer time and one string for each field,
+ * from that field's list of known values.
+ *
+ * @param int                     $post_id  Post ID.
+ * @param string                  $meta_key Meta key that holds one row per entry.
+ * @param array<string, string[]> $fields   Known values, by field name.
+ * @return array<int, array<string, int|string>> Rows with their time and fields, oldest first.
+ */
+function undergrowth_read_log( int $post_id, string $meta_key, array $fields ): array {
 	$entries = array();
 
-	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
-		if (
-			! is_array( $entry )
-			|| ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] )
-			|| ! is_int( $entry['time'] )
-			|| $entry['time'] <= 0
-			|| ! in_array( $entry['from'], UNDERGROWTH_STAGES, true )
-			|| ! in_array( $entry['to'], UNDERGROWTH_STAGES, true )
-			|| ! is_string( $entry['reason'] )
-			|| ! isset( UNDERGROWTH_STAGE_REASONS[ $entry['reason'] ] )
-		) {
+	foreach ( get_post_meta( $post_id, $meta_key, false ) as $entry ) {
+		if ( ! is_array( $entry ) || ! isset( $entry['time'] ) || ! is_int( $entry['time'] ) || $entry['time'] <= 0 ) {
 			continue;
 		}
 
-		$entries[] = array(
-			'time'   => $entry['time'],
-			'from'   => $entry['from'],
-			'to'     => $entry['to'],
-			'reason' => $entry['reason'],
-		);
+		$row = array( 'time' => $entry['time'] );
+
+		foreach ( $fields as $field => $known ) {
+			if ( ! isset( $entry[ $field ] ) || ! is_string( $entry[ $field ] ) || ! in_array( $entry[ $field ], $known, true ) ) {
+				continue 2;
+			}
+
+			$row[ $field ] = $entry[ $field ];
+		}
+
+		$entries[] = $row;
 	}
 
 	// An import can add older rows after newer ones, so rows are put in time
@@ -527,12 +547,6 @@ function undergrowth_cron_schedules( $schedules ) {
  * stage cycle, so stages are always measured against complete clusters.
  */
 function undergrowth_schedule_stage_cycle(): void {
-	// Before clustering, the monthly event measured stages straight away. Only
-	// that event has no arguments; the batches it chained are left to finish.
-	if ( false !== wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
-		wp_clear_scheduled_hook( 'undergrowth_stage_cycle' );
-	}
-
 	if ( false === wp_next_scheduled( 'undergrowth_cluster_cycle' ) ) {
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
 	}
@@ -595,6 +609,11 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 	}
 
 	undergrowth_end_pass( 'undergrowth_stage_cycle' );
+
+	/**
+	 * Fires once the monthly stage pass has measured every post.
+	 */
+	do_action( 'undergrowth_stage_cycle_finished' );
 }
 
 /**
@@ -612,9 +631,10 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
  *
  * @param string $hook     Cron hook of the pass.
  * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
  * @return string Token of this run.
  */
-function undergrowth_mark_pass( string $hook, int $after_id ): string {
+function undergrowth_mark_pass( string $hook, int $after_id, string $pass = '' ): string {
 	$run = wp_generate_uuid4();
 
 	update_option(
@@ -623,11 +643,38 @@ function undergrowth_mark_pass( string $hook, int $after_id ): string {
 			'after' => $after_id,
 			'at'    => time(),
 			'run'   => $run,
+			'pass'  => $pass,
 		),
 		false
 	);
 
 	return $run;
+}
+
+/**
+ * Returns the ID of the pass now under way.
+ *
+ * @param string $hook Cron hook of the pass.
+ * @return string Pass ID, or an empty string when no pass with an ID is under way.
+ */
+function undergrowth_current_pass( string $hook ): string {
+	// Another request may have started a new pass since this one read the record.
+	wp_cache_delete( $hook . '_pass', 'options' );
+
+	$pass = get_option( $hook . '_pass' );
+
+	return is_array( $pass ) ? (string) ( $pass['pass'] ?? '' ) : '';
+}
+
+/**
+ * Returns the arguments of a batch's cron event.
+ *
+ * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
+ * @return array<int, int|string> Event arguments.
+ */
+function undergrowth_pass_args( int $after_id, string $pass ): array {
+	return '' === $pass ? array( $after_id ) : array( $after_id, $pass );
 }
 
 /**
@@ -651,10 +698,11 @@ function undergrowth_owns_pass( string $hook, string $run ): bool {
  *
  * @param string $hook     Cron hook of the pass.
  * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
  */
-function undergrowth_queue_pass_batch( string $hook, int $after_id ): void {
-	undergrowth_mark_pass( $hook, $after_id );
-	wp_schedule_single_event( time(), $hook, array( $after_id ) );
+function undergrowth_queue_pass_batch( string $hook, int $after_id, string $pass = '' ): void {
+	undergrowth_mark_pass( $hook, $after_id, $pass );
+	wp_schedule_single_event( time(), $hook, undergrowth_pass_args( $after_id, $pass ) );
 }
 
 /**
@@ -683,12 +731,13 @@ function undergrowth_resume_stalled_passes(): void {
 		}
 
 		$after_id = (int) $pass['after'];
+		$pass_id  = (string) ( $pass['pass'] ?? '' );
 
-		if ( false !== wp_next_scheduled( $hook, array( $after_id ) ) || false !== wp_next_scheduled( $hook, array( 0 ) ) ) {
+		if ( false !== wp_next_scheduled( $hook, undergrowth_pass_args( $after_id, $pass_id ) ) || false !== wp_next_scheduled( $hook, array( 0 ) ) ) {
 			continue;
 		}
 
-		undergrowth_queue_pass_batch( $hook, $after_id );
+		undergrowth_queue_pass_batch( $hook, $after_id, $pass_id );
 	}
 }
 

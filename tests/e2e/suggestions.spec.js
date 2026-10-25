@@ -89,7 +89,14 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
 			await expect( rows ).toHaveCount( 1 );
 
-			// The result can be dismissed, as core's own notices can.
+			// The Undo comes first, then the result can be dismissed, as
+			// core's own notices can.
+			await page.keyboard.press( 'Tab' );
+			await expect(
+				page.locator(
+					'#undergrowth-notice a[href*="action=undergrowth_unveto"]'
+				)
+			).toBeFocused();
 			await page.keyboard.press( 'Tab' );
 			await expect(
 				page.locator( '#undergrowth-notice .notice-dismiss' )
@@ -98,6 +105,28 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await expect( page.locator( '#undergrowth-notice' ) ).toHaveCount(
 				0
 			);
+		} );
+
+		test( 'undoes a veto by keyboard and suggests the link again', async ( {
+			page,
+		} ) => {
+			const rows = page.locator( 'table.undergrowth-links tbody tr' );
+
+			await actionButton( rows.first(), 'veto' ).focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( rows ).toHaveCount( 1 );
+
+			const notice = page.locator( '#undergrowth-notice' );
+
+			await expect( notice ).toBeFocused();
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
+			await page.keyboard.press( 'Tab' );
+			await page.keyboard.press( 'Enter' );
+
+			await expect( notice ).toBeFocused();
+			await expect( notice ).toHaveClass( /notice-success/ );
+			await expect( rows ).toHaveCount( 2 );
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
 		} );
 
 		test( 'accepts one by keyboard and links a word in the post', async ( {
@@ -249,6 +278,46 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 			await page.keyboard.press( 'Tab' );
 			await expect( actionButton( row, 'veto' ) ).toBeFocused();
 			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
+		test( 'accepts the checked suggestions together by keyboard', async ( {
+			page,
+		} ) => {
+			const rows = page.locator( 'table.undergrowth-links tbody tr' );
+			const boxes = rows.locator( 'input[name="link[]"]' );
+
+			// Nothing is checked to begin with.
+			await expect( boxes ).toHaveCount( 2 );
+			await expect( boxes.first() ).not.toBeChecked();
+
+			for ( const box of await boxes.all() ) {
+				await box.focus();
+				await page.keyboard.press( 'Space' );
+				await expect( box ).toBeChecked();
+			}
+
+			const menu = page.locator( '#bulk-action-selector-top' );
+
+			// Typing an option's first letters picks it in a closed menu, on
+			// every platform. Its words are read from the page, since this
+			// spec also runs in Hebrew and in the en_XA pseudo-locale.
+			const accept = (
+				await menu.locator( 'option[value="accept"]' ).textContent()
+			).trim();
+
+			await menu.focus();
+			await page.keyboard.type( accept.slice( 0, 4 ) );
+			await expect( menu ).toHaveValue( 'accept' );
+			await page.keyboard.press( 'Tab' );
+			await expect( page.locator( '#doaction' ) ).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+
+			const notice = page.locator( '#undergrowth-notice' );
+
+			await expect( notice ).toBeFocused();
+			await expect( notice.locator( 'li' ) ).toHaveCount( 2 );
+			await expect( rows ).toHaveCount( 0 );
+			await expectNoA11yViolations( page, '#undergrowth-notice' );
 		} );
 
 		test( 'is switched off and on from Settings, by keyboard', async ( {

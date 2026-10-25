@@ -144,26 +144,98 @@ class Test_Corpus extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_corpus_reads_posts_in_bounded_chunks() {
-		$ids     = self::factory()->post->create_many( 2 * UNDERGROWTH_POST_CHUNK + 1 );
-		$selects = array();
-		$record  = static function ( $query ) use ( &$selects ) {
-			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_title, post_content' ) ) {
-				$selects[] = $query;
+	public function test_corpus_is_the_same_whatever_the_chunk_size() {
+		global $wpdb;
+
+		$ids     = self::factory()->post->create_many( 5, array( 'post_content' => 'Oca and yacon grow in the cool hills.' ) );
+		$queries = $wpdb->num_queries;
+		$full    = undergrowth_build_corpus( $ids );
+		$once    = $wpdb->num_queries - $queries;
+
+		add_filter(
+			'undergrowth_post_chunk_size',
+			static function () {
+				return 2;
 			}
-			return $query;
-		};
-		add_filter( 'query', $record );
+		);
+		$queries = $wpdb->num_queries;
+		$chunked = undergrowth_build_corpus( $ids );
 
-		$corpus = undergrowth_build_corpus( $ids );
+		$this->assertSame( 5, $full['documents'] );
+		$this->assertSame( $full, $chunked );
+		$this->assertSame( $once + 2, $wpdb->num_queries - $queries );
+	}
 
-		remove_filter( 'query', $record );
-		$this->assertSame( count( $ids ), $corpus['documents'] );
-		$this->assertCount( 3, $selects );
+	public function test_chunks_keep_keys_and_order_and_split_at_the_size() {
+		$this->assertSame(
+			array(
+				array(
+					7 => 'a',
+					3 => 'b',
+				),
+				array( 9 => 'c' ),
+			),
+			iterator_to_array(
+				undergrowth_chunks(
+					array(
+						7 => 'a',
+						3 => 'b',
+						9 => 'c',
+					),
+					2,
+					true
+				),
+				false
+			)
+		);
+		$this->assertSame(
+			array( array( 'a', 'b' ), array( 'c' ) ),
+			iterator_to_array(
+				undergrowth_chunks(
+					array(
+						7 => 'a',
+						3 => 'b',
+						9 => 'c',
+					),
+					2
+				),
+				false
+			)
+		);
+		$this->assertSame( array(), iterator_to_array( undergrowth_chunks( array(), 2 ), false ) );
+	}
 
-		foreach ( $selects as $select ) {
-			$this->assertLessThanOrEqual( UNDERGROWTH_POST_CHUNK, substr_count( $select, ',' ) - 1 );
+	public function test_chunks_are_built_one_at_a_time() {
+		$read  = 0;
+		$items = ( static function () use ( &$read ) {
+			for ( $i = 0; $i < 100000; $i++ ) {
+				++$read;
+				yield $i;
+			}
+		} )();
+
+		foreach ( undergrowth_chunks( $items, 1 ) as $chunk ) {
+			$this->assertSame( array( 0 ), $chunk );
+			break;
 		}
+
+		$this->assertSame( 1, $read );
+	}
+
+	public function test_chunk_sizes_follow_their_filters_and_stay_positive() {
+		$this->assertSame( UNDERGROWTH_POST_CHUNK, undergrowth_post_chunk_size() );
+		$this->assertSame( UNDERGROWTH_VECTOR_CHUNK, undergrowth_vector_chunk_size() );
+
+		add_filter( 'undergrowth_post_chunk_size', '__return_zero' );
+		add_filter(
+			'undergrowth_vector_chunk_size',
+			static function () {
+				return 7;
+			}
+		);
+
+		$this->assertSame( 1, undergrowth_post_chunk_size() );
+		$this->assertSame( 7, undergrowth_vector_chunk_size() );
 	}
 
 	public function test_corpus_leaves_no_rows_behind_in_wpdb() {
@@ -363,7 +435,7 @@ class Test_Corpus extends WP_UnitTestCase {
 				$vector[] = mt_rand() / mt_getrandmax() * 2 - 1;
 			}
 
-			$ids[] = $this->plant( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', undergrowth_links_table() ) );
@@ -372,10 +444,21 @@ class Test_Corpus extends WP_UnitTestCase {
 		$positions = array_flip( $ids );
 		$rows      = array_map(
 			static function ( $row ) use ( $positions ) {
-				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], (int) $row[2] );
+				// The sentence's place among the post's sentences, as the
+				// sentence_index column recorded it before #339 dropped it.
+				$index = -1;
+
+				foreach ( undergrowth_split_sentences( get_post( (int) $row[0] )->post_content ) as $i => $sentence ) {
+					if ( $row[2] === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
+						$index = $i;
+						break;
+					}
+				}
+
+				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], $index );
 			},
 			(array) $wpdb->get_results(
-				$wpdb->prepare( 'SELECT source_id, target_id, sentence_index FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
+				$wpdb->prepare( 'SELECT source_id, target_id, sentence FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
 				ARRAY_N
 			)
 		);
@@ -402,7 +485,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		$ids = array();
 
 		for ( $i = 0; $i < 12; $i++ ) {
-			$ids[] = $this->plant( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		wp_cache_flush();
@@ -428,11 +511,11 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source  = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
 		$targets = array();
 
 		for ( $i = 0; $i < 6; $i++ ) {
-			$targets[] = $this->plant( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+			$targets[] = $this->seed( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
 		}
 
 		wp_cache_flush();
@@ -445,7 +528,9 @@ class Test_Corpus extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_refresh_checks_target_posts_in_bounded_chunks() {
+	public function test_open_targets_are_the_same_whatever_the_chunk_size() {
+		global $wpdb;
+
 		add_filter(
 			'undergrowth_min_link_similarity',
 			static function () {
@@ -453,25 +538,36 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ) );
 
-		for ( $i = 0; $i < UNDERGROWTH_POST_CHUNK + 1; $i++ ) {
-			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 200, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+		for ( $i = 0; $i < 5; $i++ ) {
+			$this->seed( 'Yacon ' . $i, array( 1.0, $i / 10, 0.0 ) );
 		}
 
-		$selects = array();
-		$record  = static function ( $query ) use ( &$selects ) {
-			if ( 0 === strpos( ltrim( $query ), 'SELECT ID, post_status, post_password, post_type' ) ) {
-				$selects[] = $query;
+		$draft = $this->seed( 'Mashua', array( 1.0, 0.05, 0.0 ) );
+		wp_update_post(
+			array(
+				'ID'          => $draft,
+				'post_status' => 'draft',
+			)
+		);
+
+		$queries = $wpdb->num_queries;
+		$full    = undergrowth_test_rank_targets( $source, null, 0 );
+		$once    = $wpdb->num_queries - $queries;
+
+		add_filter(
+			'undergrowth_post_chunk_size',
+			static function () {
+				return 1;
 			}
-			return $query;
-		};
-		add_filter( 'query', $record );
+		);
+		$queries = $wpdb->num_queries;
+		$chunked = undergrowth_test_rank_targets( $source, null, 0 );
 
-		undergrowth_refresh_proposals( $source );
-
-		remove_filter( 'query', $record );
-		$this->assertCount( 2, $selects );
+		$this->assertCount( 5, $full );
+		$this->assertSame( $full, $chunked );
+		$this->assertGreaterThan( $once, $wpdb->num_queries - $queries );
 	}
 
 	public function test_post_deleted_after_the_corpus_was_built_has_no_distinctive_terms() {
@@ -495,14 +591,14 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$best   = array();
 
 		for ( $i = 0; $i < 4; $i++ ) {
-			$best[] = $this->plant( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
+			$best[] = $this->seed( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
 		}
 
-		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_rank_targets( $source, null, 2 ) ) );
+		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_test_rank_targets( $source, null, 2 ) ) );
 	}
 
 	public function test_reused_corpus_is_counted_once_for_the_same_posts() {

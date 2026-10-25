@@ -66,7 +66,21 @@ jobs:
           npm run build
           (cd ../base && npm ci && npm run build)
         working-directory: head
-      - run: npx playwright install chromium --with-deps
+      # The browser is cached by Playwright version; its system packages are not.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        working-directory: head
+      - uses: actions/cache@v6.1.0
+        id: playwright-browser
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright-browser.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+        working-directory: head
+      - if: steps.playwright-browser.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: head
 
       # Both runs use this branch's spec, so a state added here is captured on

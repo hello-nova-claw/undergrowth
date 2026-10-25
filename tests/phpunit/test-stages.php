@@ -575,16 +575,89 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( array( $next ), array_keys( $events ) );
 	}
 
-	public function test_monthly_event_from_before_clustering_is_replaced() {
+	public function test_monthly_event_from_before_clustering_is_replaced_on_upgrade() {
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
+		delete_option( 'undergrowth_schema_version' );
 
+		undergrowth_maybe_upgrade_schema();
 		undergrowth_schedule_stage_cycle();
 
 		$this->assertFalse( wp_get_schedule( 'undergrowth_stage_cycle' ) );
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_cluster_cycle' ) );
+	}
+
+	public function test_upgrade_tries_again_when_the_old_event_could_not_be_cleared() {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+		delete_option( 'undergrowth_schema_version' );
+		add_filter( 'pre_clear_scheduled_hook', '__return_false' );
+
+		$this->assertFalse( undergrowth_install_schema() );
+		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
+	}
+
+	public function test_loading_a_page_leaves_old_events_to_the_upgrade() {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+
+		undergrowth_schedule_stage_cycle();
+
+		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_stage_cycle' ) );
+	}
+
+	public function test_read_log_keeps_valid_rows_in_time_order() {
+		$post_id = self::factory()->post->create();
+		$rows    = array(
+			array(
+				'time'  => 200,
+				'event' => 'b',
+			),
+			array(
+				'time'  => 100,
+				'event' => 'a',
+			),
+			array(
+				'time'  => 200,
+				'event' => 'c',
+			),
+			array(
+				'time'  => 0,
+				'event' => 'a',
+			),
+			array(
+				'time'  => '100',
+				'event' => 'a',
+			),
+			array(
+				'time'  => 300,
+				'event' => 'z',
+			),
+			array( 'time' => 300 ),
+			'not a row',
+		);
+
+		foreach ( $rows as $row ) {
+			add_post_meta( $post_id, 'undergrowth_test_log', $row );
+		}
+
+		$this->assertSame(
+			array(
+				array(
+					'time'  => 100,
+					'event' => 'a',
+				),
+				array(
+					'time'  => 200,
+					'event' => 'b',
+				),
+				array(
+					'time'  => 200,
+					'event' => 'c',
+				),
+			),
+			undergrowth_read_log( $post_id, 'undergrowth_test_log', array( 'event' => array( 'a', 'b', 'c' ) ) )
+		);
 	}
 
 	public function test_cycle_is_scheduled_on_load_for_sites_that_did_not_reactivate() {

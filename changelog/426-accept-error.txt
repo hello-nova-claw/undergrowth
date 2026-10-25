@@ -1,0 +1,1 @@
+When WordPress refuses to save a post while you accept a link, Settings > Undergrowth now has an Accept row that says when it happened and, in a plain sentence, what WordPress reported. It goes away after the next successful Accept.

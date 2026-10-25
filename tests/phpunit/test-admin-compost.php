@@ -138,7 +138,7 @@ class Test_Admin_Compost extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'undergrowth_return', $actions );
 		$this->assertArrayNotHasKey( 'undergrowth_compost', $actions );
-		$this->assertStringContainsString( 'aria-label="Return &#8220;Oca&#8221; to the garden"', $actions['undergrowth_return'] );
+		$this->assertStringContainsString( 'aria-label="Return to garden: &#8220;Oca&#8221;"', $actions['undergrowth_return'] );
 		$this->assertStringContainsString( '>Return to garden<', $actions['undergrowth_return'] );
 	}
 

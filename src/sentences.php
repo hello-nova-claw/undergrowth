@@ -279,7 +279,7 @@ function undergrowth_build_corpus( array $post_ids ): array {
 	$posts     = array();
 	$ids       = array_values( array_unique( array_map( 'intval', $post_ids ) ) );
 
-	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( $ids, undergrowth_post_chunk_size() ) as $chunk ) {
 		// Read straight from the table, a chunk at a time, so the content of
 		// every post never fills the post cache for the rest of the request.
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
@@ -415,6 +415,9 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 		return array();
 	}
 
+	// The stop words follow the target's language while the sentence scored
+	// is the source's. That holds because vectors are only compared within
+	// one language, so the two posts always share it.
 	$locale = undergrowth_post_language( $target );
 	$stop   = undergrowth_anchor_stopwords( $locale );
 	$never  = array_flip( $stop['never'] );
@@ -577,7 +580,7 @@ function undergrowth_uncached_post( int $post_id ): ?WP_Post {
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -598,7 +601,7 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Result of undergrowth_build_corpus().
  * @param string[] $taken     Sentences already holding another of the post's proposals.
- * @return array{text: string, index: int}|null The sentence and its position, or null when none fits.
+ * @return array{text: string}|null The sentence, or null when none fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
@@ -645,14 +648,11 @@ function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array 
 		return null;
 	}
 
-	// The index is where the sentence sits among all of the post's
-	// sentences: the first unlinked one with the same text.
-	foreach ( undergrowth_split_sentences( $source->post_content ) as $index => $sentence ) {
+	// The sentence must also stand unlinked and unquoted among all of the
+	// post's sentences, which is where Accept looks for it.
+	foreach ( undergrowth_split_sentences( $source->post_content ) as $sentence ) {
 		if ( $best === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
-			return array(
-				'text'  => $best,
-				'index' => $index,
-			);
+			return array( 'text' => $best );
 		}
 	}
 

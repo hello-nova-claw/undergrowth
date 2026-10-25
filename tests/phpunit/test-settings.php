@@ -196,7 +196,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '#<div class="notice notice-warning inline" id="undergrowth-file-error">\s*<p>[^<]*' . preg_quote( $words, '#' ) . '#', $html );
-		$this->assertStringContainsString( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 ), $html );
+		$this->assertStringContainsString( undergrowth_date_time( 1767225600 ), $html );
 	}
 
 	/**
@@ -322,6 +322,24 @@ class Test_Settings extends WP_UnitTestCase {
 		);
 
 		$this->assertStringContainsString( '529', $this->render() );
+	}
+
+	public function test_saved_key_and_last_failure_describe_the_key_field() {
+		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
+		update_option(
+			'undergrowth_last_prompt_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 529,
+				'time'   => time(),
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/id="undergrowth_anthropic_api_key"[^>]*aria-describedby="undergrowth-anthropic-notice undergrowth-anthropic-saved undergrowth-anthropic-error"/', $html );
+		$this->assertMatchesRegularExpression( '#id="undergrowth-anthropic-saved">\s*A key ending in \w{4} is saved\. Leave the field blank to keep it\.#', $html );
+		$this->assertMatchesRegularExpression( '#id="undergrowth-anthropic-error"><p>[^<]*529#', $html );
 	}
 
 	public function test_page_says_why_there_is_no_question_yet() {
@@ -574,6 +592,27 @@ class Test_Settings extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_help_tab_says_a_draft_is_sent_only_when_scanned_whoever_reads_the_posts() {
+		add_filter( 'undergrowth_embed_provider', '__return_empty_array' );
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => 'ollama',
+					'model'    => 'nomic-embed-text',
+				);
+			}
+		);
+		set_current_screen( 'settings_page_undergrowth' );
+		$screen = get_current_screen();
+		$screen->remove_help_tabs();
+		do_action( 'load-settings_page_undergrowth' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
+
+		$tab = $screen->get_help_tab( 'undergrowth-links' );
+
+		$this->assertStringContainsString( 'A draft is read only when you press Scan this draft in the editor', wp_strip_all_tags( $tab['content'] ) );
+	}
+
 	public function test_help_tabs_keep_the_full_detail_of_what_each_part_sends() {
 		set_current_screen( 'settings_page_undergrowth' );
 		$screen = get_current_screen();
@@ -589,6 +628,7 @@ class Test_Settings extends WP_UnitTestCase {
 		}
 
 		$this->assertStringContainsString( 'Undergrowth changes a post only when you accept a link in it.', $text['undergrowth-links'] );
+		$this->assertStringContainsString( 'A draft is read only when you press Scan this draft in the editor', $text['undergrowth-links'] );
 		$this->assertStringContainsString( 'Whole posts are never sent.', $text['undergrowth-prompts'] );
 		$this->assertStringContainsString( 'up to three of them', $text['undergrowth-prompts'] );
 		$this->assertStringContainsString( 'never to your readers', $text['undergrowth-prompts'] );
@@ -688,6 +728,41 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#value="post" disabled=\'disabled\' />#', $html );
 		$this->assertStringContainsString( 'Code on this site chooses which post types are read, so these boxes cannot be changed here.', $html );
 		$this->assertStringNotContainsString( 'name="undergrowth_post_types_shown"', $html );
+	}
+
+	public function test_page_has_no_accept_row_while_no_save_has_failed() {
+		$this->assertStringNotContainsString( 'undergrowth-accept-error', $this->render() );
+	}
+
+	public function test_accept_row_says_when_a_save_failed_and_what_wordpress_reported() {
+		update_option(
+			'undergrowth_last_accept_error',
+			array(
+				'code'   => 'empty_content',
+				'status' => 0,
+				'time'   => 1767225600,
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<th scope="row">Accept</th>#', $html );
+		$this->assertStringContainsString( 'id="undergrowth-accept-error"', $html );
+		$this->assertStringContainsString( 'WordPress treated the post as empty and refused to save it, so the link was not added.', $html );
+		$this->assertStringContainsString( undergrowth_date_time( 1767225600 ), $html );
+	}
+
+	public function test_accept_row_names_an_error_code_it_has_no_sentence_for() {
+		update_option(
+			'undergrowth_last_accept_error',
+			array(
+				'code'   => 'some_plugin_refused',
+				'status' => 0,
+				'time'   => time(),
+			)
+		);
+
+		$this->assertStringContainsString( 'WordPress did not save the post, so the link was not added. It reported the error some_plugin_refused.', undergrowth_accept_failure_text( get_option( 'undergrowth_last_accept_error' ) ) );
 	}
 
 	public function test_saving_settings_without_the_switch_on_the_page_keeps_it() {

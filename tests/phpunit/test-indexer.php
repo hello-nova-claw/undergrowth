@@ -27,6 +27,8 @@ class Test_Indexer extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$GLOBALS['undergrowth_test_post_languages'] = array();
+
 		$this->embedded = array();
 		$this->model    = 'test-model-v1';
 
@@ -368,6 +370,92 @@ class Test_Indexer extends WP_UnitTestCase {
 		);
 		$post_id = $this->publish();
 
+		undergrowth_embed_post( $post_id );
+
+		$this->assertSame( 'de_DE', undergrowth_get_vector( $post_id )['language'] );
+	}
+
+	/**
+	 * Publishes two posts about the same thing, with languages Polylang
+	 * reports, and embeds both.
+	 *
+	 * @param string $first  Language of the first post.
+	 * @param string $second Language of the second post.
+	 * @return int[] The two post IDs.
+	 */
+	private function publish_in( string $first, string $second ): array {
+		$ids = array(
+			$this->publish( array( 'post_content' => '<p>Oca keeps well in a cool shed. Yacon keeps well too.</p>' ) ),
+			$this->publish( array( 'post_content' => '<p>Yacon keeps well in a cool shed. Oca keeps well too.</p>' ) ),
+		);
+
+		$GLOBALS['undergrowth_test_post_languages'] = array(
+			$ids[0] => $first,
+			$ids[1] => $second,
+		);
+
+		undergrowth_hook_multilingual_language();
+		undergrowth_embed_post( $ids[0] );
+		undergrowth_embed_post( $ids[1] );
+
+		return $ids;
+	}
+
+	public function test_polylang_language_is_stored_and_never_compared_with_another() {
+		list( $french, $english ) = $this->publish_in( 'fr', 'en' );
+
+		$this->assertSame( 'fr', undergrowth_get_vector( $french )['language'] );
+		$this->assertSame( 'en', undergrowth_get_vector( $english )['language'] );
+		$this->assertSame( '', undergrowth_link_state( $english, $french ) );
+		$this->assertSame( '', undergrowth_link_state( $french, $english ) );
+	}
+
+	public function test_polylang_posts_in_one_language_are_compared() {
+		list( $first, $second ) = $this->publish_in( 'fr', 'fr' );
+
+		$this->assertSame( 'proposed', undergrowth_link_state( $second, $first ) );
+	}
+
+	public function test_post_polylang_has_no_language_for_keeps_the_site_language() {
+		list( $french, $other ) = $this->publish_in( 'fr', '' );
+
+		$this->assertSame( get_locale(), undergrowth_get_vector( $other )['language'] );
+	}
+
+	public function test_turning_polylang_on_embeds_again_the_posts_read_in_the_site_language() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v1',
+				'language' => get_locale(),
+			)
+		);
+		$this->assertSame( get_locale(), undergrowth_get_vector( $post_id )['language'] );
+
+		$GLOBALS['undergrowth_test_post_languages'] = array( $post_id => 'fr' );
+		undergrowth_hook_multilingual_language();
+		undergrowth_start_backfill();
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( 'fr', undergrowth_get_vector( $post_id )['language'] );
+		$this->assertSame( '', get_option( 'undergrowth_index_identity' )['language'] );
+	}
+
+	public function test_wpml_language_is_stored() {
+		$post_id = $this->publish();
+		add_filter(
+			'wpml_post_language_details',
+			static function ( $details, $id ) use ( $post_id ) {
+				return $id === $post_id ? array( 'locale' => 'de_DE' ) : $details;
+			},
+			10,
+			2
+		);
+
+		undergrowth_hook_multilingual_language();
 		undergrowth_embed_post( $post_id );
 
 		$this->assertSame( 'de_DE', undergrowth_get_vector( $post_id )['language'] );

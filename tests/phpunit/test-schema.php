@@ -143,16 +143,20 @@ class Test_Schema extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Replaces the plugin's tables with their version 1 shape, empty, and
-	 * records version 1.
+	 * Replaces the plugin's tables with the shape a released version left,
+	 * empty, and records that version.
+	 *
+	 * Version 1 had only the vectors table, already in its current shape.
+	 * Version 2 added the links table, which versions 3 to 5 widened.
 	 *
 	 * The test suite makes every table it creates temporary, and the SQLite
 	 * driver cannot alter a temporary table, so this replaces the real
 	 * tables and tear_down() puts them back.
 	 *
+	 * @param int $version 1 or 2.
 	 * @return array<string, string[]> The current column names, keyed by table.
 	 */
-	private function install_version_one(): array {
+	private function install_version( int $version ): array {
 		global $wpdb;
 
 		$vectors = undergrowth_vectors_table();
@@ -175,6 +179,7 @@ class Test_Schema extends WP_UnitTestCase {
 			post_id bigint(20) unsigned NOT NULL,
 			provider varchar(100) NOT NULL,
 			model varchar(191) NOT NULL,
+			language varchar(20) NOT NULL,
 			dimensions int(10) unsigned NOT NULL,
 			embedding longtext NOT NULL,
 			content_hash char(64) NOT NULL,
@@ -185,27 +190,32 @@ class Test_Schema extends WP_UnitTestCase {
 				$vectors
 			)
 		);
-		$wpdb->query(
-			$wpdb->prepare(
-				'CREATE TABLE %i (
-			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			source_id bigint(20) unsigned NOT NULL,
-			target_id bigint(20) unsigned NOT NULL,
-			state varchar(20) NOT NULL,
-			score double NOT NULL,
-			sentence text NOT NULL,
-			created_at datetime NOT NULL,
-			updated_at datetime NOT NULL,
-			PRIMARY KEY  (id),
-			UNIQUE KEY pair (source_id,target_id),
-			KEY target_id (target_id)
-			)',
-				$links
-			)
-		);
-		$this->assertNotContains( 'language', $this->column_names( $vectors ) );
-		$this->assertNotContains( 'anchor', $this->column_names( $links ) );
-		update_option( 'undergrowth_schema_version', 1 );
+
+		if ( $version >= 2 ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'CREATE TABLE %i (
+				id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				source_id bigint(20) unsigned NOT NULL,
+				target_id bigint(20) unsigned NOT NULL,
+				state varchar(20) NOT NULL,
+				score double NOT NULL,
+				sentence text NOT NULL,
+				created_at datetime NOT NULL,
+				updated_at datetime NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY pair (source_id,target_id),
+				KEY target_id (target_id)
+				)',
+					$links
+				)
+			);
+			$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		} else {
+			$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $links ) ) );
+		}
+
+		update_option( 'undergrowth_schema_version', $version );
 
 		return $current;
 	}
@@ -226,10 +236,10 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
-	public function test_upgrade_from_version_one_adds_the_link_columns_and_keeps_links() {
+	public function test_upgrade_from_version_two_adds_the_link_columns_and_keeps_links() {
 		global $wpdb;
 
-		$current = $this->install_version_one();
+		$current = $this->install_version( 2 );
 		$links   = undergrowth_links_table();
 		$wpdb->insert(
 			$links,
@@ -252,21 +262,15 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertEqualsWithDelta( 0.75, (float) $link['score'], 0.0001 );
 		$this->assertSame( 'An old sentence.', $link['sentence'] );
 		$this->assertSame( '2026-01-03 03:04:05', $link['updated_at'] );
-		$this->assertSame( -1, (int) $link['sentence_index'] );
 		$this->assertSame( '', $link['anchor'] );
 		$this->assertSame( -1, (int) $link['anchor_offset'] );
 		$this->assertSame( 0, (int) $link['anchor_chosen'] );
 	}
 
-	public function test_upgrade_adds_the_language_column_and_keeps_vectors() {
+	public function test_upgrade_from_version_one_adds_the_links_table_and_keeps_vectors() {
 		global $wpdb;
 
-		if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
-			// SQLite cannot add a NOT NULL column without a default to a table with rows.
-			$this->markTestSkipped( 'The language column needs a default on SQLite; see #412.' );
-		}
-
-		$current = $this->install_version_one();
+		$current = $this->install_version( 1 );
 		$vectors = undergrowth_vectors_table();
 		$wpdb->insert(
 			$vectors,
@@ -274,6 +278,7 @@ class Test_Schema extends WP_UnitTestCase {
 				'post_id'      => 7,
 				'provider'     => 'openai',
 				'model'        => 'text-embedding-3-small',
+				'language'     => 'en_US',
 				'dimensions'   => 2,
 				'embedding'    => '[0.6,0.8]',
 				'content_hash' => str_repeat( 'a', 64 ),
@@ -287,12 +292,52 @@ class Test_Schema extends WP_UnitTestCase {
 		$vector = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d', $vectors, 7 ), ARRAY_A );
 		$this->assertSame( 'openai', $vector['provider'] );
 		$this->assertSame( 'text-embedding-3-small', $vector['model'] );
+		$this->assertSame( 'en_US', $vector['language'] );
 		$this->assertSame( 2, (int) $vector['dimensions'] );
 		$this->assertSame( '[0.6,0.8]', $vector['embedding'] );
 		$this->assertSame( str_repeat( 'a', 64 ), $vector['content_hash'] );
 		$this->assertSame( '2026-01-02 03:04:05', $vector['embedded_at'] );
-		// A vector without a language is never compared, so it is embedded again.
-		$this->assertSame( '', $vector['language'] );
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
+	}
+
+	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
+		global $wpdb;
+
+		$current = $this->install_version( 2 );
+		$links   = undergrowth_links_table();
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
+		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
+		update_option( 'undergrowth_schema_version', 5 );
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assert_current_columns( $current );
+	}
+
+	public function test_version_is_not_recorded_when_the_sentence_index_stays() {
+		global $wpdb;
+
+		$this->install_version( 2 );
+		$links = undergrowth_links_table();
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i ADD COLUMN sentence_index int(11) NOT NULL DEFAULT -1', $links ) );
+		update_option( 'undergrowth_schema_version', 5 );
+		// wpdb sends no empty query and reports it as failed, as for a refused ALTER.
+		$refuse = static function ( $query ) {
+			return false !== stripos( $query, 'DROP COLUMN sentence_index' ) ? '' : $query;
+		};
+		add_filter( 'query', $refuse );
+
+		$this->assertFalse( undergrowth_install_schema() );
+		$this->assertContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( 5, (int) get_option( 'undergrowth_schema_version' ) );
+
+		// The next load tries again. On MySQL the table changes commit the
+		// option too, so a version left behind would reach later tests.
+		remove_filter( 'query', $refuse );
+		$this->assertTrue( undergrowth_install_schema() );
+		$this->assertNotContains( 'sentence_index', $this->column_names( $links ) );
+		$this->assertSame( UNDERGROWTH_SCHEMA_VERSION, (int) get_option( 'undergrowth_schema_version' ) );
 	}
 
 	public function test_current_schema_version_skips_install() {
@@ -469,19 +514,29 @@ class Test_Schema extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Picks out the queries that create a plugin table on one site.
+	 * Names the plugin tables dbDelta() installed on one site, from its
+	 * DESCRIBE, run on every table, and CREATE TABLE, run on a missing one.
 	 *
 	 * Site IDs come round again between tests, so a table left by an earlier
 	 * test would pass a check of the table itself.
 	 *
 	 * @param string[] $queries Recorded queries.
 	 * @param int      $site_id The site.
-	 * @return string[]
+	 * @return string[] Table names without the prefix, sorted.
 	 */
-	private function plugin_creates( array $queries, int $site_id ): array {
+	private function plugin_installs( array $queries, int $site_id ): array {
 		global $wpdb;
 
-		return preg_grep( '/^\s*CREATE TABLE ' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . 'undergrowth_/i', $queries );
+		$tables = array();
+		foreach ( $queries as $query ) {
+			if ( preg_match( '/^\s*(?:CREATE TABLE|DESCRIBE) `?' . preg_quote( $wpdb->get_blog_prefix( $site_id ), '/' ) . '(undergrowth_(?:vectors|links))\b/i', $query, $match ) ) {
+				$tables[ $match[1] ] = true;
+			}
+		}
+		$tables = array_keys( $tables );
+		sort( $tables );
+
+		return $tables;
 	}
 
 	/**
@@ -527,10 +582,8 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		// The main site's tables are lasting ones from the bootstrap, so dbDelta
-		// has nothing to create there.
-		foreach ( $new_ids as $site_id ) {
-			$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ), (string) $site_id );
+		foreach ( $site_ids as $site_id ) {
+			$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ), (string) $site_id );
 		}
 
 		foreach ( $site_ids as $site_id ) {
@@ -560,7 +613,7 @@ class Test_Schema extends WP_UnitTestCase {
 		);
 
 		$this->assert_site_is_set_up();
-		$this->assertSame( array(), $this->plugin_creates( $queries, $other_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $other_id ) );
 		switch_to_blog( $other_id );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
@@ -582,7 +635,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ) );
 		switch_to_blog( $site_id );
 		$this->assert_site_is_set_up();
 		restore_current_blog();
@@ -603,7 +656,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $site_id ) );
 
 		// Events left on a reused site ID would hide any the hook scheduled,
 		// so the hook is also run again on a cleared site.
@@ -635,7 +688,7 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertSame( array(), $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array(), $this->plugin_installs( $queries, $site_id ) );
 
 		update_site_option( 'active_sitewide_plugins', array() );
 		update_network_option( $network_id, 'active_sitewide_plugins', array( plugin_basename( UNDERGROWTH_FILE ) => time() ) );
@@ -646,6 +699,6 @@ class Test_Schema extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertCount( 2, $this->plugin_creates( $queries, $site_id ) );
+		$this->assertSame( array( 'undergrowth_links', 'undergrowth_vectors' ), $this->plugin_installs( $queries, $site_id ) );
 	}
 }
