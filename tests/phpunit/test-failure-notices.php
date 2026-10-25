@@ -184,6 +184,19 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertSame( wp_date( get_option( 'date_format' ), 1767225600 ) . ' at ' . wp_date( get_option( 'time_format' ), 1767225600 ), undergrowth_date_time( 1767225600 ) );
 	}
 
+	public function test_date_and_time_follow_the_translated_separator() {
+		add_filter(
+			'gettext_undergrowth',
+			static function ( $translation, $text ) {
+				return '%1$s at %2$s' === $text ? '%1$s / %2$s' : $translation;
+			},
+			10,
+			2
+		);
+
+		$this->assertSame( wp_date( get_option( 'date_format' ), 1767225600 ) . ' / ' . wp_date( get_option( 'time_format' ), 1767225600 ), undergrowth_date_time( 1767225600 ) );
+	}
+
 	public function test_a_status_code_alone_never_stands_for_the_cause() {
 		$this->assertDoesNotMatchRegularExpression( '/failed on [^(]+\(status \d+\)\./', $this->notice( 'undergrowth_last_embed_error', 429 ) );
 	}
