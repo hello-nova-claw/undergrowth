@@ -220,6 +220,44 @@ describe( 'Editor stage panel', () => {
 		).toBe( 'Growth stage: Sprout, pinned' );
 	} );
 
+	test( 'says what to do when the stage cannot be read and no reason comes back', async () => {
+		// An aborted request, for one, is rejected without a REST message.
+		replies = [ new Error() ];
+
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		flushSync( () =>
+			createRoot( container ).render(
+				<StagePanel postId={ 42 } status="publish" />
+			)
+		);
+		await waitFor( () => container.querySelector( '.components-notice' ) );
+
+		expect(
+			container.querySelector( '.components-notice' ).textContent
+		).toContain(
+			'Undergrowth could not reach your site. Check your connection, then reload the page.'
+		);
+	} );
+
+	test( 'says what to do when an action fails and no reason comes back', async () => {
+		replies = [ inGarden( 'sprout', true ), new Error() ];
+
+		const container = await renderPanel();
+
+		button( container, 'Unpin' ).click();
+		await waitFor( () => container.querySelector( '.components-notice' ) );
+
+		expect(
+			container.querySelector( '.components-notice' ).textContent
+		).toContain(
+			'Undergrowth could not reach your site. Check your connection, then reload the page.'
+		);
+		expect(
+			container.querySelector( '.undergrowth-stage' ).textContent
+		).toBe( 'Growth stage: Sprout, pinned' );
+	} );
+
 	test( 'drops the old stage and refusal while it asks again', async () => {
 		replies = [
 			inGarden( 'sprout' ),

@@ -19,8 +19,9 @@ const UNDERGROWTH_LABEL_TERMS = 4;
 /**
  * Finds the words and two-word phrases in some text that could name a group.
  *
- * A word needs three letters or more, no digit, and must not be on either
- * of the stop-word lists for the language (see anchor-words.php). A phrase
+ * A word must be long enough to count (see undergrowth_is_long_enough()),
+ * have no digit, and must not be on either of the stop-word lists for the
+ * language (see anchor-words.php). A phrase
  * is two such words side by side, with no punctuation, line break or other
  * word between them. Unspaced scripts give their pairs of characters, as in
  * undergrowth_tokens(), and no phrases.
@@ -35,8 +36,8 @@ function undergrowth_label_words( string $text, string $locale ): array {
 	$stop     = array_flip( array_merge( $stop['never'], $stop['named'] ) );
 	$words    = array();
 
-	foreach ( (array) preg_split( '/[^\p{L}\p{N}\h]+/u', $text ) as $phrase ) {
-		if ( ! preg_match_all( "/[{$unspaced}]+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", $phrase, $matches ) ) {
+	foreach ( (array) preg_split( '/[^\p{L}\p{M}\p{N}\h]+/u', $text ) as $phrase ) {
+		if ( ! preg_match_all( "/(?:(?=[\\p{L}\\p{M}\\p{N}])[{$unspaced}])+|(?:(?![{$unspaced}])[\\p{L}\\p{N}])+/u", $phrase, $matches ) ) {
 			continue;
 		}
 
@@ -54,7 +55,7 @@ function undergrowth_label_words( string $text, string $locale ): array {
 				continue;
 			}
 
-			if ( mb_strlen( $run, 'UTF-8' ) < 3 || preg_match( '/\p{N}/u', $run ) || isset( $stop[ $key ] ) ) {
+			if ( ! undergrowth_is_long_enough( $run ) || preg_match( '/\p{N}/u', $run ) || isset( $stop[ $key ] ) ) {
 				$previous = null;
 				continue;
 			}

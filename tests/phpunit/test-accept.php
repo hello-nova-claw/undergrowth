@@ -221,10 +221,7 @@ class Test_Accept extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->update(
 			undergrowth_links_table(),
-			array(
-				'sentence'       => 'I keep yacon plants for their syrup.',
-				'sentence_index' => 2,
-			),
+			array( 'sentence' => 'I keep yacon plants for their syrup.' ),
 			array(
 				'source_id' => $oca,
 				'target_id' => $yacon,
@@ -236,6 +233,29 @@ class Test_Accept extends WP_UnitTestCase {
 
 		$this->assertStringStartsWith( '<p>Yacon is not grown here.', $content );
 		$this->assertStringContainsString( 'I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants', $content );
+	}
+
+	public function test_a_copy_of_the_sentence_after_one_already_linked_is_linked() {
+		list( $oca, $yacon ) = $this->pair( '<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep yacon plants nearby.</p>' );
+		global $wpdb;
+		$wpdb->replace(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => 'I keep yacon plants nearby.',
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+
+		$this->assertSame( 'accepted', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame(
+			'<p>I keep <a href="https://example.com/">yacon</a> plants nearby. I keep <a href="' . get_permalink( $yacon ) . '">yacon</a> plants nearby.</p>',
+			get_post( $oca )->post_content
+		);
 	}
 
 	public function test_paragraphs_without_the_sentence_are_skipped() {
@@ -288,6 +308,52 @@ class Test_Accept extends WP_UnitTestCase {
 		$this->assertSame( $once, get_post( $oca )->post_content );
 	}
 
+	/**
+	 * Rewrites the claim that moves a link to accepted, as another request
+	 * claiming it first, or a database error, would leave it.
+	 *
+	 * @param string $sql What the claim runs instead.
+	 */
+	private function replace_claim( string $sql ): void {
+		add_filter(
+			'query',
+			static function ( $query ) use ( $sql ) {
+				return preg_match( "/^UPDATE .*undergrowth_links. SET .state. = 'accepted'/", $query ) ? $sql : $query;
+			}
+		);
+	}
+
+	/**
+	 * Claims that change nothing: one that matches no row, so update()
+	 * returns 0, and an empty one, which wpdb never sends, so update()
+	 * returns false, as for a database error.
+	 *
+	 * @return array<string, array{0: string}> The claim, with %s for the table.
+	 */
+	public function data_failed_claims(): array {
+		return array(
+			'no row moved' => array( 'UPDATE %s SET state = state WHERE 1 = 0' ),
+			'query failed' => array( '' ),
+		);
+	}
+
+	/**
+	 * Accept changes nothing when its claim moves no row.
+	 *
+	 * @dataProvider data_failed_claims
+	 *
+	 * @param string $sql What the claim runs instead, with %s for the table.
+	 */
+	public function test_accept_changes_nothing_when_the_claim_fails( string $sql ) {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$before              = get_post( $oca )->post_content;
+		$this->replace_claim( sprintf( $sql, undergrowth_links_table() ) );
+
+		$this->assertSame( 'not_proposed', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
 	public function test_edited_sentence_fails_safely() {
 		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
 		global $wpdb;
@@ -330,6 +396,46 @@ class Test_Accept extends WP_UnitTestCase {
 		undergrowth_accept_link( $oca, $yacon );
 
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_accept_by_a_user_who_cannot_edit_the_post_changes_nothing() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$before              = get_post( $oca )->post_content;
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->assertSame( 'forbidden', undergrowth_accept_link( $oca, $yacon ) );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_veto_by_a_user_who_cannot_edit_the_post_changes_nothing() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+
+		$this->assertFalse( undergrowth_veto_link( $oca, $yacon ) );
+		$this->assertSame( 'forbidden', undergrowth_veto_result( $oca, $yacon ) );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_a_post_that_cannot_be_saved_is_reported_as_not_saved() {
+		list( $oca, $yacon ) = $this->pair( '<p>Oca grows here. I keep yacon plants nearby for their syrup.</p>' );
+		$before              = get_post( $oca )->post_content;
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$this->assertSame( 'not_saved', undergrowth_accept_link( $oca, $yacon ) );
+
+		remove_filter( 'wp_insert_post_empty_content', '__return_true' );
+		$this->assertSame( $before, get_post( $oca )->post_content );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
+	public function test_screen_says_a_post_could_not_be_saved() {
+		$_GET['undergrowth_notice'] = 'not_saved';
+
+		ob_start();
+		undergrowth_render_suggestions_notice();
+
+		$this->assertStringContainsString( 'could not be saved', ob_get_clean() );
 	}
 
 	public function test_accept_is_refused_when_saving_would_strip_other_content() {
@@ -653,14 +759,13 @@ class Test_Accept extends WP_UnitTestCase {
 		$wpdb->replace(
 			undergrowth_links_table(),
 			array(
-				'source_id'      => $oca,
-				'target_id'      => $yacon,
-				'state'          => 'proposed',
-				'score'          => 0.9,
-				'sentence'       => $sentence,
-				'sentence_index' => 1,
-				'created_at'     => current_time( 'mysql', true ),
-				'updated_at'     => current_time( 'mysql', true ),
+				'source_id'  => $oca,
+				'target_id'  => $yacon,
+				'state'      => 'proposed',
+				'score'      => 0.9,
+				'sentence'   => $sentence,
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
 			)
 		);
 

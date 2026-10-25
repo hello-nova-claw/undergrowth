@@ -321,6 +321,31 @@ class Test_Compost extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'pin marker', $result->get_error_message() );
 	}
 
+	public function test_failed_compost_of_an_unpinned_post_leaves_a_pin_made_meanwhile() {
+		list( $oca ) = $this->plant_garden();
+
+		// Another request pins the post just as compost's stage write fails.
+		add_filter(
+			'update_post_metadata',
+			static function ( $check, $object_id, $meta_key ) use ( $oca ) {
+				if ( $object_id === $oca && 'undergrowth_stage' === $meta_key ) {
+					add_metadata( 'post', $oca, 'undergrowth_stage_pinned', '1', true );
+
+					return false;
+				}
+
+				return $check;
+			},
+			10,
+			3
+		);
+
+		$result = undergrowth_compost_post( $oca );
+
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertTrue( undergrowth_is_stage_pinned( $oca ) );
+	}
+
 	public function test_return_that_cannot_be_saved_leaves_the_post_composting() {
 		list( $oca ) = $this->plant_garden();
 		undergrowth_compost_post( $oca );

@@ -21,7 +21,7 @@ const UNDERGROWTH_MAX_CLUSTERS           = 100;
 // src/thresholds.php.
 const UNDERGROWTH_GAP_SIMILARITY = 0.8;
 
-add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle' );
+add_action( 'undergrowth_cluster_cycle', 'undergrowth_run_cluster_cycle', 10, 2 );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_cluster' );
 add_action( 'undergrowth_stage_changed', 'undergrowth_forget_composted_cluster' );
 
@@ -378,16 +378,79 @@ function undergrowth_measure_cluster( array $members ): ?array {
  * stage cycle, looks for composting posts near the new clusters, and then
  * stores the words that name each cluster on the Map. A batch that dies is
  * run again by the hourly check; see undergrowth_resume_stalled_passes().
+ * Every batch clusters with the threshold read when the pass started.
+ *
+ * The first batch gives the pass an ID, which every later batch carries.
+ * A pass started while another is under way replaces it: a batch of the
+ * older pass stops before it changes anything. Batches run one at a time,
+ * under a lock, so a new pass waits for the batch that is running.
  *
  * @param int|string $after_id Cluster posts with a higher ID than this. Cron
  *                            passes an empty string when an event has no arguments.
+ * @param string     $pass     ID of the pass the batch belongs to. Empty for a new
+ *                            pass, and for a batch queued before passes had IDs.
  */
-function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
+function undergrowth_run_cluster_cycle( $after_id = 0, $pass = '' ): void {
+	undergrowth_cluster_batch_under_lock( (int) $after_id, (string) $pass );
+}
+
+/**
+ * Runs one clustering batch once it holds the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ * @return bool False when another batch held the lock and this one was queued
+ *              for a minute later, true otherwise.
+ */
+function undergrowth_cluster_batch_under_lock( int $after_id, string $pass ): bool {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	// The lock is taken atomically, so checking the pass, resetting the
+	// clusters and storing a batch's own never interleave with another batch.
+	// One left by a batch that died expires when the hourly check would run
+	// that batch again. A batch that finds it taken tries again in a minute.
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', UNDERGROWTH_PASS_STALL ) ) {
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_cluster_cycle', undergrowth_pass_args( $after_id, $pass ) );
+		return false;
+	}
+
+	try {
+		undergrowth_run_cluster_batch( $after_id, $pass );
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+	}
+
+	return true;
+}
+
+/**
+ * Clusters one batch, while holding the clustering lock.
+ *
+ * @param int    $after_id Cluster posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to, or an empty string.
+ */
+function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	global $wpdb;
 
-	$after_id = (int) $after_id;
+	if ( 0 === $after_id && '' === $pass ) {
+		$pass = wp_generate_uuid4();
+	} elseif ( 0 === $after_id ) {
+		// A first batch the hourly check queued again stops when a newer
+		// pass has started since.
+		if ( undergrowth_current_pass( 'undergrowth_cluster_cycle' ) !== $pass ) {
+			return;
+		}
+	} else {
+		$current = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
 
-	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id );
+		if ( '' !== $pass && $pass !== $current ) {
+			return;
+		}
+
+		$pass = $current;
+	}
+
+	$run = undergrowth_mark_pass( 'undergrowth_cluster_cycle', $after_id, $pass );
 
 	// The first batch measures the site's scores, so the whole pass clusters
 	// with the threshold they give.
@@ -395,6 +458,10 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		undergrowth_measure_scores();
 		delete_post_meta_by_key( 'undergrowth_cluster' );
 		update_option( 'undergrowth_cluster_leaders', array(), false );
+		// Kept for the whole pass: the scores can be forgotten between two
+		// batches when a post leaves the index, and clusters made with two
+		// thresholds would not compare.
+		update_option( 'undergrowth_cluster_similarity', undergrowth_min_cluster_similarity(), false );
 		undergrowth_forget_resurfacing_signals();
 		undergrowth_start_cluster_labels();
 	}
@@ -417,8 +484,10 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	$fetched = count( $rows );
 	$leaders = (array) get_option( 'undergrowth_cluster_leaders', array() );
 	$pools   = array();
-	$minimum = undergrowth_min_cluster_similarity();
+	$minimum = get_option( 'undergrowth_cluster_similarity' );
+	$minimum = is_numeric( $minimum ) ? (float) $minimum : undergrowth_min_cluster_similarity();
 	$last_id = $after_id;
+	$joined  = array();
 
 	while ( array() !== $rows ) {
 		$row     = array_shift( $rows );
@@ -445,19 +514,24 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 		}
 
 		if ( 0 !== $leader ) {
-			update_post_meta( $last_id, 'undergrowth_cluster', $leader );
+			$joined[ $last_id ] = $leader;
 		}
 	}
 
-	// The hourly check queued this batch again while it ran, so the new run
-	// finishes the pass.
+	// Another run took the pass over while this one compared posts: the
+	// hourly check queued this batch again, or a new pass started. Nothing is
+	// stored, so the clusters are all that run's.
 	if ( ! undergrowth_owns_pass( 'undergrowth_cluster_cycle', $run ) ) {
 		return;
 	}
 
+	foreach ( $joined as $post_id => $leader ) {
+		update_post_meta( $post_id, 'undergrowth_cluster', $leader );
+	}
+
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
 		update_option( 'undergrowth_cluster_leaders', $leaders, false );
-		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id );
+		undergrowth_queue_pass_batch( 'undergrowth_cluster_cycle', $last_id, $pass );
 		return;
 	}
 
@@ -467,6 +541,7 @@ function undergrowth_run_cluster_cycle( $after_id = 0 ): void {
 	// Only now is the pass complete. Until here, a batch that died is run
 	// again by the hourly check, with the leaders it started with.
 	delete_option( 'undergrowth_cluster_leaders' );
+	delete_option( 'undergrowth_cluster_similarity' );
 	undergrowth_end_pass( 'undergrowth_cluster_cycle' );
 	// Last, because it reads every post: the words only label the Map, so
 	// running out of time here must not hold up stages or resurfacing.

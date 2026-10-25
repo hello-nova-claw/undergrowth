@@ -374,16 +374,14 @@ function undergrowth_composting_view( $views ) {
 	$post_type = '' === (string) $typenow ? 'post' : (string) $typenow;
 
 	$count = new WP_Query(
-		array(
-			'post_type'              => $post_type,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_key'               => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Counted once per screen.
-			'meta_value'             => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Counted once per screen.
-			'posts_per_page'         => 1,
-			'fields'                 => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'post_type'              => $post_type,
+				'meta_query'             => undergrowth_composting_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
+				'posts_per_page'         => 1,
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+			)
 		)
 	);
 
@@ -433,10 +431,13 @@ function undergrowth_filter_composting_view( $query ): void {
 		return;
 	}
 
-	$query->set( 'post_status', 'publish' );
-	$query->set( 'has_password', false );
-	$query->set( 'meta_key', 'undergrowth_stage' ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Only on the view the author chose.
-	$query->set( 'meta_value', 'composting' ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Only on the view the author chose.
+	$meta_query = array_merge( (array) $query->get( 'meta_query' ), undergrowth_composting_meta_query() );
+
+	foreach ( undergrowth_garden_query_vars() as $var => $value ) {
+		$query->set( $var, $value );
+	}
+
+	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the view the author chose.
 }
 
 /**
@@ -543,8 +544,10 @@ function undergrowth_filter_posts_by_stage( $query ): void {
 	$meta_query   = (array) $query->get( 'meta_query' );
 	$meta_query[] = undergrowth_stage_filter_meta_query( $filter );
 
-	$query->set( 'post_status', 'publish' );
-	$query->set( 'has_password', false );
+	foreach ( undergrowth_garden_query_vars() as $var => $value ) {
+		$query->set( $var, $value );
+	}
+
 	$query->set( 'meta_query', $meta_query ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Only on the filter the author chose.
 }
 

@@ -504,6 +504,7 @@ class Test_Discord_Click extends WP_UnitTestCase {
 
 	public function test_accepting_a_withdrawn_suggestion_updates_the_message_and_changes_nothing() {
 		list( $oca, $yacon ) = $this->pair();
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		undergrowth_veto_link( $oca, $yacon );
 
 		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
@@ -552,6 +553,17 @@ class Test_Discord_Click extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'sentence has changed', $sent['body']['content'] );
 		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 		delete_option( 'undergrowth_suggest_links' );
+	}
+
+	public function test_accept_whose_save_fails_is_told_privately() {
+		list( $oca, $yacon ) = $this->pair();
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$sent = $this->clicked( 'undergrowth:accept:' . $oca . ':' . $yacon );
+
+		$this->assertToldPrivately( $sent );
+		$this->assertStringContainsString( 'could not be saved', $sent['body']['content'] );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
 	public function test_nothing_from_the_payload_is_echoed() {

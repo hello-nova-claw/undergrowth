@@ -138,6 +138,38 @@ class Test_Editor_Stage extends WP_UnitTestCase {
 		$this->assertSame( 'seedling', undergrowth_get_stage( $post_id ) );
 	}
 
+	public function test_each_answer_reads_its_sentence_from_the_stage_result_table() {
+		$post_id  = $this->published();
+		$messages = undergrowth_stage_result_messages();
+		$actions  = array(
+			'pin'     => 'pinned',
+			'unpin'   => 'unpinned',
+			'compost' => 'composted',
+			'return'  => 'returned',
+		);
+
+		foreach ( $actions as $action => $key ) {
+			$data = $this->call(
+				$post_id,
+				array(
+					'action' => $action,
+					'stage'  => 'sprout',
+				)
+			)->get_data();
+
+			$this->assertSame( $messages[ $key ], $data['message'], $action );
+		}
+	}
+
+	public function test_pinnable_stages_are_the_garden_stages() {
+		$routes = rest_get_server()->get_routes();
+		$args   = $routes['/undergrowth/v1/posts/(?P<id>\\d+)/stage'][1]['args'];
+
+		$this->assertFalse( function_exists( 'undergrowth_pinnable_stages' ) );
+		$this->assertSame( UNDERGROWTH_GARDEN_STAGES, $args['stage']['enum'] );
+		$this->assertSame( UNDERGROWTH_GARDEN_STAGES, array_column( undergrowth_editor_stage( $this->published() )['choices'], 'value' ) );
+	}
+
 	public function test_refusals_carry_the_reason_and_change_nothing() {
 		$post_id = $this->published();
 		undergrowth_compost_post( $post_id );
