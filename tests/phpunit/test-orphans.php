@@ -24,7 +24,7 @@ class Test_Orphans extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		unset( $_GET['tab'], $_GET['paged'], $_POST['source'], $_POST['target'], $_REQUEST['_wpnonce'], $_REQUEST['_wp_http_referer'] );
+		unset( $_GET['tab'], $_REQUEST['paged'], $_POST['source'], $_POST['target'], $_REQUEST['_wpnonce'], $_REQUEST['_wp_http_referer'] );
 		undergrowth_delete_memory_folder();
 		set_current_screen( 'front' );
 
@@ -214,7 +214,7 @@ class Test_Orphans extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'No orphans. Every post Undergrowth has read has at least one accepted link pointing to it.', $html );
+		$this->assertStringContainsString( 'No orphans. Every post in your garden that Undergrowth has read has at least one accepted link pointing to it.', $html );
 	}
 
 	public function test_the_published_date_is_shown_in_the_site_format() {
@@ -240,7 +240,8 @@ class Test_Orphans extends WP_UnitTestCase {
 
 	public function test_a_page_past_the_end_lists_the_last_page() {
 		$this->seed( 'Oca', array( 1.0, 0.0 ) );
-		$_GET['paged'] = '3';
+		// WP_List_Table reads the page from the request.
+		$_REQUEST['paged'] = '3';
 
 		$this->assertStringContainsString( '<bdi>Oca</bdi>', $this->render() );
 	}

@@ -61,7 +61,7 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 	 * @return void
 	 */
 	public function no_items() {
-		esc_html_e( 'No orphans. Every post Undergrowth has read has at least one accepted link pointing to it.', 'undergrowth' );
+		esc_html_e( 'No orphans. Every post in your garden that Undergrowth has read has at least one accepted link pointing to it.', 'undergrowth' );
 	}
 
 	/**
