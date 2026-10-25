@@ -728,4 +728,10 @@ class Test_Indexer extends WP_UnitTestCase {
 
 		$this->assertNull( undergrowth_indexable_sql( 'p.' ) );
 	}
+
+	public function test_collapse_spaces_makes_each_run_of_whitespace_one_space() {
+		$this->assertSame( ' Oca and yacon ', undergrowth_collapse_spaces( "\n Oca \t and\r\n\nyacon  " ) );
+		$this->assertSame( 'Oca', undergrowth_collapse_spaces( 'Oca' ) );
+		$this->assertSame( '', undergrowth_collapse_spaces( '' ) );
+	}
 }
