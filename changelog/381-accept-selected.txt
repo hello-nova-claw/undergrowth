@@ -1,0 +1,1 @@
+Posts > Undergrowth can accept several suggestions at once: check the ones you want, choose Accept selected and Apply. Each is linked as Accept would link it, with its own revision, and one notice says what happened to each. Nothing is checked to begin with.

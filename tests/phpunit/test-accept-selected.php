@@ -200,7 +200,7 @@ class Test_Accept_Selected extends WP_UnitTestCase {
 	}
 
 	public function test_the_bottom_bulk_menu_works_too() {
-		list( $oca, $yacon ) = $this->garden();
+		list( $oca, $yacon )        = $this->garden();
 		$_POST['undergrowth_bulk2'] = 'accept';
 
 		$this->submit( array( $oca . '-' . $yacon ), '-1' );

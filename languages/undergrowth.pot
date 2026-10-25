@@ -363,6 +363,20 @@ msgstr ""
 msgid "Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion."
 msgstr ""
 
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to, 3: what happened, a full sentence.
+#: src/admin.php
+#, php-format
+msgid "From %1$s to %2$s: %3$s"
+msgstr ""
+
+#. translators: 1: number of suggestions linked, 2: number selected.
+#: src/admin.php
+#, php-format
+msgid "Linked %1$s of %2$s selected suggestion."
+msgid_plural "Linked %1$s of %2$s selected suggestions."
+msgstr[0] ""
+msgstr[1] ""
+
 #: src/admin.php
 msgid "Dismissed. The post stays composting."
 msgstr ""
@@ -377,6 +391,10 @@ msgstr ""
 
 #: src/admin.php
 msgid "That veto can no longer be undone, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "No suggestion was checked, or no bulk action was chosen, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -397,6 +415,28 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 msgid "In this post"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Accept selected"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Select bulk action"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Bulk actions"
+msgstr ""
+
+#: src/class-undergrowth-links-list-table.php
+msgid "Apply"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#: src/class-undergrowth-links-list-table.php
+#, php-format
+msgid "Select the link from %1$s to %2$s"
 msgstr ""
 
 #. translators: %1$s: title of the post the link would point to, linked to its editor.

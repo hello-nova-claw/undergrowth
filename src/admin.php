@@ -9,12 +9,18 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Id of the form the Suggestions table's checkboxes and bulk menus belong to.
+ */
+const UNDERGROWTH_ACCEPT_SELECTED_FORM = 'undergrowth-accept-selected';
+
 add_action( 'admin_menu', 'undergrowth_add_suggestions_page' );
 add_action( 'admin_enqueue_scripts', 'undergrowth_enqueue_screen_style' );
 add_action( 'admin_post_undergrowth_veto', 'undergrowth_handle_veto' );
 add_action( 'admin_post_undergrowth_unveto', 'undergrowth_handle_unveto' );
 add_action( 'admin_post_undergrowth_accept', 'undergrowth_handle_accept' );
 add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_words' );
+add_action( 'admin_post_undergrowth_accept_selected', 'undergrowth_handle_accept_selected' );
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
@@ -58,6 +64,7 @@ function undergrowth_notice_removable_query_args( $args ) {
 	if ( null !== $screen && 'posts_page_undergrowth-links' === $screen->id ) {
 		$args[] = 'revision';
 		$args[] = 'undergrowth_undo';
+		$args[] = 'undergrowth_results';
 	}
 
 	return $args;
@@ -266,6 +273,49 @@ function undergrowth_handle_choose_words(): void {
 	// phpcs:enable
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
+	exit;
+}
+
+/**
+ * Accepts each suggestion checked in the Suggestions table, as the user
+ * would one at a time, then returns with one notice naming each result.
+ *
+ * Accept checks that the user may edit each post, so one the user may not
+ * edit is refused and left as it was. A page holds at most a page of rows,
+ * so no more are read.
+ */
+function undergrowth_handle_accept_selected(): void {
+	check_admin_referer( 'undergrowth_accept_selected' );
+
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked above.
+	$top    = isset( $_POST['undergrowth_bulk'] ) ? sanitize_key( wp_unslash( $_POST['undergrowth_bulk'] ) ) : '';
+	$bottom = isset( $_POST['undergrowth_bulk2'] ) ? sanitize_key( wp_unslash( $_POST['undergrowth_bulk2'] ) ) : '';
+	$links  = isset( $_POST['link'] ) ? array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['link'] ) ) : array();
+	// phpcs:enable
+
+	// admin-post.php loads no list table of its own.
+	undergrowth_load_list_table();
+
+	$pairs = array();
+
+	foreach ( array_slice( array_unique( $links ), 0, Undergrowth_Links_List_Table::PER_PAGE ) as $link ) {
+		if ( 1 === preg_match( '/^([0-9]{1,20})-([0-9]{1,20})$/D', $link, $ids ) ) {
+			$pairs[] = array( (int) $ids[1], (int) $ids[2] );
+		}
+	}
+
+	if ( ! in_array( 'accept', array( $top, $bottom ), true ) || array() === $pairs ) {
+		wp_safe_redirect( undergrowth_suggestions_url( 'nothing_selected' ) );
+		exit;
+	}
+
+	$results = array();
+
+	foreach ( $pairs as $pair ) {
+		$results[] = $pair[0] . '-' . $pair[1] . '.' . undergrowth_accept_link( $pair[0], $pair[1] );
+	}
+
+	wp_safe_redirect( add_query_arg( 'undergrowth_results', implode( ',', $results ), undergrowth_suggestions_url( 'accepted_selected' ) ) );
 	exit;
 }
 
@@ -993,8 +1043,10 @@ function undergrowth_print_result_notices( array $notices ): void {
 			wp_kses(
 				$paragraphs,
 				array(
-					'p' => array(),
-					'a' => array( 'href' => array() ),
+					'p'  => array(),
+					'a'  => array( 'href' => array() ),
+					'ul' => array(),
+					'li' => array(),
 				)
 			)
 		);
@@ -1110,8 +1162,64 @@ function undergrowth_render_suggestions_tab(): void {
 		} else {
 			echo '<p>' . esc_html__( 'Each suggestion is a link from one of your posts to another, at a sentence you wrote. Nothing changes in your posts until you accept a suggestion.', 'undergrowth' ) . '</p>';
 			$table->display();
+			// Outside the table, since each row holds its own forms. The
+			// checkboxes and bulk menus belong to it by their form attribute.
+			printf(
+				'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_accept_selected" />%3$s</form>',
+				esc_url( admin_url( 'admin-post.php' ) ),
+				esc_attr( UNDERGROWTH_ACCEPT_SELECTED_FORM ),
+				wp_nonce_field( 'undergrowth_accept_selected', '_wpnonce', true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core's escaped field.
+			);
 		}
 	}
+}
+
+/**
+ * Prints the one notice after Accept selected: how many were linked, then
+ * each suggestion with what happened to it, in the words Accept uses.
+ *
+ * The results come from the address, so each is checked against the known
+ * results and named only by the titles of its posts.
+ */
+function undergrowth_render_accepted_selected_notice(): void {
+	// The address only selects which fixed messages to show; nothing is changed.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$results  = isset( $_GET['undergrowth_results'] ) ? sanitize_text_field( wp_unslash( $_GET['undergrowth_results'] ) ) : '';
+	$messages = undergrowth_link_result_messages();
+	$items    = '';
+	$count    = 0;
+	$linked   = 0;
+
+	foreach ( explode( ',', $results ) as $result ) {
+		if ( 1 !== preg_match( '/^([0-9]{1,20})-([0-9]{1,20})\.([a-z_]+)$/D', $result, $parts ) || ! isset( $messages[ $parts[3] ] ) ) {
+			continue;
+		}
+
+		++$count;
+		$linked += 'accepted' === $parts[3] ? 1 : 0;
+		$items  .= '<li>' . esc_html(
+			sprintf(
+				/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to, 3: what happened, a full sentence. */
+				__( 'From %1$s to %2$s: %3$s', 'undergrowth' ),
+				undergrowth_post_title( (int) $parts[1] ),
+				undergrowth_post_title( (int) $parts[2] ),
+				$messages[ $parts[3] ]
+			)
+		) . '</li>';
+	}
+
+	if ( 0 === $count ) {
+		return;
+	}
+
+	$summary = sprintf(
+		/* translators: 1: number of suggestions linked, 2: number selected. */
+		_n( 'Linked %1$s of %2$s selected suggestion.', 'Linked %1$s of %2$s selected suggestions.', $count, 'undergrowth' ),
+		number_format_i18n( $linked ),
+		number_format_i18n( $count )
+	);
+
+	undergrowth_print_result_notices( array( $linked === $count ? 'notice-success' : 'notice-warning' => '<p>' . esc_html( $summary ) . '</p><ul>' . $items . '</ul>' ) );
 }
 
 /**
@@ -1130,7 +1238,14 @@ function undergrowth_render_suggestions_notice(): void {
 		'resurfacing_gone'      => __( 'That post has no signal to dismiss, so nothing was changed.', 'undergrowth' ),
 		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
 		'unveto_gone'           => __( 'That veto can no longer be undone, so nothing was changed.', 'undergrowth' ),
+		'nothing_selected'      => __( 'No suggestion was checked, or no bulk action was chosen, so nothing was changed.', 'undergrowth' ),
 	);
+
+	if ( 'accepted_selected' === $notice ) {
+		undergrowth_render_accepted_selected_notice();
+
+		return;
+	}
 
 	if ( ! isset( $messages[ $notice ] ) ) {
 		return;

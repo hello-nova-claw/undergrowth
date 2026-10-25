@@ -30,6 +30,7 @@ const NOTICES = [
 	'vetoed',
 	'unvetoed',
 	'unveto_gone',
+	'nothing_selected',
 	'unchanged',
 	'gone',
 	'accepted',
