@@ -285,8 +285,12 @@ function undergrowth_submitted_discord_user(): ?string {
 		return null;
 	}
 
-	// phpcs:ignore WordPress.Security.NonceVerification.Missing
-	return trim( sanitize_text_field( wp_unslash( $_POST['undergrowth_discord_user_id'] ) ) );
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Only an ID of digits is ever saved; see undergrowth_discord_user_problem().
+	$value = wp_unslash( $_POST['undergrowth_discord_user_id'] );
+
+	// Spaces around a pasted ID are trimmed. A line break is left, so the ID
+	// is refused rather than quietly mended.
+	return is_string( $value ) ? trim( $value, " \t" ) : '';
 }
 
 /**

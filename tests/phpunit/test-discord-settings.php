@@ -83,7 +83,7 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 	}
 
 	public function test_valid_ids_are_saved_trimmed() {
-		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( ' ' . self::APPLICATION . "\n" ) );
+		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( ' ' . self::APPLICATION . ' ' ) );
 		$this->assertSame( self::CHANNEL, undergrowth_sanitize_discord_channel_id( self::CHANNEL ) );
 	}
 
@@ -91,6 +91,13 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 		update_option( 'undergrowth_discord_channel_id', self::CHANNEL );
 
 		$this->assertSame( '', undergrowth_sanitize_discord_channel_id( '' ) );
+	}
+
+	public function test_an_id_with_a_trailing_newline_is_refused() {
+		update_option( 'undergrowth_discord_application_id', self::APPLICATION );
+
+		$this->assertSame( self::APPLICATION, undergrowth_sanitize_discord_application_id( "223344556677889900\n" ) );
+		$this->assertSame( 'undergrowth_discord_application_id', get_settings_errors( 'undergrowth_discord_application_id' )[0]['code'] );
 	}
 
 	public function test_an_invalid_id_keeps_the_saved_one_and_reports_an_error() {

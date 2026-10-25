@@ -167,7 +167,8 @@ function undergrowth_sanitize_discord_channel_id( $value ): string {
  *                or the saved one when the new one is not an ID.
  */
 function undergrowth_sanitize_discord_id( $value, string $option, string $message ): string {
-	$id = is_string( $value ) ? trim( sanitize_text_field( $value ) ) : '';
+	// sanitize_text_field() would drop a line break, so it is looked for first.
+	$id = is_string( $value ) && 1 !== preg_match( '/[\r\n]/', $value ) ? trim( sanitize_text_field( $value ) ) : "\n";
 
 	if ( '' === $id || undergrowth_is_discord_id( $id ) ) {
 		return $id;
