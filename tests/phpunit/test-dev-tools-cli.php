@@ -261,6 +261,8 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 
 	public function test_run_cycle_runs_the_cycle_and_what_it_chains_to_the_end() {
 		undergrowth_register_dev_tools( 'local' );
+		// The monthly event is scheduled on init, which an earlier test may have undone.
+		undergrowth_schedule_stage_cycle();
 		list( $oca, $yacon, $mashua ) = $this->garden();
 
 		$this->assertTrue( $this->run_command( 'run-cycle' ) );
@@ -282,6 +284,23 @@ class Test_Dev_Tools_CLI extends WP_UnitTestCase {
 		// The monthly event itself is left as it was.
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
 		$this->assertStringContainsString( 'success: ', $this->output() );
+	}
+
+	public function test_run_cycle_says_so_when_a_clustering_batch_is_already_running() {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+		undergrowth_register_dev_tools( 'local' );
+		$this->garden();
+		WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', HOUR_IN_SECONDS );
+
+		$ran = $this->run_command( 'run-cycle' );
+
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+
+		$this->assertFalse( $ran );
+		$this->assertFalse( undergrowth_has_clusters() );
+		$this->assertStringContainsString( 'already running', $this->output() );
+		$this->assertStringNotContainsString( 'success: ', $this->output() );
 	}
 
 	public function test_reset_undoes_what_accept_did() {

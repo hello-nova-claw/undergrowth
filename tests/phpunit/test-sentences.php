@@ -19,18 +19,18 @@ class Test_Sentences extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Returns the stored sentence and index for a link.
+	 * Returns the stored sentence for a link.
 	 *
 	 * @param int $source_id Source post ID.
 	 * @param int $target_id Target post ID.
-	 * @return array{sentence: string, sentence_index: string}|null
+	 * @return array{sentence: string}|null
 	 */
 	private function stored_sentence( int $source_id, int $target_id ): ?array {
 		global $wpdb;
 
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				'SELECT sentence, sentence_index FROM %i WHERE source_id = %d AND target_id = %d',
+				'SELECT sentence FROM %i WHERE source_id = %d AND target_id = %d',
 				undergrowth_links_table(),
 				$source_id,
 				$target_id
@@ -444,7 +444,6 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 'I keep a few yacon plants nearby for their syrup.', $this->stored_sentence( $oca, $yacon )['sentence'] );
-		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
 	}
 
 	public function test_german_sentence_is_chosen() {
@@ -579,7 +578,6 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 'Yacon grows here.', $this->stored_sentence( $oca, $yacon )['sentence'] );
-		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
 	}
 
 	public function test_linked_heading_with_a_paragraphs_text_leaves_the_paragraph_choosable() {
@@ -596,7 +594,6 @@ class Test_Sentences extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 'Yacon syrup.', $this->stored_sentence( $oca, $yacon )['sentence'] );
-		$this->assertSame( '1', $this->stored_sentence( $oca, $yacon )['sentence_index'] );
 	}
 
 	public function test_paragraph_wrapped_in_a_link_is_never_chosen() {
@@ -775,7 +772,6 @@ class Test_Sentences extends WP_UnitTestCase {
 
 		$this->assertSame( 'I keep yacon plants nearby for syrup.', $stored['sentence'] );
 		$this->assertStringContainsString( $stored['sentence'], $plain );
-		$this->assertSame( '1', $stored['sentence_index'] );
 	}
 
 	public function test_same_posts_always_give_the_same_sentence() {
@@ -795,5 +791,33 @@ class Test_Sentences extends WP_UnitTestCase {
 
 		$this->assertSame( $first, $this->stored_sentence( $oca, $yacon ) );
 		$this->assertSame( 'Yacon grows here.', $first['sentence'] );
+	}
+
+	/**
+	 * Undergrowth_HTML_Text reads core's protected bookmarks and HTML to find
+	 * where a token sits. Core treats both as its own, so a change there
+	 * fails here by name rather than somewhere in Accept.
+	 */
+	public function test_core_bookmarks_still_hold_spans_with_start_and_length() {
+		$html      = '<p>Oca <a href="/yacon">yacon</a>.</p>';
+		$processor = new WP_HTML_Tag_Processor( $html );
+		$this->assertTrue( $processor->next_tag( 'a' ) );
+		$this->assertTrue( $processor->set_bookmark( 'here' ) );
+
+		$bookmarks = new ReflectionProperty( WP_HTML_Tag_Processor::class, 'bookmarks' );
+		$source    = new ReflectionProperty( WP_HTML_Tag_Processor::class, 'html' );
+		$this->assertFalse( $bookmarks->isPrivate(), 'A subclass can no longer read $bookmarks.' );
+		$this->assertFalse( $source->isPrivate(), 'A subclass can no longer read $html.' );
+		if ( PHP_VERSION_ID < 80100 ) {
+			$bookmarks->setAccessible( true );
+			$source->setAccessible( true );
+		}
+
+		$span = $bookmarks->getValue( $processor )['here'] ?? null;
+		$this->assertInstanceOf( WP_HTML_Span::class, $span );
+		$this->assertIsInt( $span->start );
+		$this->assertIsInt( $span->length );
+		$this->assertSame( '<a href="/yacon">', substr( $source->getValue( $processor ), $span->start, $span->length ) );
+		$this->assertSame( strpos( $html, '<a ' ), $span->start );
 	}
 }

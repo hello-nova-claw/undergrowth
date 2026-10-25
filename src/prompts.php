@@ -31,7 +31,7 @@ const UNDERGROWTH_PROMPT_SENTENCES  = 20;
 // undergrowth_question_marks() adds for Greek only.
 const UNDERGROWTH_QUESTION_MARKS = "?？؟\u{037e}՞፧";
 
-const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed' );
+const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed', 'restored' );
 
 add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
 add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
@@ -181,8 +181,45 @@ function undergrowth_dismiss_prompt( string $key ): bool {
 		return false;
 	}
 
+	// Kept only so the Undo in the result notice can bring it back.
+	update_option( 'undergrowth_dismissed_prompt', $prompt, false );
 	delete_option( 'undergrowth_prompt' );
 	undergrowth_log_prompt( $prompt['post_id'], 'dismissed', $prompt );
+
+	return true;
+}
+
+/**
+ * Returns the question dismissed last, while the Undo can still bring it
+ * back: no other question waits, and its post is still read.
+ *
+ * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
+ */
+function undergrowth_dismissed_prompt(): ?array {
+	if ( null !== undergrowth_current_prompt() ) {
+		return null;
+	}
+
+	return undergrowth_readable_prompt( get_option( 'undergrowth_dismissed_prompt' ) );
+}
+
+/**
+ * Brings back the question dismissed last, from the Undo in the result
+ * notice.
+ *
+ * @param string $key Key of the prompt to bring back.
+ * @return bool True when it waits again.
+ */
+function undergrowth_restore_prompt( string $key ): bool {
+	$prompt = undergrowth_dismissed_prompt();
+
+	if ( null === $prompt || $prompt['key'] !== $key ) {
+		return false;
+	}
+
+	update_option( 'undergrowth_prompt', $prompt, false );
+	delete_option( 'undergrowth_dismissed_prompt' );
+	undergrowth_log_prompt( $prompt['post_id'], 'restored', $prompt );
 
 	return true;
 }
@@ -294,8 +331,17 @@ function undergrowth_prompt_log( int $post_id ): array {
  * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
  */
 function undergrowth_current_prompt(): ?array {
-	$prompt = get_option( 'undergrowth_prompt' );
+	return undergrowth_readable_prompt( get_option( 'undergrowth_prompt' ) );
+}
 
+/**
+ * Checks a stored prompt, and returns it while questions are on and its
+ * post is still read.
+ *
+ * @param mixed $prompt Stored prompt.
+ * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
+ */
+function undergrowth_readable_prompt( $prompt ): ?array {
 	if ( ! undergrowth_prompts_enabled() || ! is_array( $prompt ) || ! is_string( $prompt['key'] ?? null ) || ! is_string( $prompt['question'] ?? null ) || ! is_string( $prompt['source'] ?? null ) ) {
 		return null;
 	}
@@ -626,20 +672,20 @@ function undergrowth_compost_prompt_sources( $records ): array {
 	// has enough new ones, within a fixed number of pages.
 	for ( $page = 1; $page <= UNDERGROWTH_PROMPT_PAGES; $page++ ) {
 		$posts = get_posts(
-			array(
-				'post_type'        => undergrowth_indexed_post_types(),
-				'post_status'      => 'publish',
-				'has_password'     => false,
-				// Run once a month, for a handful of posts.
-				'meta_key'         => 'undergrowth_stage', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
-				'meta_value'       => 'composting', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-				'orderby'          => array(
-					'date' => 'ASC',
-					'ID'   => 'ASC',
-				),
-				'numberposts'      => UNDERGROWTH_PROMPT_COMPOSTED,
-				'paged'            => $page,
-				'suppress_filters' => false,
+			undergrowth_garden_query_args(
+				array(
+					// Run once a month, for a handful of posts.
+					'meta_query'             => undergrowth_composting_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					'orderby'                => array(
+						'date' => 'ASC',
+						'ID'   => 'ASC',
+					),
+					'numberposts'            => UNDERGROWTH_PROMPT_COMPOSTED,
+					'paged'                  => $page,
+					'fields'                 => 'all',
+					'update_post_term_cache' => true,
+					'suppress_filters'       => false,
+				)
 			)
 		);
 

@@ -10,8 +10,13 @@ const WCAG_22_AA = [
 	'wcag22aa',
 ];
 
+// Best-practice rules on top of WCAG. Heading order keeps the Map's
+// structure from regressing.
+const BEST_PRACTICES = [ 'heading-order' ];
+
 /**
- * Fails the test on any WCAG 2.2 AA violation inside the given part of the page.
+ * Fails the test on any WCAG 2.2 AA violation inside the given part of the
+ * page, or any break of the best-practice rules above.
  *
  * Scoped to our own markup because violations in WordPress core screens are
  * not ours to fix and would make the check meaningless.
@@ -20,12 +25,16 @@ const WCAG_22_AA = [
  * @param {string}                          selector Root of the markup to check.
  */
 async function expectNoA11yViolations( page, selector ) {
-	const results = await new AxeBuilder( { page } )
+	const wcag = await new AxeBuilder( { page } )
 		.include( selector )
 		.withTags( WCAG_22_AA )
 		.analyze();
+	const practices = await new AxeBuilder( { page } )
+		.include( selector )
+		.withRules( BEST_PRACTICES )
+		.analyze();
 
-	expect( results.violations ).toEqual( [] );
+	expect( [ ...wcag.violations, ...practices.violations ] ).toEqual( [] );
 }
 
 module.exports = { expectNoA11yViolations };

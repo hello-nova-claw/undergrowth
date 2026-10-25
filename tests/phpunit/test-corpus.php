@@ -65,6 +65,54 @@ class Test_Corpus extends WP_UnitTestCase {
 		$this->assertSame( 1, $corpus['frequency']['yacon'] );
 	}
 
+	public function test_two_letter_hebrew_word_counts_in_the_corpus() {
+		// "גן" is a garden.
+		$garden = self::factory()->post->create(
+			array(
+				'post_title'   => 'שתילה',
+				'post_content' => 'שתלתי אוקה, גן קטן.',
+			)
+		);
+		$roots  = self::factory()->post->create(
+			array(
+				'post_title'   => 'שורשים',
+				'post_content' => 'האוקה גדלה, גן ירוק.',
+			)
+		);
+
+		$corpus = undergrowth_build_corpus( array( $garden, $roots ) );
+
+		$this->assertSame( 2, $corpus['frequency']['גן'] );
+	}
+
+	/**
+	 * Checks which short words count as tokens.
+	 *
+	 * @dataProvider data_short_words
+	 *
+	 * @param string   $text   Text to break into words.
+	 * @param string[] $tokens Words it gives.
+	 */
+	public function test_short_words_count_outside_latin_and_cyrillic( string $text, array $tokens ) {
+		$this->assertSame( $tokens, undergrowth_tokens( $text ) );
+	}
+
+	/**
+	 * Text with two-letter words, and the words it gives.
+	 *
+	 * @return array<string, array{0: string, 1: string[]}>
+	 */
+	public function data_short_words(): array {
+		return array(
+			'English'  => array( 'an ox ate it', array( 'ate' ) ),
+			'Cyrillic' => array( 'он ел суп', array( 'суп' ) ),
+			'numbers'  => array( 'in 12 or 365 days', array( '365', 'days' ) ),
+			'Hebrew'   => array( 'גן ירק', array( 'גן', 'ירק' ) ),
+			'Arabic'   => array( 'من بستان', array( 'من', 'بستان' ) ),
+			'Korean'   => array( '감자 밭', array( '감자' ) ),
+		);
+	}
+
 	public function test_corpus_keeps_no_word_counts_for_each_post() {
 		$oca = self::factory()->post->create( array( 'post_content' => 'Oca likes frost.' ) );
 
@@ -315,7 +363,7 @@ class Test_Corpus extends WP_UnitTestCase {
 				$vector[] = mt_rand() / mt_getrandmax() * 2 - 1;
 			}
 
-			$ids[] = $this->plant( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', undergrowth_links_table() ) );
@@ -324,10 +372,21 @@ class Test_Corpus extends WP_UnitTestCase {
 		$positions = array_flip( $ids );
 		$rows      = array_map(
 			static function ( $row ) use ( $positions ) {
-				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], (int) $row[2] );
+				// The sentence's place among the post's sentences, as the
+				// sentence_index column recorded it before #339 dropped it.
+				$index = -1;
+
+				foreach ( undergrowth_split_sentences( get_post( (int) $row[0] )->post_content ) as $i => $sentence ) {
+					if ( $row[2] === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
+						$index = $i;
+						break;
+					}
+				}
+
+				return array( $positions[ (int) $row[0] ], $positions[ (int) $row[1] ], $index );
 			},
 			(array) $wpdb->get_results(
-				$wpdb->prepare( 'SELECT source_id, target_id, sentence_index FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
+				$wpdb->prepare( 'SELECT source_id, target_id, sentence FROM %i ORDER BY source_id, target_id', undergrowth_links_table() ),
 				ARRAY_N
 			)
 		);
@@ -354,7 +413,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		$ids = array();
 
 		for ( $i = 0; $i < 12; $i++ ) {
-			$ids[] = $this->plant( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		wp_cache_flush();
@@ -380,11 +439,11 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source  = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
 		$targets = array();
 
 		for ( $i = 0; $i < 6; $i++ ) {
-			$targets[] = $this->plant( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+			$targets[] = $this->seed( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
 		}
 
 		wp_cache_flush();
@@ -405,10 +464,10 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
 
 		for ( $i = 0; $i < UNDERGROWTH_POST_CHUNK + 1; $i++ ) {
-			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 200, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+			$this->seed( 'Yacon ' . $i, array( 1.0, $i / 200, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
 		}
 
 		$selects = array();
@@ -447,11 +506,11 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$best   = array();
 
 		for ( $i = 0; $i < 4; $i++ ) {
-			$best[] = $this->plant( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
+			$best[] = $this->seed( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
 		}
 
 		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_rank_targets( $source, null, 2 ) ) );

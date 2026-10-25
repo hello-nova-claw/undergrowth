@@ -1,3 +1,4 @@
+const fs = require( 'fs' );
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
 
@@ -167,6 +168,61 @@ test.describe( 'Map tab', () => {
 
 			expect( overflow ).toBeLessThanOrEqual( 0 );
 			await expectNoA11yViolations( page, '.wrap' );
+		} );
+
+		test( 'exports every post on it as CSV and as Markdown, by keyboard', async ( {
+			page,
+		} ) => {
+			const format = page.locator( '#undergrowth-export-format' );
+			const button = page.locator(
+				'form.undergrowth-map-export [type="submit"]'
+			);
+
+			await expect(
+				page.locator( 'label[for="undergrowth-export-format"]' )
+			).toHaveCount( 1 );
+
+			// A heading and the separator line for Markdown, a heading for CSV.
+			for ( const [ value, extension, lines ] of [
+				[ 'csv', 'csv', 8 ],
+				[ 'markdown', 'md', 9 ],
+			] ) {
+				// From the last post on the Map, the next stops are the
+				// format, then the button. Which keys change a closed select
+				// differs by platform, so the choice itself is set directly.
+				await page.locator( 'ul.undergrowth-ungrouped li a' ).focus();
+				await page.keyboard.press( 'Tab' );
+				await expect( format ).toBeFocused();
+				await format.selectOption( value );
+				await expect( format ).toBeFocused();
+				await page.keyboard.press( 'Tab' );
+				await expect( button ).toBeFocused();
+
+				const [ download ] = await Promise.all( [
+					page.waitForEvent( 'download' ),
+					page.keyboard.press( 'Enter' ),
+				] );
+				const text = fs.readFileSync( await download.path(), 'utf8' );
+
+				expect( download.suggestedFilename() ).toMatch(
+					new RegExp(
+						`^undergrowth-map-\\d{4}-\\d{2}-\\d{2}\\.${ extension }$`
+					)
+				);
+				expect( text.trim().split( '\n' ) ).toHaveLength( lines );
+
+				for ( const title of [
+					'First',
+					'Second',
+					'Third',
+					'Roots',
+					'Sweet roots',
+					'Roots on paper',
+					'Bread',
+				] ) {
+					expect( text ).toContain( title );
+				}
+			}
 		} );
 
 		test( 'is read by keyboard from the tab to each post', async ( {

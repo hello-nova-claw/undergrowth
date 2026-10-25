@@ -154,7 +154,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 				$this->edit_link( $item['target_id'], 'row-title' )
 			) . '</p>'
 			. ( $this->is_choosing( $item ) ? $this->choose_form( $item, $choice ) : '' )
-			. $this->action_form( $item, 'accept' ) . $this->action_form( $item, 'veto' );
+			. undergrowth_row_action_form( 'accept', $this->pair( $item ) ) . undergrowth_row_action_form( 'veto', $this->pair( $item ) );
 	}
 
 	/**
@@ -179,16 +179,16 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 
 		return $this->row_actions(
 			array(
-				'accept' => $this->action_button(
-					$item,
+				'accept' => undergrowth_row_action_button(
 					'accept',
+					$this->pair( $item ),
 					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
 					sprintf( __( 'Accept the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Accept', 'undergrowth' )
 				),
-				'veto'   => $this->action_button(
-					$item,
+				'veto'   => undergrowth_row_action_button(
 					'veto',
+					$this->pair( $item ),
 					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
 					sprintf( __( 'Veto the link from %1$s to %2$s', 'undergrowth' ), $source, $target ),
 					__( 'Veto', 'undergrowth' )
@@ -348,7 +348,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Link HTML.
 	 */
 	private function edit_link( int $post_id, string $link_class = '' ): string {
-		$title = esc_html( undergrowth_post_title( $post_id ) );
+		$title = '<bdi>' . esc_html( undergrowth_post_title( $post_id ) ) . '</bdi>';
 		$link  = get_edit_post_link( $post_id, 'raw' );
 
 		// A post the user cannot edit is named, not linked. In a line of
@@ -373,49 +373,19 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Element id.
 	 */
 	private function form_id( array $item, string $action ): string {
-		return sprintf( 'undergrowth-%1$s-%2$d-%3$d', $action, $item['source_id'], $item['target_id'] );
+		return undergrowth_row_action_form_id( $action, $this->pair( $item ) );
 	}
 
 	/**
-	 * Builds one row action, a button tied to its form by the form attribute.
+	 * Names a row's pair of posts as its forms post them.
 	 *
-	 * The buttons sit outside their forms so they flow in the row actions
-	 * like core's own, which use the same button-link class.
-	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
-	 * @param string                                                                               $action Action name.
-	 * @param string                                                                               $label  Accessible name.
-	 * @param string                                                                               $text   Visible text.
-	 * @return string Button HTML.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return array{source: int, target: int} Source and target IDs.
 	 */
-	private function action_button( array $item, string $action, string $label, string $text ): string {
-		return sprintf(
-			'<button type="submit" form="%1$s" class="button-link" aria-label="%2$s">%3$s</button>',
-			esc_attr( $this->form_id( $item, $action ) ),
-			esc_attr( $label ),
-			esc_html( $text )
-		);
-	}
-
-	/**
-	 * Builds the form behind one action button, holding only hidden fields.
-	 *
-	 * Each action is a separate form so it works without JavaScript and
-	 * carries a nonce for that exact pair of posts.
-	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item   Row.
-	 * @param string                                                                               $action Action name.
-	 * @return string Form HTML.
-	 */
-	private function action_form( array $item, string $action ): string {
-		return sprintf(
-			'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_%3$s" /><input type="hidden" name="source" value="%4$d" /><input type="hidden" name="target" value="%5$d" />%6$s</form>',
-			esc_url( admin_url( 'admin-post.php' ) ),
-			esc_attr( $this->form_id( $item, $action ) ),
-			esc_attr( $action ),
-			$item['source_id'],
-			$item['target_id'],
-			wp_nonce_field( 'undergrowth_' . $action . '_' . $item['source_id'] . '_' . $item['target_id'], '_wpnonce', true, false )
+	private function pair( array $item ): array {
+		return array(
+			'source' => (int) $item['source_id'],
+			'target' => (int) $item['target_id'],
 		);
 	}
 }

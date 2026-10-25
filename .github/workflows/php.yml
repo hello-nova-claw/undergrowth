@@ -16,6 +16,7 @@ jobs:
   composer-audit:
     name: Composer audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: shivammathur/setup-php@2.40.0
@@ -28,6 +29,7 @@ jobs:
   phpcs:
     name: PHPCS (WPCS)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: shivammathur/setup-php@2.40.0
@@ -41,6 +43,7 @@ jobs:
   phpstan:
     name: PHPStan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: shivammathur/setup-php@2.40.0
@@ -53,6 +56,7 @@ jobs:
   phpunit:
     name: PHPUnit (WP ${{ matrix.wp }}, PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -86,6 +90,7 @@ jobs:
   coverage:
     name: Coverage gate
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     # Runs on the runner rather than in wp-env: wp-env adds Xdebug with
     # `pecl install`, so every pecl.php.net outage failed this required check.
     # setup-php brings Xdebug from its own builds instead.
@@ -122,16 +127,32 @@ jobs:
           working-directory: wordpress/wp-content/plugins/undergrowth
       # Like wp-env with "core": null: the latest release, and the PHPUnit
       # suite from wordpress-develop at the same tag.
-      - name: Install WordPress and its test suite
+      - name: Find the latest WordPress release
+        id: wordpress
         working-directory: ${{ github.workspace }}
         run: |
           version=$(curl -fsSL --retry 5 https://api.wordpress.org/core/version-check/1.7/ | jq -r '.offers[0].version')
           echo "WordPress $version"
-          curl -fsSL --retry 5 -o wordpress.tar.gz "https://wordpress.org/wordpress-$version.tar.gz"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # The test suite changes only with the release, so it is cloned once a release.
+      - uses: actions/cache@v6.1.0
+        id: test-suite
+        with:
+          path: ${{ env.WP_TESTS_DIR }}
+          key: wordpress-phpunit-${{ steps.wordpress.outputs.version }}
+      - name: Install WordPress and its test suite
+        working-directory: ${{ github.workspace }}
+        env:
+          WP_VERSION: ${{ steps.wordpress.outputs.version }}
+          SUITE_CACHED: ${{ steps.test-suite.outputs.cache-hit }}
+        run: |
+          curl -fsSL --retry 5 -o wordpress.tar.gz "https://wordpress.org/wordpress-$WP_VERSION.tar.gz"
           tar -xzf wordpress.tar.gz
-          git clone --quiet --depth=1 --filter=blob:none --sparse --branch "$version" https://github.com/WordPress/wordpress-develop.git wordpress-develop
-          git -C wordpress-develop sparse-checkout set tests/phpunit
-          mv wordpress-develop/tests/phpunit "$WP_TESTS_DIR"
+          if [ "$SUITE_CACHED" != "true" ]; then
+            git clone --quiet --depth=1 --filter=blob:none --sparse --branch "$WP_VERSION" https://github.com/WordPress/wordpress-develop.git wordpress-develop
+            git -C wordpress-develop sparse-checkout set tests/phpunit
+            mv wordpress-develop/tests/phpunit "$WP_TESTS_DIR"
+          fi
           cat > "$WP_TESTS_DIR/wp-tests-config.php" <<'PHP'
           <?php
           define( 'ABSPATH', getenv( 'GITHUB_WORKSPACE' ) . '/wordpress/' );

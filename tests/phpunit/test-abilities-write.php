@@ -245,6 +245,25 @@ class Test_Abilities_Write extends WP_UnitTestCase {
 		$this->assertSame( 'vetoed', undergrowth_link_state( $oca, $yacon ) );
 	}
 
+	public function test_accept_link_says_the_post_could_not_be_saved() {
+		list( $oca, $yacon ) = $this->pair();
+		add_filter( 'wp_insert_post_empty_content', '__return_true' );
+
+		$result = $this->run_ability(
+			'undergrowth/accept-link',
+			array(
+				'source_id' => $oca,
+				'target_id' => $yacon,
+			)
+		);
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
+		$this->assertStringContainsString( 'could not be saved', $result->get_error_message() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( 'proposed', undergrowth_link_state( $oca, $yacon ) );
+	}
+
 	public function test_veto_link_stores_a_veto() {
 		list( $oca, $yacon ) = $this->pair();
 

@@ -491,14 +491,11 @@ function undergrowth_ability_site_posts(): array {
 			continue;
 		}
 
-		$args = array(
-			'post_type'              => $post_type,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'posts_per_page'         => -1,
-			'no_found_rows'          => true,
-			'fields'                 => 'ids',
-			'update_post_term_cache' => false,
+		$args = undergrowth_garden_query_args(
+			array(
+				'post_type'      => $post_type,
+				'posts_per_page' => -1,
+			)
 		);
 
 		if ( ! current_user_can( $object->cap->edit_others_posts ) ) {
@@ -847,7 +844,7 @@ function undergrowth_ability_veto_link( array $input ) {
  * The wording is the suggestions screen's, so the author reads the same
  * reason wherever the request came from.
  *
- * @param string $reason 'gone', 'forbidden', 'unchanged', 'not_proposed', 'edited', 'no_word' or 'needs_admin'.
+ * @param string $reason 'gone', 'forbidden', 'unchanged', 'not_proposed', 'edited', 'no_word', 'not_saved' or 'needs_admin'.
  * @return WP_Error The error.
  */
 function undergrowth_ability_link_error( string $reason ): WP_Error {

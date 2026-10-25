@@ -165,6 +165,24 @@ class Test_Discord_Settings extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Copy Channel ID', $html );
 	}
 
+	public function test_saved_token_and_last_failure_describe_the_token_field() {
+		$this->configure();
+		update_option(
+			'undergrowth_last_discord_error',
+			array(
+				'code'   => 'http_status',
+				'status' => 401,
+				'time'   => time(),
+			)
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/id="undergrowth_discord_bot_token"[^>]*aria-describedby="undergrowth-discord-bot-token-description undergrowth-discord-bot-token-saved undergrowth-discord-error"/', $html );
+		$this->assertMatchesRegularExpression( '#id="undergrowth-discord-bot-token-saved">\s*A token ending in \w{4} is saved\. Leave the field blank to keep it\.#', $html );
+		$this->assertStringContainsString( 'id="undergrowth-discord-error"', $html );
+	}
+
 	public function test_page_shows_the_interactions_endpoint_url() {
 		$this->assertStringContainsString( '<code id="undergrowth-discord-endpoint" dir="ltr">' . esc_html( rest_url( 'undergrowth/v1/discord' ) ) . '</code>', $this->render() );
 	}

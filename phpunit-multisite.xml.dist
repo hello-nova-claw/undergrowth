@@ -6,6 +6,8 @@
 	beStrictAboutTestsThatDoNotTestAnything="true"
 	failOnRisky="true"
 	failOnWarning="true"
+	executionOrder="random"
+	resolveDependencies="true"
 >
 	<php>
 		<const name="WP_TESTS_MULTISITE" value="1"/>
