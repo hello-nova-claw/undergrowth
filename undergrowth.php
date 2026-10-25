@@ -57,6 +57,7 @@ require_once __DIR__ . '/src/help.php';
 require_once __DIR__ . '/src/site-health.php';
 require_once __DIR__ . '/src/privacy.php';
 require_once __DIR__ . '/src/blocks.php';
+require_once __DIR__ . '/src/block-linked-from.php';
 require_once __DIR__ . '/src/editor.php';
 require_once __DIR__ . '/src/editor-links.php';
 require_once __DIR__ . '/src/draft-scan.php';
