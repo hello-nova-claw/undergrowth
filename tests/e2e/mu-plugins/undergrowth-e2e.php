@@ -282,9 +282,11 @@ add_action(
 		undergrowth_e2e_any_group_is_dense();
 
 		$map = undergrowth_cluster_map();
+		$hub = array() === $map ? new WP_Error( 'no_group' ) : undergrowth_start_hub( $map[0]['leader'] );
 
-		if ( array() !== $map ) {
-			undergrowth_start_hub( $map[0]['leader'] );
+		// A test that asked for a hub must not go on to shoot a Map without one.
+		if ( is_wp_error( $hub ) ) {
+			wp_die( 'No hub draft was started.', '', array( 'response' => 500 ) );
 		}
 	}
 );
