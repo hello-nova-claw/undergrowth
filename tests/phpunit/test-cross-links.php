@@ -235,6 +235,70 @@ class Test_Cross_Links extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->crossed( $posts['Receipt'] ) );
 	}
 
+	public function test_target_read_in_another_language_since_the_pass_is_not_offered() {
+		$posts = $this->garden();
+		$this->find();
+
+		undergrowth_save_vector(
+			$posts['Oca'],
+			array( 1.0, 0.0, 0.0 ),
+			array(
+				'provider'     => 'test-provider',
+				'model'        => 'test-model',
+				'language'     => 'de_DE',
+				'content_hash' => 'x',
+			)
+		);
+		undergrowth_refresh_proposals( $posts['Receipt'] );
+
+		$this->assertSame( array(), $this->crossed( $posts['Receipt'] ) );
+	}
+
+	public function test_source_without_a_vector_since_the_pass_is_not_offered_one() {
+		$posts = $this->garden();
+		$this->find();
+
+		undergrowth_delete_vector( $posts['Receipt'] );
+		undergrowth_refresh_proposals( $posts['Receipt'] );
+
+		$this->assertSame( array(), $this->crossed( $posts['Receipt'] ) );
+	}
+
+	public function test_next_closest_target_is_offered_when_the_closest_cannot_take_it() {
+		$a = $this->group(
+			array(
+				'Oca'    => array( array( 1.0, 0.0, 0.0 ), '<p>Oca grows in cold soil.</p>' ),
+				'Ulluco' => array( array( 1.0, 0.0, 0.0 ), '<p>Ulluco grows in cold soil.</p>' ),
+				'Mashua' => array( array( 1.0, 0.0, 0.0 ), '<p>Mashua grows in cold soil.</p>' ),
+			)
+		);
+		$c = $this->group(
+			array(
+				'Bread'     => array( array( 0.0, 0.0, 1.0 ), '<p>Bread from the oven.</p>' ),
+				'Sourdough' => array( array( 0.0, 0.0, 1.0 ), '<p>Sourdough from the oven.</p>' ),
+				'Starter'   => array( array( 0.0, 0.0, 1.0 ), '<p>Starter from the oven.</p>' ),
+			)
+		);
+		$b = $this->group(
+			array(
+				'Ledger'  => array( array( 0.0, 1.0, 0.0 ), '<p>A ledger of the year.</p>' ),
+				'Invoice' => array( array( 0.0, 1.0, 0.0 ), '<p>An invoice for seed.</p>' ),
+				'Bill'    => array( array( 0.0, 1.0, 0.0 ), '<p>A bill for the plot.</p>' ),
+				// 0.46 to the roots, 0.455 to the bread.
+				'Receipt' => array( array( 0.46, sqrt( 1 - 0.46 * 0.46 - 0.455 * 0.455 ), 0.455 ), '<p>The ledger shows it. The invoice came late. The bill was paid. Oca seed was on the receipt. Bread was on it too.</p>' ),
+			)
+		);
+		$this->find();
+		undergrowth_refresh_proposals( $b[3] );
+
+		$this->assertSame( array( $a[0] ), $this->crossed( $b[3] ) );
+
+		undergrowth_veto_link( $b[3], $a[0] );
+		undergrowth_refresh_proposals( $b[3] );
+
+		$this->assertSame( array( $c[0] ), $this->crossed( $b[3] ) );
+	}
+
 	public function test_composting_post_is_never_offered_one() {
 		$posts = $this->garden();
 		$this->find();
