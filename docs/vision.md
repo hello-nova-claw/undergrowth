@@ -43,6 +43,8 @@ A place, not a widget, where the author goes for ideas grounded in their own wri
 - **A weekly batch.** Each week, in cron, Undergrowth prepares up to five questions and leaves them waiting. They come from the same sources as today (handover 5b): gaps on the Map, composted posts near new clusters, threads the author started and left, comments once reader mode exists. Never trends or keyword data.
 - **Browse, dismiss, replace, save.** Each question can be dismissed (gone), replaced (swap it for another), or saved to an **idea bank** the author can return to at any time. Saved questions keep the posts they came from, so the author can see why each was asked.
 - **More on demand.** When the batch runs out, a "More questions" button asks Claude straight away. The button says plainly that this uses the site's own AI key and roughly what it costs (decided by Anna, 2026-10-25). Nothing is generated without that click.
+- **Still off until there's a key.** As today, the whole studio stays off until the site's Anthropic key is entered, and the settings page says exactly what is sent for each question (handover 5b).
+- **Comments stay data.** Once reader mode adds comments as a source, their text is untrusted data, never instructions to the model. A question may say "readers ask", but never quotes a commenter (principle 3; v2 proposal, B5).
 - **Still questions, still the author's words.** Every rule in handover 5b about form stays: a question, never a draft, title, outline or opening line, and quoting only the author.
 - **Still never nags.** No streaks, no counts of days without writing, no notifications about unread questions. The monthly email (#385) may mention that new questions are waiting, nothing more.
 
@@ -84,6 +86,8 @@ Today a reader sees a stage badge. A garden should be somewhere a reader can wan
 - **Stage badges and "Linked from"** on posts, both optional blocks.
 - **"More like this"** (4.2).
 - Later, with reader mode: hubs as real pages, and "Related by readers" (#97).
+
+One visibility rule covers every reader-facing surface (the garden index, stage badges, "Linked from" and "More like this"). A post appears only if it is published, public, not password-protected, in the index, and not composted. "Linked from" applies the rule to the linking posts too, so a composted or private post never shows up as a source. The link inside its own content stays where the author put it.
 
 Everything reader-facing is the author's own titles and words, arranged by structure the author approved. Principle 1 holds.
 
