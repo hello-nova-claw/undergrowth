@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Undergrowth
  * Plugin URI:        https://github.com/hello-nova-claw/undergrowth
- * Description:       Uses AI to read your site and ask you questions. It never writes a word your readers will see.
+ * Description:       Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.
  * Version:           0.1.0
  * Requires at least: 6.9
  * Requires PHP:      7.4
@@ -47,12 +47,14 @@ require_once __DIR__ . '/src/discord-settings.php';
 require_once __DIR__ . '/src/discord.php';
 require_once __DIR__ . '/src/discord-messages.php';
 require_once __DIR__ . '/src/discord-clicks.php';
+require_once __DIR__ . '/src/digest.php';
 require_once __DIR__ . '/src/admin.php';
 require_once __DIR__ . '/src/dashboard.php';
 require_once __DIR__ . '/src/meter.php';
 require_once __DIR__ . '/src/posts-screen.php';
 require_once __DIR__ . '/src/help.php';
 require_once __DIR__ . '/src/site-health.php';
+require_once __DIR__ . '/src/privacy.php';
 require_once __DIR__ . '/src/blocks.php';
 require_once __DIR__ . '/src/editor.php';
 require_once __DIR__ . '/src/editor-links.php';

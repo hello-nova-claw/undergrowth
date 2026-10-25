@@ -605,6 +605,7 @@ class Test_Stages extends WP_UnitTestCase {
 		wp_schedule_single_event( time(), 'undergrowth_cluster_cycle', array( 42 ) );
 		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
 		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 42 );
+		update_option( 'undergrowth_cluster_similarity', 0.5, false );
 		undergrowth_mark_pass( 'undergrowth_stage_cycle', 42 );
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
@@ -616,6 +617,7 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_similarity' ) );
 		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 		// Clusters from before a pause would be stale when the plugin returns.
 		$this->assertFalse( metadata_exists( 'post', $post_id, 'undergrowth_cluster' ) );
@@ -626,6 +628,7 @@ class Test_Stages extends WP_UnitTestCase {
 		wp_schedule_single_event( time(), 'undergrowth_stage_cycle', array( 42 ) );
 		update_option( 'undergrowth_cluster_leaders', array( 'group' => array( 42 ) ), false );
 		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 42 );
+		update_option( 'undergrowth_cluster_similarity', 0.5, false );
 		undergrowth_mark_pass( 'undergrowth_stage_cycle', 42 );
 
 		$this->uninstall();
@@ -634,6 +637,7 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 42 ) ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_leaders' ) );
 		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_similarity' ) );
 		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 	}
 
@@ -1255,6 +1259,41 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_not_saved', $result->get_error_code() );
 		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
 		$this->assertSame( 'evergreen', undergrowth_get_stage( $post_id ) );
+	}
+
+	public function test_restoring_a_pin_puts_the_marker_back() {
+		list( $post_id ) = $this->publish( 1 );
+
+		$this->assertNull( undergrowth_restore_pin( $post_id, true ) );
+		$this->assertTrue( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_restoring_no_pin_takes_the_marker_away() {
+		list( $post_id ) = $this->publish( 1 );
+		update_post_meta( $post_id, 'undergrowth_stage_pinned', '1' );
+
+		$this->assertNull( undergrowth_restore_pin( $post_id, false ) );
+		$this->assertFalse( undergrowth_is_stage_pinned( $post_id ) );
+	}
+
+	public function test_pin_errors_read_their_sentences_from_the_stage_result_table() {
+		$messages = undergrowth_stage_result_messages();
+
+		$this->assertSame( $messages['stage_pin_lost'], undergrowth_pin_lost()->get_error_message() );
+		$this->assertSame( $messages['stage_pin_left'], undergrowth_pin_left()->get_error_message() );
+		$this->assertSame( $messages['stage_not_saved'], undergrowth_stage_not_saved()->get_error_message() );
+	}
+
+	public function test_pin_that_cannot_be_restored_says_so() {
+		list( $post_id ) = $this->publish( 1 );
+		$this->fail_pin_flag( 'add' );
+		$this->fail_pin_flag( 'update' );
+
+		$result = undergrowth_restore_pin( $post_id, true );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'undergrowth_pin_lost', $result->get_error_code() );
+		$this->assertSame( undergrowth_pin_lost()->get_error_message(), $result->get_error_message() );
 	}
 
 	/**

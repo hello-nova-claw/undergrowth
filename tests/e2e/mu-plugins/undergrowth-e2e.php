@@ -321,7 +321,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
 	case 'first-run':
 		// As right after activation on a site with no key.
 		add_filter(
@@ -387,6 +387,26 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 					'code' => 'no_direct_access',
 					'time' => 1767225600,
 				);
+			}
+		);
+		break;
+
+	case 'digest-on':
+		add_filter(
+			'get_user_metadata',
+			static function ( $value, $object_id, $meta_key ) {
+				return 'undergrowth_digest' === $meta_key ? array( '1767225600' ) : $value;
+			},
+			10,
+			3
+		);
+		break;
+
+	case 'post-types-by-code':
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'page' );
 			}
 		);
 		break;
