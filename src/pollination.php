@@ -56,6 +56,10 @@ const UNDERGROWTH_THREAD_TERMS = 3;
 
 add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle', 10, 2 );
 add_action( 'undergrowth_pollination_start', 'undergrowth_start_pollination' );
+// A new step on the surprise scale moves the band the cross-pollination
+// suggestions come from.
+add_action( 'add_option_undergrowth_surprise', 'undergrowth_refresh_cross_links' );
+add_action( 'update_option_undergrowth_surprise', 'undergrowth_refresh_cross_links' );
 add_action( 'admin_post_undergrowth_dismiss_pollination', 'undergrowth_handle_dismiss_pollination' );
 
 /**
@@ -470,6 +474,7 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 	);
 	delete_option( 'undergrowth_pollination_work' );
 	undergrowth_end_pass( 'undergrowth_pollination_cycle' );
+	undergrowth_refresh_cross_links();
 }
 
 /**
@@ -822,7 +827,14 @@ function undergrowth_dismiss_pollination( int $a, int $b ): bool {
 			$sets
 		);
 
-		return update_option( 'undergrowth_pollination_dismissed', $dismissed, false );
+		if ( ! update_option( 'undergrowth_pollination_dismissed', $dismissed, false ) ) {
+			return false;
+		}
+
+		// Its cross-pollination suggestions go with it.
+		undergrowth_refresh_cross_links();
+
+		return true;
 	}
 
 	return false;
@@ -983,4 +995,126 @@ function undergrowth_render_pollination_pair( array $pair ): void {
 		esc_attr( $id ),
 		esc_html__( 'Dismiss', 'undergrowth' )
 	);
+}
+
+/**
+ * Lists, for each post in a sweet-spot pair at the author's step, the post
+ * at the other end, as the one cross-pollination link it may be offered.
+ *
+ * Kept for the request, since every refresh asks and building the pairs
+ * measures every group. New groups, words, pairs, a new step or a
+ * dismissal make a new list.
+ *
+ * @return array<int, array{0: int, 1: float, 2: string[]}> The target, the two posts'
+ *         similarity and the words both groups share, keyed by source post ID.
+ */
+function undergrowth_cross_links(): array {
+	static $cache = array();
+
+	$key = md5( (string) wp_json_encode( array( get_option( 'undergrowth_cluster_labels', array() ), undergrowth_surprise_step(), undergrowth_surprise_band( undergrowth_surprise_step() ), get_option( 'undergrowth_pollination_dismissed', array() ), get_option( 'undergrowth_pollination', array() ) ) ) );
+
+	if ( isset( $cache[ $key ] ) ) {
+		return $cache[ $key ];
+	}
+
+	$links = array();
+
+	foreach ( undergrowth_pollination_pairs() as $pair ) {
+		if ( null === $pair['sweet'] ) {
+			continue;
+		}
+
+		list( $a, $b, $score ) = $pair['sweet'];
+
+		foreach ( array( array( $a, $b ), array( $b, $a ) ) as $ends ) {
+			if ( ! isset( $links[ $ends[0] ] ) || $score > $links[ $ends[0] ][1] ) {
+				$links[ $ends[0] ] = array( $ends[1], $score, $pair['threads'] );
+			}
+		}
+	}
+
+	ksort( $links );
+	$cache = array( $key => $links );
+
+	return $links;
+}
+
+/**
+ * Returns the cross-pollination link a post may be offered on top of its
+ * usual suggestions, if any.
+ *
+ * None for a composting post. None to a post it already links to, already
+ * suggests, or whose link the author accepted or vetoed, and none to a post
+ * that cannot receive a link.
+ *
+ * @param int   $post_id Source post ID.
+ * @param int[] $taken   Targets the post's usual suggestions already hold.
+ * @return array{0: int, 1: float}|null The target and the two posts' similarity, or null.
+ */
+function undergrowth_cross_link_target( int $post_id, array $taken ): ?array {
+	$post  = get_post( $post_id );
+	$links = undergrowth_cross_links();
+
+	if ( ! isset( $links[ $post_id ] ) || ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) || 'composting' === undergrowth_get_stage( $post_id ) ) {
+		return null;
+	}
+
+	list( $target, $score ) = $links[ $post_id ];
+
+	if ( in_array( $target, array_map( 'intval', $taken ), true ) || in_array( undergrowth_link_state( $post_id, $target ), array( 'accepted', 'vetoed' ), true ) ) {
+		return null;
+	}
+
+	if ( in_array( $target, undergrowth_linked_post_ids( $post ), true ) || ! isset( undergrowth_open_target_ids( array( $target ) )[ $target ] ) ) {
+		return null;
+	}
+
+	return array( $target, $score );
+}
+
+/**
+ * Refreshes the suggestions of every post that holds a cross-pollination
+ * suggestion or could be offered one, from cron, after the pairs change.
+ */
+function undergrowth_refresh_cross_links(): void {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+	$holding = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT source_id FROM %i WHERE state = %s AND kind = %s', undergrowth_links_table(), 'proposed', 'cross' ) );
+	$posts   = array_values( array_unique( array_merge( array_map( 'intval', $holding ), array_keys( undergrowth_cross_links() ) ) ) );
+
+	if ( array() !== $posts ) {
+		sort( $posts );
+		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $posts ) );
+	}
+}
+
+/**
+ * Says why a suggestion is a cross-pollination link, in the author's own
+ * words where both groups share some.
+ *
+ * @param int $source_id Source post ID.
+ * @param int $target_id Target post ID.
+ * @return string Paragraph HTML, escaped.
+ */
+function undergrowth_cross_link_label( int $source_id, int $target_id ): string {
+	$links   = undergrowth_cross_links();
+	$threads = isset( $links[ $source_id ] ) && $target_id === $links[ $source_id ][0] ? $links[ $source_id ][2] : array();
+	$reason  = array() === $threads
+		? esc_html__( 'These posts are in groups that sit apart, but they are not far apart themselves.', 'undergrowth' )
+		: sprintf(
+			/* translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger". */
+			esc_html__( 'These posts are in groups that sit apart, and both groups use %1$s.', 'undergrowth' ),
+			wp_sprintf_l(
+				'%l',
+				array_map(
+					static function ( $term ) {
+						return '<bdi>' . esc_html( $term ) . '</bdi>';
+					},
+					$threads
+				)
+			)
+		);
+
+	return '<p class="undergrowth-cross"><strong>' . esc_html__( 'Cross-pollination.', 'undergrowth' ) . '</strong> ' . $reason . '</p>';
 }
