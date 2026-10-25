@@ -6,6 +6,7 @@ const { expectNoA11yViolations } = require( './a11y' );
 const TABS = [
 	'undergrowth-overview',
 	'undergrowth-suggestions',
+	'undergrowth-orphans',
 	'undergrowth-stages',
 	'undergrowth-map',
 	'undergrowth-compost',

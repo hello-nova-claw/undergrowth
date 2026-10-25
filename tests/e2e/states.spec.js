@@ -17,6 +17,7 @@ const WIDTHS = [ 1280, 390 ];
 
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
+const ORPHANS = [ 'edit.php', 'page=undergrowth-links&tab=orphans' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
 const DEV = [ 'edit.php', 'page=undergrowth-links&tab=dev' ];
@@ -219,6 +220,7 @@ const WITHOUT_POSTS = [
 		fixture: 'first-key-saved',
 	},
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
+	{ screen: 'orphans', state: 'empty', page: ORPHANS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
 	// The threshold meter. Without a fixture the site has no Jetpack.
 	{ screen: 'dashboard', state: 'meter-no-stats', page: DASHBOARD },
@@ -244,7 +246,7 @@ const WITHOUT_POSTS = [
 		help: 'undergrowth-meter',
 	},
 	// Each tab of Posts > Undergrowth, and Compost on the Posts list.
-	...[ 'overview', 'suggestions', 'stages', 'map', 'compost' ].map(
+	...[ 'overview', 'suggestions', 'orphans', 'stages', 'map', 'compost' ].map(
 		( part ) => ( {
 			screen: 'suggestions',
 			state: `help-${ part }`,
@@ -384,6 +386,7 @@ const WITH_POSTS = [
 			return true;
 		},
 	} ) ),
+	{ screen: 'orphans', state: 'table', page: ORPHANS },
 	{ screen: 'stages', state: 'table', page: STAGES },
 	...[
 		[ 'view-seedling', 'undergrowth_stage=seedling' ],
