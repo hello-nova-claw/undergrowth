@@ -424,6 +424,33 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_pollination_cycle_pass' ) );
 	}
 
+	public function test_a_batch_waits_while_a_start_or_another_batch_holds_the_lock() {
+		$this->two_groups( 0.46 );
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+
+		$pass = get_option( 'undergrowth_pollination_work' )['pass'];
+
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		WP_Upgrader::create_lock( 'undergrowth_pollination_cycle' );
+
+		undergrowth_run_pollination_cycle( 0, $pass );
+
+		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_cycle', array( 0, $pass ) ) );
+
+		// A new pass waits too, so the batch running never stores over it.
+		undergrowth_start_pollination();
+
+		$this->assertSame( $pass, get_option( 'undergrowth_pollination_work' )['pass'] );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_start' ) );
+
+		WP_Upgrader::release_lock( 'undergrowth_pollination_cycle' );
+		$this->run_batches();
+
+		$this->assertNotNull( $this->sweet( 2 ) );
+	}
+
 	public function test_hourly_check_runs_a_stalled_batch_again() {
 		$this->two_groups( 0.46 );
 		undergrowth_start_cluster_labels();
