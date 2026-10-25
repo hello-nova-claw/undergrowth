@@ -1806,6 +1806,10 @@ msgid "A draft is read only when you press Scan this draft in the editor: its ti
 msgstr ""
 
 #: src/settings.php
+msgid "With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other. A post the plugin gives no language keeps the site’s language."
+msgstr ""
+
+#: src/settings.php
 msgid "Questions"
 msgstr ""
 
