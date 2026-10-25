@@ -102,6 +102,17 @@ function undergrowth_register_settings(): void {
 		)
 	);
 
+	register_setting(
+		'undergrowth',
+		'undergrowth_surprise',
+		array(
+			'type'              => 'integer',
+			'default'           => UNDERGROWTH_SURPRISE_DEFAULT,
+			'show_in_rest'      => false,
+			'sanitize_callback' => 'undergrowth_sanitize_surprise',
+		)
+	);
+
 	foreach ( $keys as $option => $sanitize_callback ) {
 		register_setting(
 			'undergrowth',
@@ -152,6 +163,7 @@ function undergrowth_register_settings(): void {
 
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
 	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_surprise', __( 'Surprise scale', 'undergrowth' ), 'undergrowth_render_surprise_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions in your Prompt studio', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
@@ -553,6 +565,26 @@ function undergrowth_render_suggest_links_field(): void {
 		<?php esc_html_e( 'Suggest links between my posts', 'undergrowth' ); ?>
 	</label>
 	<p class="description"><?php esc_html_e( 'Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on.', 'undergrowth' ); ?></p>
+	<?php
+}
+
+/**
+ * Prints the surprise scale: five steps from close cousins to wild, which
+ * set how far apart the Map's cross-pollination pairs may be.
+ */
+function undergrowth_render_surprise_field(): void {
+	$current = undergrowth_surprise_step();
+	?>
+	<fieldset aria-describedby="undergrowth_surprise_description">
+		<legend class="screen-reader-text"><?php esc_html_e( 'Surprise scale', 'undergrowth' ); ?></legend>
+		<?php foreach ( undergrowth_surprise_steps() as $step => $name ) : ?>
+			<label for="undergrowth_surprise_<?php echo (int) $step; ?>">
+				<input type="radio" id="undergrowth_surprise_<?php echo (int) $step; ?>" name="undergrowth_surprise" value="<?php echo (int) $step; ?>"<?php checked( $current, $step ); ?> />
+				<?php echo esc_html( $name ); ?>
+			</label><br />
+		<?php endforeach; ?>
+	</fieldset>
+	<p class="description" id="undergrowth_surprise_description"><?php esc_html_e( 'How far apart the pairs on the Map’s Cross-pollination list may be. Close cousins shows groups that nearly belong together; Wild reaches much further. It changes what is shown at once, without reading your posts again.', 'undergrowth' ); ?></p>
 	<?php
 }
 

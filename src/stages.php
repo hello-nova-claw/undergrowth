@@ -727,7 +727,8 @@ function undergrowth_end_pass( string $hook ): void {
 }
 
 /**
- * Runs again the batch of a clustering or stage pass that died.
+ * Runs again the batch of a clustering, stage or cross-pollination pass
+ * that died.
  *
  * Runs from the hourly check. A pass is resumed only when its batch started
  * at least UNDERGROWTH_PASS_STALL ago and neither that batch nor a new pass
@@ -735,7 +736,7 @@ function undergrowth_end_pass( string $hook ): void {
  * long gives the pass up to the new one.
  */
 function undergrowth_resume_stalled_passes(): void {
-	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle' ) as $hook ) {
+	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle', 'undergrowth_pollination_cycle' ) as $hook ) {
 		$pass = get_option( $hook . '_pass' );
 
 		if ( ! is_array( $pass ) || ! isset( $pass['after'], $pass['at'] ) || time() - (int) $pass['at'] < UNDERGROWTH_PASS_STALL ) {

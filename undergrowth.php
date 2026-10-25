@@ -34,6 +34,7 @@ require_once __DIR__ . '/src/links.php';
 require_once __DIR__ . '/src/clusters.php';
 require_once __DIR__ . '/src/map.php';
 require_once __DIR__ . '/src/hubs.php';
+require_once __DIR__ . '/src/pollination.php';
 require_once __DIR__ . '/src/thresholds.php';
 require_once __DIR__ . '/src/memory.php';
 require_once __DIR__ . '/src/class-undergrowth-html-text.php';

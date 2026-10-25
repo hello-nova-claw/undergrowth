@@ -252,6 +252,14 @@ add_action(
 		}
 
 		undergrowth_run_cluster_cycle( 0 );
+
+		// The cross-pollination pass the cluster pass queued for cron. A test
+		// site has fewer posts than one batch.
+		$record = get_option( 'undergrowth_pollination_cycle_pass' );
+
+		if ( is_array( $record ) && function_exists( 'undergrowth_run_pollination_cycle' ) ) {
+			undergrowth_run_pollination_cycle( $record['after'], $record['pass'] );
+		}
 	}
 );
 
