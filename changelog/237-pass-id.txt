@@ -1,0 +1,1 @@
+A clustering pass started while another is still running, for example when a backfill ends mid-month, now replaces it, so the Map never mixes two passes' groups.
