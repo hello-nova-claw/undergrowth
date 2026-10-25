@@ -407,6 +407,27 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		return $strings;
 	}
 
+	public function test_export_reads_posts_not_in_a_group_in_a_fixed_number_of_queries() {
+		global $wpdb;
+
+		$this->plant_clusters();
+		$counts = array();
+
+		foreach ( array( 2, 12 ) as $extra ) {
+			foreach ( self::factory()->post->create_many( $extra, array( 'post_status' => 'publish' ) ) as $post_id ) {
+				clean_post_cache( $post_id );
+			}
+
+			wp_cache_flush();
+			$before = $wpdb->num_queries;
+			undergrowth_map_export_rows();
+			$counts[ $extra ] = $wpdb->num_queries - $before;
+		}
+
+		// Twelve more posts, but no query for each one's title or stage.
+		$this->assertLessThan( 5, $counts[12] - $counts[2] );
+	}
+
 	public function test_export_carries_the_words_the_map_shows() {
 		$posts = $this->plant_clusters();
 		update_option(

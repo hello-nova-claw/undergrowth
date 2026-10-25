@@ -359,8 +359,13 @@ function undergrowth_map_accounting( array $map ): array {
  *         each with the group's name, its words, the post's title and address, its growth stage, and whether its group has a gap.
  */
 function undergrowth_map_export_rows(): array {
-	$map  = undergrowth_cluster_map();
-	$rows = array();
+	$map       = undergrowth_cluster_map();
+	$ungrouped = array_keys( undergrowth_map_accounting( $map )['ungrouped'] );
+	$rows      = array();
+
+	// One query for every post's title and one for every stage, however
+	// many posts the Map holds.
+	_prime_post_caches( array_merge( array_merge( array(), ...array_column( $map, 'members' ) ), $ungrouped ), false, true );
 
 	foreach ( $map as $cluster ) {
 		$name  = undergrowth_plain_line( undergrowth_post_title( $cluster['members'][0] ) );
@@ -370,10 +375,6 @@ function undergrowth_map_export_rows(): array {
 			$rows[] = undergrowth_map_export_row( $post_id, $name, $words, $cluster['gap'] );
 		}
 	}
-
-	$ungrouped = array_keys( undergrowth_map_accounting( $map )['ungrouped'] );
-
-	_prime_post_caches( $ungrouped, false, false );
 
 	foreach ( $ungrouped as $post_id ) {
 		$rows[] = undergrowth_map_export_row( $post_id, __( 'Not in a group yet', 'undergrowth' ), '', false );
