@@ -794,7 +794,7 @@ function undergrowth_accept_failure_text( array $error ): string {
 	$code = (string) ( $error['code'] ?? '' );
 
 	if ( 'empty_content' === $code ) {
-		$cause = __( 'WordPress refused to save the post because it would have been empty, so the link was not added.', 'undergrowth' );
+		$cause = __( 'WordPress treated the post as empty and refused to save it, so the link was not added.', 'undergrowth' );
 	} elseif ( 'invalid_post' === $code || 'invalid_page' === $code ) {
 		$cause = __( 'WordPress could not find the post to save, so the link was not added.', 'undergrowth' );
 	} elseif ( 'db_update_error' === $code ) {

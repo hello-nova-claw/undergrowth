@@ -708,7 +708,7 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$this->assertMatchesRegularExpression( '#<th scope="row">Accept</th>#', $html );
 		$this->assertStringContainsString( 'id="undergrowth-accept-error"', $html );
-		$this->assertStringContainsString( 'WordPress refused to save the post because it would have been empty, so the link was not added.', $html );
+		$this->assertStringContainsString( 'WordPress treated the post as empty and refused to save it, so the link was not added.', $html );
 		$this->assertStringContainsString( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1767225600 ), $html );
 	}
 

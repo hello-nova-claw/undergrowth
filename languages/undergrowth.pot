@@ -1662,7 +1662,7 @@ msgid "A post’s file could not be written. Check that the uploads folder can b
 msgstr ""
 
 #: src/settings.php
-msgid "WordPress refused to save the post because it would have been empty, so the link was not added."
+msgid "WordPress treated the post as empty and refused to save it, so the link was not added."
 msgstr ""
 
 #: src/settings.php
