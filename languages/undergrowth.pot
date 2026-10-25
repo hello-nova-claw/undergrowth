@@ -461,11 +461,16 @@ msgid "See the change"
 msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
+#: src/block-garden-index.php
 #: src/blocks.php
 #: build/editor/index.js
 #: src/editor/stage-panel.js
 #, php-format,js-format
 msgid "Growth stage: %s"
+msgstr ""
+
+#: src/block-garden-index.php
+msgid "Other posts"
 msgstr ""
 
 #: src/blocks.php
@@ -602,7 +607,9 @@ msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
+#: build/blocks/garden-index/index.js
 #: build/blocks/growth-stage/index.js
+#: src/blocks/garden-index/edit.js
 #: src/blocks/growth-stage/edit.js
 msgid "Growth stage"
 msgstr ""
@@ -1669,7 +1676,9 @@ msgid "The linked Discord user ID could not be removed. Try again, or clear it o
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/garden-index/index.js
 #: build/blocks/more-like-this/index.js
+#: src/blocks/garden-index/edit.js
 #: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
@@ -2253,6 +2262,41 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Garden index"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Readers see nothing here yet. This lists your published posts by the groups on the Map, and only those at the chosen stage."
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Every stage"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Seedling"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Sprout"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Budding"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Evergreen"
+msgstr ""
+
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
@@ -2450,6 +2494,44 @@ msgstr ""
 msgid "Stage to pin"
 msgstr ""
 
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block title"
+msgid "Garden index"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block description"
+msgid "Lists your published posts by the groups on the Map, each with its growth stage, so readers can wander the garden by topic."
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: build/blocks/more-like-this/block.json
+#: src/blocks/garden-index/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "map"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "topics"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "index"
+msgstr ""
+
 #: build/blocks/growth-stage/block.json
 #: src/blocks/growth-stage/block.json
 msgctxt "block title"
@@ -2508,10 +2590,4 @@ msgstr ""
 #: src/blocks/more-like-this/block.json
 msgctxt "block keyword"
 msgid "similar"
-msgstr ""
-
-#: build/blocks/more-like-this/block.json
-#: src/blocks/more-like-this/block.json
-msgctxt "block keyword"
-msgid "garden"
 msgstr ""
