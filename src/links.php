@@ -846,7 +846,9 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 	// At most one cross-pollination link on top, to a post in a group that
 	// sits apart, so the usual suggestions stay the majority.
-	$cross = undergrowth_cross_link_target( $post_id, array_keys( $targets ) );
+	// Both ends must still be in this post's provider, model and language,
+	// which the pairs, found once a month, cannot promise.
+	$cross = isset( $pool[ $post_id ] ) ? undergrowth_cross_link_target( $post_id, array_keys( $targets ), array_keys( $pool ) ) : null;
 
 	if ( null !== $cross ) {
 		$sentence = undergrowth_choose_sentence( $post_id, $cross[0], $corpus, $taken );
