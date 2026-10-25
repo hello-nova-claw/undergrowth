@@ -1298,6 +1298,10 @@ msgid "No"
 msgstr ""
 
 #: src/memory.php
+msgid "Visitors can open the per-post files, because this server ignores the .htaccess and web.config files that refuse them. Add the deny rule for nginx or Caddy to the server’s settings. Until the files are refused, the questions Claude wrote are left out of them."
+msgstr ""
+
+#: src/memory.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
 
@@ -1776,6 +1780,10 @@ msgid "Optional. Undergrowth can post each new link suggestion to a channel in y
 msgstr ""
 
 #: src/site-health.php
+msgid "Undergrowth’s per-post files are private"
+msgstr ""
+
+#: src/site-health.php
 msgid "Undergrowth reads your posts"
 msgstr ""
 
@@ -1807,6 +1815,34 @@ msgstr ""
 
 #: src/site-health.php
 msgid "How to run WP-Cron from a server cron job"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files cannot be read from the web"
+msgstr ""
+
+#: src/site-health.php
+msgid "Security"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth keeps a plain-text file for each post in the uploads folder, and this server refuses visitors who ask for one."
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth could not check whether its per-post files can be read from the web"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth asks for a file in its folder at the site’s own address, and got no answer that shows whether visitors are refused. Until a check shows they are, the questions Claude wrote are left out of the per-post files."
+msgstr ""
+
+#: src/site-health.php
+msgid "How to keep the per-post files private"
+msgstr ""
+
+#: src/site-health.php
+msgid "Undergrowth’s per-post files can be read from the web"
 msgstr ""
 
 #: src/stages.php

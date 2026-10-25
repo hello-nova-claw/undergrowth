@@ -722,6 +722,10 @@ function undergrowth_render_memory_folder_field(): void {
 		<?php esc_html_e( 'Each post’s plain-text record is kept in this folder.', 'undergrowth' ); ?>
 	</p>
 	<?php
+	if ( undergrowth_memory_exposed() ) {
+		undergrowth_print_failure_notice( undergrowth_memory_exposed_text(), 'undergrowth-memory-exposed' );
+	}
+
 	undergrowth_render_file_failure_notice();
 }
 
