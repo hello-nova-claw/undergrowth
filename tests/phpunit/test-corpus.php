@@ -435,7 +435,7 @@ class Test_Corpus extends WP_UnitTestCase {
 				$vector[] = mt_rand() / mt_getrandmax() * 2 - 1;
 			}
 
-			$ids[] = $this->plant( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, $vector, array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', undergrowth_links_table() ) );
@@ -485,7 +485,7 @@ class Test_Corpus extends WP_UnitTestCase {
 		$ids = array();
 
 		for ( $i = 0; $i < 12; $i++ ) {
-			$ids[] = $this->plant( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
+			$ids[] = $this->seed( 'Bed ' . $i, array( 1.0, $i / 12, 0.0 ), array( 'post_content' => $this->long_content( 120, 150 ) ) );
 		}
 
 		wp_cache_flush();
@@ -511,11 +511,11 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source  = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
+		$source  = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Tubers like cool weather.</p>' ) );
 		$targets = array();
 
 		for ( $i = 0; $i < 6; $i++ ) {
-			$targets[] = $this->plant( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
+			$targets[] = $this->seed( 'Yacon ' . $i, array( 1.0, $i / 6, 0.0 ), array( 'post_content' => '<p>Syrup is sweet.</p>' ) );
 		}
 
 		wp_cache_flush();
@@ -538,13 +538,13 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ) );
 
 		for ( $i = 0; $i < 5; $i++ ) {
-			$this->plant( 'Yacon ' . $i, array( 1.0, $i / 10, 0.0 ) );
+			$this->seed( 'Yacon ' . $i, array( 1.0, $i / 10, 0.0 ) );
 		}
 
-		$draft = $this->plant( 'Mashua', array( 1.0, 0.05, 0.0 ) );
+		$draft = $this->seed( 'Mashua', array( 1.0, 0.05, 0.0 ) );
 		wp_update_post(
 			array(
 				'ID'          => $draft,
@@ -591,11 +591,11 @@ class Test_Corpus extends WP_UnitTestCase {
 			}
 		);
 
-		$source = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$source = $this->seed( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$best   = array();
 
 		for ( $i = 0; $i < 4; $i++ ) {
-			$best[] = $this->plant( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
+			$best[] = $this->seed( 'Yacon ' . $i, array( 1.0, 0.1 * $i, 0.0 ) );
 		}
 
 		$this->assertSame( array_slice( $best, 0, 2 ), array_keys( undergrowth_test_rank_targets( $source, null, 2 ) ) );

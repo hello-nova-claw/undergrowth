@@ -10,6 +10,8 @@
  */
 class Test_Clusters extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	/**
 	 * Publishes a post and stores a vector for it.
 	 *
@@ -18,23 +20,7 @@ class Test_Clusters extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function post_with_vector( array $vector, array $meta = array() ): int {
-		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
-
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array_merge(
-				array(
-					'provider'     => 'test-provider',
-					'model'        => 'test-model',
-					'language'     => 'en_US',
-					'content_hash' => 'hash',
-				),
-				$meta
-			)
-		);
-
-		return $post_id;
+		return $this->seed( '', $vector, array(), $meta );
 	}
 
 	/**
@@ -166,6 +152,19 @@ class Test_Clusters extends WP_UnitTestCase {
 		$vector[ $axis ] = 1.0;
 
 		return $vector;
+	}
+
+	public function test_dot_product_multiplies_matching_values() {
+		$this->assertEqualsWithDelta( 0.5 * 0.6 + 0.5 * 0.8, undergrowth_dot_product( array( 0.5, 0.5 ), array( 0.6, 0.8 ) ), 1e-9 );
+		$this->assertEqualsWithDelta( 0.0, undergrowth_dot_product( array( 1.0, 0.0 ), array( 0.0, 1.0 ) ), 1e-9 );
+	}
+
+	public function test_packed_dot_matches_the_dot_product_of_the_unpacked_vectors() {
+		$a = undergrowth_unit_vector( array( 3.0, 4.0 ) );
+		$b = undergrowth_unit_vector( array( 4.0, 3.0 ) );
+
+		$this->assertEqualsWithDelta( undergrowth_dot_product( undergrowth_unpack_vector( $a ), undergrowth_unpack_vector( $b ) ), undergrowth_packed_dot( $a, $b ), 1e-9 );
+		$this->assertEqualsWithDelta( 0.96, undergrowth_packed_dot( $a, $b ), 1e-6 );
 	}
 
 	public function test_similar_posts_form_one_cluster() {

@@ -414,28 +414,48 @@ function undergrowth_store_stage( int $post_id, string $stage, string $reason ):
  * @return array<int, array{time: int, from: string, to: string, reason: string}> Changes.
  */
 function undergrowth_stage_log( int $post_id ): array {
+	return undergrowth_read_log(
+		$post_id,
+		'undergrowth_stage_log',
+		array(
+			'from'   => UNDERGROWTH_STAGES,
+			'to'     => UNDERGROWTH_STAGES,
+			'reason' => array_keys( UNDERGROWTH_STAGE_REASONS ),
+		)
+	);
+}
+
+/**
+ * Reads a post's log rows, leaves out any that are malformed, and puts the
+ * rest in time order.
+ *
+ * Every row has a positive integer time and one string for each field,
+ * from that field's list of known values.
+ *
+ * @param int                     $post_id  Post ID.
+ * @param string                  $meta_key Meta key that holds one row per entry.
+ * @param array<string, string[]> $fields   Known values, by field name.
+ * @return array<int, array<string, int|string>> Rows with their time and fields, oldest first.
+ */
+function undergrowth_read_log( int $post_id, string $meta_key, array $fields ): array {
 	$entries = array();
 
-	foreach ( get_post_meta( $post_id, 'undergrowth_stage_log', false ) as $entry ) {
-		if (
-			! is_array( $entry )
-			|| ! isset( $entry['time'], $entry['from'], $entry['to'], $entry['reason'] )
-			|| ! is_int( $entry['time'] )
-			|| $entry['time'] <= 0
-			|| ! in_array( $entry['from'], UNDERGROWTH_STAGES, true )
-			|| ! in_array( $entry['to'], UNDERGROWTH_STAGES, true )
-			|| ! is_string( $entry['reason'] )
-			|| ! isset( UNDERGROWTH_STAGE_REASONS[ $entry['reason'] ] )
-		) {
+	foreach ( get_post_meta( $post_id, $meta_key, false ) as $entry ) {
+		if ( ! is_array( $entry ) || ! isset( $entry['time'] ) || ! is_int( $entry['time'] ) || $entry['time'] <= 0 ) {
 			continue;
 		}
 
-		$entries[] = array(
-			'time'   => $entry['time'],
-			'from'   => $entry['from'],
-			'to'     => $entry['to'],
-			'reason' => $entry['reason'],
-		);
+		$row = array( 'time' => $entry['time'] );
+
+		foreach ( $fields as $field => $known ) {
+			if ( ! isset( $entry[ $field ] ) || ! is_string( $entry[ $field ] ) || ! in_array( $entry[ $field ], $known, true ) ) {
+				continue 2;
+			}
+
+			$row[ $field ] = $entry[ $field ];
+		}
+
+		$entries[] = $row;
 	}
 
 	// An import can add older rows after newer ones, so rows are put in time
@@ -527,12 +547,6 @@ function undergrowth_cron_schedules( $schedules ) {
  * stage cycle, so stages are always measured against complete clusters.
  */
 function undergrowth_schedule_stage_cycle(): void {
-	// Before clustering, the monthly event measured stages straight away. Only
-	// that event has no arguments; the batches it chained are left to finish.
-	if ( false !== wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
-		wp_clear_scheduled_hook( 'undergrowth_stage_cycle' );
-	}
-
 	if ( false === wp_next_scheduled( 'undergrowth_cluster_cycle' ) ) {
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_cluster_cycle' );
 	}

@@ -592,6 +592,27 @@ class Test_Settings extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_help_tab_says_a_draft_is_sent_only_when_scanned_whoever_reads_the_posts() {
+		add_filter( 'undergrowth_embed_provider', '__return_empty_array' );
+		add_filter(
+			'undergrowth_embed_identity',
+			static function () {
+				return array(
+					'provider' => 'ollama',
+					'model'    => 'nomic-embed-text',
+				);
+			}
+		);
+		set_current_screen( 'settings_page_undergrowth' );
+		$screen = get_current_screen();
+		$screen->remove_help_tabs();
+		do_action( 'load-settings_page_undergrowth' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook name.
+
+		$tab = $screen->get_help_tab( 'undergrowth-links' );
+
+		$this->assertStringContainsString( 'A draft is read only when you press Scan this draft in the editor', wp_strip_all_tags( $tab['content'] ) );
+	}
+
 	public function test_help_tabs_keep_the_full_detail_of_what_each_part_sends() {
 		set_current_screen( 'settings_page_undergrowth' );
 		$screen = get_current_screen();
@@ -607,6 +628,7 @@ class Test_Settings extends WP_UnitTestCase {
 		}
 
 		$this->assertStringContainsString( 'Undergrowth changes a post only when you accept a link in it.', $text['undergrowth-links'] );
+		$this->assertStringContainsString( 'A draft is read only when you press Scan this draft in the editor', $text['undergrowth-links'] );
 		$this->assertStringContainsString( 'Whole posts are never sent.', $text['undergrowth-prompts'] );
 		$this->assertStringContainsString( 'up to three of them', $text['undergrowth-prompts'] );
 		$this->assertStringContainsString( 'never to your readers', $text['undergrowth-prompts'] );

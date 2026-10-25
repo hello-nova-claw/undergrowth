@@ -306,12 +306,24 @@ function undergrowth_pick_group( array $sizes, int $pick ): int {
  * @return float Cosine similarity.
  */
 function undergrowth_packed_dot( string $a, string $b ): float {
-	$values = undergrowth_unpack_vector( $a );
-	$dot    = 0.0;
-	$i      = 0;
+	return undergrowth_dot_product( undergrowth_unpack_vector( $a ), undergrowth_unpack_vector( $b ) );
+}
 
-	foreach ( undergrowth_unpack_vector( $b ) as $value ) {
-		$dot += $value * $values[ $i++ ];
+/**
+ * Multiplies two unpacked vectors of the same length, value by value, and
+ * adds up the products.
+ *
+ * Callers that compare one vector with many unpack it once and pass it here.
+ *
+ * @param float[] $a Vector values, in order.
+ * @param float[] $b Vector values, in order.
+ * @return float The dot product, which is the cosine similarity for unit vectors.
+ */
+function undergrowth_dot_product( array $a, array $b ): float {
+	$dot = 0.0;
+
+	foreach ( $b as $i => $value ) {
+		$dot += $value * $a[ $i ];
 	}
 
 	return $dot;

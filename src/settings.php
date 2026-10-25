@@ -172,7 +172,7 @@ function undergrowth_register_settings(): void {
  *
  * @param string $option Name of the option just added.
  */
-function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_api_key' ): void {
+function undergrowth_stop_autoloading_key( string $option ): void {
 	wp_set_option_autoload( $option, false );
 }
 
@@ -864,7 +864,10 @@ function undergrowth_add_settings_help(): void {
 	$tabs = array(
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
-			array( $links ),
+			array(
+				$links,
+				__( 'A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent.', 'undergrowth' ),
+			),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),
