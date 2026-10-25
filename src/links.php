@@ -106,6 +106,71 @@ function undergrowth_unpack_vector( string $packed ): array {
 }
 
 /**
+ * Splits a list into chunks, building each one only when it is asked for.
+ *
+ * Unlike array_chunk(), which builds every chunk at once, this holds one
+ * chunk at a time, so a small chunk size never costs more memory.
+ *
+ * @param iterable<int|string, mixed> $items         Items to split.
+ * @param int                         $size          Items per chunk, at least one.
+ * @param bool                        $preserve_keys Whether each chunk keeps the items' keys.
+ * @return Generator<int, array<int|string, mixed>> Chunks, in order.
+ */
+function undergrowth_chunks( iterable $items, int $size, bool $preserve_keys = false ): Generator {
+	$size  = max( 1, $size );
+	$chunk = array();
+
+	foreach ( $items as $key => $item ) {
+		if ( $preserve_keys ) {
+			$chunk[ $key ] = $item;
+		} else {
+			$chunk[] = $item;
+		}
+
+		if ( count( $chunk ) === $size ) {
+			yield $chunk;
+			$chunk = array();
+		}
+	}
+
+	if ( array() !== $chunk ) {
+		yield $chunk;
+	}
+}
+
+/**
+ * Returns how many posts are read in one query when posts are read in chunks.
+ *
+ * @return int Posts per chunk, at least one.
+ */
+function undergrowth_post_chunk_size(): int {
+	/**
+	 * Filters how many posts are read in one query.
+	 *
+	 * A smaller chunk holds less in memory at once and sends more queries.
+	 *
+	 * @param int $size Posts per chunk. Default 100.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_post_chunk_size', UNDERGROWTH_POST_CHUNK ) );
+}
+
+/**
+ * Returns how many vectors are read in one query.
+ *
+ * @return int Vectors per chunk, at least one.
+ */
+function undergrowth_vector_chunk_size(): int {
+	/**
+	 * Filters how many stored vectors are read in one query.
+	 *
+	 * A smaller chunk holds less in memory at once and sends more queries.
+	 *
+	 * @param int $size Vectors per chunk. Default 100.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_vector_chunk_size', UNDERGROWTH_VECTOR_CHUNK ) );
+}
+
+/**
  * Returns the lowest similarity worth proposing a link for.
  *
  * @return float Cosine similarity between -1 and 1.
@@ -158,6 +223,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 
 	$vectors = array();
 	$after   = 0;
+	$size    = undergrowth_vector_chunk_size();
 
 	do {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
@@ -169,7 +235,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 				$model,
 				$language,
 				$after,
-				UNDERGROWTH_VECTOR_CHUNK
+				$size
 			),
 			ARRAY_A
 		);
@@ -189,7 +255,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 		// leave a chunk of JSON behind for the whole refresh.
 		unset( $rows );
 		$wpdb->flush();
-	} while ( UNDERGROWTH_VECTOR_CHUNK === $fetched );
+	} while ( $size === $fetched );
 
 	return $vectors;
 }
@@ -611,7 +677,7 @@ function undergrowth_open_target_ids( array $post_ids ): array {
  * @return Generator<int, float> Similarity keyed by target post ID, best first.
  */
 function undergrowth_open_targets( array $scores ): Generator {
-	foreach ( array_chunk( $scores, UNDERGROWTH_POST_CHUNK, true ) as $chunk ) {
+	foreach ( undergrowth_chunks( $scores, undergrowth_post_chunk_size(), true ) as $chunk ) {
 		$open = undergrowth_open_target_ids( array_keys( $chunk ) );
 
 		foreach ( $chunk as $target_id => $score ) {
@@ -620,32 +686,6 @@ function undergrowth_open_targets( array $scores ): Generator {
 			}
 		}
 	}
-}
-
-/**
- * Picks the posts a post should link to.
- *
- * Leaves out the post itself, posts it already links to, composting posts,
- * and any pair the author has accepted or vetoed. A composting post gets
- * no targets at all.
- *
- * @param int                     $post_id Source post ID.
- * @param array<int, string>|null $pool    Packed comparable vectors, when already loaded.
- * @param int                     $limit   Most targets to return, or 0 for every target above the minimum.
- * @return array<int, float> Similarity keyed by target post ID, best first.
- */
-function undergrowth_rank_targets( int $post_id, ?array $pool = null, int $limit = UNDERGROWTH_MAX_PROPOSALS ): array {
-	$targets = array();
-
-	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
-		$targets[ $target_id ] = $score;
-
-		if ( $limit > 0 && count( $targets ) >= $limit ) {
-			break;
-		}
-	}
-
-	return $targets;
 }
 
 /**

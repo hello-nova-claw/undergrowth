@@ -279,7 +279,7 @@ function undergrowth_build_corpus( array $post_ids ): array {
 	$posts     = array();
 	$ids       = array_values( array_unique( array_map( 'intval', $post_ids ) ) );
 
-	foreach ( array_chunk( $ids, UNDERGROWTH_POST_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( $ids, undergrowth_post_chunk_size() ) as $chunk ) {
 		// Read straight from the table, a chunk at a time, so the content of
 		// every post never fills the post cache for the rest of the request.
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );

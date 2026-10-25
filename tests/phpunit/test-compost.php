@@ -158,8 +158,8 @@ class Test_Compost extends WP_UnitTestCase {
 		undergrowth_embed_post( $oca );
 
 		$this->assertSame( array(), $this->rows( $oca ) );
-		$this->assertArrayNotHasKey( $oca, undergrowth_rank_targets( $mashua, null, 0 ) );
-		$this->assertSame( array(), undergrowth_rank_targets( $oca, null, 0 ) );
+		$this->assertArrayNotHasKey( $oca, undergrowth_test_rank_targets( $mashua, null, 0 ) );
+		$this->assertSame( array(), undergrowth_test_rank_targets( $oca, null, 0 ) );
 	}
 
 	public function test_cycle_leaves_a_composted_post_alone() {

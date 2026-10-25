@@ -491,7 +491,7 @@ class Test_Links extends WP_UnitTestCase {
 		undergrowth_refresh_around( $bare );
 
 		$this->assertSame( array(), undergrowth_comparable_vectors( $bare ) );
-		$this->assertSame( array(), undergrowth_rank_targets( $bare ) );
+		$this->assertSame( array(), undergrowth_test_rank_targets( $bare ) );
 		$this->assertSame( array(), $this->proposed( $bare ) );
 	}
 
@@ -502,7 +502,7 @@ class Test_Links extends WP_UnitTestCase {
 		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $oca ) );
 		clean_post_cache( $oca );
 
-		$this->assertSame( array(), undergrowth_rank_targets( $oca ) );
+		$this->assertSame( array(), undergrowth_test_rank_targets( $oca ) );
 	}
 
 	public function test_target_with_a_stale_vector_is_not_proposed() {

@@ -590,7 +590,7 @@ function undergrowth_leader_vectors( array $leader_ids, array $identity ): array
 
 	$vectors = array();
 
-	foreach ( array_chunk( $leader_ids, UNDERGROWTH_VECTOR_CHUNK ) as $chunk ) {
+	foreach ( undergrowth_chunks( $leader_ids, undergrowth_vector_chunk_size() ) as $chunk ) {
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
 		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The placeholders are built above, one per leader.

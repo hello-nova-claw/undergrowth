@@ -38,6 +38,7 @@ if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
 	$GLOBALS['wpdb']->query( 'CREATE TEMPORARY TABLE undergrowth_sqlite_temporary_tables (id int)' );
 }
 
+require __DIR__ . '/includes/rank-targets.php';
 require __DIR__ . '/includes/trait-plants-posts.php';
 require __DIR__ . '/includes/trait-signs-discord-interactions.php';
 require __DIR__ . '/includes/trait-stops-redirects.php';
