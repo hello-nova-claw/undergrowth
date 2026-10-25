@@ -18,3 +18,13 @@
 .undergrowth-choose-words legend {
 	font-weight: 600;
 }
+
+/* A hub proposal's two buttons sit on one line, each in its own form. */
+.undergrowth-hub-actions {
+	margin: 0.5em 0;
+}
+
+.undergrowth-hub-action {
+	display: inline-block;
+	margin-inline-end: 8px;
+}

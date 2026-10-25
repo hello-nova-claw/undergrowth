@@ -28,6 +28,8 @@ Also in this version:
 
 * **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured monthly from your accepted links and clusters. Stages never go down, and you can pin one.
 * **Composting.** Let a post rest. It stays published and keeps its links, but gets no new suggestions. When it sits close to what you are writing now, Undergrowth tells you once.
+* **Hub pages, if you want them.** Where a Map group is large and its posts already link to each other, Undergrowth proposes a hub page. Start a hub draft makes a draft holding only the group's titles as links, and you write and publish the rest. Undergrowth never publishes it. A published hub that links to a post counts towards Evergreen.
+* **Cross-pollination.** The Map lists pairs of groups that sit apart but could spark something together, from your own posts: a post near both, two posts not far apart, or words both use that the rest of your site rarely does. A surprise scale, from Close cousins to Wild, sets how far apart a pair may be.
 * **A plain-text file for each post**, recording its stage, suggestions, vetoes and questions.
 * **A Growth stage block** that shows readers a post's stage as a line of text your theme styles.
 * **Discord, optionally.** Each new suggestion can be posted to a private channel in your own Discord server, with Accept and Veto buttons.
@@ -62,7 +64,7 @@ With an OpenAI key saved, the title and text of each published post that is not 
 
 = What is sent to Anthropic? =
 
-With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only in your Prompt studio. Requests go to `api.anthropic.com` from WP-Cron, at most ten a week, plus one or two each time you choose Replace, under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
+With an Anthropic key saved, each request sends one post's title and a few sentences quoted from it, or, for a gap, one sentence from each of up to three posts. For a reader's question, that comment's text is sent too, as data, and Claude is told not to follow instructions in it. Whole posts are never sent. A question about a composting post is sent once more, on its own, to be checked. A reply is kept only if it is a single question that quotes nobody but you, and it is shown only in your Prompt studio. Requests go to `api.anthropic.com` from WP-Cron, at most ten a week: once soon after you save the key, then each week, writing up to five questions. Each time you choose Replace in your Prompt studio, at most three more go straight away. All of this is under [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy). Remove the key to stop.
 
 = What is sent to Discord? =
 
@@ -71,6 +73,10 @@ Only if you set Discord up: for each new suggestion, the titles of both posts, t
 = What does the readers meter read from Jetpack? =
 
 Only the site's total page views for each of the last 30 days, added up into one number, once a day. Jetpack fetches them from WordPress.com as it does for its own Stats screen, under the [WordPress.com terms of service](https://wordpress.com/tos/) and [Automattic's privacy policy](https://automattic.com/privacy/). Undergrowth contacts no one itself.
+
+= Does "More like this" count my visitors? =
+
+No. Undergrowth has no view counter of its own. If Jetpack Stats, Koko Analytics or Post Views Counter is active, it reads your posts' views over the last 30 days from that plugin once a day (from Jetpack, only its most viewed 500), in the background, so recent views can lift a post a little. Recent days count more and older views fade. Nothing new leaves your site: Koko Analytics and Post Views Counter are read from your own database, and Jetpack fetches its numbers from WordPress.com as it does for its own Stats screen. With none of them, the block leaves popularity out, unless code on your site supplies views through the `undergrowth_post_popularity` filter. Settings > Undergrowth says which one is used.
 
 = What does it cost? =
 
@@ -82,7 +88,7 @@ Link suggestions, clusters and growth stages need an embedding provider: an Open
 
 = Why is there no question in my Prompt studio yet? =
 
-Undergrowth asks one only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the weekly batch keeps looking.
+Undergrowth writes a question only when a reader asks a question in an approved comment, a gap appears on the Map, or you compost a post. A new site may have none of these for a while. Settings > Undergrowth says so under the key, and the weekly batch keeps looking. Once there are questions, Posts > Prompt studio lists the new ones and the ones you saved to your idea bank, and the Dashboard says how many new ones wait.
 
 = Who can read my keys? =
 

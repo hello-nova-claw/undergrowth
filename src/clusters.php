@@ -527,9 +527,13 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	delete_option( 'undergrowth_cluster_leaders' );
 	delete_option( 'undergrowth_cluster_similarity' );
 	undergrowth_end_pass( 'undergrowth_cluster_cycle' );
+	undergrowth_build_garden_index();
 	// Last, because it reads every post: the words only label the Map, so
 	// running out of time here must not hold up stages or resurfacing.
 	undergrowth_label_clusters();
+	// After the labels, whose pass it is marked with. It only queues the
+	// first batch, since that reads every vector.
+	undergrowth_start_pollination();
 }
 
 /**

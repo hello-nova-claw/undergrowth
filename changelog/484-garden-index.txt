@@ -1,0 +1,1 @@
+New "Garden index" block lists your published posts by the groups on the Map, each with its growth stage, so readers can wander your garden by topic. It can show a single stage.

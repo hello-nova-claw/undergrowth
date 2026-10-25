@@ -269,7 +269,16 @@ class Test_Prompt_Batch extends WP_UnitTestCase {
 		$this->offer( 2 );
 		$this->offer( 2, true );
 
-		$this->assertSame( 2, undergrowth_write_prompts( 5, UNDERGROWTH_PROMPT_BATCH_CALLS, array( 'compost' ) ) );
+		$this->assertSame(
+			2,
+			undergrowth_write_prompts(
+				5,
+				UNDERGROWTH_PROMPT_BATCH_CALLS,
+				static function ( $record ) {
+					return 'compost' === $record['source'];
+				}
+			)
+		);
 		$this->assertSame( array( 'compost', 'compost' ), array_column( undergrowth_prompts( 'new' ), 'source' ) );
 	}
 

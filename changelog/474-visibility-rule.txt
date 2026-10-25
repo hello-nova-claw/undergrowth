@@ -1,0 +1,1 @@
+The growth stage badge now follows the garden's one rule for what readers see: it appears only on published, public posts without a password, in a post type Undergrowth reads, that are not composted, whoever is logged in.
