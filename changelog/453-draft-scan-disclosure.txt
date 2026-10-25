@@ -1,0 +1,1 @@
+The readme and the Help tab on Settings > Undergrowth now say that Scan this draft sends a draft's title and text once, and only when you press it, instead of saying drafts are never sent.

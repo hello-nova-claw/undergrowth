@@ -17,6 +17,9 @@ class Test_Memory extends WP_UnitTestCase {
 
 		$this->start_planting();
 		delete_option( 'undergrowth_last_file_error' );
+
+		// The questions are written only once visitors are known to be refused.
+		update_option( 'undergrowth_memory_exposed', array( 'exposed' => false ), false );
 	}
 
 	public function tear_down() {

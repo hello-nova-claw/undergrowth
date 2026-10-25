@@ -22,11 +22,12 @@ class Test_Thresholds extends WP_UnitTestCase {
 	/**
 	 * Plants posts in groups of identical vectors, every group equally far from the others.
 	 *
-	 * @param int $groups Number of groups.
-	 * @param int $size   Posts in each group.
+	 * @param int  $groups Number of groups.
+	 * @param int  $size   Posts in each group.
+	 * @param bool $embed  Embed each post through the provider, instead of storing its vector.
 	 * @return int[] Post IDs, group by group.
 	 */
-	private function plant_groups( int $groups, int $size ): array {
+	private function plant_groups( int $groups, int $size, bool $embed = false ): array {
 		$ids = array();
 
 		for ( $g = 0; $g < $groups; $g++ ) {
@@ -34,7 +35,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 			$vector[ $g ] = 1.5;
 
 			for ( $i = 0; $i < $size; $i++ ) {
-				$ids[] = $this->plant( "Group {$g} post {$i}", $vector );
+				$ids[] = $embed ? $this->plant( "Group {$g} post {$i}", $vector ) : $this->seed( "Group {$g} post {$i}", $vector );
 			}
 		}
 
@@ -202,10 +203,10 @@ class Test_Thresholds extends WP_UnitTestCase {
 	}
 
 	public function test_measurement_never_compares_vectors_of_different_lengths() {
-		$this->plant( 'Short one', array( 1.0, 0.0, 0.0 ) );
-		$this->plant( 'Short two', array( 0.0, 1.0, 0.0 ) );
-		$this->plant( 'Long one', array( 1.0, 0.0, 0.0, 0.0 ) );
-		$this->plant( 'Long two', array( 0.0, 0.0, 0.0, 1.0 ) );
+		$this->seed( 'Short one', array( 1.0, 0.0, 0.0 ) );
+		$this->seed( 'Short two', array( 0.0, 1.0, 0.0 ) );
+		$this->seed( 'Long one', array( 1.0, 0.0, 0.0, 0.0 ) );
+		$this->seed( 'Long two', array( 0.0, 0.0, 0.0, 1.0 ) );
 
 		undergrowth_measure_scores();
 
@@ -285,6 +286,76 @@ class Test_Thresholds extends WP_UnitTestCase {
 		update_option( 'undergrowth_scores', array_merge( get_option( 'undergrowth_scores' ), array( 'model' => 'old-model' ) ) );
 
 		$this->assertSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
+	}
+
+	public function test_measured_thresholds_start_at_exactly_twenty_posts() {
+		$this->plant_groups( 1, 19 );
+		undergrowth_measure_scores();
+
+		$this->assertSame( 19, get_option( 'undergrowth_scores' )['posts'] );
+		$this->assertSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
+		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_cluster_similarity() );
+
+		$this->seed( 'Group 0 post 19', array( 1.5 ) );
+		undergrowth_measure_scores();
+		$stored = get_option( 'undergrowth_scores' );
+
+		$this->assertSame( 20, $stored['posts'] );
+		$this->assertSame( min( 1.0, $stored['link'] ), undergrowth_min_link_similarity() );
+		$this->assertSame( min( 1.0, $stored['cluster'] ), undergrowth_min_cluster_similarity() );
+		$this->assertNotSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
+	}
+
+	/**
+	 * OpenAI as the site's own provider, from a saved key, keeps the fixed
+	 * thresholds with twenty posts and more, and its scores are still stored.
+	 */
+	public function test_the_openai_identity_keeps_the_fixed_thresholds_but_is_still_measured() {
+		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+		update_option( 'undergrowth_openai_api_key', 'sk-test-thresholds' );
+		$this->assertSame(
+			array(
+				'provider' => 'openai',
+				'model'    => UNDERGROWTH_OPENAI_MODEL,
+			),
+			undergrowth_embed_identity()
+		);
+
+		// OpenAI ignores a filter's vector, so the planted vectors come back
+		// from a stand-in for its API instead, by post title.
+		$requests = 0;
+		$answer   = function ( $preempt, $args, $url ) use ( &$requests ) {
+			if ( UNDERGROWTH_OPENAI_URL !== $url ) {
+				return $preempt;
+			}
+
+			++$requests;
+
+			$input = (string) ( json_decode( (string) $args['body'], true )['input'] ?? '' );
+
+			return array(
+				'response' => array(
+					'code'    => 200,
+					'message' => 'OK',
+				),
+				'headers'  => array(),
+				'body'     => wp_json_encode( array( 'data' => array( array( 'embedding' => $this->provider( null, $input ) ) ) ) ),
+			);
+		};
+		add_filter( 'pre_http_request', $answer, 10, 3 );
+
+		$this->plant_groups( 5, 4, true );
+		undergrowth_measure_scores();
+
+		remove_filter( 'pre_http_request', $answer, 10 );
+		$this->assertSame( 20, $requests, 'Every post was embedded through OpenAI.' );
+		$stored = get_option( 'undergrowth_scores' );
+		$this->assertSame( 'openai', $stored['provider'] );
+		$this->assertSame( 20, $stored['posts'] );
+		$this->assertIsNumeric( $stored['link'] );
+		$this->assertSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
+		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_cluster_similarity() );
+		$this->assertSame( UNDERGROWTH_GAP_SIMILARITY, undergrowth_gap_similarity() );
 	}
 
 	public function test_openai_keeps_its_fixed_thresholds() {

@@ -1,0 +1,1 @@
+Once Undergrowth has read every post, it refreshes each post's suggestions once with the whole site's words, so a suggestion made before then always has words a link can sit on.

@@ -220,7 +220,7 @@ function undergrowth_render_discord_section(): void {
 
 	<?php
 	if ( is_array( $error ) && isset( $error['time'] ) ) {
-		undergrowth_print_failure_notice( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ) );
+		undergrowth_print_failure_notice( undergrowth_failure_text( 'Discord', $error, __( 'Suggestions not yet posted are tried again the next time they are refreshed.', 'undergrowth' ), 'token' ), 'undergrowth-discord-error' );
 	}
 }
 
@@ -253,12 +253,19 @@ function undergrowth_render_discord_field( array $args ): void {
 		printf( '<p class="description" id="%1$s">%2$s</p>', esc_attr( $description ), esc_html( $where[ $name ] ) );
 		return;
 	}
+	$error = get_option( 'undergrowth_last_discord_error' );
+
+	// The saved token's line and the last failure describe the field too, so
+	// a screen reader reads "leave the field blank to keep it" on focus.
+	$described = $description
+		. ( '' !== $value ? ' undergrowth-discord-bot-token-saved' : '' )
+		. ( is_array( $error ) && isset( $error['time'] ) ? ' undergrowth-discord-error' : '' );
 	?>
-	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $description ); ?>" />
+	<input type="password" class="regular-text" id="undergrowth_discord_bot_token" name="undergrowth_discord_bot_token" value="" autocomplete="off" spellcheck="false" aria-describedby="<?php echo esc_attr( $described ); ?>" />
 	<p class="description" id="<?php echo esc_attr( $description ); ?>"><?php echo esc_html( $where[ $name ] ); ?></p>
 
 	<?php if ( '' !== $value ) : ?>
-		<p class="description">
+		<p class="description" id="undergrowth-discord-bot-token-saved">
 			<?php
 			echo esc_html(
 				sprintf(

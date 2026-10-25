@@ -82,33 +82,7 @@ function undergrowth_log_resurfacing( int $post_id, string $event ): bool {
  * @return array<int, array{time: int, event: string}> Events.
  */
 function undergrowth_resurfacing_log( int $post_id ): array {
-	$entries = array();
-
-	foreach ( get_post_meta( $post_id, 'undergrowth_resurfacing_log', false ) as $entry ) {
-		if (
-			! is_array( $entry )
-			|| ! isset( $entry['time'], $entry['event'] )
-			|| ! is_int( $entry['time'] )
-			|| $entry['time'] <= 0
-			|| ! is_string( $entry['event'] )
-			|| ! isset( UNDERGROWTH_RESURFACING_EVENTS[ $entry['event'] ] )
-		) {
-			continue;
-		}
-
-		$entries[] = array(
-			'time'  => $entry['time'],
-			'event' => $entry['event'],
-		);
-	}
-
-	// An import can add older rows after newer ones, so rows are put in time
-	// order. The index keeps rows from the same second in the order they were
-	// added, since usort() is not stable before PHP 8.
-	$order = array_keys( $entries );
-	array_multisort( array_column( $entries, 'time' ), SORT_ASC, SORT_NUMERIC, $order, SORT_ASC, SORT_NUMERIC, $entries );
-
-	return $entries;
+	return undergrowth_read_log( $post_id, 'undergrowth_resurfacing_log', array( 'event' => array_keys( UNDERGROWTH_RESURFACING_EVENTS ) ) );
 }
 
 /**

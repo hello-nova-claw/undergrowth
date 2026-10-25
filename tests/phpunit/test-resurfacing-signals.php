@@ -10,6 +10,8 @@
  */
 class Test_Resurfacing_Signals extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	use Stops_Redirects;
 
 	public function set_up() {
@@ -36,28 +38,7 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function post_with_vector( array $vector, string $title = '', array $meta = array() ): int {
-		$post_id = self::factory()->post->create(
-			array(
-				'post_status' => 'publish',
-				'post_title'  => $title,
-			)
-		);
-
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array_merge(
-				array(
-					'provider'     => 'test-provider',
-					'model'        => 'test-model',
-					'language'     => 'en_US',
-					'content_hash' => 'hash',
-				),
-				$meta
-			)
-		);
-
-		return $post_id;
+		return $this->seed( $title, $vector, array(), $meta );
 	}
 
 	/**
@@ -661,9 +642,9 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertMatchesRegularExpression( '/<div class="notice notice-info inline undergrowth-resurfacing">/', $html );
-		$this->assertStringContainsString( 'Oca in winter', $html );
+		$this->assertStringContainsString( '<bdi>Oca in winter</bdi></a>', $html );
 		// The cluster is named by its newest post, the one written most recently.
-		$this->assertStringContainsString( 'Oca seed', $html );
+		$this->assertStringContainsString( '<bdi>Oca seed</bdi></a>', $html );
 		$this->assertStringContainsString( 'near what you are writing now', $html );
 		$this->assertStringContainsString( 'in the group with', $html );
 		$this->assertStringContainsString( 'value="undergrowth_dismiss_resurfacing"', $html );
@@ -800,6 +781,46 @@ class Test_Resurfacing_Signals extends WP_UnitTestCase {
 
 		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
 		$this->assertStringNotContainsString( 'undergrowth-resurfacing', $this->render() );
+	}
+
+	public function test_signal_stays_when_its_group_leader_is_composted_afterwards() {
+		$old    = $this->garden_with_compost();
+		$new    = $this->new_cluster_near_compost();
+		$new[]  = $this->post_with_vector( array( 0.93, 0.03, 0.04 ), 'Oca flowers' );
+		$leader = $new[0];
+		$this->cycle();
+
+		$this->assertSame( $new, undergrowth_cluster_members( $leader ) );
+		$this->assertSame( $leader, undergrowth_resurfacing_signal( $old ) );
+
+		// The leader's own label goes; the other three keep its ID as theirs.
+		$this->compost( $leader );
+
+		$this->assertSame( array( $old => $new[3] ), undergrowth_visible_resurfacing_signals() );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( '<p id="undergrowth-resurfacing-' . $old . '">', $html );
+		$this->assertStringContainsString( 'Oca in winter', $this->signal_text( $html ) );
+		$this->assertStringContainsString( 'Oca flowers', $this->signal_text( $html ) );
+		$this->assertStringContainsString( 'name="post" value="' . $old . '"', $html );
+
+		$this->assertStringContainsString( 'undergrowth_notice=resurfacing_dismissed', $this->dismiss( $old ) );
+		$this->assertSame( 0, undergrowth_resurfacing_signal( $old ) );
+		$this->assertStringNotContainsString( 'undergrowth-resurfacing-' . $old, $this->render() );
+	}
+
+	public function test_signal_goes_with_its_group_when_the_leader_leaves_a_group_of_three() {
+		$old = $this->garden_with_compost();
+		$new = $this->new_cluster_near_compost();
+		$this->cycle();
+
+		$this->compost( $new[0] );
+
+		// Two posts are no group, and the Map no longer shows them.
+		$this->assertNotContains( $new[0], undergrowth_cluster_leaders() );
+		$this->assertSame( $new[0], undergrowth_resurfacing_signal( $old ) );
+		$this->assertSame( array(), undergrowth_visible_resurfacing_signals() );
 	}
 
 	public function test_dismiss_form_removes_the_signal_and_returns_to_the_map_tab() {

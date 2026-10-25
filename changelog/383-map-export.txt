@@ -1,0 +1,1 @@
+The Map can be exported, every post on it one row, as CSV for a spreadsheet or as a Markdown table for your notes.

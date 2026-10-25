@@ -56,6 +56,8 @@ WP_TESTS_DIR=~/Library/Caches/undergrowth-wpt-<name>/develop/tests/phpunit \
 
 Never share `DB_DIR` or `wordpress/` between sessions. Concurrent runs then fail with "database tables are unavailable", or `Test_Memory` fails at random through the shared uploads folder. Kill a timed-out run before starting another. Homebrew PHP has Xdebug on by default, so pass `-d xdebug.mode=off` unless you need coverage.
 
+Both PHPUnit configs run tests in random order, and PHPUnit prints the seed; pass `--random-order-seed <n>` to replay one. On SQLite, add `--order-by=default` to multisite runs. There, the temporary tables of sites from earlier tests clash with new sites that reuse their IDs, and the driver rolls the test back. CI's MariaDB runs both suites in random order.
+
 **PHPCS from a worktree checks nothing.** `phpcs.xml.dist` excludes `/.claude/*`, and worktrees live under `.claude/worktrees/`, so `composer lint` passes without reading a file. Run it with that line removed and explicit paths:
 
 ```bash

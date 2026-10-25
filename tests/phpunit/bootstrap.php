@@ -29,6 +29,15 @@ tests_add_filter(
 
 require "{$_tests_dir}/includes/bootstrap.php";
 
+// The SQLite driver keeps its list of temporary tables in a table it makes
+// with the first one. Until then, DROP TEMPORARY TABLE IF EXISTS fails and
+// rolls back the test's transaction, so whatever the test writes next is
+// kept for every later test. Uninstall drops tables that the suite turns
+// into DROP TEMPORARY, so one temporary table is made up front.
+if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
+	$GLOBALS['wpdb']->query( 'CREATE TEMPORARY TABLE undergrowth_sqlite_temporary_tables (id int)' );
+}
+
 require __DIR__ . '/includes/trait-plants-posts.php';
 require __DIR__ . '/includes/trait-signs-discord-interactions.php';
 require __DIR__ . '/includes/trait-stops-redirects.php';

@@ -31,20 +31,12 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	private $model = 'test-model-v1';
 
-	/**
-	 * Seconds the test provider takes for each text.
-	 *
-	 * @var float
-	 */
-	private $delay = 0.0;
-
 	public function set_up() {
 		parent::set_up();
 
 		$this->embedded = array();
 		$this->failing  = array();
 		$this->model    = 'test-model-v1';
-		$this->delay    = 0.0;
 
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_backfill' );
@@ -57,6 +49,10 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		add_filter( 'undergrowth_embed_provider', array( $this, 'provider' ), 10, 2 );
 		add_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
+
+		// The hourly check also asks the site for a per-post file, which
+		// Test_Memory_Folder_Check covers. Here it would reach the network.
+		remove_action( 'undergrowth_backfill_check', 'undergrowth_recheck_memory_folder' );
 	}
 
 	/**
@@ -68,8 +64,6 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	public function provider( $vector, $text ) {
 		$this->embedded[] = $text;
-
-		usleep( (int) ( $this->delay * 1000000 ) );
 
 		return in_array( $text, $this->failing, true ) ? array() : array( 0.1, 0.2, 0.3 );
 	}
@@ -227,9 +221,12 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 	}
 
+	/**
+	 * A budget of nothing is spent as soon as the first post is done, however
+	 * fast or slow the runner, so no other post is started.
+	 */
 	public function test_run_never_starts_a_post_once_its_budget_is_spent() {
-		$this->time_budget( 0.1 );
-		$this->delay = 0.2;
+		$this->time_budget( 0 );
 		$this->archive( 3 );
 
 		do_action( 'undergrowth_backfill' );
@@ -375,6 +372,25 @@ class Test_Backfill extends WP_UnitTestCase {
 
 		$this->assertCount( 1, $sent );
 		$this->assertGreaterThanOrEqual( $before + 5 * MINUTE_IN_SECONDS, wp_next_scheduled( 'undergrowth_backfill' ) );
+	}
+
+	public function test_text_too_long_is_not_sent_again_once_the_budget_is_spent() {
+		$this->archive( 1 );
+		$sent = &$this->openai_answers( 400 );
+		// A budget of nothing has passed by the time the first answer is back,
+		// however fast the runner.
+		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0 );
+
+		do_action( 'undergrowth_backfill' );
+
+		// The shorter text waits for the next pass rather than holding this
+		// request past its budget for a second timeout.
+		$this->assertCount( 1, $sent );
+		$this->assertSame( 0, undergrowth_index_counts()['indexed'] );
+
+		// Outside the backfill, the shorter text is sent again as before.
+		undergrowth_embed( 'Oca keeps well.' );
+		$this->assertCount( 3, $sent );
 	}
 
 	public function test_post_that_was_turned_away_is_sent_first_after_the_wait() {
@@ -641,6 +657,186 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->run_cron();
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	/**
+	 * Creates published posts that name each other, as if they predate the plugin.
+	 *
+	 * @return int[] Post IDs of Oca, Yacon and Mashua.
+	 */
+	private function garden(): array {
+		$ids = array();
+
+		foreach ( array( 'Oca', 'Yacon', 'Mashua' ) as $title ) {
+			$others = implode( ' and ', array_diff( array( 'oca', 'yacon', 'mashua' ), array( strtolower( $title ) ) ) );
+			$ids[]  = self::factory()->post->create(
+				array(
+					'post_title'   => $title,
+					'post_content' => "<p>{$title} is a tuber. It grows beside {$others} in the bed.</p>",
+					'post_status'  => 'publish',
+				)
+			);
+		}
+
+		wp_unschedule_hook( 'undergrowth_embed_post' );
+
+		return $ids;
+	}
+
+	/**
+	 * Runs every queued refresh of the whole index, as cron would.
+	 *
+	 * @return int[] How many posts were refreshed in each run.
+	 */
+	private function run_index_refresh(): array {
+		$runs = array();
+
+		while ( true ) {
+			$next = null;
+
+			foreach ( _get_cron_array() as $timestamp => $hooks ) {
+				foreach ( $hooks['undergrowth_refresh_index'] ?? array() as $event ) {
+					$next = array( $timestamp, $event['args'] );
+				}
+			}
+
+			if ( null === $next ) {
+				return $runs;
+			}
+
+			$this->assertLessThan( 50, count( $runs ) );
+			wp_unschedule_event( $next[0], 'undergrowth_refresh_index', $next[1] );
+			$before = did_action( 'undergrowth_proposals_refreshed' );
+			do_action_ref_array( 'undergrowth_refresh_index', $next[1] );
+			$runs[] = did_action( 'undergrowth_proposals_refreshed' ) - $before;
+		}
+	}
+
+	/**
+	 * Stores a proposal as one made before the whole site was read might be.
+	 *
+	 * @param int    $source_id Source post.
+	 * @param int    $target_id Target post.
+	 * @param string $sentence  Sentence stored with it.
+	 * @param string $state     State of the row.
+	 */
+	private function store_link( int $source_id, int $target_id, string $sentence, string $state = 'proposed' ): void {
+		global $wpdb;
+
+		$wpdb->replace(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $source_id,
+				'target_id'  => $target_id,
+				'state'      => $state,
+				'score'      => 0.9,
+				'sentence'   => $sentence,
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+	}
+
+	/**
+	 * Reads a stored link row.
+	 *
+	 * @param int $source_id Source post.
+	 * @param int $target_id Target post.
+	 * @return array<string, string>|null
+	 */
+	private function stored_link( int $source_id, int $target_id ): ?array {
+		global $wpdb;
+
+		return $wpdb->get_row( $wpdb->prepare( 'SELECT state, sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND target_id = %d', undergrowth_links_table(), $source_id, $target_id ), ARRAY_A );
+	}
+
+	public function test_finished_pass_queues_one_refresh_of_every_post() {
+		$this->garden();
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
+	}
+
+	public function test_refresh_rewrites_a_proposal_made_before_the_site_was_read() {
+		list( $oca, $yacon ) = $this->garden();
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->store_link( $oca, $yacon, 'Nothing here names it.' );
+
+		$this->assertSame( array( 3 ), $this->run_index_refresh() );
+
+		$link = $this->stored_link( $oca, $yacon );
+		$this->assertSame( 'proposed', $link['state'] );
+		$this->assertStringContainsString( 'yacon', $link['sentence'] );
+		$this->assertNotNull( undergrowth_link_word_choice( $oca, $yacon, $link['sentence'], $link['anchor'], (int) $link['anchor_offset'] ) );
+	}
+
+	public function test_refresh_builds_the_word_counts_once_per_run() {
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		// Cron runs in a request of its own, with nothing counted yet.
+		remove_all_actions( 'undergrowth_proposals_refreshed' );
+		undergrowth_forget_reusable_corpus();
+		$builds = 0;
+		add_filter(
+			'query',
+			static function ( $query ) use ( &$builds ) {
+				if ( false !== strpos( $query, 'SELECT ID, post_title, post_content FROM' ) && false !== strpos( $query, ' IN (' ) ) {
+					++$builds;
+				}
+
+				return $query;
+			}
+		);
+
+		do_action( 'undergrowth_refresh_index', 0 );
+
+		$this->assertSame( 1, $builds );
+	}
+
+	public function test_refresh_keeps_vetoes_and_accepted_links() {
+		list( $oca, $yacon, $mashua ) = $this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->store_link( $oca, $yacon, 'Vetoed.', 'vetoed' );
+		$this->store_link( $oca, $mashua, 'Accepted.', 'accepted' );
+
+		$this->run_index_refresh();
+
+		$this->assertSame( 'vetoed', $this->stored_link( $oca, $yacon )['state'] );
+		$this->assertSame( 'accepted', $this->stored_link( $oca, $mashua )['state'] );
+	}
+
+	public function test_refresh_runs_in_batches_after_the_last_post_refreshed() {
+		$this->batch_size( 2 );
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertSame( array( 2, 1 ), $this->run_index_refresh() );
+	}
+
+	public function test_refresh_stays_within_the_time_budget() {
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->time_budget( 0.0 );
+
+		$this->assertSame( array( 1, 1, 1 ), $this->run_index_refresh() );
+	}
+
+	public function test_refresh_stops_once_the_model_changes() {
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->model = 'test-model-v2';
+
+		$this->assertSame( array( 0 ), $this->run_index_refresh() );
 	}
 
 	public function test_later_passes_leave_clustering_to_the_monthly_cycle() {
