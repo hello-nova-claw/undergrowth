@@ -564,6 +564,29 @@ const WITH_MORE_LIKE_THIS = [
 	},
 ];
 
+// Filled in once the index's pages exist, since the shots need their IDs.
+const gardenIndexPages = {};
+
+// The garden index on a page, after a cluster pass: one group and the posts
+// in none. In the editor, also filtered to a stage no post has reached.
+const WITH_GARDEN_INDEX = [
+	{
+		screen: 'block-garden-index',
+		state: 'front-groups',
+		front: () => `/?page_id=${ gardenIndexPages.all }`,
+	},
+	{
+		screen: 'block-garden-index',
+		state: 'editor-groups',
+		edit: () => gardenIndexPages.all,
+	},
+	{
+		screen: 'block-garden-index',
+		state: 'editor-empty',
+		edit: () => gardenIndexPages.evergreen,
+	},
+];
+
 // Filled in once the panel's posts exist, since the shots need their IDs.
 const panelPosts = {};
 
@@ -794,10 +817,10 @@ function capture( states ) {
 					await page.goto( entry.front() );
 				} else if ( entry.edit ) {
 					await admin.editPost( entry.edit() );
-					// The badge preview is rendered by the server after load.
+					// Block previews are rendered by the server after load.
 					await editor.canvas
 						.locator(
-							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder'
 						)
 						.first()
 						.waitFor();
@@ -1244,6 +1267,47 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_MORE_LIKE_THIS );
+	} );
+
+	test.describe( 'with a garden index', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await requestUtils.deleteAllPages();
+			await skipWelcomeGuide( requestUtils );
+
+			// Three alike posts make one group; Bread is near none of them.
+			for ( const [ title, word ] of [
+				[ 'Oca', 'yacon' ],
+				[ 'Yacon', 'yacon' ],
+				[ 'Mashua', 'yacon' ],
+				[ 'Bread', '' ],
+			] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ Array( 6 ).fill( word ).join( ' ' ) }</p>`,
+					status: 'publish',
+				} );
+			}
+
+			await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			for ( const [ key, attributes ] of [
+				[ 'all', '' ],
+				[ 'evergreen', ' {"stage":"evergreen"}' ],
+			] ) {
+				gardenIndexPages[ key ] = (
+					await requestUtils.createPage( {
+						title: 'Garden',
+						content: `<!-- wp:undergrowth/garden-index${ attributes } /-->`,
+						status: 'publish',
+					} )
+				).id;
+			}
+		} );
+
+		capture( WITH_GARDEN_INDEX );
 	} );
 
 	test.describe( 'with the editor panel', () => {
