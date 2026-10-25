@@ -207,10 +207,42 @@ class Test_Orphans extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Could link here', $html );
 	}
 
-	public function test_an_empty_list_says_every_post_has_a_link() {
+	public function test_an_empty_list_says_there_are_no_orphans_among_the_posts_read() {
+		// Published but not read yet, so not an orphan either.
+		$unread = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		undergrowth_delete_vector( $unread );
+
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'Every post in your garden has at least one accepted link pointing to it.', $html );
+		$this->assertStringContainsString( 'No orphans. Every post Undergrowth has read has at least one accepted link pointing to it.', $html );
+	}
+
+	public function test_the_published_date_is_shown_in_the_site_format() {
+		update_option( 'date_format', 'Y-m-d' );
+		$this->seed( 'Oca', array( 1.0, 0.0 ), array( 'post_date' => '2023-04-05 10:00:00' ) );
+
+		$this->assertStringContainsString( '2023-04-05', $this->render() );
+	}
+
+	public function test_no_post_is_an_orphan_when_no_post_type_is_indexed() {
+		$this->seed( 'Oca', array( 1.0, 0.0 ) );
+		add_filter( 'undergrowth_post_types', '__return_empty_array' );
+
+		$this->assertSame( array(), undergrowth_orphan_post_ids( 20 ) );
+		$this->assertSame( 0, undergrowth_count_orphans() );
+	}
+
+	public function test_a_page_of_no_posts_lists_none() {
+		$this->seed( 'Oca', array( 1.0, 0.0 ) );
+
+		$this->assertSame( array(), undergrowth_orphan_post_ids( 0 ) );
+	}
+
+	public function test_a_page_past_the_end_lists_the_last_page() {
+		$this->seed( 'Oca', array( 1.0, 0.0 ) );
+		$_GET['paged'] = '3';
+
+		$this->assertStringContainsString( '<bdi>Oca</bdi>', $this->render() );
 	}
 
 	public function test_accept_from_the_tab_returns_to_its_page_and_the_post_leaves_the_list() {
