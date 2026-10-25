@@ -911,7 +911,7 @@ function undergrowth_render_pollination_pair( array $pair ): void {
 		esc_url( admin_url( 'admin-post.php' ) ),
 		(int) $pair['groups'][0],
 		(int) $pair['groups'][1],
-		wp_nonce_field( 'undergrowth_dismiss_pollination_' . $pair['groups'][0] . '_' . $pair['groups'][1], '_wpnonce', true, false ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Core's own field markup.
+		undergrowth_nonce_input( 'undergrowth_dismiss_pollination_' . $pair['groups'][0] . '_' . $pair['groups'][1] ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in undergrowth_nonce_input().
 		esc_attr( $id ),
 		esc_html__( 'Dismiss', 'undergrowth' )
 	);

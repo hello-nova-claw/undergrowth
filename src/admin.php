@@ -893,7 +893,7 @@ function undergrowth_hub_action_form( string $action, int $leader, string $descr
 		esc_url( admin_url( 'admin-post.php' ) ),
 		esc_attr( $action ),
 		$leader,
-		wp_nonce_field( 'undergrowth_' . $action . '_' . $leader, '_wpnonce', true, false ),
+		undergrowth_nonce_input( 'undergrowth_' . $action . '_' . $leader ),
 		esc_attr( $button_class ),
 		esc_attr( $described ),
 		esc_html( $text )
@@ -1112,6 +1112,17 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 			esc_html__( 'Dismiss', 'undergrowth' )
 		);
 	}
+}
+
+/**
+ * Builds a nonce field without the id core gives it, for a screen with many
+ * small forms, where core's would repeat one id on every form.
+ *
+ * @param string $action Nonce action.
+ * @return string Hidden input HTML.
+ */
+function undergrowth_nonce_input( string $action ): string {
+	return sprintf( '<input type="hidden" name="_wpnonce" value="%s" />', esc_attr( wp_create_nonce( $action ) ) );
 }
 
 /**
