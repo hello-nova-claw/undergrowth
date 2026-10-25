@@ -290,19 +290,20 @@ function undergrowth_handle_studio(): void {
 		'remove'  => array( 'undergrowth_remove_saved_prompt', 'prompt_removed', 'saved' ),
 	);
 
-	if ( ! isset( $actions[ $choice ] ) ) {
-		wp_safe_redirect( undergrowth_studio_url() );
-		exit;
+	$url = undergrowth_studio_url();
+
+	if ( isset( $actions[ $choice ] ) ) {
+		list( $callback, $notice, $view ) = $actions[ $choice ];
+
+		if ( ! $callback( $key ) ) {
+			// Replace keeps the question when no other could be written.
+			$notice = 'replace' === $choice && null !== $prompt && 'new' === $prompt['status'] ? 'prompt_not_replaced' : 'prompt_gone';
+		}
+
+		$url = undergrowth_studio_url( $view, $notice, 'prompt_dismissed' === $notice ? $key : '' );
 	}
 
-	list( $callback, $notice, $view ) = $actions[ $choice ];
-
-	if ( ! $callback( $key ) ) {
-		// Replace keeps the question when no other could be written.
-		$notice = 'replace' === $choice && null !== $prompt && 'new' === $prompt['status'] ? 'prompt_not_replaced' : 'prompt_gone';
-	}
-
-	wp_safe_redirect( undergrowth_studio_url( $view, $notice, 'prompt_dismissed' === $notice ? $key : '' ) );
+	wp_safe_redirect( $url );
 	exit;
 }
 
