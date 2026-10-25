@@ -229,8 +229,8 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		undergrowth_dismiss_prompt( undergrowth_current_prompt()['key'] );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNull( undergrowth_current_prompt() );
 		$this->assertCount( 1, $this->requests );

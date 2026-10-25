@@ -456,8 +456,8 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		$this->choose( 'dismiss' );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNull( undergrowth_current_prompt() );
 		$this->assertSame( 1, $this->requests );
@@ -477,8 +477,8 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		$this->choose( 'save' );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertCount( 1, undergrowth_prompts( 'saved' ) );
 		$this->assertSame( 1, $this->requests );
@@ -496,7 +496,7 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_stored_prompts() );
 		$this->assertSame( array( 'asked', 'saved', 'removed' ), $this->events( $this->post_id ) );
 
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
 		$this->assertSame( 1, $this->requests );
 	}
 

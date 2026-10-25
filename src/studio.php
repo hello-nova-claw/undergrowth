@@ -170,7 +170,7 @@ function undergrowth_render_studio( string $view, array $tabs, array $fresh, arr
  */
 function undergrowth_render_new_prompts( array $prompts ): void {
 	if ( array() === $prompts ) {
-		echo '<p>' . esc_html__( 'No new questions right now. Undergrowth writes another from your posts each month, and the questions you saved are in the idea bank.', 'undergrowth' ) . '</p>';
+		echo '<p>' . esc_html__( 'No new questions right now. Each week Undergrowth writes up to five more from your posts, when it finds something new to ask about. The questions you saved are in the idea bank.', 'undergrowth' ) . '</p>';
 		return;
 	}
 

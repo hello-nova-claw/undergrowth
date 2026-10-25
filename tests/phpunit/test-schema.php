@@ -372,7 +372,7 @@ class Test_Schema extends WP_UnitTestCase {
 		update_option( 'undergrowth_prompt_written', 1 );
 		update_option( 'undergrowth_config_prompt_queued', 1 );
 		wp_schedule_single_event( time(), 'undergrowth_write_prompt' );
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		undergrowth_schedule_backfill_check();
 		update_option( 'undergrowth_backfill', array( 'after' => 5 ) );
@@ -415,7 +415,7 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_prompt_written' ) );
 		$this->assertFalse( get_option( 'undergrowth_config_prompt_queued' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill' ) );

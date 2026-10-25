@@ -1579,7 +1579,7 @@ msgid "Remove the saved key and stop sending anything to Anthropic"
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth tries again at its next monthly cycle."
+msgid "Undergrowth tries again at its next weekly batch."
 msgstr ""
 
 #. translators: 1: file name, wp-config.php, 2: name of the constant.
@@ -2056,7 +2056,7 @@ msgid "Claude writes each question from your own posts. Only you can see them. N
 msgstr ""
 
 #: src/studio.php
-msgid "No new questions right now. Undergrowth writes another from your posts each month, and the questions you saved are in the idea bank."
+msgid "No new questions right now. Each week Undergrowth writes up to five more from your posts, when it finds something new to ask about. The questions you saved are in the idea bank."
 msgstr ""
 
 #: src/studio.php
