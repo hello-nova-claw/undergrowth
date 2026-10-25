@@ -172,7 +172,7 @@ function undergrowth_register_settings(): void {
  *
  * @param string $option Name of the option just added.
  */
-function undergrowth_stop_autoloading_key( string $option = 'undergrowth_openai_api_key' ): void {
+function undergrowth_stop_autoloading_key( string $option ): void {
 	wp_set_option_autoload( $option, false );
 }
 

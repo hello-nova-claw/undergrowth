@@ -72,25 +72,15 @@ function undergrowth_cluster_leader( int $post_id ): int {
  *               or an empty array when the post is not in a cluster.
  */
 function undergrowth_cluster_members( int $post_id ): array {
-	global $wpdb;
-
 	$leader = undergrowth_cluster_leader( $post_id );
 
 	if ( 0 === $leader ) {
 		return array();
 	}
 
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- WP_Query would load every member post just to count them.
-	$members = $wpdb->get_col(
-		$wpdb->prepare(
-			'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY post_id ASC',
-			$wpdb->postmeta,
-			'undergrowth_cluster',
-			(string) $leader
-		)
-	);
+	$members = undergrowth_cluster_posts( $leader );
 
-	return count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ? array_map( 'intval', $members ) : array();
+	return count( $members ) >= UNDERGROWTH_MIN_CLUSTER_SIZE ? $members : array();
 }
 
 /**
@@ -336,13 +326,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
 	$near   = array();
 
 	foreach ( $vectors as $post_id => $vector ) {
-		$dot = 0.0;
-
-		foreach ( $vector as $i => $value ) {
-			$dot += $value * $centre[ $i ];
-		}
-
-		$near[ $post_id ] = $dot;
+		$near[ $post_id ] = undergrowth_dot_product( $vector, $centre );
 	}
 
 	// Nearest first; equally near posts stay in ID order.
@@ -655,12 +639,7 @@ function undergrowth_nearest_leader( string $vector, array $leaders, float $mini
 			continue;
 		}
 
-		$dot = 0.0;
-		$i   = 0;
-
-		foreach ( undergrowth_unpack_vector( $packed ) as $value ) {
-			$dot += $value * $values[ $i++ ];
-		}
+		$dot = undergrowth_dot_product( $values, undergrowth_unpack_vector( $packed ) );
 
 		// A later leader has to be strictly closer, so a tie stays with the
 		// older one. The first match may sit exactly on the minimum.
