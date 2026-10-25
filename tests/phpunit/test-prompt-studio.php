@@ -346,7 +346,7 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/href="[^"]*post\.php\?post=' . $this->post_id . '(&amp;|&#038;)action=edit"/', $html );
 		$this->assertStringContainsString( '<bdi>Growing oca</bdi></a>', $html );
 		$this->assertStringContainsString( 'reader', $html );
-		$this->assertStringContainsString( 'Only you can see them', $html );
+		$this->assertStringContainsString( 'Only people who can edit those posts see it', $html );
 		$this->assertStringContainsString( 'using this site’s Anthropic API key', $html );
 
 		foreach ( array( 'save', 'replace', 'dismiss' ) as $choice ) {
@@ -565,6 +565,24 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertSame( 'dismissed', undergrowth_find_prompt( $old )['status'] );
 		$this->assertSame( array( 'asked', 'asked', 'replaced' ), $this->events( $this->post_id ) );
 		$this->assertSame( 2, $this->requests );
+	}
+
+	public function test_replace_uses_only_a_source_the_author_can_edit() {
+		undergrowth_write_prompt();
+		$waiting = undergrowth_current_prompt();
+		$other   = $this->plant(
+			'Yacon',
+			array( 0.0, 1.0 ),
+			array(
+				'post_author'  => self::factory()->user->create( array( 'role' => 'author' ) ),
+				'post_content' => '<!-- wp:paragraph --><p>Yacon needs a long season.</p><!-- /wp:paragraph -->',
+			)
+		);
+		$this->comment( $other, 'How long is the season?' );
+
+		$this->assertStringContainsString( 'undergrowth_notice=prompt_not_replaced', $this->choose( 'replace' ) );
+		$this->assertSame( array( $waiting ), undergrowth_prompts( 'new' ) );
+		$this->assertSame( 1, $this->requests );
 	}
 
 	public function test_replace_keeps_the_question_when_no_other_source_is_left() {

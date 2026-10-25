@@ -2077,16 +2077,16 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
-#. translators: %s: number of new questions.
+#. translators: %1$s: number of new questions.
 #: src/studio.php
 #, php-format
-msgid "New questions (%s)"
+msgid "New questions (%1$s)"
 msgstr ""
 
-#. translators: %s: number of saved questions.
+#. translators: %1$s: number of saved questions.
 #: src/studio.php
 #, php-format
-msgid "Idea bank (%s)"
+msgid "Idea bank (%1$s)"
 msgstr ""
 
 #: src/studio.php
@@ -2098,7 +2098,7 @@ msgid "Open Settings › Undergrowth"
 msgstr ""
 
 #: src/studio.php
-msgid "Claude writes each question from your own posts. Only you can see them. Nothing here is ever shown to readers."
+msgid "Claude writes each question from your own posts. Only people who can edit those posts see it, and nothing here is ever shown to readers."
 msgstr ""
 
 #: src/studio.php

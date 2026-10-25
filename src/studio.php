@@ -70,23 +70,6 @@ function undergrowth_studio_removable_query_args( $args ) {
 }
 
 /**
- * Tells whether the current user may see and answer a question: they can
- * edit every post it came from, since a question may quote any of them.
- *
- * @param array{post_id: int, posts: int[]} $prompt The question.
- * @return bool True when they can edit each of its posts.
- */
-function undergrowth_user_can_answer_prompt( array $prompt ): bool {
-	foreach ( array_merge( array( $prompt['post_id'] ), $prompt['posts'] ) as $post_id ) {
-		if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**
  * Returns the questions with one status that the current user may answer,
  * because they can edit every post each came from.
  *
@@ -114,10 +97,10 @@ function undergrowth_render_studio_page(): void {
 	$fresh = undergrowth_user_prompts( 'new' );
 	$saved = undergrowth_user_prompts( 'saved' );
 	$tabs  = array(
-		/* translators: %s: number of new questions. */
-		''      => sprintf( __( 'New questions (%s)', 'undergrowth' ), number_format_i18n( count( $fresh ) ) ),
-		/* translators: %s: number of saved questions. */
-		'saved' => sprintf( __( 'Idea bank (%s)', 'undergrowth' ), number_format_i18n( count( $saved ) ) ),
+		/* translators: %1$s: number of new questions. */
+		''      => sprintf( __( 'New questions (%1$s)', 'undergrowth' ), number_format_i18n( count( $fresh ) ) ),
+		/* translators: %1$s: number of saved questions. */
+		'saved' => sprintf( __( 'Idea bank (%1$s)', 'undergrowth' ), number_format_i18n( count( $saved ) ) ),
 	);
 	?>
 	<div class="wrap">
@@ -171,7 +154,7 @@ function undergrowth_render_studio( string $view, array $tabs, array $fresh, arr
 
 	<?php undergrowth_render_studio_notice(); ?>
 
-	<p class="description"><?php esc_html_e( 'Claude writes each question from your own posts. Only you can see them. Nothing here is ever shown to readers.', 'undergrowth' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Claude writes each question from your own posts. Only people who can edit those posts see it, and nothing here is ever shown to readers.', 'undergrowth' ); ?></p>
 	<?php
 	if ( 'saved' === $view ) {
 		undergrowth_render_idea_bank( $saved );
