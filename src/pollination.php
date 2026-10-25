@@ -54,7 +54,7 @@ const UNDERGROWTH_POLLINATION_KEEP = 3;
 // Most shared words kept for a pair of groups.
 const UNDERGROWTH_THREAD_TERMS = 3;
 
-add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle' );
+add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle', 10, 2 );
 add_action( 'admin_post_undergrowth_dismiss_pollination', 'undergrowth_handle_dismiss_pollination' );
 
 /**
@@ -221,20 +221,24 @@ function undergrowth_keep_strongest( array $kept, array $candidate ): array {
 /**
  * Starts finding pairs, at the end of a cluster pass.
  *
- * The first batch runs at once, so a small site has its pairs with its
- * groups; a larger one carries on from cron.
+ * The first batch is queued for cron, so the request that ends the cluster
+ * pass does no more work. Each batch is recorded like the cluster and stage
+ * passes', so the hourly check runs one that died again.
  */
 function undergrowth_start_pollination(): void {
+	$pass = wp_generate_uuid4();
+
 	update_option(
 		'undergrowth_pollination_work',
 		array(
 			'made'  => undergrowth_cluster_labels_made(),
+			'pass'  => $pass,
 			'pairs' => array(),
 		),
 		false
 	);
 
-	undergrowth_run_pollination_cycle( 0 );
+	undergrowth_queue_pass_batch( 'undergrowth_pollination_cycle', 0, $pass );
 }
 
 /**
@@ -284,17 +288,22 @@ function undergrowth_cluster_leader_map(): array {
  * proposed as one end of a link.
  *
  * @param int|string $after_id Look at posts with a higher ID than this.
+ * @param string     $pass     ID of the pass the batch belongs to.
  */
-function undergrowth_run_pollination_cycle( $after_id = 0 ): void {
+function undergrowth_run_pollination_cycle( $after_id = 0, $pass = '' ): void {
 	global $wpdb;
 
 	$after_id = (int) $after_id;
+	$pass     = (string) $pass;
 	$work     = get_option( 'undergrowth_pollination_work' );
 
-	// A new cluster pass has started since: its own end starts again.
-	if ( ! is_array( $work ) || ! isset( $work['made'] ) || undergrowth_cluster_labels_made() !== $work['made'] ) {
+	// A new cluster pass, or a new run of this one, has started since: it
+	// carries on in its own batches.
+	if ( ! is_array( $work ) || ! isset( $work['made'], $work['pass'] ) || undergrowth_cluster_labels_made() !== $work['made'] || $pass !== $work['pass'] ) {
 		return;
 	}
+
+	$run = undergrowth_mark_pass( 'undergrowth_pollination_cycle', $after_id, $pass );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 	$rows = (array) $wpdb->get_results(
@@ -389,10 +398,16 @@ function undergrowth_run_pollination_cycle( $after_id = 0 ): void {
 		}
 	}
 
+	// The hourly check ran this batch again while this run was still
+	// comparing: that run's results stand, and this one's are dropped.
+	if ( ! undergrowth_owns_pass( 'undergrowth_pollination_cycle', $run ) ) {
+		return;
+	}
+
 	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
 		$work['pairs'] = $pairs;
 		update_option( 'undergrowth_pollination_work', $work, false );
-		wp_schedule_single_event( time(), 'undergrowth_pollination_cycle', array( $last_id ) );
+		undergrowth_queue_pass_batch( 'undergrowth_pollination_cycle', $last_id, $pass );
 		return;
 	}
 
@@ -405,6 +420,7 @@ function undergrowth_run_pollination_cycle( $after_id = 0 ): void {
 		false
 	);
 	delete_option( 'undergrowth_pollination_work' );
+	undergrowth_end_pass( 'undergrowth_pollination_cycle' );
 }
 
 /**
@@ -634,14 +650,15 @@ function undergrowth_pollination_dismissed( array $a, array $b ): bool {
  * Pairs the author dismissed never show. Pairs with more signals come
  * first, then the closer sweet spot, then the stronger bridge.
  *
- * @param int      $limit Most pairs to return, or 0 for all.
- * @param int|null $step  Step of the surprise scale, or null for the author's.
+ * @param int                                                            $limit Most pairs to return, or 0 for all.
+ * @param int|null                                                       $step  Step of the surprise scale, or null for the author's.
+ * @param array<int, array{leader: int, members: int[], gap: bool}>|null $map   Result of undergrowth_cluster_map(), when already built.
  * @return array<int, array{groups: array{0: int, 1: int}, members: array{0: int[], 1: int[]}, sweet: array{0: int, 1: int, 2: float}|null, bridge: array{0: int, 1: float}|null, threads: string[], linked: bool}>
  *         Each pair's two leaders, lowest first, and their posts as the Map shows them;
  *         the sweet-spot posts, lowest ID first, with their similarity; the bridge post
  *         and its strength; the shared words; and whether an accepted link joins the groups.
  */
-function undergrowth_pollination_pairs( int $limit = 0, ?int $step = null ): array {
+function undergrowth_pollination_pairs( int $limit = 0, ?int $step = null, ?array $map = null ): array {
 	$stored = get_option( 'undergrowth_pollination', array() );
 	$labels = get_option( 'undergrowth_cluster_labels', array() );
 	$made   = undergrowth_cluster_labels_made();
@@ -663,7 +680,7 @@ function undergrowth_pollination_pairs( int $limit = 0, ?int $step = null ): arr
 	$strength = undergrowth_bridge_strength( $step );
 	$members  = array();
 
-	foreach ( undergrowth_cluster_map() as $cluster ) {
+	foreach ( $map ?? undergrowth_cluster_map() as $cluster ) {
 		$members[ $cluster['leader'] ] = $cluster['members'];
 	}
 
@@ -798,9 +815,11 @@ function undergrowth_pollination_result_messages(): array {
  * Prints the Cross-pollination view on the Map tab: each pair of groups,
  * why it was found, in the author's own titles and words, and a way to
  * dismiss it.
+ *
+ * @param array<int, array{leader: int, members: int[], gap: bool}>|null $map Result of undergrowth_cluster_map(), when the tab already built it.
  */
-function undergrowth_render_pollination_view(): void {
-	$pairs = undergrowth_pollination_pairs();
+function undergrowth_render_pollination_view( ?array $map = null ): void {
+	$pairs = undergrowth_pollination_pairs( 0, null, $map );
 	$steps = undergrowth_surprise_steps();
 
 	printf( '<h2 id="undergrowth-pollination">%s</h2>', esc_html__( 'Cross-pollination', 'undergrowth' ) );
@@ -894,9 +913,9 @@ function undergrowth_render_pollination_pair( array $pair ): void {
 		wp_kses(
 			sprintf(
 				/* translators: 1: title the first group is named after, 2: title the second group is named after. */
-				__( 'Around %1$s, and around %2$s', 'undergrowth' ),
-				'“<bdi>' . esc_html( undergrowth_post_title( $pair['members'][0][0] ) ) . '</bdi>”',
-				'“<bdi>' . esc_html( undergrowth_post_title( $pair['members'][1][0] ) ) . '</bdi>”'
+				__( 'Around “%1$s”, and around “%2$s”', 'undergrowth' ),
+				'<bdi>' . esc_html( undergrowth_post_title( $pair['members'][0][0] ) ) . '</bdi>',
+				'<bdi>' . esc_html( undergrowth_post_title( $pair['members'][1][0] ) ) . '</bdi>'
 			),
 			$allowed
 		)
