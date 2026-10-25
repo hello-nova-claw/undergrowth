@@ -595,6 +595,11 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 	}
 
 	undergrowth_end_pass( 'undergrowth_stage_cycle' );
+
+	/**
+	 * Fires once the monthly stage pass has measured every post.
+	 */
+	do_action( 'undergrowth_stage_cycle_finished' );
 }
 
 /**
