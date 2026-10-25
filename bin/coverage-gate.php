@@ -34,11 +34,20 @@ if ( false === $report || ! isset( $report->project->metrics ) ) {
 	exit( 2 );
 }
 
-$metrics    = $report->project->metrics;
+$metrics = $report->project->metrics;
+
+// A cast would read "10000foo" as 10000 and a missing count as 0.
+foreach ( array( 'statements', 'coveredstatements' ) as $count ) {
+	if ( 1 !== preg_match( '/^[0-9]+$/D', (string) $metrics[ $count ] ) ) {
+		fwrite( STDERR, "The coverage report's {$count} is not a whole number.\n" );
+		exit( 2 );
+	}
+}
+
 $statements = (int) $metrics['statements'];
 $covered    = (int) $metrics['coveredstatements'];
 
-if ( $statements < 0 || $covered < 0 || $covered > $statements ) {
+if ( $covered > $statements ) {
 	fwrite( STDERR, "The coverage report counts {$covered} covered statements of {$statements}, which cannot be.\n" );
 	exit( 2 );
 }

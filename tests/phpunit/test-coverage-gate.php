@@ -182,6 +182,38 @@ class Test_Coverage_Gate extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Count attributes that are not whole numbers.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function data_bad_count_attributes() {
+		return array(
+			'trailing text' => array( 'statements="10000foo" coveredstatements="9834"' ),
+			'a fraction'    => array( 'statements="10000" coveredstatements="9834.5"' ),
+			'missing'       => array( 'statements="10000"' ),
+			'empty'         => array( 'statements="" coveredstatements=""' ),
+		);
+	}
+
+	/**
+	 * A count PHP would cast to a number it does not say is refused.
+	 *
+	 * @dataProvider data_bad_count_attributes
+	 *
+	 * @param string $attributes The metrics element's attributes.
+	 */
+	public function test_counts_that_are_not_whole_numbers_are_refused( $attributes ) {
+		$clover = $this->dir . '/bad.xml';
+		file_put_contents( $clover, '<?xml version="1.0"?><coverage><project><metrics ' . $attributes . '/></project></coverage>' );
+		file_put_contents( $this->dir . '/baseline', "98.34\n" );
+
+		list( $code, $output ) = $this->run_gate( array( PHP_BINARY, dirname( __DIR__, 2 ) . '/bin/coverage-gate.php', $clover, $this->dir . '/baseline' ) );
+
+		$this->assertSame( 2, $code );
+		$this->assertStringContainsString( 'is not a whole number', $output );
+	}
+
+	/**
 	 * Baseline file contents that are not one percentage.
 	 *
 	 * @return array<string, array{0: string}>
