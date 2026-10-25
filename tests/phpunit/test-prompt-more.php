@@ -200,7 +200,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'name="action" value="undergrowth_more_prompts"', $html );
 		$this->assertStringContainsString( 'aria-describedby="undergrowth-more-cost"', $html );
-		$this->assertMatchesRegularExpression( '#<p id="undergrowth-more-cost">\s*More questions asks Claude for up to 3 questions straight away, using this site’s Anthropic API key\. A click sends at most 6 requests, each usually one or two cents at Anthropic’s published prices, and they are charged even when no new question comes of them\.#', $html );
+		$this->assertMatchesRegularExpression( '#<p id="undergrowth-more-cost">\s*More questions asks Claude for up to 3 questions straight away, using this site’s Anthropic API key\. A click sends at most 6 requests, each usually one or two cents at Anthropic’s published prices, and they may be charged even when no new question comes of them\.#', $html );
 		$this->assertLessThan( strpos( $html, '>More questions</button>' ), strpos( $html, 'id="undergrowth-more-cost"' ) );
 		$this->assertSame( array(), $this->requests );
 	}
