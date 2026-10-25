@@ -801,7 +801,12 @@ function capture( states ) {
 						.first()
 						.waitFor();
 					await editor.selectBlocks( block );
-					await editor.openDocumentSettingsSidebar();
+					// Through the store, since the toggle's name is translated.
+					await page.evaluate( () =>
+						window.wp.data
+							.dispatch( 'core/edit-post' )
+							.openGeneralSidebar( 'edit-post/block' )
+					);
 					// The posts on the list come from their own route.
 					await page
 						.locator(

@@ -285,6 +285,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
+	wp_unschedule_hook( 'undergrowth_measure_similar' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
@@ -322,6 +323,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
+	wp_unschedule_hook( 'undergrowth_measure_similar' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );

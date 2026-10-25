@@ -94,7 +94,12 @@ test.describe( 'More like this block', () => {
 		await editor.selectBlocks(
 			editor.canvas.locator( '[data-type="undergrowth/more-like-this"]' )
 		);
-		await editor.openDocumentSettingsSidebar();
+		// Through the store, since the toggle's name is translated.
+		await page.evaluate( () =>
+			window.wp.data
+				.dispatch( 'core/edit-post' )
+				.openGeneralSidebar( 'edit-post/block' )
+		);
 
 		const preview = editor.canvas.locator( `${ LIST } nav${ LIST }` );
 		await expect( preview.locator( 'li' ) ).toHaveCount( 2 );

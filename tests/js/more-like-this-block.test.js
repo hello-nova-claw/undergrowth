@@ -52,9 +52,11 @@ describe( 'More like this block', () => {
 		apiFetch.use( ( options ) => {
 			requests.push( options );
 
-			const key = Object.keys( replies ).find( ( start ) =>
-				options.path.startsWith( start )
-			);
+			// The longest matching start wins, so a route can answer apart
+			// from the one it extends.
+			const key = Object.keys( replies )
+				.filter( ( start ) => options.path.startsWith( start ) )
+				.sort( ( a, b ) => b.length - a.length )[ 0 ];
 
 			return replies[ key ] instanceof Error
 				? Promise.reject( replies[ key ] )
@@ -183,6 +185,28 @@ describe( 'More like this block', () => {
 			path: `${ path }/hidden/6`,
 			method: 'DELETE',
 		} );
+	} );
+
+	test( 'keeps the list on screen when a Hide fails, so it can be tried again', async () => {
+		const path = '/undergrowth/v1/posts/42/more-like-this';
+		replies[ path ] = {
+			shown: [ { id: 5, title: 'Yacon', link: '#' } ],
+			hidden: [],
+		};
+		replies[ `${ path }/hidden/5` ] = new Error( 'Not now.' );
+
+		const container = mount(
+			<ListPanel postId={ 42 } count={ 3 } onChange={ () => {} } />
+		);
+
+		await waitFor( () => container.querySelector( 'button' ) );
+		container.querySelector( 'button' ).click();
+		await waitFor( () => container.querySelector( '.components-notice' ) );
+
+		expect( container.textContent ).toContain( 'Not now.' );
+		expect(
+			container.querySelector( '.undergrowth-more-like-this-hide' )
+		).not.toBeNull();
 	} );
 
 	test( 'says when the list is empty, and why a request failed', async () => {

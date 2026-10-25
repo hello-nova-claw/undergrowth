@@ -118,20 +118,21 @@ export function ListPanel( { postId, count, onChange } ) {
 			.finally( () => setBusy( false ) );
 	}
 
-	if ( error ) {
-		return (
-			<Notice status="error" isDismissible={ false }>
-				{ error }
-			</Notice>
-		);
-	}
+	const notice = error && (
+		<Notice status="error" isDismissible={ false }>
+			{ error }
+		</Notice>
+	);
 
+	// Until the list first loads, a failure is all there is to show. After
+	// that, the list stays below it, so a failed Hide can be tried again.
 	if ( ! list ) {
-		return <Spinner />;
+		return notice || <Spinner />;
 	}
 
 	return (
 		<>
+			{ notice }
 			{ list.shown.length === 0 ? (
 				<p>{ __( 'No posts are on this list yet.', 'undergrowth' ) }</p>
 			) : (

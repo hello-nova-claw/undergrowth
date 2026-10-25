@@ -320,19 +320,29 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( array( $first, $second ), undergrowth_more_like_this( $this->source, 2 ) );
 	}
 
-	public function test_the_list_is_kept_until_a_vector_changes() {
+	public function test_the_list_is_kept_until_a_vector_changes_then_measured_again_in_cron() {
 		$yacon = $this->old( 'Yacon', array( 1, 0, 0 ) );
 		$this->assertSame( array( $yacon => 1.0 ), array_map( 'round', undergrowth_similar_scores( $this->source ) ) );
 
 		// A vector stored without an embed is not seen until one happens.
 		$mashua = $this->old( 'Mashua', array( 1, 0.1, 0 ) );
 		$this->assertArrayNotHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
 
+		// After one, a page view still gets the kept list and reads no
+		// vectors; the list is measured again in cron.
 		do_action( 'undergrowth_post_embedded', $mashua );
+		$before = get_num_queries();
+		$this->assertArrayNotHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
+		$this->assertLessThanOrEqual( 3, get_num_queries() - $before );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+
+		do_action( 'undergrowth_measure_similar', $this->source );
 		$this->assertArrayHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
 
 		$this->old( 'Syrup', array( 1, 0.2, 0 ) );
 		do_action( 'undergrowth_post_left_index', $yacon );
+		undergrowth_measure_similar( $this->source );
 		$this->assertCount( 3, undergrowth_similar_scores( $this->source ) );
 	}
 
@@ -489,5 +499,31 @@ class Test_More_Like_This extends WP_UnitTestCase {
 
 		wp_set_current_user( 0 );
 		$this->assertSame( 401, rest_do_request( new WP_REST_Request( 'GET', "/undergrowth/v1/posts/{$this->source}/more-like-this" ) )->get_status() );
+	}
+
+	public function test_cannot_hide_a_post_the_user_may_not_read() {
+		$author  = self::factory()->user->create( array( 'role' => 'author' ) );
+		$own     = $this->old( 'Mine', array( 1, 0, 0 ), array( 'post_author' => $author ) );
+		$private = $this->old( 'Secret', array( 1, 0, 0 ), array( 'post_status' => 'private' ) );
+		wp_set_current_user( $author );
+
+		$this->assertFalse( undergrowth_set_similar_hidden( $own, $private, true ) );
+		$this->assertSame( 404, rest_do_request( new WP_REST_Request( 'POST', "/undergrowth/v1/posts/{$own}/more-like-this/hidden/{$private}" ) )->get_status() );
+		$this->assertSame( array(), undergrowth_similar_hidden( $own ) );
+	}
+
+	public function test_the_sidebar_never_names_a_post_the_user_may_not_read() {
+		$author  = self::factory()->user->create( array( 'role' => 'author' ) );
+		$own     = $this->old( 'Mine', array( 1, 0, 0 ), array( 'post_author' => $author ) );
+		$private = $this->old( 'Secret', array( 1, 0, 0 ), array( 'post_status' => 'private' ) );
+
+		// Hidden earlier, by someone who could read it.
+		add_post_meta( $own, 'undergrowth_similar_hidden', $private );
+		wp_set_current_user( $author );
+
+		$data = rest_do_request( new WP_REST_Request( 'GET', "/undergrowth/v1/posts/{$own}/more-like-this" ) )->get_data();
+
+		$this->assertSame( array(), $data['hidden'] );
+		$this->assertStringNotContainsString( 'Secret', wp_json_encode( $data ) );
 	}
 }

@@ -27,13 +27,14 @@ const UNDERGROWTH_SIMILAR_FRESH_HALF = 180;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_forget_similar' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_similar' );
+add_action( 'undergrowth_measure_similar', 'undergrowth_remeasure_similar' );
 add_action( 'rest_api_init', 'undergrowth_register_similar_routes' );
 
 /**
  * Marks every cached list as stale.
  *
  * A new or changed vector can enter any post's list, so one counter covers
- * them all, and each list is measured again the next time it is shown.
+ * them all, and each list is measured again in cron once it is next shown.
  */
 function undergrowth_forget_similar(): void {
 	update_option( 'undergrowth_similar_generation', (int) get_option( 'undergrowth_similar_generation', 0 ) + 1, false );
@@ -43,23 +44,41 @@ function undergrowth_forget_similar(): void {
  * Returns the posts closest in meaning to a post, closest first.
  *
  * Only vectors from the same provider, model and language are compared, and
- * only posts at or above the link threshold count. The result is kept until
- * any vector changes. Who may see each post is decided when the list is
- * shown, not here.
+ * only posts at or above the link threshold count. Who may see each post is
+ * decided when the list is shown, not here.
+ *
+ * Measuring reads every vector, so a page view never does it twice. A list
+ * kept from before a vector changed is still shown, and measured again in
+ * cron. Only a post that was never measured is measured on the spot.
  *
  * @param int $post_id Post ID.
  * @return array<int, float> Similarity keyed by post ID, highest first.
  */
 function undergrowth_similar_scores( int $post_id ): array {
-	$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
-	$cached     = get_post_meta( $post_id, 'undergrowth_similar', true );
+	$cached = get_post_meta( $post_id, 'undergrowth_similar', true );
 
-	if ( is_array( $cached ) && ( $cached['generation'] ?? null ) === $generation && is_array( $cached['scores'] ?? null ) ) {
+	if ( is_array( $cached ) && is_array( $cached['scores'] ?? null ) ) {
+		if ( ( $cached['generation'] ?? null ) !== (int) get_option( 'undergrowth_similar_generation', 0 ) && false === wp_next_scheduled( 'undergrowth_measure_similar', array( $post_id ) ) ) {
+			wp_schedule_single_event( time(), 'undergrowth_measure_similar', array( $post_id ) );
+		}
+
 		return $cached['scores'];
 	}
 
-	$pool   = undergrowth_comparable_vectors( $post_id );
-	$scores = array();
+	return undergrowth_measure_similar( $post_id );
+}
+
+/**
+ * Measures how close every comparable post is to a post, and keeps the
+ * closest.
+ *
+ * @param int $post_id Post ID.
+ * @return array<int, float> Similarity keyed by post ID, highest first.
+ */
+function undergrowth_measure_similar( int $post_id ): array {
+	$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
+	$pool       = undergrowth_comparable_vectors( $post_id );
+	$scores     = array();
 
 	if ( isset( $pool[ $post_id ] ) ) {
 		$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
@@ -104,6 +123,15 @@ function undergrowth_similar_scores( int $post_id ): array {
 	);
 
 	return $scores;
+}
+
+/**
+ * Measures a post's list again in cron, after a vector changed.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_remeasure_similar( int $post_id ): void {
+	undergrowth_measure_similar( $post_id );
 }
 
 /**
@@ -214,7 +242,9 @@ function undergrowth_similar_hidden( int $post_id ): array {
  * @return bool True when the post is hidden afterwards, or shown afterwards when showing.
  */
 function undergrowth_set_similar_hidden( int $post_id, int $target_id, bool $hide ): bool {
-	if ( $post_id === $target_id || ! get_post( $post_id ) instanceof WP_Post || ! current_user_can( 'edit_post', $post_id ) ) {
+	// Hiding a post names it on the author's list, so only a post the user
+	// may read can be hidden.
+	if ( $post_id === $target_id || ! get_post( $post_id ) instanceof WP_Post || ! current_user_can( 'edit_post', $post_id ) || ( $hide && ! current_user_can( 'read_post', $target_id ) ) ) {
 		return false;
 	}
 
@@ -260,8 +290,15 @@ function undergrowth_more_like_this( int $post_id, int $count ): array {
 	$weighted = array();
 
 	foreach ( $visible as $id ) {
-		$weighted[ $id ] = undergrowth_similar_weight( get_post( $id ), $scores[ $id ], $now );
+		$post = get_post( $id );
+
+		// A post deleted since it was checked is left out.
+		if ( $post instanceof WP_Post ) {
+			$weighted[ $id ] = undergrowth_similar_weight( $post, $scores[ $id ], $now );
+		}
 	}
+
+	$visible = array_keys( array_intersect_key( array_flip( $visible ), $weighted ) );
 
 	uksort(
 		$weighted,
@@ -352,7 +389,8 @@ function undergrowth_rest_can_edit_similar( WP_REST_Request $request ): bool {
 }
 
 /**
- * Describes posts for the editor sidebar: ID, title and link.
+ * Describes posts for the editor sidebar: ID, title and link. A post the
+ * user may not read is left out.
  *
  * @param int[] $post_ids Post IDs.
  * @return array<int, array{id: int, title: string, link: string}>
@@ -365,7 +403,7 @@ function undergrowth_similar_summaries( array $post_ids ): array {
 	foreach ( $post_ids as $id ) {
 		$post = get_post( $id );
 
-		if ( $post instanceof WP_Post ) {
+		if ( $post instanceof WP_Post && current_user_can( 'read_post', $id ) ) {
 			$summaries[] = array(
 				'id'    => $id,
 				'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
