@@ -29,6 +29,7 @@ Also in this version:
 * **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured monthly from your accepted links and clusters. Stages never go down, and you can pin one.
 * **Composting.** Let a post rest. It stays published and keeps its links, but gets no new suggestions. When it sits close to what you are writing now, Undergrowth tells you once.
 * **Hub pages, if you want them.** Where a Map group is large and its posts already link to each other, Undergrowth proposes a hub page. Start a hub draft makes a draft holding only the group's titles as links, and you write and publish the rest. Undergrowth never publishes it. A published hub that links to a post counts towards Evergreen.
+* **Cross-pollination.** The Map lists pairs of groups that sit apart but could spark something together, from your own posts: a post near both, two posts not far apart, or words both use that the rest of your site rarely does. A surprise scale, from Close cousins to Wild, sets how far apart a pair may be.
 * **A plain-text file for each post**, recording its stage, suggestions, vetoes and questions.
 * **A Growth stage block** that shows readers a post's stage as a line of text your theme styles.
 * **Discord, optionally.** Each new suggestion can be posted to a private channel in your own Discord server, with Accept and Veto buttons.
