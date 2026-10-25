@@ -159,6 +159,12 @@ msgid "You cannot change links in this post."
 msgstr ""
 
 #: src/admin.php
+#: src/dashboard.php
+#: src/first-run.php
+msgid "Undo"
+msgstr ""
+
+#: src/admin.php
 msgid "You cannot change this post."
 msgstr ""
 
@@ -341,6 +347,14 @@ msgstr ""
 
 #: src/admin.php
 msgid "That post has no signal to dismiss, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "Undone. This link can be suggested again."
+msgstr ""
+
+#: src/admin.php
+msgid "That veto can no longer be undone, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -591,6 +605,10 @@ msgstr ""
 
 #: src/dashboard.php
 msgid "That question is no longer waiting, so nothing was changed."
+msgstr ""
+
+#: src/dashboard.php
+msgid "Undone. The question is back."
 msgstr ""
 
 #: src/dev-tools.php
@@ -847,6 +865,10 @@ msgid "To: %s"
 msgstr ""
 
 #: src/discord-messages.php
+msgid "A veto is permanent."
+msgstr ""
+
+#: src/discord-messages.php
 msgid "Open in WordPress"
 msgstr ""
 
@@ -988,6 +1010,14 @@ msgid "Choose a stage to pin."
 msgstr ""
 
 #: src/first-run.php
+msgid "Undone. The notice is back."
+msgstr ""
+
+#: src/first-run.php
+msgid "That notice can no longer come back, so nothing was changed."
+msgstr ""
+
+#: src/first-run.php
 msgid "Add a key in Settings"
 msgstr ""
 
@@ -997,6 +1027,10 @@ msgstr ""
 
 #: src/first-run.php
 msgid "You cannot change Undergrowth’s settings."
+msgstr ""
+
+#: src/first-run.php
+msgid "Dismissed. This notice won’t come back."
 msgstr ""
 
 #. translators: %1$s: link to the suggestions screen.
@@ -1030,7 +1064,7 @@ msgid "Choose words lets you pick other words of the same sentence for the link:
 msgstr ""
 
 #: src/help.php
-msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post. The notice after a veto has an Undo, in case you chose it by mistake."
 msgstr ""
 
 #: src/help.php
