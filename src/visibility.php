@@ -24,11 +24,19 @@ defined( 'ABSPATH' ) || exit;
  * @return bool True when readers may see the post.
  */
 function undergrowth_is_garden_visible( $post ): bool {
+	// get_post() would fall back to the global post for a missing ID.
+	if ( ! $post ) {
+		return false;
+	}
+
 	$post = get_post( $post );
 
+	// A type can be queryable without being public, which readers are not
+	// meant to browse, so both are checked.
 	return $post instanceof WP_Post
 		&& undergrowth_is_indexable( $post )
 		&& is_post_publicly_viewable( $post )
+		&& ( get_post_type_object( $post->post_type )->public ?? false )
 		&& 'composting' !== undergrowth_get_stage( $post->ID );
 }
 
@@ -42,7 +50,17 @@ function undergrowth_is_garden_visible( $post ): bool {
  * @return int[] The visible IDs, each once, in their first order.
  */
 function undergrowth_filter_garden_visible( array $post_ids ): array {
-	$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
+	$post_ids = array_map( 'intval', $post_ids );
+	$post_ids = array_values(
+		array_unique(
+			array_filter(
+				$post_ids,
+				static function ( int $id ): bool {
+					return $id > 0;
+				}
+			)
+		)
+	);
 
 	if ( array() === $post_ids ) {
 		return array();
@@ -50,5 +68,14 @@ function undergrowth_filter_garden_visible( array $post_ids ): array {
 
 	_prime_post_caches( $post_ids, false, true );
 
-	return array_values( array_filter( $post_ids, 'undergrowth_is_garden_visible' ) );
+	// An ID priming did not find has no post, and asking for it again would
+	// cost a query each.
+	$found = array_filter(
+		$post_ids,
+		static function ( int $id ): bool {
+			return false !== wp_cache_get( $id, 'posts' );
+		}
+	);
+
+	return array_values( array_filter( $found, 'undergrowth_is_garden_visible' ) );
 }

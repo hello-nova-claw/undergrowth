@@ -101,10 +101,48 @@ class Test_Visibility extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_a_missing_post_is_hidden() {
+	public function test_a_queryable_type_that_is_not_public_is_hidden() {
+		register_post_type(
+			'undergrowth_note',
+			array(
+				'public'             => false,
+				'publicly_queryable' => true,
+			)
+		);
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'undergrowth_note' );
+			}
+		);
+
+		$this->assertFalse(
+			undergrowth_is_garden_visible(
+				self::factory()->post->create(
+					array(
+						'post_status' => 'publish',
+						'post_type'   => 'undergrowth_note',
+					)
+				)
+			)
+		);
+	}
+
+	public function test_a_missing_post_is_hidden_even_with_a_global_post() {
+		$GLOBALS['post'] = get_post( self::factory()->post->create( array( 'post_status' => 'publish' ) ) );
+
 		$this->assertFalse( undergrowth_is_garden_visible( 0 ) );
+		$this->assertFalse( undergrowth_is_garden_visible( '' ) );
 		$this->assertFalse( undergrowth_is_garden_visible( PHP_INT_MAX ) );
 		$this->assertFalse( undergrowth_is_garden_visible( null ) );
+
+		unset( $GLOBALS['post'] );
+	}
+
+	public function test_the_batch_ignores_negative_ids() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertSame( array(), undergrowth_filter_garden_visible( array( -$post_id ) ) );
 	}
 
 	public function test_the_batch_keeps_visible_posts_in_order_once_each() {
@@ -132,7 +170,7 @@ class Test_Visibility extends WP_UnitTestCase {
 		undergrowth_indexed_post_types();
 
 		$before  = get_num_queries();
-		$visible = undergrowth_filter_garden_visible( $post_ids );
+		$visible = undergrowth_filter_garden_visible( array_merge( $post_ids, range( PHP_INT_MAX - 20, PHP_INT_MAX - 1 ) ) );
 
 		$this->assertSame( $post_ids, $visible );
 		$this->assertLessThanOrEqual( 3, get_num_queries() - $before );
