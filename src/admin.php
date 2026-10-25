@@ -123,8 +123,9 @@ function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): s
  * Reads the pair a link action names, and lets the request go on only with
  * that action's nonce and when the user may edit the post the link sits in.
  *
- * Every write from the Suggestions screen passes through here, so the gate
- * cannot differ from one handler to the next.
+ * Every write that names a link pair passes through here, so the gate
+ * cannot differ from one handler to the next. Pin, Unpin and Dismiss name
+ * one post, and use undergrowth_posted_post_id() instead.
  *
  * @param string $action    Action name, such as 'veto', after the undergrowth_ prefix.
  * @param bool   $from_link True to read the pair from the address, as an Undo link sends it.
