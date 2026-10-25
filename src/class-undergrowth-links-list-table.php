@@ -233,7 +233,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	public function column_sentence( $item ) {
 		$choice = undergrowth_link_word_choice( $item['source_id'], $item['target_id'], $item['sentence'], $item['anchor'], $item['offset'] );
 
-		return '<q dir="auto">' . $this->marked_sentence( $item, $choice ) . '</q>'
+		return '<q dir="auto">' . undergrowth_marked_sentence( $item['sentence'], $choice ) . '</q>'
 			. '<p>' . sprintf(
 				/* translators: %1$s: title of the post the link would point to, linked to its editor. */
 				esc_html__( 'Link to %1$s', 'undergrowth' ),
@@ -407,29 +407,6 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			esc_url( $this->view_url() ),
 			esc_html__( 'Cancel', 'undergrowth' )
 		) . wp_get_inline_script_tag( "window.addEventListener( 'load', function () { var first = document.getElementById( " . wp_json_encode( 'undergrowth-first-' . $suffix ) . ' ); if ( first ) { first.focus(); } } );' );
-	}
-
-	/**
-	 * Escapes the sentence and marks the words Accept would link in it.
-	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
-	 * @param array{word: string, offset: int, position: int}|null                                 $choice Result of undergrowth_link_word_choice() for the row.
-	 * @return string HTML.
-	 */
-	private function marked_sentence( array $item, ?array $choice ): string {
-		$sentence = $item['sentence'];
-
-		// A line break inside the words in the post shows as a space.
-		$words  = null === $choice ? '' : undergrowth_collapse_spaces( $choice['word'] );
-		$length = mb_strlen( $words );
-
-		if ( null === $choice || mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
-			return esc_html( $sentence );
-		}
-
-		return esc_html( mb_substr( $sentence, 0, $choice['offset'] ) )
-			. '<mark>' . esc_html( $words ) . '</mark>'
-			. esc_html( mb_substr( $sentence, $choice['offset'] + $length ) );
 	}
 
 	/**
