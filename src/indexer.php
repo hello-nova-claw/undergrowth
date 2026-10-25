@@ -214,6 +214,9 @@ function undergrowth_embed_post( int $post_id ): void {
 		return;
 	}
 
+	// The vector is dated from when the text was read, so an edit saved while
+	// the provider works still counts as newer than it.
+	$read_at  = current_time( 'mysql', true );
 	$text     = undergrowth_post_text( $post );
 	$language = undergrowth_post_language( $post );
 	$hash     = hash( 'sha256', $text );
@@ -250,6 +253,7 @@ function undergrowth_embed_post( int $post_id ): void {
 			'model'        => $identity['model'],
 			'language'     => $language,
 			'content_hash' => $hash,
+			'embedded_at'  => $read_at,
 		)
 	);
 

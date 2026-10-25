@@ -44,6 +44,14 @@ class Test_Vectors extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $row['embedded_at'] );
 	}
 
+	public function test_vector_keeps_the_time_its_text_was_read() {
+		$post_id = self::factory()->post->create();
+
+		undergrowth_save_vector( $post_id, array( 1.0 ), $this->meta( array( 'embedded_at' => '2026-01-02 03:04:05' ) ) );
+
+		$this->assertSame( '2026-01-02 03:04:05', undergrowth_get_vector( $post_id )['embedded_at'] );
+	}
+
 	public function test_missing_vector_reads_as_null() {
 		$this->assertNull( undergrowth_get_vector( PHP_INT_MAX ) );
 	}
