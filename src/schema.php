@@ -21,6 +21,8 @@ function undergrowth_protected_meta_keys(): array {
 	return array(
 		'undergrowth_cluster',
 		'undergrowth_discord_messages',
+		'undergrowth_hub',
+		'undergrowth_hub_link',
 		'undergrowth_pending_links',
 		'undergrowth_prompt_keys',
 		'undergrowth_prompt_log',
@@ -361,6 +363,10 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
 	delete_option( 'undergrowth_cluster_labels' );
+	// Hub pages are the author's and stay; only what marks them as hubs goes.
+	delete_option( 'undergrowth_hub_vetoes' );
+	delete_post_meta_by_key( 'undergrowth_hub' );
+	delete_post_meta_by_key( 'undergrowth_hub_link' );
 	delete_option( 'undergrowth_scores' );
 	delete_option( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_dev_job' );
