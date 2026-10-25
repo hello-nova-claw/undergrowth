@@ -56,6 +56,7 @@ describe( 'Translators notes', () => {
 } );
 
 describe( 'Source', () => {
+	// A Markdown table, such as the Map export, may still use the pipe.
 	it( 'joins no actions with a bare separator', () => {
 		const files = fs
 			.readdirSync( path.join( root, 'src' ) )
@@ -64,7 +65,7 @@ describe( 'Source', () => {
 		for ( const file of files ) {
 			expect(
 				fs.readFileSync( path.join( root, 'src', file ), 'utf8' )
-			).not.toContain( "' | '" );
+			).not.toMatch( /\.\s*' \| '\s*\./ );
 		}
 	} );
 } );
