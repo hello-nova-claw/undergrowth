@@ -26,6 +26,8 @@ function undergrowth_protected_meta_keys(): array {
 		'undergrowth_prompt_log',
 		'undergrowth_resurfacing',
 		'undergrowth_resurfacing_log',
+		'undergrowth_similar',
+		'undergrowth_similar_hidden',
 		'undergrowth_stage',
 		'undergrowth_stage_log',
 		'undergrowth_stage_pinned',
@@ -380,6 +382,9 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	delete_post_meta_by_key( 'undergrowth_pending_links' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
+	delete_post_meta_by_key( 'undergrowth_similar' );
+	delete_post_meta_by_key( 'undergrowth_similar_hidden' );
+	delete_option( 'undergrowth_similar_generation' );
 	undergrowth_delete_memory_folder();
 	delete_option( 'undergrowth_memory_folder' );
 	delete_transient( 'undergrowth_old_folder_retry' );

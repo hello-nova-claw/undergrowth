@@ -425,6 +425,12 @@ msgstr ""
 msgid "Growth stage: %s"
 msgstr ""
 
+#: src/blocks.php
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "More like this"
+msgstr ""
+
 #: src/class-undergrowth-links-list-table.php
 msgid "Suggestion"
 msgstr ""
@@ -1522,6 +1528,8 @@ msgid "The linked Discord user ID could not be removed. Try again, or clear it o
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
 
@@ -1855,6 +1863,10 @@ msgstr ""
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
+#: src/similar.php
+msgid "That post no longer exists, so nothing was changed."
+msgstr ""
+
 #: src/site-health.php
 msgid "Undergrowth’s per-post files are private"
 msgstr ""
@@ -2076,6 +2088,82 @@ msgstr ""
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Readers see nothing here yet. Only published posts in the garden get a list, and only once Undergrowth has read posts close enough in meaning."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: build/editor/index.js
+#: src/blocks/more-like-this/edit.js
+#: src/editor/stage-panel.js
+msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "No posts are on this list yet."
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Hide “%s” from this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hide"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hidden from this list:"
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Show “%s” on this list again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Number of posts"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show featured image"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show excerpt"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Only excerpts you wrote yourself are shown."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Posts on this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Lists the posts closest in meaning to the post it is placed in."
+msgstr ""
+
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Suggested links"
@@ -2162,11 +2250,6 @@ msgstr ""
 
 #: build/editor/index.js
 #: src/editor/stage-panel.js
-msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
-msgstr ""
-
-#: build/editor/index.js
-#: src/editor/stage-panel.js
 msgid "This post gets a growth stage once it is published."
 msgstr ""
 
@@ -2226,4 +2309,34 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block title"
+msgid "More like this"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block description"
+msgid "Lists your posts closest in meaning to this one, lifting Evergreen and recently updated posts. Shows only titles, your own excerpts, featured images and links."
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "related"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "similar"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
 msgstr ""
