@@ -193,6 +193,26 @@ class Test_Hubs extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_HUB_MIN_LINKED_SHARE, undergrowth_hub_min_linked_share() );
 	}
 
+	public function test_size_filter_that_returns_no_number_keeps_the_default() {
+		add_filter(
+			'undergrowth_hub_min_size',
+			static function () {
+				return 'many';
+			}
+		);
+
+		$this->assertSame( UNDERGROWTH_HUB_MIN_SIZE, undergrowth_hub_min_size() );
+	}
+
+	public function test_fewer_than_two_posts_have_no_links_between_them() {
+		$ids = $this->group( array( 'Oca' ) );
+
+		$this->link( $ids[0], $ids[0] );
+
+		$this->assertSame( 0, undergrowth_hub_linked_members( $ids ) );
+		$this->assertSame( 0, undergrowth_hub_linked_members( array() ) );
+	}
+
 	public function test_hub_draft_holds_only_the_titles_as_links_and_stays_a_draft() {
 		$ids = $this->dense_group();
 		wp_update_post(
