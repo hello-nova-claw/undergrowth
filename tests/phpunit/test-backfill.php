@@ -373,16 +373,9 @@ class Test_Backfill extends WP_UnitTestCase {
 	public function test_text_too_long_is_not_sent_again_once_the_budget_is_spent() {
 		$this->archive( 1 );
 		$sent = &$this->openai_answers( 400 );
-		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0.05 );
-		add_filter(
-			'pre_http_request',
-			static function ( $preempt ) {
-				usleep( 100000 );
-
-				return $preempt;
-			},
-			5
-		);
+		// A budget of nothing has passed by the time the first answer is back,
+		// however fast the runner.
+		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0 );
 
 		do_action( 'undergrowth_backfill' );
 
