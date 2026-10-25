@@ -78,7 +78,7 @@ function undergrowth_studio_removable_query_args( $args ) {
 
 /**
  * Returns the questions with one status that the current user may answer,
- * because they can edit the post each is about.
+ * because they can edit every post each came from.
  *
  * @param string $status 'new' or 'saved'.
  * @return array<int, array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}> Questions.
@@ -88,7 +88,7 @@ function undergrowth_user_prompts( string $status ): array {
 		array_filter(
 			undergrowth_prompts( $status ),
 			static function ( $prompt ) {
-				return current_user_can( 'edit_post', $prompt['post_id'] );
+				return undergrowth_user_can_answer_prompt( $prompt );
 			}
 		)
 	);
@@ -104,10 +104,10 @@ function undergrowth_render_studio_page(): void {
 	$fresh = undergrowth_user_prompts( 'new' );
 	$saved = undergrowth_user_prompts( 'saved' );
 	$tabs  = array(
-		/* translators: %s: number of new questions. */
-		''      => sprintf( __( 'New questions (%s)', 'undergrowth' ), number_format_i18n( count( $fresh ) ) ),
-		/* translators: %s: number of saved questions. */
-		'saved' => sprintf( __( 'Idea bank (%s)', 'undergrowth' ), number_format_i18n( count( $saved ) ) ),
+		/* translators: %1$s: number of new questions. */
+		''      => sprintf( __( 'New questions (%1$s)', 'undergrowth' ), number_format_i18n( count( $fresh ) ) ),
+		/* translators: %1$s: number of saved questions. */
+		'saved' => sprintf( __( 'Idea bank (%1$s)', 'undergrowth' ), number_format_i18n( count( $saved ) ) ),
 	);
 	?>
 	<div class="wrap">
@@ -161,7 +161,7 @@ function undergrowth_render_studio( string $view, array $tabs, array $fresh, arr
 
 	<?php undergrowth_render_studio_notice(); ?>
 
-	<p class="description"><?php esc_html_e( 'Claude writes each question from your own posts. Only you can see them. Nothing here is ever shown to readers.', 'undergrowth' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Claude writes each question from your own posts. Only people who can edit those posts see it, and nothing here is ever shown to readers.', 'undergrowth' ); ?></p>
 	<?php
 	if ( 'saved' === $view ) {
 		undergrowth_render_idea_bank( $saved );
@@ -330,7 +330,7 @@ function undergrowth_handle_studio(): void {
 	$choice = isset( $_POST['undergrowth_choice'] ) ? sanitize_key( wp_unslash( $_POST['undergrowth_choice'] ) ) : '';
 	$prompt = undergrowth_find_prompt( $key );
 
-	if ( null !== $prompt && ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
+	if ( null !== $prompt && ! undergrowth_user_can_answer_prompt( $prompt ) ) {
 		wp_die( esc_html__( 'You cannot answer questions about this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
@@ -341,19 +341,20 @@ function undergrowth_handle_studio(): void {
 		'remove'  => array( 'undergrowth_remove_saved_prompt', 'prompt_removed', 'saved' ),
 	);
 
-	if ( ! isset( $actions[ $choice ] ) ) {
-		wp_safe_redirect( undergrowth_studio_url() );
-		exit;
+	$url = undergrowth_studio_url();
+
+	if ( isset( $actions[ $choice ] ) ) {
+		list( $callback, $notice, $view ) = $actions[ $choice ];
+
+		if ( ! $callback( $key ) ) {
+			// Replace keeps the question when no other could be written.
+			$notice = 'replace' === $choice && null !== $prompt && 'new' === $prompt['status'] ? 'prompt_not_replaced' : 'prompt_gone';
+		}
+
+		$url = undergrowth_studio_url( $view, $notice, 'prompt_dismissed' === $notice ? $key : '' );
 	}
 
-	list( $callback, $notice, $view ) = $actions[ $choice ];
-
-	if ( ! $callback( $key ) ) {
-		// Replace keeps the question when no other could be written.
-		$notice = 'replace' === $choice && null !== $prompt && 'new' === $prompt['status'] ? 'prompt_not_replaced' : 'prompt_gone';
-	}
-
-	wp_safe_redirect( undergrowth_studio_url( $view, $notice, 'prompt_dismissed' === $notice ? $key : '' ) );
+	wp_safe_redirect( $url );
 	exit;
 }
 
@@ -405,7 +406,7 @@ function undergrowth_handle_restore_prompt(): void {
 
 	$prompt = undergrowth_dismissed_prompt( $key );
 
-	if ( null !== $prompt && ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
+	if ( null !== $prompt && ! undergrowth_user_can_answer_prompt( $prompt ) ) {
 		wp_die( esc_html__( 'You cannot answer questions about this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
@@ -423,7 +424,7 @@ function undergrowth_handle_restore_prompt(): void {
 function undergrowth_restore_prompt_link_html( string $key ): string {
 	$prompt = undergrowth_dismissed_prompt( $key );
 
-	if ( null === $prompt || ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
+	if ( null === $prompt || ! undergrowth_user_can_answer_prompt( $prompt ) ) {
 		return '';
 	}
 

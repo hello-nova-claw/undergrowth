@@ -436,7 +436,8 @@ function undergrowth_remove_saved_prompt( string $key ): bool {
  * next unused source in the garden.
  *
  * The old question goes only once the new one is written, so a failed
- * request or a garden with no source left changes nothing.
+ * request or a garden with no source left changes nothing. Only sources
+ * the author may answer about are tried, so the new question is theirs.
  *
  * @param string $key Key of the question to replace.
  * @return bool True when a new question took its place.
@@ -444,11 +445,28 @@ function undergrowth_remove_saved_prompt( string $key ): bool {
 function undergrowth_replace_prompt( string $key ): bool {
 	$prompt = undergrowth_find_prompt( $key );
 
-	if ( null === $prompt || 'new' !== $prompt['status'] || ! undergrowth_write_prompt() ) {
+	if ( null === $prompt || 'new' !== $prompt['status'] || ! undergrowth_write_prompt( 'undergrowth_user_can_answer_prompt' ) ) {
 		return false;
 	}
 
 	return undergrowth_move_prompt( $key, 'new', 'dismissed', 'replaced' );
+}
+
+/**
+ * Tells whether the current user may see and answer a question: they can
+ * edit every post it came from, since a question may quote any of them.
+ *
+ * @param array{post_id: int, posts: int[]} $prompt The question.
+ * @return bool True when they can edit each of its posts.
+ */
+function undergrowth_user_can_answer_prompt( array $prompt ): bool {
+	foreach ( array_merge( array( $prompt['post_id'] ), $prompt['posts'] ) as $post_id ) {
+		if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /**
@@ -586,10 +604,11 @@ function undergrowth_prompt_reply_is_final( WP_Error $error ): bool {
  * Asks Claude for one more question, trying sources in order, and adds it
  * to the batch as new.
  *
+ * @param callable|null $accept Tells whether a source record may be used, or null for any.
  * @return bool True when a prompt was written.
  */
-function undergrowth_write_prompt(): bool {
-	return 1 === undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS );
+function undergrowth_write_prompt( ?callable $accept = null ): bool {
+	return 1 === undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, $accept );
 }
 
 /**
@@ -597,14 +616,15 @@ function undergrowth_write_prompt(): bool {
  * when the author chooses More questions.
  *
  * Each question is kept as soon as it is written, so one paid for is never
- * thrown away when a later request fails.
+ * thrown away when a later request fails. As with Replace, only sources the
+ * author may answer about are tried.
  *
  * @return array{written: int, error: array<string, mixed>|null} Questions written, and the failure that stopped the run, if one did.
  */
 function undergrowth_write_more_prompts(): array {
 	$before  = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
 	$start   = time();
-	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS );
+	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS, 'undergrowth_user_can_answer_prompt' );
 	$error   = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
 
 	// A refusal is recorded too, but it is an answer, and the run went on.
@@ -626,11 +646,15 @@ function undergrowth_write_more_prompts(): array {
  * it cannot turn into a valid question is not paid for again. A failed
  * request ends the run and the source is tried again next time.
  *
- * @param int $wanted Questions to write at most.
- * @param int $limit  Requests to send at most.
+ * Passing $accept limits the run, for instance to the sources an author may
+ * answer about, or to one kind of question that holds a place in the batch.
+ *
+ * @param int           $wanted Questions to write at most.
+ * @param int           $limit  Requests to send at most.
+ * @param callable|null $accept Tells whether a source record may be used, or null for any.
  * @return int Questions written.
  */
-function undergrowth_write_prompts( int $wanted, int $limit ): int {
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null ): int {
 	if ( ! undergrowth_prompts_enabled() ) {
 		return 0;
 	}
@@ -641,6 +665,10 @@ function undergrowth_write_prompts( int $wanted, int $limit ): int {
 	foreach ( undergrowth_prompt_candidates() as $record ) {
 		if ( $written >= $wanted ) {
 			break;
+		}
+
+		if ( null !== $accept && ! $accept( $record ) ) {
+			continue;
 		}
 
 		// A source that needs a check needs two requests. One that would go

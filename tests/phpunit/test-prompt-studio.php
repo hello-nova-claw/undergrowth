@@ -257,6 +257,20 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( self::QUESTION, $html );
 	}
 
+	public function test_widget_prints_nothing_without_a_new_question() {
+		$this->assertSame( '', $this->render() );
+	}
+
+	public function test_the_first_prompt_event_tops_up_the_batch() {
+		undergrowth_write_prompt();
+		$this->comment( $this->post_id, 'When do you lift them?' );
+
+		do_action( 'undergrowth_write_prompt' );
+
+		$this->assertSame( 2, $this->requests );
+		$this->assertCount( 2, undergrowth_prompts( 'new' ) );
+	}
+
 	public function test_widget_counts_every_new_question() {
 		$this->comment( $this->post_id, 'When do you lift them?' );
 		undergrowth_write_prompt();
@@ -333,7 +347,7 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/href="[^"]*post\.php\?post=' . $this->post_id . '(&amp;|&#038;)action=edit"/', $html );
 		$this->assertStringContainsString( '<bdi>Growing oca</bdi></a>', $html );
 		$this->assertStringContainsString( 'reader', $html );
-		$this->assertStringContainsString( 'Only you can see them', $html );
+		$this->assertStringContainsString( 'Only people who can edit those posts see it', $html );
 		$this->assertStringContainsString( 'using this site’s Anthropic API key', $html );
 
 		foreach ( array( 'save', 'replace', 'dismiss' ) as $choice ) {
@@ -405,6 +419,31 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( self::QUESTION, $html );
 		$this->assertStringContainsString( 'New questions (0)', $html );
+	}
+
+	public function test_a_question_drawing_on_a_post_the_user_cannot_edit_is_hidden_and_refused() {
+		$other = $this->plant( 'Yacon', array( 0.0, 1.0 ), array( 'post_author' => self::factory()->user->create( array( 'role' => 'author' ) ) ) );
+		$this->store(
+			array(
+				'key'    => 'gap:1',
+				'source' => 'gap',
+				'posts'  => array( $this->post_id, $other ),
+			)
+		);
+
+		$this->assertStringNotContainsString( self::QUESTION, $this->studio() );
+		$this->assertSame( '', $this->render() );
+
+		try {
+			$this->choose( 'dismiss', 'gap:1' );
+			$this->fail( 'The choice was not refused.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 'new', undergrowth_find_prompt( 'gap:1' )['status'] );
+		}
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+
+		$this->assertStringContainsString( self::QUESTION, $this->studio() );
 	}
 
 	public function test_studio_names_an_untitled_post() {
@@ -527,6 +566,24 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertSame( 'dismissed', undergrowth_find_prompt( $old )['status'] );
 		$this->assertSame( array( 'asked', 'asked', 'replaced' ), $this->events( $this->post_id ) );
 		$this->assertSame( 2, $this->requests );
+	}
+
+	public function test_replace_uses_only_a_source_the_author_can_edit() {
+		undergrowth_write_prompt();
+		$waiting = undergrowth_current_prompt();
+		$other   = $this->plant(
+			'Yacon',
+			array( 0.0, 1.0 ),
+			array(
+				'post_author'  => self::factory()->user->create( array( 'role' => 'author' ) ),
+				'post_content' => '<!-- wp:paragraph --><p>Yacon needs a long season.</p><!-- /wp:paragraph -->',
+			)
+		);
+		$this->comment( $other, 'How long is the season?' );
+
+		$this->assertStringContainsString( 'undergrowth_notice=prompt_not_replaced', $this->choose( 'replace' ) );
+		$this->assertSame( array( $waiting ), undergrowth_prompts( 'new' ) );
+		$this->assertSame( 1, $this->requests );
 	}
 
 	public function test_replace_keeps_the_question_when_no_other_source_is_left() {

@@ -368,7 +368,8 @@ class Test_Prompts extends WP_UnitTestCase {
 
 		undergrowth_write_prompt();
 
-		$this->assertStringNotContainsString( 'Secret reader words', (string) wp_json_encode( get_option( 'undergrowth_prompt' ) ) );
+		$this->assertNotSame( array(), undergrowth_stored_prompts() );
+		$this->assertStringNotContainsString( 'Secret reader words', (string) wp_json_encode( get_option( 'undergrowth_prompts' ) ) );
 	}
 
 	public function test_invalid_reply_is_discarded_and_the_next_source_tried() {

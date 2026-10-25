@@ -170,6 +170,10 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot make pages."
+msgstr ""
+
+#: src/admin.php
 msgid "You cannot export the Map."
 msgstr ""
 
@@ -241,6 +245,32 @@ msgstr[1] ""
 #: src/admin.php
 #, php-format
 msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: %1$s: title of the hub page, linked to its editor.
+#: src/admin.php
+#, php-format
+msgid "This group has a hub: %1$s."
+msgstr ""
+
+#: src/admin.php
+msgid "This group has a hub draft. It stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "Edit the draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it."
+msgstr ""
+
+#: src/admin.php
+msgid "Start a hub draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Not for this group"
 msgstr ""
 
 #: src/admin.php
@@ -332,6 +362,7 @@ msgid "Return to garden"
 msgstr ""
 
 #: src/admin.php
+#: src/pollination.php
 #: src/studio.php
 msgid "Dismiss"
 msgstr ""
@@ -415,15 +446,38 @@ msgid "No suggestion was checked, or no bulk action was chosen, so nothing was c
 msgstr ""
 
 #: src/admin.php
+msgid "Hub draft started. It holds only the group’s titles as links, and stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "No hub will be proposed for this group again."
+msgstr ""
+
+#: src/admin.php
+msgid "That group no longer has a hub proposal, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
 msgid "See the change"
 msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
+#: src/block-garden-index.php
 #: src/blocks.php
 #: build/editor/index.js
 #: src/editor/stage-panel.js
 #, php-format,js-format
 msgid "Growth stage: %s"
+msgstr ""
+
+#: src/block-garden-index.php
+msgid "Other posts"
+msgstr ""
+
+#: src/blocks.php
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "More like this"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
@@ -554,7 +608,9 @@ msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
+#: build/blocks/garden-index/index.js
 #: build/blocks/growth-stage/index.js
+#: src/blocks/garden-index/edit.js
 #: src/blocks/growth-stage/edit.js
 msgid "Growth stage"
 msgstr ""
@@ -1199,7 +1255,7 @@ msgid "Budding: in a group, with accepted links both in and out."
 msgstr ""
 
 #: src/help.php
-msgid "Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there."
+msgid "Evergreen: in a group, with three or more accepted links in, and a published hub page that links to it. A hub is a page you started from the Map, wrote and published yourself."
 msgstr ""
 
 #: src/help.php
@@ -1216,6 +1272,14 @@ msgstr ""
 
 #: src/help.php
 msgid "A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgstr ""
+
+#: src/help.php
+msgid "A large group whose posts already link to each other may get a hub proposal: a page that ties the group together for readers. You write the hub. Start a hub draft makes a draft page holding only the group’s titles, each linked to its post, and Undergrowth never publishes it. Not for this group means it is never proposed for that group again."
+msgstr ""
+
+#: src/help.php
+msgid "Cross-pollination lists pairs of groups that sit apart but could spark something together: two posts about different things that are not far apart, a post that sits near both groups, or words both groups use and the rest of your site rarely does. The surprise scale on Settings › Undergrowth sets how far apart a pair may be. Dismiss a pair and it is never shown again."
 msgstr ""
 
 #: src/help.php
@@ -1376,6 +1440,96 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
+#: src/pollination.php
+msgid "Close cousins"
+msgstr ""
+
+#: src/pollination.php
+msgid "Cautious"
+msgstr ""
+
+#: src/pollination.php
+msgid "Curious"
+msgstr ""
+
+#: src/pollination.php
+msgid "Adventurous"
+msgstr ""
+
+#: src/pollination.php
+msgid "Wild"
+msgstr ""
+
+#: src/pollination.php
+msgid "You cannot change the Map."
+msgstr ""
+
+#: src/pollination.php
+msgid "Dismissed. This pair will not be shown again."
+msgstr ""
+
+#: src/pollination.php
+msgid "That pair is no longer shown, so nothing was changed."
+msgstr ""
+
+#: src/pollination.php
+msgid "Cross-pollination"
+msgstr ""
+
+#: src/pollination.php
+msgid "Pairs of groups that sit apart but could spark something together, found from your own posts once a month."
+msgstr ""
+
+#. translators: 1: name of the step on the surprise scale, such as "Cautious", 2: address of Settings > Undergrowth.
+#: src/pollination.php
+#, php-format
+msgid "The surprise scale is at %1$s. <a href=\"%2$s\">Change it on Settings › Undergrowth</a>."
+msgstr ""
+
+#: src/pollination.php
+msgid "No pairs at this step yet. A higher step on the surprise scale reaches further."
+msgstr ""
+
+#. translators: 1: title of a post in one group, 2: title of a post in the other.
+#: src/pollination.php
+#, php-format
+msgid "%1$s and %2$s are about different things, but not far apart."
+msgstr ""
+
+#. translators: %1$s: title of a post.
+#: src/pollination.php
+#, php-format
+msgid "%1$s sits near both groups."
+msgstr ""
+
+#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
+#: src/pollination.php
+#, php-format
+msgid "Both groups use words the rest of your site rarely does: %1$s."
+msgstr ""
+
+#: src/pollination.php
+msgid "A post connecting these two groups would link both halves of your garden."
+msgstr ""
+
+#. translators: 1: title the first group is named after, 2: title the second group is named after.
+#: src/pollination.php
+#, php-format
+msgid "Around “%1$s”, and around “%2$s”"
+msgstr ""
+
+#: src/popularity.php
+msgid "Jetpack Stats"
+msgstr ""
+
+#: src/popularity.php
+msgid "Koko Analytics"
+msgstr ""
+
+#: src/popularity.php
+msgid "Post Views Counter"
+msgstr ""
+
 #. translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
@@ -1471,7 +1625,7 @@ msgid "A site user who links their Discord account on their profile has their Di
 msgstr ""
 
 #: src/privacy.php
-msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth."
+msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads from it, once a day, how often posts were viewed lately, as far as that plugin can tell, and sends that nowhere."
 msgstr ""
 
 #: src/privacy.php
@@ -1487,6 +1641,10 @@ msgid "The linked Discord user ID could not be removed. Try again, or clear it o
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/garden-index/index.js
+#: build/blocks/more-like-this/index.js
+#: src/blocks/garden-index/edit.js
+#: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
 
@@ -1508,6 +1666,14 @@ msgstr ""
 
 #: src/settings.php
 msgid "Per-post files"
+msgstr ""
+
+#: src/settings.php
+msgid "Popularity"
+msgstr ""
+
+#: src/settings.php
+msgid "Surprise scale"
 msgstr ""
 
 #: src/settings.php
@@ -1633,6 +1799,10 @@ msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing 
 msgstr ""
 
 #: src/settings.php
+msgid "How far apart the pairs on the Map’s Cross-pollination list may be. Close cousins shows groups that nearly belong together; Wild reaches much further. It changes what is shown at once, without reading your posts again."
+msgstr ""
+
+#: src/settings.php
 msgid "Code on this site chooses which post types are read, so these boxes cannot be changed here."
 msgstr ""
 
@@ -1710,6 +1880,28 @@ msgstr[1] ""
 
 #: src/settings.php
 msgid "The rest are read in the background, a few at a time."
+msgstr ""
+
+#: src/settings.php
+msgid "No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter."
+msgstr ""
+
+#. translators: %1$s: name of a stats plugin, such as Jetpack Stats.
+#: src/settings.php
+#, php-format
+msgid "“More like this” reads your posts’ recent views from %1$s once a day, as many as it gives."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself. Jetpack asks WordPress.com for them, as it does for its own Stats screen."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself. They are read from your own database, and nothing leaves your site."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth counts no views itself."
 msgstr ""
 
 #: src/settings.php
@@ -1805,7 +1997,7 @@ msgid "Questions"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only in your Prompt studio, never to your readers."
+msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers."
 msgstr ""
 
 #: src/settings.php
@@ -1818,6 +2010,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
+msgstr ""
+
+#: src/similar.php
+msgid "That post no longer exists, so nothing was changed."
 msgstr ""
 
 #: src/site-health.php
@@ -2031,16 +2227,16 @@ msgstr ""
 msgid "This post is not composting."
 msgstr ""
 
-#. translators: %s: number of new questions.
+#. translators: %1$s: number of new questions.
 #: src/studio.php
 #, php-format
-msgid "New questions (%s)"
+msgid "New questions (%1$s)"
 msgstr ""
 
-#. translators: %s: number of saved questions.
+#. translators: %1$s: number of saved questions.
 #: src/studio.php
 #, php-format
-msgid "Idea bank (%s)"
+msgid "Idea bank (%1$s)"
 msgstr ""
 
 #: src/studio.php
@@ -2052,7 +2248,7 @@ msgid "Open Settings › Undergrowth"
 msgstr ""
 
 #: src/studio.php
-msgid "Claude writes each question from your own posts. Only you can see them. Nothing here is ever shown to readers."
+msgid "Claude writes each question from your own posts. Only people who can edit those posts see it, and nothing here is ever shown to readers."
 msgstr ""
 
 #: src/studio.php
@@ -2197,6 +2393,41 @@ msgstr ""
 msgid "Each week Undergrowth tops the new questions up to five. Once none is left, More questions asks Claude for a few more straight away. Each question usually costs one or two cents from your own Anthropic account, and nothing is sent until you choose it."
 msgstr ""
 
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Garden index"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Readers see nothing here yet. This lists your published posts by the groups on the Map, and only those at the chosen stage."
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Every stage"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Seedling"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Sprout"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Budding"
+msgstr ""
+
+#: build/blocks/garden-index/index.js
+#: src/blocks/garden-index/edit.js
+msgid "Evergreen"
+msgstr ""
+
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
@@ -2205,6 +2436,82 @@ msgstr ""
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Readers see nothing here yet. Only published posts in the garden get a list, and only once Undergrowth has read posts close enough in meaning."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: build/editor/index.js
+#: src/blocks/more-like-this/edit.js
+#: src/editor/stage-panel.js
+msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "No posts are on this list yet."
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Hide “%s” from this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hide"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hidden from this list:"
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Show “%s” on this list again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Number of posts"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show featured image"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show excerpt"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Only excerpts you wrote yourself are shown."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Posts on this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Lists the posts closest in meaning to the post it is placed in."
 msgstr ""
 
 #: build/editor/index.js
@@ -2293,11 +2600,6 @@ msgstr ""
 
 #: build/editor/index.js
 #: src/editor/stage-panel.js
-msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
-msgstr ""
-
-#: build/editor/index.js
-#: src/editor/stage-panel.js
 msgid "This post gets a growth stage once it is published."
 msgstr ""
 
@@ -2321,6 +2623,44 @@ msgstr ""
 #: build/editor/index.js
 #: src/editor/stage-panel.js
 msgid "Stage to pin"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block title"
+msgid "Garden index"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block description"
+msgid "Lists your published posts by the groups on the Map, each with its growth stage, so readers can wander the garden by topic."
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: build/blocks/more-like-this/block.json
+#: src/blocks/garden-index/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "map"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "topics"
+msgstr ""
+
+#: build/blocks/garden-index/block.json
+#: src/blocks/garden-index/block.json
+msgctxt "block keyword"
+msgid "index"
 msgstr ""
 
 #: build/blocks/growth-stage/block.json
@@ -2357,4 +2697,28 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block title"
+msgid "More like this"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block description"
+msgid "Lists your posts closest in meaning to this one, lifting Evergreen and recently updated posts. Shows only titles, your own excerpts, featured images and links."
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "related"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "similar"
 msgstr ""

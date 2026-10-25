@@ -1,0 +1,1 @@
+Adds a "More like this" block: your posts closest in meaning to the one it sits in, lifting Evergreen and recently updated posts, with one place kept for a close post few others link to. It shows only titles, excerpts you wrote, featured images and links, and you can hide any post from a post's list for good from the block's sidebar.

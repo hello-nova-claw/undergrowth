@@ -129,10 +129,12 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 
 	public function test_registers_again_without_a_build() {
 		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/growth-stage' );
+		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/more-like-this' );
 
 		undergrowth_register_blocks();
 
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/growth-stage' ) );
+		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/more-like-this' ) );
 	}
 
 	/**
@@ -181,7 +183,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Growth stage: Sprout', $this->render( $this->post_at( 'sprout', array( 'post_type' => 'page' ) ) ) );
 	}
 
-	public function test_an_indexed_post_type_readers_cannot_view_shows_only_to_those_who_can_read_it() {
+	public function test_an_indexed_post_type_readers_cannot_view_shows_nothing_even_to_those_who_can_read_it() {
 		register_post_type( 'undergrowth_note', array( 'public' => false ) );
 		add_filter(
 			'undergrowth_post_types',
@@ -195,7 +197,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertSame( '', $this->render( $post_id ) );
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$this->assertStringContainsString( 'Growth stage: Sprout', $this->render( $post_id ) );
+		$this->assertSame( '', $this->render( $post_id ) );
 	}
 
 	public function test_no_post_in_context_shows_nothing() {
