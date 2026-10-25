@@ -25,6 +25,8 @@ add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
 add_action( 'admin_post_undergrowth_export_map', 'undergrowth_handle_export_map' );
+add_action( 'admin_post_undergrowth_start_hub', 'undergrowth_handle_start_hub' );
+add_action( 'admin_post_undergrowth_veto_hub', 'undergrowth_handle_veto_hub' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_handle_stages_bulk' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' );
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
@@ -66,6 +68,7 @@ function undergrowth_notice_removable_query_args( $args ) {
 		$args[] = 'revision';
 		$args[] = 'undergrowth_undo';
 		$args[] = 'undergrowth_results';
+		$args[] = 'undergrowth_hub';
 	}
 
 	return $args;
@@ -423,6 +426,41 @@ function undergrowth_handle_dismiss_resurfacing(): void {
 	}
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'map' ) );
+	exit;
+}
+
+/**
+ * Starts a hub draft for the group posted from the Map tab, then returns
+ * there with a link to the draft.
+ */
+function undergrowth_handle_start_hub(): void {
+	$leader = undergrowth_posted_post_id( 'start_hub' );
+
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		wp_die( esc_html__( 'You cannot make pages.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$hub = undergrowth_start_hub( $leader );
+
+	wp_safe_redirect(
+		is_wp_error( $hub )
+			? undergrowth_suggestions_url( 'hub_gone', 'map' )
+			: add_query_arg( 'undergrowth_hub', $hub, undergrowth_suggestions_url( 'hub_started', 'map' ) )
+	);
+	exit;
+}
+
+/**
+ * Vetoes a hub for the group posted from the Map tab, then returns there.
+ */
+function undergrowth_handle_veto_hub(): void {
+	$leader = undergrowth_posted_post_id( 'veto_hub' );
+
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		wp_die( esc_html__( 'You cannot make pages.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_veto_hub( $leader ) ? 'hub_vetoed' : 'hub_gone', 'map' ) );
 	exit;
 }
 
@@ -806,10 +844,93 @@ function undergrowth_render_map_tab(): void {
 		}
 
 		echo '</ul>';
+
+		undergrowth_render_hub_proposal( $cluster['leader'], $cluster['members'] );
 	}
 
 	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
 	undergrowth_render_map_export_form();
+}
+
+/**
+ * Prints a group's hub, when it has one, or the proposal to start one when
+ * the group is dense enough and the author never vetoed it.
+ *
+ * Only users who can make pages see the proposal or its buttons.
+ *
+ * @param int   $leader  Leader ID labelling the group.
+ * @param int[] $members Post IDs in the group.
+ */
+function undergrowth_render_hub_proposal( int $leader, array $members ): void {
+	if ( ! current_user_can( 'edit_pages' ) ) {
+		return;
+	}
+
+	$hub = undergrowth_group_hub( $members );
+
+	if ( $hub > 0 ) {
+		// A draft has no title until the author gives it one.
+		if ( 'publish' === get_post_status( $hub ) ) {
+			printf(
+				'<p class="undergrowth-hub">%s</p>',
+				wp_kses(
+					/* translators: %1$s: title of the hub page, linked to its editor. */
+					sprintf( __( 'This group has a hub: %1$s.', 'undergrowth' ), undergrowth_post_link( $hub ) ),
+					array(
+						'a'   => array( 'href' => array() ),
+						'bdi' => array(),
+					)
+				)
+			);
+		} else {
+			$link = get_edit_post_link( $hub, 'raw' );
+
+			printf(
+				'<p class="undergrowth-hub">%1$s%2$s</p>',
+				esc_html__( 'This group has a hub draft. It stays a draft until you publish it.', 'undergrowth' ),
+				null === $link || '' === $link ? '' : sprintf( ' <a href="%1$s">%2$s</a>', esc_url( $link ), esc_html__( 'Edit the draft', 'undergrowth' ) )
+			);
+		}
+
+		return;
+	}
+
+	if ( ! undergrowth_is_hub_candidate( $members ) ) {
+		return;
+	}
+
+	$id = 'undergrowth-hub-' . $leader;
+
+	printf(
+		'<div class="notice notice-info inline undergrowth-hub-proposal"><p id="%1$s">%2$s</p><div class="undergrowth-hub-actions">%3$s %4$s</div></div>',
+		esc_attr( $id ),
+		esc_html__( 'Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it.', 'undergrowth' ),
+		undergrowth_hub_action_form( 'start_hub', $leader, $id, __( 'Start a hub draft', 'undergrowth' ), 'button button-primary' ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in undergrowth_hub_action_form().
+		undergrowth_hub_action_form( 'veto_hub', $leader, $id, __( 'Not for this group', 'undergrowth' ), 'button' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built and escaped in undergrowth_hub_action_form().
+	);
+}
+
+/**
+ * Builds the form behind one of a hub proposal's buttons.
+ *
+ * @param string $action      'start_hub' or 'veto_hub'.
+ * @param int    $leader      Leader ID labelling the group.
+ * @param string $described   Id of the proposal's text, which describes the button.
+ * @param string $text        Button text.
+ * @param string $button_class Button classes.
+ * @return string Form HTML.
+ */
+function undergrowth_hub_action_form( string $action, int $leader, string $described, string $text, string $button_class ): string {
+	return sprintf(
+		'<form method="post" action="%1$s" class="undergrowth-hub-action"><input type="hidden" name="action" value="undergrowth_%2$s" /><input type="hidden" name="post" value="%3$d" />%4$s<button type="submit" class="%5$s" aria-describedby="%6$s">%7$s</button></form>',
+		esc_url( admin_url( 'admin-post.php' ) ),
+		esc_attr( $action ),
+		$leader,
+		wp_nonce_field( 'undergrowth_' . $action . '_' . $leader, '_wpnonce', true, false ),
+		esc_attr( $button_class ),
+		esc_attr( $described ),
+		esc_html( $text )
+	);
 }
 
 /**
@@ -1376,6 +1497,9 @@ function undergrowth_render_suggestions_notice(): void {
 		'unvetoed'              => __( 'Undone. This link can be suggested again.', 'undergrowth' ),
 		'unveto_gone'           => __( 'That veto can no longer be undone, so nothing was changed.', 'undergrowth' ),
 		'nothing_selected'      => __( 'No suggestion was checked, or no bulk action was chosen, so nothing was changed.', 'undergrowth' ),
+		'hub_started'           => __( 'Hub draft started. It holds only the group’s titles as links, and stays a draft until you publish it.', 'undergrowth' ),
+		'hub_vetoed'            => __( 'No hub will be proposed for this group again.', 'undergrowth' ),
+		'hub_gone'              => __( 'That group no longer has a hub proposal, so nothing was changed.', 'undergrowth' ),
 	);
 
 	if ( 'accepted_selected' === $notice ) {
@@ -1405,7 +1529,17 @@ function undergrowth_render_suggestions_notice(): void {
 		);
 	}
 
-	$class = in_array( $notice, array( 'vetoed', 'unvetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed' ), true ) ? 'notice-success' : 'notice-warning';
+	if ( 'hub_started' === $notice ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$hub = isset( $_GET['undergrowth_hub'] ) ? absint( wp_unslash( $_GET['undergrowth_hub'] ) ) : 0;
+		$url = $hub > 0 && metadata_exists( 'post', $hub, 'undergrowth_hub' ) ? get_edit_post_link( $hub, 'raw' ) : null;
+
+		if ( null !== $url && '' !== $url ) {
+			$see = sprintf( ' <a href="%1$s">%2$s</a>', esc_url( $url ), esc_html__( 'Edit the draft', 'undergrowth' ) );
+		}
+	}
+
+	$class = in_array( $notice, array( 'vetoed', 'unvetoed', 'accepted', 'words_saved', 'pinned', 'unpinned', 'resurfacing_dismissed', 'hub_started', 'hub_vetoed' ), true ) ? 'notice-success' : 'notice-warning';
 
 	undergrowth_print_result_notices( array( $class => '<p>' . esc_html( $messages[ $notice ] ) . $see . '</p>' ) );
 }

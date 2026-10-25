@@ -496,7 +496,18 @@ const WITH_RESURFACING = [
 // two posts outside any group: one too far from the rest, one read since.
 const WITH_CLUSTERS = [
 	{ screen: 'map', state: 'clusters', page: MAP, fixture: 'tight-gaps' },
+	// Every group is proposed a hub, as a dense one would be.
+	{ screen: 'map', state: 'hub-proposal', page: MAP, fixture: 'hubs' },
+	...[ 'hub_started', 'hub_vetoed', 'hub_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
 ];
+
+// The same, once the first group has a hub draft.
+const WITH_HUB_DRAFT = [ { screen: 'map', state: 'hub-draft', page: MAP } ];
 
 // The same, with so many posts outside a group that their list starts
 // collapsed.
@@ -529,6 +540,30 @@ const WITH_BADGE = [
 		screen: 'block-growth-stage',
 		state: 'editor-composting',
 		edit: () => badgePosts.composting,
+	},
+];
+
+// Filled in once the list's posts exist, since the shots need their IDs.
+const listPosts = {};
+
+// "More like this", on the front end where readers see it and in the editor
+// with its settings and the posts on the list in the sidebar. A post with
+// nothing close shows readers nothing.
+const WITH_MORE_LIKE_THIS = [
+	{
+		screen: 'block-more-like-this',
+		state: 'front-list',
+		front: () => `/?p=${ listPosts.source }`,
+	},
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-list',
+		list: () => listPosts.source,
+	},
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-empty',
+		list: () => listPosts.alone,
 	},
 ];
 
@@ -766,6 +801,30 @@ function capture( states ) {
 					await editor.canvas
 						.locator(
 							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+						)
+						.first()
+						.waitFor();
+				} else if ( entry.list ) {
+					await admin.editPost( entry.list() );
+					const block = editor.canvas.locator(
+						'[data-type="undergrowth/more-like-this"]'
+					);
+					// The preview is rendered by the server after load.
+					await block
+						.locator( 'nav, .components-placeholder' )
+						.first()
+						.waitFor();
+					await editor.selectBlocks( block );
+					// Through the store, since the toggle's name is translated.
+					await page.evaluate( () =>
+						window.wp.data
+							.dispatch( 'core/edit-post' )
+							.openGeneralSidebar( 'edit-post/block' )
+					);
+					// The posts on the list come from their own route.
+					await page
+						.locator(
+							'.undergrowth-more-like-this-panel :is(ul, p, .components-notice)'
 						)
 						.first()
 						.waitFor();
@@ -1099,6 +1158,26 @@ test.describe( 'Screenshot catalogue', () => {
 
 			capture( WITH_MANY_UNGROUPED );
 		} );
+
+		test.describe( 'and a hub draft', () => {
+			test.beforeAll( async ( { requestUtils } ) => {
+				const response = await requestUtils.request.get(
+					'wp-admin/index.php?undergrowth_e2e_hub=1'
+				);
+
+				if ( ! response.ok() ) {
+					throw new Error(
+						`Starting a hub failed with HTTP ${ response.status() }.`
+					);
+				}
+			} );
+
+			test.afterAll( async ( { requestUtils } ) => {
+				await requestUtils.deleteAllPages();
+			} );
+
+			capture( WITH_HUB_DRAFT );
+		} );
 	} );
 
 	test.describe( 'with a growth-stage badge', () => {
@@ -1136,6 +1215,38 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_BADGE );
+	} );
+
+	test.describe( 'with a More like this list', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// The test site's provider counts fixture words, so posts that
+			// share "oca" are close and the ledger is close to nothing.
+			for ( const [ name, title, content, excerpt ] of [
+				[
+					'yacon',
+					'Yacon',
+					'Oca and yacon share a bed.',
+					'Two roots, one bed.',
+				],
+				[ 'syrup', 'Syrup', 'Oca boiled down to syrup.', '' ],
+				[ 'alone', 'Ledger', 'Ledger ledger ledger.', '' ],
+				[ 'source', 'Oca', 'Oca oca oca.', '' ],
+			] ) {
+				listPosts[ name ] = (
+					await requestUtils.createPost( {
+						title,
+						excerpt,
+						content: `<!-- wp:paragraph --><p>${ content }</p><!-- /wp:paragraph --><!-- wp:undergrowth/more-like-this {"showExcerpt":true} /-->`,
+						status: 'publish',
+					} )
+				).id;
+			}
+		} );
+
+		capture( WITH_MORE_LIKE_THIS );
 	} );
 
 	test.describe( 'with the editor panel', () => {

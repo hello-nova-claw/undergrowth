@@ -41,11 +41,25 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 | `undergrowth_min_resurfacing_similarity` | `src/resurfacing.php` | How close a composting post must be to a new cluster's leader to resurface. Defaults to the cluster threshold, so a signal means the post would have joined. |
 | `undergrowth_fixed_threshold_providers` | `src/thresholds.php` | Providers that keep the fixed thresholds whatever their scores. Default `array( 'openai' )`. Their scores are still measured. |
 
+### Hubs
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_hub_min_size` | `src/hubs.php` | The fewest posts a Map group needs before a hub is proposed for it. Default 5, never below 3. |
+| `undergrowth_hub_min_linked_share` | `src/hubs.php` | The smallest share of a group's posts that must already have an accepted link to or from another post in the group. Default 0.5. |
+
 ### Links
 
 | Filter | Where | What it changes |
 |---|---|---|
 | `undergrowth_anchor_stopwords` | `src/anchor-words.php` | The words that cannot carry a link in a language: `never` never carry one, and `named` only when the target's title or a heading holds them. |
+
+### More like this
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_similar_stage_weights` | `src/similar.php` | How much each growth stage lifts or sinks a post in "More like this", as a multiplier keyed by stage. Default Evergreen 1.15, Budding 1.1, Sprout 1, Seedling 0.9. |
+| `undergrowth_similar_freshness` | `src/similar.php` | The lift a recently updated post gets in "More like this", as `array( 'lift' => …, 'half_life' => … )`. Default a lift of 0.1 for a post updated today, halving every 180 days. |
 
 ### Writing prompts
 

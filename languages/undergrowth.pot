@@ -170,6 +170,10 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot make pages."
+msgstr ""
+
+#: src/admin.php
 msgid "You cannot export the Map."
 msgstr ""
 
@@ -250,6 +254,32 @@ msgstr[1] ""
 #: src/admin.php
 #, php-format
 msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: %1$s: title of the hub page, linked to its editor.
+#: src/admin.php
+#, php-format
+msgid "This group has a hub: %1$s."
+msgstr ""
+
+#: src/admin.php
+msgid "This group has a hub draft. It stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "Edit the draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it."
+msgstr ""
+
+#: src/admin.php
+msgid "Start a hub draft"
+msgstr ""
+
+#: src/admin.php
+msgid "Not for this group"
 msgstr ""
 
 #: src/admin.php
@@ -423,6 +453,18 @@ msgid "No suggestion was checked, or no bulk action was chosen, so nothing was c
 msgstr ""
 
 #: src/admin.php
+msgid "Hub draft started. It holds only the group’s titles as links, and stays a draft until you publish it."
+msgstr ""
+
+#: src/admin.php
+msgid "No hub will be proposed for this group again."
+msgstr ""
+
+#: src/admin.php
+msgid "That group no longer has a hub proposal, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
 msgid "See the change"
 msgstr ""
 
@@ -432,6 +474,12 @@ msgstr ""
 #: src/editor/stage-panel.js
 #, php-format,js-format
 msgid "Growth stage: %s"
+msgstr ""
+
+#: src/blocks.php
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "More like this"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
@@ -1287,7 +1335,7 @@ msgid "Budding: in a group, with accepted links both in and out."
 msgstr ""
 
 #: src/help.php
-msgid "Evergreen: in a group, with three or more links in. In this version a post becomes evergreen only when you pin it there."
+msgid "Evergreen: in a group, with three or more accepted links in, and a published hub page that links to it. A hub is a page you started from the Map, wrote and published yourself."
 msgstr ""
 
 #: src/help.php
@@ -1304,6 +1352,10 @@ msgstr ""
 
 #: src/help.php
 msgid "A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgstr ""
+
+#: src/help.php
+msgid "A large group whose posts already link to each other may get a hub proposal: a page that ties the group together for readers. You write the hub. Start a hub draft makes a draft page holding only the group’s titles, each linked to its post, and Undergrowth never publishes it. Not for this group means it is never proposed for that group again."
 msgstr ""
 
 #: src/help.php
@@ -1575,6 +1627,8 @@ msgid "The linked Discord user ID could not be removed. Try again, or clear it o
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
 
@@ -1908,6 +1962,10 @@ msgstr ""
 msgid "Optional. Undergrowth can post each new link suggestion to a channel in your own Discord server, with Accept and Veto buttons that work like the ones on Posts > Undergrowth. Each message sends Discord the titles of both posts, the suggested sentence, which is in your own words, and links to both posts. Nothing is sent until every Discord field on this page is filled in. Use a private channel: anyone who can read it sees your suggestions, and nothing is ever posted to your readers."
 msgstr ""
 
+#: src/similar.php
+msgid "That post no longer exists, so nothing was changed."
+msgstr ""
+
 #: src/site-health.php
 msgid "Undergrowth’s per-post files are private"
 msgstr ""
@@ -2129,6 +2187,82 @@ msgstr ""
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Readers see nothing here yet. Only published posts in the garden get a list, and only once Undergrowth has read posts close enough in meaning."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: build/editor/index.js
+#: src/blocks/more-like-this/edit.js
+#: src/editor/stage-panel.js
+msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "No posts are on this list yet."
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Hide “%s” from this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hide"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Hidden from this list:"
+msgstr ""
+
+#. translators: %s: post title.
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+#, js-format
+msgid "Show “%s” on this list again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Number of posts"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show featured image"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Show excerpt"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Only excerpts you wrote yourself are shown."
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Posts on this list"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Lists the posts closest in meaning to the post it is placed in."
+msgstr ""
+
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
 msgid "Suggested links"
@@ -2215,11 +2349,6 @@ msgstr ""
 
 #: build/editor/index.js
 #: src/editor/stage-panel.js
-msgid "Undergrowth could not reach your site. Check your connection, then reload the page."
-msgstr ""
-
-#: build/editor/index.js
-#: src/editor/stage-panel.js
 msgid "This post gets a growth stage once it is published."
 msgstr ""
 
@@ -2279,4 +2408,34 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block title"
+msgid "More like this"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block description"
+msgid "Lists your posts closest in meaning to this one, lifting Evergreen and recently updated posts. Shows only titles, your own excerpts, featured images and links."
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "related"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "similar"
+msgstr ""
+
+#: build/blocks/more-like-this/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
 msgstr ""

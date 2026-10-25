@@ -21,11 +21,15 @@ function undergrowth_protected_meta_keys(): array {
 	return array(
 		'undergrowth_cluster',
 		'undergrowth_discord_messages',
+		'undergrowth_hub',
+		'undergrowth_hub_link',
 		'undergrowth_pending_links',
 		'undergrowth_prompt_keys',
 		'undergrowth_prompt_log',
 		'undergrowth_resurfacing',
 		'undergrowth_resurfacing_log',
+		'undergrowth_similar',
+		'undergrowth_similar_hidden',
 		'undergrowth_stage',
 		'undergrowth_stage_log',
 		'undergrowth_stage_pinned',
@@ -283,6 +287,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
+	wp_unschedule_hook( 'undergrowth_measure_similar' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
@@ -320,6 +325,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_post_proposals' );
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
+	wp_unschedule_hook( 'undergrowth_measure_similar' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );
@@ -361,6 +367,10 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_cluster_similarity' );
 	delete_option( 'undergrowth_stage_cycle_pass' );
 	delete_option( 'undergrowth_cluster_labels' );
+	// Hub pages are the author's and stay; only what marks them as hubs goes.
+	delete_option( 'undergrowth_hub_vetoes' );
+	delete_post_meta_by_key( 'undergrowth_hub' );
+	delete_post_meta_by_key( 'undergrowth_hub_link' );
 	delete_option( 'undergrowth_scores' );
 	delete_option( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_dev_job' );
@@ -380,6 +390,9 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_keys' );
 	delete_post_meta_by_key( 'undergrowth_pending_links' );
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
+	delete_post_meta_by_key( 'undergrowth_similar' );
+	delete_post_meta_by_key( 'undergrowth_similar_hidden' );
+	delete_option( 'undergrowth_similar_generation' );
 	undergrowth_delete_memory_folder();
 	delete_option( 'undergrowth_memory_folder' );
 	delete_transient( 'undergrowth_old_folder_retry' );

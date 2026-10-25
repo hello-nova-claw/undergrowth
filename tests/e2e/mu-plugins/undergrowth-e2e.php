@@ -255,6 +255,42 @@ add_action(
 	}
 );
 
+/**
+ * Makes every group on the Map dense enough for a hub, since accepting
+ * links one by one would make a test far slower than what it checks.
+ */
+function undergrowth_e2e_any_group_is_dense(): void {
+	add_filter( 'undergrowth_hub_min_size', '__return_zero' );
+	add_filter(
+		'undergrowth_hub_min_linked_share',
+		static function () {
+			return 0.0;
+		}
+	);
+}
+
+// A test asks for a hub draft for the first group on the Map, as Start a
+// hub draft makes it, by visiting any admin page with this argument.
+add_action(
+	'admin_init',
+	static function () {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test sites only; it makes a draft no reader sees.
+		if ( ! isset( $_GET['undergrowth_e2e_hub'] ) || ! current_user_can( 'manage_options' ) || ! function_exists( 'undergrowth_start_hub' ) ) {
+			return;
+		}
+
+		undergrowth_e2e_any_group_is_dense();
+
+		$map = undergrowth_cluster_map();
+		$hub = array() === $map ? new WP_Error( 'no_group' ) : undergrowth_start_hub( $map[0]['leader'] );
+
+		// A test that asked for a hub must not go on to shoot a Map without one.
+		if ( is_wp_error( $hub ) ) {
+			wp_die( 'No hub draft was started.', '', array( 'response' => 500 ) );
+		}
+	}
+);
+
 // A test that activates the plugin asks for a fresh first run, since the
 // real one happens once per site. It is a REST route, so it needs the REST
 // nonce as well as an administrator.
@@ -321,7 +357,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'accept-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'accept-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'hubs', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
 	case 'first-run':
 		// As right after activation on a site with no key.
 		add_filter(
@@ -635,6 +671,10 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 
 	// Fixture vectors are too few and too regular to leave a cluster's centre
 	// empty at the real threshold, so only a perfectly tight cluster has none.
+	case 'hubs':
+		undergrowth_e2e_any_group_is_dense();
+		break;
+
 	case 'tight-gaps':
 		add_filter(
 			'undergrowth_gap_similarity',
