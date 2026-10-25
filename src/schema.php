@@ -326,6 +326,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_prompt_written' );
 	delete_option( 'undergrowth_last_file_error' );
 	delete_option( 'undergrowth_memory_exposed' );
+	delete_option( 'undergrowth_last_accept_error' );
 	delete_option( 'undergrowth_suggest_links' );
 	delete_option( 'undergrowth_post_types' );
 	delete_option( 'undergrowth_first_run' );
