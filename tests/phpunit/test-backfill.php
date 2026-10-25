@@ -43,6 +43,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		delete_option( 'undergrowth_backfill.lock' );
 		delete_option( 'undergrowth_index_identity' );
 		delete_option( 'undergrowth_backfill_progress' );
+		delete_option( 'undergrowth_stale_check' );
 		wp_unschedule_hook( 'undergrowth_backfill' );
 		wp_unschedule_hook( 'undergrowth_backfill_check' );
 		wp_unschedule_hook( 'undergrowth_cluster_cycle' );
@@ -350,6 +351,82 @@ class Test_Backfill extends WP_UnitTestCase {
 		);
 
 		return $sent;
+	}
+
+	/**
+	 * Publishes a post, embeds it, then changes its text the way an edit
+	 * whose embed event was lost would: saved, but never embedded again.
+	 *
+	 * @param string $content New post content, or empty to keep the text.
+	 * @return int Post ID.
+	 */
+	private function edited_while_away( string $content ): int {
+		global $wpdb;
+
+		$post_id = $this->archive( 1 )[0];
+		undergrowth_embed_post( $post_id );
+
+		// The vector is from an hour before the edit.
+		$wpdb->update( undergrowth_vectors_table(), array( 'embedded_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ), array( 'post_id' => $post_id ) );
+
+		remove_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10 );
+		wp_update_post(
+			array(
+				'ID'           => $post_id,
+				'post_content' => '' !== $content ? $content : get_post( $post_id )->post_content,
+			)
+		);
+		add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', 10, 2 );
+		wp_unschedule_hook( 'undergrowth_embed_post' );
+
+		return $post_id;
+	}
+
+	public function test_hourly_check_embeds_again_a_post_whose_text_changed_unseen() {
+		$post_id = $this->edited_while_away( 'Something I rewrote while the plugin was off.' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+
+		do_action( 'undergrowth_embed_post', $post_id );
+
+		$this->assertSame( hash( 'sha256', undergrowth_post_text( get_post( $post_id ) ) ), undergrowth_get_vector( $post_id )['content_hash'] );
+	}
+
+	public function test_hourly_check_finds_a_post_edited_in_the_second_it_was_embedded() {
+		global $wpdb;
+
+		$post_id = $this->edited_while_away( 'Rewritten in the same second.' );
+		$wpdb->update( undergrowth_vectors_table(), array( 'embedded_at' => get_post( $post_id )->post_modified_gmt ), array( 'post_id' => $post_id ) );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
+	public function test_hourly_check_leaves_a_post_saved_with_the_same_text() {
+		$post_id = $this->edited_while_away( '' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
+	public function test_hourly_check_reads_a_limited_number_of_posts_and_carries_on_at_once() {
+		add_filter( 'undergrowth_stale_check_size', static fn() => 1 );
+		$first  = $this->edited_while_away( 'Rewritten once.' );
+		$second = $this->edited_while_away( 'Rewritten twice.' );
+
+		do_action( 'undergrowth_backfill_check' );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $first ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $second ) ) );
+
+		// The next page is read at once, not an hour later.
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stale_check' ) );
+		wp_unschedule_hook( 'undergrowth_stale_check' );
+		do_action( 'undergrowth_stale_check' );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $second ) ) );
 	}
 
 	public function test_too_many_requests_stops_the_batch_and_waits() {
