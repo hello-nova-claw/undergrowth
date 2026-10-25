@@ -151,6 +151,7 @@ function undergrowth_register_settings(): void {
 	}
 
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions in your Prompt studio', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
@@ -701,6 +702,43 @@ function undergrowth_render_posts_read_field(): void {
 	if ( undergrowth_backfill_stalled() ) {
 		undergrowth_print_failure_notice( undergrowth_backfill_stalled_text(), 'undergrowth-backfill-stalled' );
 	}
+}
+
+/**
+ * Says which stats plugin "More like this" reads recent views from, or that
+ * none is active.
+ */
+function undergrowth_render_popularity_field(): void {
+	$slug  = undergrowth_popularity_source();
+	$label = undergrowth_popularity_source_label();
+	?>
+	<p id="undergrowth-popularity">
+		<?php
+		if ( null === $label ) {
+			esc_html_e( 'No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter.', 'undergrowth' );
+		} else {
+			echo esc_html(
+				sprintf(
+					/* translators: %1$s: name of a stats plugin, such as Jetpack Stats. */
+					__( '“More like this” reads your posts’ recent views from %1$s once a day, as many as it gives.', 'undergrowth' ),
+					$label
+				)
+			);
+		}
+		?>
+	</p>
+	<p class="description">
+		<?php
+		if ( 'jetpack' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. Jetpack asks WordPress.com for them, as it does for its own Stats screen.', 'undergrowth' );
+		} elseif ( 'koko' === $slug || 'pvc' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. They are read from your own database, and nothing leaves your site.', 'undergrowth' );
+		} else {
+			esc_html_e( 'Undergrowth counts no views itself.', 'undergrowth' );
+		}
+		?>
+	</p>
+	<?php
 }
 
 /**

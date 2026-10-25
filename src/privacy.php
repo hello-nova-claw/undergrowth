@@ -29,7 +29,7 @@ function undergrowth_add_privacy_policy_content(): void {
 		__( 'A site user who links their Discord account on their profile has their Discord user ID stored with their account, so that clicks in Discord can be matched to them. It is included in personal data exports and removed by personal data erasure.', 'undergrowth' ),
 	);
 
-	$content = '<p class="privacy-policy-tutorial">' . esc_html__( 'Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth.', 'undergrowth' ) . '</p>'
+	$content = '<p class="privacy-policy-tutorial">' . esc_html__( 'Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads from it, once a day, how often posts were viewed lately, as far as that plugin can tell, and sends that nowhere.', 'undergrowth' ) . '</p>'
 		. '<strong class="privacy-policy-tutorial">' . esc_html__( 'Suggested text:', 'undergrowth' ) . ' </strong>';
 
 	foreach ( $paragraphs as $paragraph ) {
