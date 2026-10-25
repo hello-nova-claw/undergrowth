@@ -178,6 +178,32 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( $evergreen, undergrowth_more_like_this( $this->source, 3 )[0] );
 	}
 
+	public function test_posts_readers_cannot_see_never_crowd_out_one_they_can() {
+		foreach ( range( 1, 105 ) as $n ) {
+			$this->old( 'Private ' . $n, array( 1, $n / 10000, 0 ), array( 'post_status' => 'private' ) );
+		}
+
+		$visible = $this->old( 'Mashua', array( 1, 0.2, 0 ) );
+
+		$this->assertSame( array( $visible ), undergrowth_more_like_this( $this->source, 3 ) );
+	}
+
+	public function test_hidden_posts_never_crowd_out_one_that_can_be_shown() {
+		$hidden = array();
+
+		foreach ( range( 1, 105 ) as $n ) {
+			$hidden[] = $this->old( 'Hidden ' . $n, array( 1, $n / 10000, 0 ) );
+		}
+
+		$shown = $this->old( 'Mashua', array( 1, 0.2, 0 ) );
+
+		foreach ( $hidden as $id ) {
+			add_post_meta( $this->source, 'undergrowth_similar_hidden', $id );
+		}
+
+		$this->assertSame( array( $shown ), undergrowth_more_like_this( $this->source, 3 ) );
+	}
+
 	public function test_a_new_stage_measures_the_lists_again() {
 		$yacon = $this->old( 'Yacon', array( 1, 0, 0 ) );
 		undergrowth_similar_scores( $this->source );

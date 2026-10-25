@@ -117,7 +117,11 @@ function undergrowth_measure_similar( int $post_id ): array {
 	// are kept too, for the quiet slot. The bound keeps one post's list from
 	// holding the whole archive; stage changes measure it again, and
 	// freshness fades too slowly to reorder much before the next measure.
-	_prime_post_caches( array_keys( $scores ), false, true );
+	// Posts readers may not see, or the author hid, are left out first, so
+	// they never take the place of one that can be shown. Each change to
+	// either measures the list again.
+	$hidden = array_flip( undergrowth_similar_hidden( $post_id ) );
+	$scores = array_intersect_key( $scores, array_flip( undergrowth_filter_garden_visible( array_keys( array_diff_key( $scores, $hidden ) ) ) ) );
 
 	$now      = time();
 	$weighted = array();
@@ -284,6 +288,11 @@ function undergrowth_set_similar_hidden( int $post_id, int $target_id, bool $hid
 		add_post_meta( $post_id, 'undergrowth_similar_hidden', $target_id );
 	} elseif ( ! $hide && $hidden ) {
 		delete_post_meta( $post_id, 'undergrowth_similar_hidden', $target_id );
+	}
+
+	// The author is waiting on the list, so it is measured again at once.
+	if ( $hide !== $hidden ) {
+		undergrowth_measure_similar( $post_id );
 	}
 
 	return true;
