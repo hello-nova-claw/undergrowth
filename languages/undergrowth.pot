@@ -392,6 +392,7 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
+#: src/settings.php
 #: build/editor/index.js
 #: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
@@ -1658,6 +1659,32 @@ msgstr ""
 
 #: src/settings.php
 msgid "A post’s file could not be written. Check that the uploads folder can be written to."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress refused to save the post because it would have been empty, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress could not find the post to save, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "The database did not take the change, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress did not save the post, so the link was not added."
+msgstr ""
+
+#. translators: %1$s: error code WordPress gave, such as rest_cannot_edit.
+#: src/settings.php
+#, php-format
+msgid "WordPress did not save the post, so the link was not added. It reported the error %1$s."
+msgstr ""
+
+#: src/settings.php
+msgid "The suggestion is still on Posts > Undergrowth, so you can accept it again."
 msgstr ""
 
 #. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.
