@@ -16,6 +16,8 @@ Undergrowth's rules are fixed in code (handover section 2, principle 6). These h
 | `undergrowth_post_types` | `src/indexer.php` | The post types whose published posts are read. Default the ones ticked under Post types on Settings > Undergrowth, `array( 'post' )` until then. While it is used, those boxes cannot be changed. |
 | `undergrowth_backfill_batch_size` | `src/indexer.php` | How many posts one backfill run embeds. Default 20. |
 | `undergrowth_backfill_time_budget` | `src/indexer.php` | How many seconds one backfill run may keep starting new posts. Default 15. |
+| `undergrowth_post_chunk_size` | `src/links.php` | How many posts are read in one query wherever posts are read in chunks, such as building the word counts or checking link targets. Default 100. A smaller chunk holds less in memory and sends more queries. |
+| `undergrowth_vector_chunk_size` | `src/links.php` | How many stored vectors are read in one query. Default 100. |
 
 ### Thresholds
 
