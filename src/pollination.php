@@ -55,6 +55,7 @@ const UNDERGROWTH_POLLINATION_KEEP = 3;
 const UNDERGROWTH_THREAD_TERMS = 3;
 
 add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle', 10, 2 );
+add_action( 'undergrowth_pollination_start', 'undergrowth_start_pollination' );
 add_action( 'admin_post_undergrowth_dismiss_pollination', 'undergrowth_handle_dismiss_pollination' );
 
 /**
@@ -224,8 +225,30 @@ function undergrowth_keep_strongest( array $kept, array $candidate ): array {
  * The first batch is queued for cron, so the request that ends the cluster
  * pass does no more work. Each batch is recorded like the cluster and stage
  * passes', so the hourly check runs one that died again.
+ *
+ * A start and a batch never interleave: both take one lock, so a batch of
+ * the old pass can never store its pairs over the new pass's work. A start
+ * that finds the lock taken tries again in a minute.
  */
 function undergrowth_start_pollination(): void {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_pollination_cycle', UNDERGROWTH_PASS_STALL ) ) {
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_pollination_start' );
+		return;
+	}
+
+	try {
+		undergrowth_begin_pollination_pass();
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_pollination_cycle' );
+	}
+}
+
+/**
+ * Records a new pass and queues its first batch, while holding the lock.
+ */
+function undergrowth_begin_pollination_pass(): void {
 	$pass = wp_generate_uuid4();
 
 	update_option(
@@ -287,15 +310,41 @@ function undergrowth_cluster_leader_map(): array {
  * Only posts in a group make sweet-spot pairs, so a composting post is never
  * proposed as one end of a link.
  *
+ * Batches run one at a time, under the lock a start also takes. A batch
+ * that finds it taken tries again in a minute.
+ *
  * @param int|string $after_id Look at posts with a higher ID than this.
  * @param string     $pass     ID of the pass the batch belongs to.
  */
 function undergrowth_run_pollination_cycle( $after_id = 0, $pass = '' ): void {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	if ( ! WP_Upgrader::create_lock( 'undergrowth_pollination_cycle', UNDERGROWTH_PASS_STALL ) ) {
+		wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'undergrowth_pollination_cycle', array( (int) $after_id, (string) $pass ) );
+		return;
+	}
+
+	try {
+		undergrowth_run_pollination_batch( (int) $after_id, (string) $pass );
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_pollination_cycle' );
+	}
+}
+
+/**
+ * Runs one batch of a pollination pass, while holding the lock.
+ *
+ * @param int    $after_id Look at posts with a higher ID than this.
+ * @param string $pass     ID of the pass the batch belongs to.
+ */
+function undergrowth_run_pollination_batch( int $after_id, string $pass ): void {
 	global $wpdb;
 
-	$after_id = (int) $after_id;
-	$pass     = (string) $pass;
-	$work     = get_option( 'undergrowth_pollination_work' );
+	// Another request may have started a pass since this one read them.
+	wp_cache_delete( 'undergrowth_pollination_work', 'options' );
+	wp_cache_delete( 'undergrowth_cluster_labels', 'options' );
+
+	$work = get_option( 'undergrowth_pollination_work' );
 
 	// A new cluster pass, or a new run of this one, has started since: it
 	// carries on in its own batches.

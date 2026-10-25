@@ -276,6 +276,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 	wp_unschedule_hook( 'undergrowth_pollination_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_start' );
 	delete_option( 'undergrowth_pollination_work' );
 	delete_option( 'undergrowth_pollination_cycle_pass' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
@@ -386,6 +387,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
 	wp_unschedule_hook( 'undergrowth_pollination_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_start' );
 	delete_option( 'undergrowth_pollination_work' );
 	delete_option( 'undergrowth_pollination_cycle_pass' );
 	delete_option( 'undergrowth_previous_clusters' );
