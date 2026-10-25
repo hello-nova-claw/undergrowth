@@ -142,4 +142,76 @@ class Test_Coverage_Gate extends WP_UnitTestCase {
 		$this->assertSame( 1, $code );
 		$this->assertStringContainsString( 'lists no statements', $output );
 	}
+
+	/**
+	 * Runs the gate on a report with the given counts.
+	 *
+	 * @param int $statements Statements.
+	 * @param int $covered    Covered statements.
+	 * @return array{0: int, 1: string} Exit code, and everything it printed.
+	 */
+	private function gate_counts( int $statements, int $covered ): array {
+		$clover = $this->dir . '/counts.xml';
+		file_put_contents( $clover, '<?xml version="1.0"?><coverage><project><metrics statements="' . $statements . '" coveredstatements="' . $covered . '"/></project></coverage>' );
+		file_put_contents( $this->dir . '/baseline', "100.00\n" );
+
+		return $this->run_gate( array( PHP_BINARY, dirname( __DIR__, 2 ) . '/bin/coverage-gate.php', $clover, $this->dir . '/baseline' ) );
+	}
+
+	public function test_more_covered_statements_than_statements_is_refused() {
+		list( $code, $output ) = $this->gate_counts( 10000, 10001 );
+
+		$this->assertSame( 2, $code );
+		$this->assertStringContainsString( 'which cannot be', $output );
+	}
+
+	public function test_negative_counts_are_refused() {
+		$this->assertSame( 2, $this->gate_counts( 10000, -1 )[0] );
+	}
+
+	/**
+	 * Baseline file contents that are not one percentage.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function data_bad_baselines() {
+		return array(
+			'words'        => array( 'invalid' ),
+			'empty'        => array( '' ),
+			'two figures'  => array( '98.34 98.40' ),
+			'over a whole' => array( '100.01' ),
+			'negative'     => array( '-1' ),
+		);
+	}
+
+	/**
+	 * A base baseline that is not a percentage would read as 0 and let
+	 * coverage pass below the bar.
+	 *
+	 * @dataProvider data_bad_baselines
+	 *
+	 * @param string $base The base branch's baseline file contents.
+	 */
+	public function test_a_base_baseline_that_is_not_a_percentage_is_refused( $base ) {
+		list( $code, $output ) = $this->gate( 9834, '98.34', $base );
+
+		$this->assertSame( 2, $code );
+		$this->assertStringContainsString( 'should hold one percentage', $output );
+	}
+
+	public function test_a_baseline_that_is_not_a_percentage_is_refused() {
+		list( $code ) = $this->gate( 9834, 'invalid', '98.34' );
+
+		$this->assertSame( 2, $code );
+	}
+
+	public function test_a_missing_base_baseline_is_refused() {
+		$clover = $this->dir . '/clover.xml';
+		file_put_contents( $clover, '<?xml version="1.0"?><coverage><project><metrics statements="10000" coveredstatements="9834"/></project></coverage>' );
+		file_put_contents( $this->dir . '/baseline', "98.34\n" );
+
+		list( $code ) = $this->run_gate( array( PHP_BINARY, dirname( __DIR__, 2 ) . '/bin/coverage-gate.php', $clover, $this->dir . '/baseline', $this->dir . '/missing' ) );
+
+		$this->assertSame( 2, $code );
+	}
 }

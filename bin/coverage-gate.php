@@ -31,6 +31,11 @@ $metrics    = $report->project->metrics;
 $statements = (int) $metrics['statements'];
 $covered    = (int) $metrics['coveredstatements'];
 
+if ( $statements < 0 || $covered < 0 || $covered > $statements ) {
+	fwrite( STDERR, "The coverage report counts {$covered} covered statements of {$statements}, which cannot be.\n" );
+	exit( 2 );
+}
+
 // A report with no statements means the source files were not found when it
 // was built, not that everything is covered.
 if ( 0 === $statements ) {
@@ -38,10 +43,29 @@ if ( 0 === $statements ) {
 	exit( 1 );
 }
 
+/**
+ * Reads a baseline file, which holds one percentage and nothing else.
+ *
+ * Any other content would read as 0, and let coverage pass below the bar.
+ *
+ * @param string $path Baseline file.
+ * @return string The percentage to two decimals.
+ */
+function undergrowth_read_baseline( string $path ): string {
+	$text = is_readable( $path ) ? trim( (string) file_get_contents( $path ) ) : '';
+
+	if ( 1 !== preg_match( '/^[0-9]{1,3}(?:\.[0-9]+)?$/D', $text ) || (float) $text > 100 ) {
+		fwrite( STDERR, "{$path} should hold one percentage, such as 98.34.\n" );
+		exit( 2 );
+	}
+
+	return sprintf( '%.2f', (float) $text );
+}
+
 // Compared as printed, so a figure that rounds to the baseline matches it.
 $coverage = sprintf( '%.2f', 100 * $covered / $statements );
-$baseline = sprintf( '%.2f', (float) trim( (string) file_get_contents( $argv[2] ) ) );
-$base     = 4 === $argc ? sprintf( '%.2f', (float) trim( (string) file_get_contents( $argv[3] ) ) ) : $baseline;
+$baseline = undergrowth_read_baseline( $argv[2] );
+$base     = 4 === $argc ? undergrowth_read_baseline( $argv[3] ) : $baseline;
 
 printf( "Statement coverage %s%%, baseline %s%%, base branch's baseline %s%%\n", $coverage, $baseline, $base );
 
