@@ -65,7 +65,12 @@ function undergrowth_linked_from_posts( int $post_id, int $limit ): array {
 		)
 	);
 
-	$posts = array_map( 'get_post', undergrowth_filter_garden_visible( array_map( 'intval', (array) $source_ids ) ) );
+	$posts = array_filter(
+		array_map( 'get_post', undergrowth_filter_garden_visible( array_map( 'intval', (array) $source_ids ) ) ),
+		static function ( $post ): bool {
+			return $post instanceof WP_Post;
+		}
+	);
 
 	usort(
 		$posts,
