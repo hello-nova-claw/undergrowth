@@ -1,1 +1,1 @@
-On a site with Polylang or WPML, each post's vector now keeps the post's own language, so posts in different languages are never suggested to each other. The Link suggestions Help tab on Settings > Undergrowth says so.
+On a site with Polylang or WPML, each post's vector now keeps the post's own language, so posts in different languages are never suggested to each other. Posts read before are read again in the background. A post the plugin gives no language keeps the site's language. The Link suggestions Help tab on Settings > Undergrowth says so.

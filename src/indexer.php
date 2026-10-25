@@ -505,6 +505,7 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	global $wpdb;
 
 	$indexable = undergrowth_indexable_sql( 'p.' );
+	$stale     = undergrowth_stale_index_language( $identity );
 
 	if ( null === $indexable ) {
 		return array();
@@ -514,13 +515,42 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
-			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE v.post_id IS NULL AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
-			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $after_id ), $indexable[1], array( $limit ) )
+			"SELECT p.ID FROM %i p LEFT JOIN %i v ON v.post_id = p.ID AND v.provider = %s AND v.model = %s AND ( %s = '' OR v.language = %s ) WHERE ( v.post_id IS NULL OR ( %s <> '' AND v.language = %s ) ) AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
+			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'], $identity['language'], $stale, $stale, $after_id ), $indexable[1], array( $limit ) )
 		)
 	);
 	// phpcs:enable
 
 	return array_map( 'intval', $post_ids );
+}
+
+/**
+ * Returns the site language the index was filled in, once posts have
+ * started to take their own language, as when Polylang or WPML is turned on.
+ *
+ * Vectors still in that language may be in the wrong one, so a pass reads
+ * them again. Embedding a post whose language has not changed sends nothing.
+ * Once the pass fills the index in the new way, there is none.
+ *
+ * @param array $identity {
+ *     The target, as from undergrowth_index_target().
+ *
+ *     @type string $provider Provider name.
+ *     @type string $model    Model name.
+ *     @type string $language Site locale, or empty when each post sets its own language.
+ * }
+ * @return string The old site language, or an empty string.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string} $identity
+ */
+function undergrowth_stale_index_language( array $identity ): string {
+	$recorded = get_option( 'undergrowth_index_identity' );
+
+	if ( '' !== $identity['language'] || ! is_array( $recorded ) || ( $recorded['provider'] ?? '' ) !== $identity['provider'] || ( $recorded['model'] ?? '' ) !== $identity['model'] ) {
+		return '';
+	}
+
+	return is_string( $recorded['language'] ?? null ) ? $recorded['language'] : '';
 }
 
 /**

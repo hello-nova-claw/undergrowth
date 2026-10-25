@@ -422,6 +422,28 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertSame( get_locale(), undergrowth_get_vector( $other )['language'] );
 	}
 
+	public function test_turning_polylang_on_embeds_again_the_posts_read_in_the_site_language() {
+		$post_id = $this->publish();
+		undergrowth_embed_post( $post_id );
+		update_option(
+			'undergrowth_index_identity',
+			array(
+				'provider' => 'test-provider',
+				'model'    => 'test-model-v1',
+				'language' => get_locale(),
+			)
+		);
+		$this->assertSame( get_locale(), undergrowth_get_vector( $post_id )['language'] );
+
+		$GLOBALS['undergrowth_test_post_languages'] = array( $post_id => 'fr' );
+		undergrowth_hook_multilingual_language();
+		undergrowth_start_backfill();
+		do_action( 'undergrowth_backfill' );
+
+		$this->assertSame( 'fr', undergrowth_get_vector( $post_id )['language'] );
+		$this->assertSame( '', get_option( 'undergrowth_index_identity' )['language'] );
+	}
+
 	public function test_wpml_language_is_stored() {
 		$post_id = $this->publish();
 		add_filter(

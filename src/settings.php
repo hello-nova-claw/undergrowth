@@ -871,7 +871,7 @@ function undergrowth_add_settings_help(): void {
 			array(
 				$links,
 				__( 'A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent.', 'undergrowth' ),
-				__( 'With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other.', 'undergrowth' ),
+				__( 'With Polylang or WPML active, each post keeps the language it is written in, and only posts in the same language are suggested to each other. A post the plugin gives no language keeps the site’s language.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-prompts' => array(
