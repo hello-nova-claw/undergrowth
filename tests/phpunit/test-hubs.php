@@ -497,7 +497,8 @@ class Test_Hubs extends WP_UnitTestCase {
 		$html = $this->render_map();
 
 		$this->assertStringContainsString( 'notice-success', $html );
-		$this->assertStringContainsString( 'post.php?post=' . $hub . '&amp;action=edit">Edit the draft</a></p>', $html );
+		// Core escapes the ampersand either way, depending on the context.
+		$this->assertMatchesRegularExpression( '#post\.php\?post=' . $hub . '&(?:amp|\#038);action=edit">Edit the draft</a></p>#', $html );
 	}
 
 	public function test_started_notice_links_to_no_page_that_is_no_hub() {
