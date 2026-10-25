@@ -1243,6 +1243,10 @@ msgid "Accept adds that one link and saves a revision, so you can see or undo th
 msgstr ""
 
 #: src/help.php
+msgid "A suggestion marked Cross-pollination links two posts from groups on the Map that sit apart, as the surprise scale on Settings › Undergrowth allows. A post gets at most one, on top of its usual suggestions, and it is accepted or vetoed like any other."
+msgstr ""
+
+#: src/help.php
 msgid "Seedling: a new post, with no more than one accepted link in or out."
 msgstr ""
 
@@ -1516,6 +1520,20 @@ msgstr ""
 #: src/pollination.php
 #, php-format
 msgid "Around “%1$s”, and around “%2$s”"
+msgstr ""
+
+#: src/pollination.php
+msgid "These posts are in groups that sit apart, but they are not far apart themselves."
+msgstr ""
+
+#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
+#: src/pollination.php
+#, php-format
+msgid "These posts are in groups that sit apart, and both groups use %1$s."
+msgstr ""
+
+#: src/pollination.php
+msgid "Cross-pollination."
 msgstr ""
 
 #: src/popularity.php
