@@ -58,7 +58,7 @@ Undergrowth contacts three services, each only once you set it up: OpenAI, to re
 
 = What is sent to OpenAI? =
 
-With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model. OpenAI returns a vector, which nobody sees. Drafts, private posts and comments are never sent. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/). Remove the key to stop.
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model. OpenAI returns a vector, which nobody sees. A draft is sent only when you press Scan this draft in the editor: its title and text, once, and nothing about it is kept. Private posts, posts behind a password and comments are never sent. Requests go to `api.openai.com` from WP-Cron, or from the editor for a scan, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/). Remove the key to stop.
 
 = What is sent to Anthropic? =
 
