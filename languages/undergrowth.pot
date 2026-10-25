@@ -582,7 +582,7 @@ msgid "Could link here"
 msgstr ""
 
 #: src/class-undergrowth-orphans-list-table.php
-msgid "Every post in your garden has at least one accepted link pointing to it."
+msgid "No orphans. Every post Undergrowth has read has at least one accepted link pointing to it."
 msgstr ""
 
 #: src/class-undergrowth-orphans-list-table.php

@@ -55,12 +55,13 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Says that no post is an orphan.
+	 * Says that no post is an orphan, in words that still hold while posts
+	 * are waiting to be read.
 	 *
 	 * @return void
 	 */
 	public function no_items() {
-		esc_html_e( 'Every post in your garden has at least one accepted link pointing to it.', 'undergrowth' );
+		esc_html_e( 'No orphans. Every post Undergrowth has read has at least one accepted link pointing to it.', 'undergrowth' );
 	}
 
 	/**
@@ -128,7 +129,9 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 	 * @return string Cell HTML.
 	 */
 	public function column_date( $item ) {
-		return esc_html( (string) get_the_date( '', $item ) );
+		$published = get_post_timestamp( $item );
+
+		return false === $published ? '' : esc_html( (string) wp_date( (string) get_option( 'date_format' ), $published ) );
 	}
 
 	/**
