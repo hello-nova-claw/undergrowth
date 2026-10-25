@@ -17,6 +17,7 @@ add_action( 'deleted_post', 'undergrowth_delete_vector', 10, 2 );
 add_action( 'undergrowth_backfill', 'undergrowth_run_backfill' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_start_backfill' );
 add_action( 'undergrowth_backfill_check', 'undergrowth_queue_stale_embeds' );
+add_action( 'undergrowth_stale_check', 'undergrowth_queue_stale_embeds' );
 // Activation does not run on plugin updates or on every site of a network.
 add_action( 'init', 'undergrowth_schedule_backfill_check' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_start_backfill', 20, 0 );
@@ -706,9 +707,9 @@ function undergrowth_stale_check_size(): int {
  * Queues an embed for each post whose text changed after its vector was
  * made, as when an edit's embed was lost while the plugin was inactive.
  *
- * Only posts saved after their vector was stored can have changed, so those
- * are read, a limited number per check, walking on from where the last check
- * stopped. A post saved with the same text keeps its vector.
+ * Only posts saved since their vector was stored can have changed, so those
+ * are read, a limited number per run, each run queueing the next until the
+ * walk ends. A post saved with the same text keeps its vector.
  */
 function undergrowth_queue_stale_embeds(): void {
 	global $wpdb;
@@ -727,15 +728,22 @@ function undergrowth_queue_stale_embeds(): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT p.ID, v.content_hash FROM %i p JOIN %i v ON v.post_id = p.ID WHERE p.post_modified_gmt > v.embedded_at AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
+			"SELECT p.ID, v.content_hash FROM %i p JOIN %i v ON v.post_id = p.ID WHERE p.post_modified_gmt >= v.embedded_at AND p.ID > %d AND {$indexable[0]} ORDER BY p.ID ASC LIMIT %d",
 			array_merge( array( $wpdb->posts, undergrowth_vectors_table(), $after ), $indexable[1], array( $size ) )
 		),
 		ARRAY_A
 	);
 	// phpcs:enable
 
-	// A full page leaves more to read next time. A short one ends the walk.
-	update_option( 'undergrowth_stale_check', count( $rows ) >= $size ? (int) end( $rows )['ID'] : 0, false );
+	// A full page leaves more to read, which the next run reads at once, so
+	// the walk ends within the hour. A short one ends the walk.
+	$full = count( $rows ) >= $size;
+
+	update_option( 'undergrowth_stale_check', $full ? (int) end( $rows )['ID'] : 0, false );
+
+	if ( $full && false === wp_next_scheduled( 'undergrowth_stale_check' ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_stale_check' );
+	}
 
 	foreach ( $rows as $row ) {
 		$post_id = (int) $row['ID'];

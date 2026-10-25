@@ -394,6 +394,17 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertSame( hash( 'sha256', undergrowth_post_text( get_post( $post_id ) ) ), undergrowth_get_vector( $post_id )['content_hash'] );
 	}
 
+	public function test_hourly_check_finds_a_post_edited_in_the_second_it_was_embedded() {
+		global $wpdb;
+
+		$post_id = $this->edited_while_away( 'Rewritten in the same second.' );
+		$wpdb->update( undergrowth_vectors_table(), array( 'embedded_at' => get_post( $post_id )->post_modified_gmt ), array( 'post_id' => $post_id ) );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
+	}
+
 	public function test_hourly_check_leaves_a_post_saved_with_the_same_text() {
 		$post_id = $this->edited_while_away( '' );
 
@@ -402,7 +413,7 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $post_id ) ) );
 	}
 
-	public function test_hourly_check_reads_a_limited_number_of_posts_and_carries_on_next_time() {
+	public function test_hourly_check_reads_a_limited_number_of_posts_and_carries_on_at_once() {
 		add_filter( 'undergrowth_stale_check_size', static fn() => 1 );
 		$first  = $this->edited_while_away( 'Rewritten once.' );
 		$second = $this->edited_while_away( 'Rewritten twice.' );
@@ -411,7 +422,10 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $first ) ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $second ) ) );
 
-		do_action( 'undergrowth_backfill_check' );
+		// The next page is read at once, not an hour later.
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stale_check' ) );
+		wp_unschedule_hook( 'undergrowth_stale_check' );
+		do_action( 'undergrowth_stale_check' );
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_embed_post', array( $second ) ) );
 	}
 
