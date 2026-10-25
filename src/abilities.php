@@ -37,25 +37,15 @@ function undergrowth_register_ability_category(): void {
 }
 
 /**
- * Registers the abilities that read has, lacks, scent and stage for a post,
- * a cluster or the whole site.
+ * Describes the abilities that read has, lacks, scent and stage.
  *
- * Proposals and vetoes are the author's notes, like the per-post file, so
- * reading needs the right to edit the post, and a cluster or the site is read
- * only through the posts the user can edit. They are shown in REST, where the
- * same check applies, so another site can later ask over a signed request.
+ * Each names its label and description, the callback for one post, the
+ * callback for many posts, and the shape of what it returns.
+ *
+ * @return array<string, array<string, mixed>> Definitions keyed by ability name.
  */
-function undergrowth_register_read_abilities(): void {
-	$meta = array(
-		'annotations'  => array(
-			'readonly'    => true,
-			'destructive' => false,
-			'idempotent'  => true,
-		),
-		'show_in_rest' => true,
-	);
-
-	$abilities = array(
+function undergrowth_read_ability_definitions(): array {
+	return array(
 		'undergrowth/has'   => array(
 			'label'         => __( 'What a post, cluster or site has', 'undergrowth' ),
 			'description'   => __( 'Lists the words that most set the posts apart from the rest of the site, taken from their own text, and the published posts they already link to.', 'undergrowth' ),
@@ -182,6 +172,28 @@ function undergrowth_register_read_abilities(): void {
 			),
 		),
 	);
+}
+
+/**
+ * Registers the abilities that read has, lacks, scent and stage for a post,
+ * a cluster or the whole site.
+ *
+ * Proposals and vetoes are the author's notes, like the per-post file, so
+ * reading needs the right to edit the post, and a cluster or the site is read
+ * only through the posts the user can edit. They are shown in REST, where the
+ * same check applies, so another site can later ask over a signed request.
+ */
+function undergrowth_register_read_abilities(): void {
+	$meta = array(
+		'annotations'  => array(
+			'readonly'    => true,
+			'destructive' => false,
+			'idempotent'  => true,
+		),
+		'show_in_rest' => true,
+	);
+
+	$abilities = undergrowth_read_ability_definitions();
 
 	foreach ( $abilities as $name => $ability ) {
 		wp_register_ability(

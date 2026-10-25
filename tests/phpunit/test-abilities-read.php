@@ -356,4 +356,16 @@ class Test_Abilities_Read extends WP_UnitTestCase {
 
 		$this->assertSame( 401, rest_do_request( $request )->get_status() );
 	}
+
+	public function test_read_ability_definitions_name_the_four_read_abilities() {
+		$definitions = undergrowth_read_ability_definitions();
+
+		$this->assertSame( array( 'undergrowth/has', 'undergrowth/lacks', 'undergrowth/scent', 'undergrowth/stage' ), array_keys( $definitions ) );
+
+		foreach ( $definitions as $name => $definition ) {
+			$this->assertSame( array( 'label', 'description', 'callback', 'many', 'output_schema' ), array_keys( $definition ), $name );
+			$this->assertTrue( is_callable( $definition['callback'] ), $name );
+			$this->assertTrue( is_callable( $definition['many'] ), $name );
+		}
+	}
 }
