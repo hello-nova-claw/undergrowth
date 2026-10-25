@@ -507,7 +507,7 @@ function undergrowth_render_more_prompts_notice( string $notice, int $count ): v
 				$failure
 			),
 		),
-		'more_none'    => array( 'notice-info', __( 'Undergrowth found nothing new in your posts to ask about just now, so nothing was sent. It looks again each week.', 'undergrowth' ) ),
+		'more_none'    => array( 'notice-info', __( 'Claude has no new question for you from your posts just now. Undergrowth looks again each week.', 'undergrowth' ) ),
 		'more_wait'    => array( 'notice-warning', __( 'You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes.', 'undergrowth' ) ),
 		'more_no_key'  => array( 'notice-warning', __( 'There is no Anthropic API key, so nothing was sent.', 'undergrowth' ) ),
 	);

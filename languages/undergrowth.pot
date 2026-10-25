@@ -2370,7 +2370,7 @@ msgid "No new question was written. %1$s"
 msgstr ""
 
 #: src/studio.php
-msgid "Undergrowth found nothing new in your posts to ask about just now, so nothing was sent. It looks again each week."
+msgid "Claude has no new question for you from your posts just now. Undergrowth looks again each week."
 msgstr ""
 
 #: src/studio.php

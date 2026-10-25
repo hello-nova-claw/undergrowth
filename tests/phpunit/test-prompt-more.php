@@ -258,7 +258,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'undergrowth_notice=more_none', $location );
 		$this->assertSame( array(), $this->requests );
-		$this->assertStringContainsString( 'nothing new in your posts', $this->notice( $location ) );
+		$this->assertStringContainsString( 'no new question for you', $this->notice( $location ) );
 	}
 
 	public function test_rate_limit_from_anthropic_writes_nothing_and_says_why() {
@@ -316,6 +316,11 @@ class Test_Prompt_More extends WP_UnitTestCase {
 
 		$this->assertCount( 2, $this->requests );
 		$this->assertStringContainsString( 'undergrowth_notice=more_none', $location );
+
+		$html = $this->notice( $location );
+
+		$this->assertStringContainsString( 'no new question for you', $html );
+		$this->assertStringNotContainsString( 'nothing was sent', $html );
 	}
 
 	public function test_no_key_sends_nothing() {
