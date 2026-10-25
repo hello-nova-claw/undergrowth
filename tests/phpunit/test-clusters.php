@@ -126,6 +126,35 @@ class Test_Clusters extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Unschedules the next clustering batch, if one is waiting, keeping all
+	 * its arguments.
+	 *
+	 * @return array|null The batch's arguments, or null when none is waiting.
+	 */
+	private function take_next_batch_args(): ?array {
+		foreach ( (array) _get_cron_array() as $hooks ) {
+			foreach ( $hooks['undergrowth_cluster_cycle'] ?? array() as $event ) {
+				if ( array() !== $event['args'] ) {
+					wp_clear_scheduled_hook( 'undergrowth_cluster_cycle', $event['args'] );
+					return $event['args'];
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Returns the event arguments of the current pass's batch after a post.
+	 *
+	 * @param int $after_id Post ID the batch starts after.
+	 * @return array Event arguments.
+	 */
+	private function batch_args( int $after_id ): array {
+		return undergrowth_pass_args( $after_id, undergrowth_current_pass( 'undergrowth_cluster_cycle' ) );
+	}
+
+	/**
 	 * Builds a unit vector along one axis.
 	 *
 	 * @param int $axis       Axis to point along.
@@ -432,14 +461,14 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		$this->assertSame( $posts[0], undergrowth_cluster_leader( $last_in_batch ) );
 		$this->assertSame( 0, undergrowth_cluster_leader( $posts[ UNDERGROWTH_CLUSTER_BATCH ] ) );
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $last_in_batch ) ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
 
 		undergrowth_run_cluster_cycle( $last_in_batch );
 
 		// The leader chosen in the first request is still known in the second.
 		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( end( $posts ) ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( end( $posts ) ) ) );
 	}
 
 	public function test_last_batch_starts_the_stage_cycle_and_forgets_its_leaders() {
@@ -506,7 +535,7 @@ class Test_Clusters extends WP_UnitTestCase {
 		do_action( 'undergrowth_backfill_check' );
 
 		$this->assertSame( $posts[ UNDERGROWTH_CLUSTER_BATCH - 1 ], $last_in_batch );
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $last_in_batch ) ) );
 
 		$this->assertSame( $last_in_batch, $this->take_next_batch() );
 		undergrowth_run_cluster_cycle( $last_in_batch );
@@ -527,7 +556,7 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		do_action( 'undergrowth_backfill_check' );
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $last_in_batch ) ) );
 	}
 
 	public function test_batch_that_started_well_within_the_stall_age_is_not_restarted() {
@@ -543,7 +572,7 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		do_action( 'undergrowth_backfill_check' );
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $last_in_batch ) ) );
 	}
 
 	public function test_slow_batch_queued_again_while_it_runs_leaves_the_pass_to_the_new_run() {
@@ -562,7 +591,7 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		undergrowth_run_cluster_cycle();
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $posts[ UNDERGROWTH_CLUSTER_BATCH - 1 ] ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $posts[ UNDERGROWTH_CLUSTER_BATCH - 1 ] ) ) );
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
 		$this->assertSame( array(), get_option( 'undergrowth_cluster_leaders' ) );
 		$this->assertSame( 0, get_option( 'undergrowth_cluster_cycle_pass' )['after'] );
@@ -594,7 +623,7 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		do_action( 'undergrowth_backfill_check' );
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', array( $last_in_batch ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_cluster_cycle', $this->batch_args( $last_in_batch ) ) );
 	}
 
 	public function test_last_batch_that_dies_before_it_finishes_runs_again_with_its_leaders() {
@@ -622,8 +651,12 @@ class Test_Clusters extends WP_UnitTestCase {
 
 		$this->age_pass( 'undergrowth_cluster_cycle' );
 		do_action( 'undergrowth_backfill_check' );
-		$this->assertSame( 0, $this->take_next_batch() );
-		undergrowth_run_cluster_cycle( 0 );
+		$recovered = $this->take_next_batch_args();
+
+		// The batch run again keeps the pass it belonged to.
+		$this->assertSame( 0, $recovered[0] );
+		$this->assertSame( undergrowth_current_pass( 'undergrowth_cluster_cycle' ), $recovered[1] );
+		do_action_ref_array( 'undergrowth_cluster_cycle', $recovered );
 
 		$this->assertSame( $posts[0], undergrowth_cluster_leader( $posts[2] ) );
 		$this->assertNotFalse( get_option( 'undergrowth_previous_clusters' ) );
@@ -699,6 +732,122 @@ class Test_Clusters extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
 		$this->assertFalse( get_option( 'undergrowth_stage_cycle_pass' ) );
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_cluster_cycle' ) );
+	}
+
+	public function test_second_pass_started_while_one_runs_replaces_it() {
+		$posts = array();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		// Pass A's first batch, then pass B starts, as when a backfill ends
+		// while the monthly pass is still chaining batches.
+		undergrowth_run_cluster_cycle();
+		$pass_a = $this->take_next_batch_args();
+		undergrowth_run_cluster_cycle( 0 );
+		$pass_b  = $this->take_next_batch_args();
+		$leaders = get_option( 'undergrowth_cluster_leaders' );
+
+		do_action_ref_array( 'undergrowth_cluster_cycle', $pass_a );
+
+		// A's batch changed nothing and queued nothing.
+		$this->assertCount( 2, $pass_a );
+		$this->assertNotSame( $pass_a[1], $pass_b[1] );
+		$this->assertSame( $leaders, get_option( 'undergrowth_cluster_leaders' ) );
+		$this->assertSame( $pass_b[1], get_option( 'undergrowth_cluster_cycle_pass' )['pass'] );
+		$this->assertSame( 0, undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertNull( $this->take_next_batch_args() );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_previous_clusters' ) );
+
+		do_action_ref_array( 'undergrowth_cluster_cycle', $pass_b );
+
+		// Only B finishes: its clusters, its snapshot, its stage cycle.
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertNotFalse( get_option( 'undergrowth_previous_clusters' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_stage_cycle', array( 0 ) ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+	}
+
+	public function test_pass_started_while_a_batch_runs_waits_for_it_then_replaces_the_pass() {
+		$posts = array();
+
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$posts[] = $this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$pass_a = $this->take_next_batch_args();
+
+		// Pass B is started while A's next batch is reading its first post.
+		$started = false;
+		$start_b = static function ( $types ) use ( &$started ) {
+			if ( ! $started ) {
+				$started = true;
+				undergrowth_run_cluster_cycle( 0 );
+			}
+
+			return $types;
+		};
+		add_filter( 'undergrowth_post_types', $start_b );
+
+		do_action_ref_array( 'undergrowth_cluster_cycle', $pass_a );
+
+		remove_filter( 'undergrowth_post_types', $start_b );
+
+		// A's batch ran undisturbed, and B waits a minute for the lock.
+		$this->assertTrue( $started );
+		$this->assertSame( $posts[0], undergrowth_cluster_leader( end( $posts ) ) );
+		$this->assertGreaterThan( time(), wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+
+		wp_clear_scheduled_hook( 'undergrowth_cluster_cycle', array( 0 ) );
+		undergrowth_run_cluster_cycle( 0 );
+
+		$pass_b = undergrowth_current_pass( 'undergrowth_cluster_cycle' );
+
+		$this->assertNotSame( '', $pass_b );
+		$this->assertNotSame( $pass_a[1], $pass_b );
+	}
+
+	public function test_batch_that_finds_the_lock_taken_tries_again_in_a_minute() {
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+		WP_Upgrader::create_lock( 'undergrowth_cluster_cycle', HOUR_IN_SECONDS );
+
+		undergrowth_run_cluster_cycle( 0 );
+
+		WP_Upgrader::release_lock( 'undergrowth_cluster_cycle' );
+
+		$this->assertSame( 0, undergrowth_cluster_leader( $post_id ) );
+		$this->assertFalse( get_option( 'undergrowth_cluster_cycle_pass' ) );
+		$this->assertGreaterThan( time(), wp_next_scheduled( 'undergrowth_cluster_cycle', array( 0 ) ) );
+	}
+
+	public function test_first_batch_queued_again_for_a_replaced_pass_changes_nothing() {
+		$post_id = $this->post_with_vector( array( 1.0, 0.0 ) );
+		update_post_meta( $post_id, 'undergrowth_cluster', $post_id );
+		undergrowth_mark_pass( 'undergrowth_cluster_cycle', 0, 'pass-b' );
+
+		undergrowth_run_cluster_cycle( 0, 'pass-a' );
+
+		$this->assertSame( $post_id, undergrowth_cluster_leader( $post_id ) );
+		$this->assertSame( 'pass-b', undergrowth_current_pass( 'undergrowth_cluster_cycle' ) );
+	}
+
+	public function test_resumed_batch_keeps_its_pass() {
+		for ( $i = 0; $i < UNDERGROWTH_CLUSTER_BATCH + 2; $i++ ) {
+			$this->post_with_vector( array( 1.0, 0.0 ) );
+		}
+
+		undergrowth_run_cluster_cycle();
+		$lost = $this->take_next_batch_args();
+		$this->age_pass( 'undergrowth_cluster_cycle' );
+
+		do_action( 'undergrowth_backfill_check' );
+
+		$this->assertSame( $lost, $this->take_next_batch_args() );
 	}
 
 	public function test_batch_leaves_no_rows_in_wpdb() {

@@ -310,12 +310,16 @@ function undergrowth_dev_suggesting_posts(): array {
  * pass, then every batch it queues, and the stage cycle and resurfacing it
  * chains. The monthly event itself is left where it is.
  *
- * @return int How many batches ran.
+ * @return int How many batches ran, or 0 when a clustering batch was already
+ *             running and the pass was queued to start a minute later.
  */
 function undergrowth_dev_run_cycle(): int {
 	$hooks = array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle', 'undergrowth_resurfacing_cycle' );
 
-	undergrowth_run_cluster_cycle( 0 );
+	// A clustering batch is running; the pass is queued for a minute later.
+	if ( ! undergrowth_cluster_batch_under_lock( 0, '' ) ) {
+		return 0;
+	}
 
 	$runs = 1;
 
