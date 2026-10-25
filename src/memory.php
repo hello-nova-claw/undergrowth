@@ -548,6 +548,12 @@ function undergrowth_check_memory_folder(): ?bool {
 		false
 	);
 
+	// An answer that could not be stored must not leave an old refusal in
+	// place, so the folder then counts as never checked.
+	if ( false !== $exposed && undergrowth_memory_private() ) {
+		delete_option( 'undergrowth_memory_exposed' );
+	}
+
 	// The fresh answer decides, in case the stored one could not be replaced.
 	if ( false !== $exposed ) {
 		undergrowth_strip_memory_prompts( $filesystem, $root . '/posts' );

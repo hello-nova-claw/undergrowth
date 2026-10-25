@@ -233,6 +233,21 @@ class Test_Memory_Folder_Check extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
 	}
 
+	public function test_an_answer_that_cannot_be_stored_does_not_leave_the_folder_refused() {
+		$oca = $this->written();
+		undergrowth_check_memory_folder();
+		$this->assertTrue( undergrowth_memory_private() );
+
+		// The new answer is thrown away, as a failed database write would.
+		add_filter( 'pre_update_option_undergrowth_memory_exposed', static fn( $value, $old ) => $old, 10, 2 );
+		$this->server = 'serve';
+		undergrowth_check_memory_folder();
+		undergrowth_write_memory( $oca );
+
+		$this->assertFalse( undergrowth_memory_private() );
+		$this->assertStringNotContainsString( '## prompts', (string) file_get_contents( undergrowth_memory_path( $oca ) ) );
+	}
+
 	public function test_a_site_that_refuses_every_upload_proves_nothing() {
 		$this->written();
 		$this->server = 'deny all';
