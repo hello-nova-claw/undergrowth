@@ -282,7 +282,7 @@ function undergrowth_memory_text( WP_Post $post ): string {
 			'# ' . $post->post_title,
 			'url: ' . get_permalink( $post ),
 			'slug: ' . $post->post_name,
-			'updated: ' . wp_date( 'c', null, new DateTimeZone( 'UTC' ) ),
+			'updated: ' . gmdate( 'c' ),
 			'',
 			'## stage',
 		),
@@ -327,7 +327,7 @@ function undergrowth_memory_stage( int $post_id ): array {
 
 	foreach ( undergrowth_stage_log( $post_id ) as $change ) {
 		$reason  = UNDERGROWTH_STAGE_REASONS[ $change['reason'] ];
-		$lines[] = '- ' . wp_date( 'Y-m-d', $change['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
+		$lines[] = '- ' . gmdate( 'Y-m-d', $change['time'] ) . ': ' . $change['from'] . ' -> ' . $change['to'] . ' (' . $reason . ')';
 	}
 
 	return $lines;
@@ -379,7 +379,7 @@ function undergrowth_memory_resurfacing( int $post_id ): array {
 	$lines = array();
 
 	foreach ( undergrowth_resurfacing_log( $post_id ) as $entry ) {
-		$lines[] = '- ' . wp_date( 'Y-m-d', $entry['time'], new DateTimeZone( 'UTC' ) ) . ': ' . UNDERGROWTH_RESURFACING_EVENTS[ $entry['event'] ];
+		$lines[] = '- ' . gmdate( 'Y-m-d', $entry['time'] ) . ': ' . UNDERGROWTH_RESURFACING_EVENTS[ $entry['event'] ];
 	}
 
 	return $lines;
@@ -396,7 +396,7 @@ function undergrowth_memory_prompts( int $post_id ): array {
 	$lines = array();
 
 	foreach ( undergrowth_prompt_log( $post_id ) as $event ) {
-		$lines[] = '- ' . wp_date( 'Y-m-d', $event['time'], new DateTimeZone( 'UTC' ) ) . ': ' . $event['event'] . ' (' . $event['source'] . ') "' . $event['question'] . '"';
+		$lines[] = '- ' . gmdate( 'Y-m-d', $event['time'] ) . ': ' . $event['event'] . ' (' . $event['source'] . ') "' . $event['question'] . '"';
 	}
 
 	return $lines;
@@ -1005,7 +1005,7 @@ function undergrowth_import_memory( int $post_id, string $text ) {
  */
 function undergrowth_import_history( int $post_id, string $meta_key, array $have, array $rows ): bool {
 	$key = static function ( array $row ): string {
-		$day = wp_date( 'Y-m-d', $row['time'], new DateTimeZone( 'UTC' ) );
+		$day = gmdate( 'Y-m-d', $row['time'] );
 		unset( $row['time'] );
 
 		return $day . ' ' . implode( ' ', $row );
