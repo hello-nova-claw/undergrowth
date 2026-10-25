@@ -480,7 +480,7 @@ function undergrowth_map_export_markdown( array $rows ): string {
 
 		$cells   = array_map(
 			static function ( $cell ) {
-				return str_replace( '|', '\|', trim( (string) preg_replace( '/\s+/', ' ', $cell ) ) );
+				return str_replace( array( '\\', '|' ), array( '\\\\', '\|' ), trim( (string) preg_replace( '/\s+/', ' ', $cell ) ) );
 			},
 			$cells
 		);

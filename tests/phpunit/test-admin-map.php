@@ -451,7 +451,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 			array(
 				'group'     => 'Oca | ulluco',
 				'words'     => '',
-				'title'     => "Two\nlines",
+				'title'     => "Two\nlines, a \\| b",
 				'permalink' => 'http://example.org/?p=1',
 				'stage'     => 'Sprout',
 				'gap'       => false,
@@ -462,7 +462,8 @@ class Test_Admin_Map extends WP_UnitTestCase {
 
 		$this->assertSame( '| Group | Words | Post | Link | Stage | Gap |', $lines[0] );
 		$this->assertSame( '| --- | --- | --- | --- | --- | --- |', $lines[1] );
-		$this->assertSame( '| Oca \\| ulluco |  | Two lines | <http://example.org/?p=1> | Sprout | No |', $lines[2] );
+		// A backslash is escaped too, so one before a pipe cannot unescape it.
+		$this->assertSame( '| Oca \\| ulluco |  | Two lines, a \\\\\\| b | <http://example.org/?p=1> | Sprout | No |', $lines[2] );
 		$this->assertCount( 3, $lines );
 	}
 
@@ -504,7 +505,7 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$csv      = undergrowth_map_export_headers( false );
 
 		$this->assertSame( 'text/markdown; charset=utf-8', $markdown['Content-Type'] );
-		$this->assertSame( 'attachment; filename="undergrowth-map-' . gmdate( 'Y-m-d' ) . '.md"', $markdown['Content-Disposition'] );
+		$this->assertSame( 'attachment; filename="undergrowth-map-' . wp_date( 'Y-m-d' ) . '.md"', $markdown['Content-Disposition'] );
 		$this->assertSame( 'text/csv; charset=utf-8', $csv['Content-Type'] );
 		$this->assertStringEndsWith( '.csv"', $csv['Content-Disposition'] );
 		$this->assertStringContainsString( 'no-cache', $csv['Cache-Control'] );

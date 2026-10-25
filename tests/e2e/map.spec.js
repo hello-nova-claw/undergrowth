@@ -187,8 +187,16 @@ test.describe( 'Map tab', () => {
 				[ 'csv', 'csv', 8 ],
 				[ 'markdown', 'md', 9 ],
 			] ) {
+				// From the last post on the Map, the next stops are the
+				// format, then the button. Which keys change a closed select
+				// differs by platform, so the choice itself is set directly.
+				await page.locator( 'ul.undergrowth-ungrouped li a' ).focus();
+				await page.keyboard.press( 'Tab' );
+				await expect( format ).toBeFocused();
 				await format.selectOption( value );
-				await button.focus();
+				await expect( format ).toBeFocused();
+				await page.keyboard.press( 'Tab' );
+				await expect( button ).toBeFocused();
 
 				const [ download ] = await Promise.all( [
 					page.waitForEvent( 'download' ),

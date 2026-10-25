@@ -327,7 +327,7 @@ function undergrowth_map_export_headers( bool $markdown ): array {
 		array_filter( wp_get_nocache_headers(), 'is_string' ),
 		array(
 			'Content-Type'        => ( $markdown ? 'text/markdown' : 'text/csv' ) . '; charset=utf-8',
-			'Content-Disposition' => 'attachment; filename="undergrowth-map-' . gmdate( 'Y-m-d' ) . ( $markdown ? '.md' : '.csv' ) . '"',
+			'Content-Disposition' => 'attachment; filename="undergrowth-map-' . wp_date( 'Y-m-d' ) . ( $markdown ? '.md' : '.csv' ) . '"',
 		)
 	);
 }
