@@ -433,6 +433,8 @@ class Test_Pollination extends WP_UnitTestCase {
 
 		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 		WP_Upgrader::create_lock( 'undergrowth_pollination_cycle' );
+		// The start queued this batch already, so only a retry can queue it now.
+		wp_clear_scheduled_hook( 'undergrowth_pollination_cycle', array( 0, $pass ) );
 
 		undergrowth_run_pollination_cycle( 0, $pass );
 
