@@ -398,7 +398,7 @@ function undergrowth_render_key_field( array $args ): void {
 			? sprintf(
 				/* translators: %1$s: date and time. */
 				__( 'Undergrowth waits until %1$s, then sends the posts that were not read.', 'undergrowth' ),
-				wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $wait )
+				undergrowth_date_time( $wait )
 			)
 			: __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
@@ -637,7 +637,7 @@ function undergrowth_failure_text( string $service, array $error, string $retry,
 		$when = sprintf(
 			/* translators: %1$s: date and time. */
 			__( 'That was on %1$s.', 'undergrowth' ),
-			wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) )
+			undergrowth_date_time( (int) ( $error['time'] ?? 0 ) )
 		);
 
 		return sprintf( $cause, $service ) . ' ' . $when;
@@ -666,7 +666,7 @@ function undergrowth_failure_text( string $service, array $error, string $retry,
 	$when = sprintf(
 		/* translators: 1: date and time, 2: HTTP status code, or 0 when there was no response. */
 		__( 'That was on %1$s (status %2$s).', 'undergrowth' ),
-		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $error['time'] ?? 0 ) ),
+		undergrowth_date_time( (int) ( $error['time'] ?? 0 ) ),
 		number_format_i18n( $status )
 	);
 
@@ -753,6 +753,22 @@ function undergrowth_print_failure_notice( string $text, string $id = '' ): void
 }
 
 /**
+ * Writes a moment as the site's date and time, joined the way the site's
+ * language joins them.
+ *
+ * @param int $time Unix timestamp.
+ * @return string Date and time, such as 24 October 2026 at 14:05.
+ */
+function undergrowth_date_time( int $time ): string {
+	return sprintf(
+		/* translators: 1: date, 2: time. */
+		__( '%1$s at %2$s', 'undergrowth' ),
+		wp_date( get_option( 'date_format' ), $time ),
+		wp_date( get_option( 'time_format' ), $time )
+	);
+}
+
+/**
  * Says in plain words why the last per-post file was not written, when, and
  * when it is tried again.
  *
@@ -786,7 +802,7 @@ function undergrowth_file_failure_text( array $error ): string {
 	$when = sprintf(
 		/* translators: %1$s: date and time. */
 		__( 'That was on %1$s.', 'undergrowth' ),
-		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] )
+		undergrowth_date_time( (int) $error['time'] )
 	);
 
 	// Each part is a whole sentence, translated on its own.
@@ -837,7 +853,7 @@ function undergrowth_accept_failure_text( array $error ): string {
 	$when = sprintf(
 		/* translators: %1$s: date and time. */
 		__( 'That was on %1$s.', 'undergrowth' ),
-		wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) $error['time'] )
+		undergrowth_date_time( (int) $error['time'] )
 	);
 
 	// Each part is a whole sentence, translated on its own.

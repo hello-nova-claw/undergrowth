@@ -384,7 +384,7 @@ msgstr ""
 msgid "Link to %1$s"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Accept the link from %1$s to %2$s"
@@ -399,7 +399,7 @@ msgstr ""
 msgid "Accept"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
@@ -412,7 +412,7 @@ msgstr ""
 msgid "Veto"
 msgstr ""
 
-#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to.
+#. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Choose words”, the words on the link, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
 #, php-format
 msgid "Choose words for the link from %1$s to %2$s"
@@ -524,7 +524,7 @@ msgstr ""
 msgid "Select %s"
 msgstr ""
 
-#. translators: %1$s: post title.
+#. translators: %1$s: post title. Must begin with the translation of “Unpin”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Unpin the stage of %1$s"
@@ -542,7 +542,7 @@ msgstr ""
 msgid "Stage to pin for %1$s"
 msgstr ""
 
-#. translators: %1$s: post title.
+#. translators: %1$s: post title. Must begin with the translation of “Pin”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-stages-list-table.php
 #, php-format
 msgid "Pin the stage of %1$s"
@@ -1172,7 +1172,7 @@ msgid "A post is not in a group yet when it has not been read, was read after th
 msgstr ""
 
 #: src/help.php
-msgid "A group marked \"with a gap\" has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
+msgid "A group marked “with a gap” has no post at its middle: its posts circle something none of them is about yet. Whether to write about it is up to you."
 msgstr ""
 
 #: src/help.php
@@ -1297,13 +1297,13 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
-msgid "Return &#8220;%s&#8221; to the garden"
+msgid "Return to garden: &#8220;%s&#8221;"
 msgstr ""
 
-#. translators: %s: post title.
+#. translators: %s: post title. Must begin with the translation of “Compost”, the word on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
 msgid "Compost &#8220;%s&#8221;"
@@ -1629,6 +1629,12 @@ msgstr ""
 
 #: src/settings.php
 msgid "Each post’s plain-text record is kept in this folder."
+msgstr ""
+
+#. translators: 1: date, 2: time.
+#: src/settings.php
+#, php-format
+msgid "%1$s at %2$s"
 msgstr ""
 
 #: src/settings.php

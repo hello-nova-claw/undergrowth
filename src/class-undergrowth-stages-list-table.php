@@ -354,7 +354,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 					'unpin' => $this->button(
 						$post_id,
 						'unpin',
-						/* translators: %1$s: post title. */
+						/* translators: %1$s: post title. Must begin with the translation of “Unpin”, the word on the button, so voice control can find it. */
 						sprintf( __( 'Unpin the stage of %1$s', 'undergrowth' ), $title ),
 						__( 'Unpin', 'undergrowth' )
 					),
@@ -384,7 +384,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 				'pin' => $select . $this->button(
 					$post_id,
 					'pin',
-					/* translators: %1$s: post title. */
+					/* translators: %1$s: post title. Must begin with the translation of “Pin”, the word on the button, so voice control can find it. */
 					sprintf( __( 'Pin the stage of %1$s', 'undergrowth' ), $title ),
 					__( 'Pin', 'undergrowth' )
 				),
