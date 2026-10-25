@@ -311,7 +311,7 @@ const WITH_POSTS = [
 		screen: 'suggestions',
 		state: 'links-in',
 		page: SUGGESTIONS,
-		open: async ( page ) => {
+		open: async ( page, admin ) => {
 			const box = page.locator( 'input[name="link[]"]' ).first();
 
 			if ( ( await box.count() ) === 0 ) {
@@ -322,8 +322,9 @@ const WITH_POSTS = [
 				'-'
 			)[ 1 ];
 
-			await page.goto(
-				`${ page.url().replace( /#.*$/, '' ) }&undergrowth_to=${ target }`
+			await admin.visitAdminPage(
+				SUGGESTIONS[ 0 ],
+				`${ SUGGESTIONS[ 1 ] }&undergrowth_to=${ target }`
 			);
 
 			return true;
