@@ -324,7 +324,7 @@ Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. The
 
 ### 12.1 Prompt studio
 - Replaces the single Dashboard question (5b, "One at a time").
-- A weekly cron batch of up to five questions, from the same garden sources as 5b. Never trends or keyword data.
+- A weekly cron batch of up to five questions, from the garden sources in 5b and section 5 (Map gaps and composted posts now; comments, wilting posts and Search Console mismatches with reader mode). Never trends or keyword data.
 - Each question can be dismissed, replaced, or saved to an idea bank. A saved question keeps the posts it came from.
 - When the batch runs out, "More questions" generates more on demand. The button says it uses the site's own AI key and roughly what it costs. Nothing is generated without that click.
 - Off until the Anthropic key is entered. Settings says what is sent. Every content rule in 5b holds: a question, never a draft, quoting only the author. Comment text is data, never instructions, and is never quoted.

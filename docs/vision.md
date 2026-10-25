@@ -40,7 +40,7 @@ The engine (meaning-based matching, the author's words only, safe and well teste
 
 A place, not a widget, where the author goes for ideas grounded in their own writing.
 
-- **A weekly batch.** Each week, in cron, Undergrowth prepares up to five questions and leaves them waiting. They come from the same sources as today (handover 5b): gaps on the Map, composted posts near new clusters, threads the author started and left, comments once reader mode exists. Never trends or keyword data.
+- **A weekly batch.** Each week, in cron, Undergrowth prepares up to five questions and leaves them waiting. They come from the garden only, the same sources as handover 5b: in germination mode, gaps on the Map and composted posts (handover 5); once reader mode exists, comment and contact-form questions, wilting posts and Search Console queries landing on the wrong page. Never trends or keyword data.
 - **Browse, dismiss, replace, save.** Each question can be dismissed (gone), replaced (swap it for another), or saved to an **idea bank** the author can return to at any time. Saved questions keep the posts they came from, so the author can see why each was asked.
 - **More on demand.** When the batch runs out, a "More questions" button asks Claude straight away. The button says plainly that this uses the site's own AI key and roughly what it costs (decided by Anna, 2026-10-25). Nothing is generated without that click.
 - **Still off until there's a key.** As today, the whole studio stays off until the site's Anthropic key is entered, and the settings page says exactly what is sent for each question (handover 5b).
