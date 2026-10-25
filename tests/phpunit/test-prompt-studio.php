@@ -261,13 +261,14 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertSame( '', $this->render() );
 	}
 
-	public function test_the_first_prompt_event_sends_nothing_while_a_question_waits() {
+	public function test_the_first_prompt_event_tops_up_the_batch() {
 		undergrowth_write_prompt();
 		$this->comment( $this->post_id, 'When do you lift them?' );
 
 		do_action( 'undergrowth_write_prompt' );
 
-		$this->assertSame( 1, $this->requests );
+		$this->assertSame( 2, $this->requests );
+		$this->assertCount( 2, undergrowth_prompts( 'new' ) );
 	}
 
 	public function test_widget_counts_every_new_question() {
@@ -494,8 +495,8 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		$this->choose( 'dismiss' );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNull( undergrowth_current_prompt() );
 		$this->assertSame( 1, $this->requests );
@@ -515,8 +516,8 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		$this->choose( 'save' );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertCount( 1, undergrowth_prompts( 'saved' ) );
 		$this->assertSame( 1, $this->requests );
@@ -534,7 +535,7 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_stored_prompts() );
 		$this->assertSame( array( 'asked', 'saved', 'removed' ), $this->events( $this->post_id ) );
 
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
 		$this->assertSame( 1, $this->requests );
 	}
 

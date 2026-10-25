@@ -461,15 +461,15 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertCount( 2, undergrowth_prompts( 'new' ) );
 	}
 
-	public function test_the_cycle_writes_nothing_while_a_new_question_waits() {
+	public function test_the_batch_tops_up_from_every_unused_source() {
 		$this->comment( $this->post() );
 		$this->comment( $this->post() );
 		undergrowth_write_prompt();
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_write_prompt' );
+		do_action( 'undergrowth_prompt_batch' );
 
-		$this->assertCount( 1, $this->requests );
+		$this->assertCount( 2, $this->requests );
+		$this->assertCount( 2, undergrowth_prompts( 'new' ) );
 	}
 
 	public function test_prompt_about_a_post_that_left_the_index_is_not_current() {
@@ -728,27 +728,36 @@ class Test_Prompts extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
-	public function test_monthly_cycle_is_scheduled_on_init() {
-		undergrowth_schedule_prompt_cycle();
+	public function test_weekly_batch_is_scheduled_on_init() {
+		undergrowth_schedule_prompt_batch();
 
-		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_prompt_cycle' ) );
+		$this->assertSame( 'weekly', wp_get_schedule( 'undergrowth_prompt_batch' ) );
 	}
 
-	public function test_monthly_cycle_writes_a_prompt() {
+	public function test_the_monthly_cycle_of_an_older_version_is_removed() {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_prompt_cycle' );
+
+		undergrowth_schedule_prompt_batch();
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
+	}
+
+	public function test_weekly_batch_writes_a_prompt() {
 		$this->comment( $this->post() );
 
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNotNull( undergrowth_current_prompt() );
 	}
 
 	public function test_deactivation_removes_the_prompt_events() {
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 		wp_schedule_single_event( time(), 'undergrowth_write_prompt' );
 
 		do_action( 'deactivate_' . plugin_basename( UNDERGROWTH_FILE ) );
 
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 }

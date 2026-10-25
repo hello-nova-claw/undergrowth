@@ -15,14 +15,16 @@ defined( 'ABSPATH' ) || exit;
 
 // The rules ask for under 250 characters, so a question that runs a little
 // over is still kept, not thrown away.
-const UNDERGROWTH_PROMPT_MAX_LENGTH = 300;
-const UNDERGROWTH_PROMPT_MAX_CALLS  = 3;
-const UNDERGROWTH_PROMPT_DATA_CHARS = 1000;
-const UNDERGROWTH_PROMPT_COMMENTS   = 50;
-const UNDERGROWTH_PROMPT_COMPOSTED  = 20;
-const UNDERGROWTH_PROMPT_PAGES      = 10;
-const UNDERGROWTH_PROMPT_GAP_POSTS  = 3;
-const UNDERGROWTH_PROMPT_SENTENCES  = 20;
+const UNDERGROWTH_PROMPT_MAX_LENGTH  = 300;
+const UNDERGROWTH_PROMPT_MAX_CALLS   = 3;
+const UNDERGROWTH_PROMPT_BATCH       = 5;
+const UNDERGROWTH_PROMPT_BATCH_CALLS = 10;
+const UNDERGROWTH_PROMPT_DATA_CHARS  = 1000;
+const UNDERGROWTH_PROMPT_COMMENTS    = 50;
+const UNDERGROWTH_PROMPT_COMPOSTED   = 20;
+const UNDERGROWTH_PROMPT_PAGES       = 10;
+const UNDERGROWTH_PROMPT_GAP_POSTS   = 3;
+const UNDERGROWTH_PROMPT_SENTENCES   = 20;
 
 // Question marks in the scripts WordPress ships translations for: the
 // full-width one used in Chinese and Japanese, the Arabic one, the Greek one,
@@ -43,9 +45,9 @@ const UNDERGROWTH_PROMPT_STATUSES = array( 'new', 'saved', 'dismissed' );
 // dismissed question never comes back once it is dropped.
 const UNDERGROWTH_PROMPT_KEEP_DISMISSED = 10;
 
-add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
+add_action( 'init', 'undergrowth_schedule_prompt_batch' );
 add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
-add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
+add_action( 'undergrowth_prompt_batch', 'undergrowth_run_prompt_batch' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
 add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
@@ -55,11 +57,18 @@ add_filter( 'undergrowth_prompt_sources', 'undergrowth_compost_prompt_sources', 
 add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 2 );
 
 /**
- * Schedules the monthly prompt cycle when it is not scheduled yet.
+ * Schedules the weekly prompt batch when it is not scheduled yet.
+ *
+ * The batch replaced a monthly cycle that wrote one question, so a site
+ * upgraded from it loses that event here.
  */
-function undergrowth_schedule_prompt_cycle(): void {
-	if ( false === wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
-		wp_schedule_event( time() + MONTH_IN_SECONDS, 'undergrowth_monthly', 'undergrowth_prompt_cycle' );
+function undergrowth_schedule_prompt_batch(): void {
+	if ( false !== wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
+		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	}
+
+	if ( false === wp_next_scheduled( 'undergrowth_prompt_batch' ) ) {
+		wp_schedule_event( time() + WEEK_IN_SECONDS, 'weekly', 'undergrowth_prompt_batch' );
 	}
 }
 
@@ -69,7 +78,7 @@ function undergrowth_schedule_prompt_cycle(): void {
  * Such a key is never saved, so the option hooks that ask for the first
  * prompt never fire. This asks once, and remembers that it did: a prompt
  * that is dismissed or saved leaves nothing queued, and asking again on
- * every request would skip the monthly wait.
+ * every request would skip the weekly wait.
  */
 function undergrowth_queue_config_first_prompt(): void {
 	if ( '' === undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) || false !== get_option( 'undergrowth_config_prompt_queued' ) ) {
@@ -92,8 +101,8 @@ function undergrowth_queue_config_first_prompt(): void {
 }
 
 /**
- * Writes a first prompt soon after a key is saved, so the author does not
- * wait a month for the first one.
+ * Fills the first batch soon after a key is saved, so the author does not
+ * wait a week for it.
  *
  * Saving the same key again, or removing it, writes nothing.
  */
@@ -114,26 +123,33 @@ function undergrowth_unschedule_prompts(): void {
 	}
 
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	wp_unschedule_hook( 'undergrowth_prompt_batch' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 }
 
 /**
- * Writes the first prompt, queued when a key is saved, unless a new question
- * is already waiting.
+ * Fills the first batch, queued when a key is saved.
  */
 function undergrowth_write_first_prompt(): void {
-	if ( null === undergrowth_current_prompt() ) {
-		undergrowth_write_prompt();
-	}
+	undergrowth_run_prompt_batch();
 }
 
 /**
- * Runs the monthly prompt cycle, which writes a question only when no new
- * one is waiting.
+ * Runs the weekly prompt batch: tops the new questions up to
+ * UNDERGROWTH_PROMPT_BATCH, from sources not used before.
+ *
+ * With the batch already full, nothing is sent. When the garden has no
+ * source left, or a request fails, the batch stops short rather than pad.
  */
-function undergrowth_run_prompt_cycle(): void {
-	if ( undergrowth_prompts_enabled() && null === undergrowth_current_prompt() ) {
-		undergrowth_write_prompt();
+function undergrowth_run_prompt_batch(): void {
+	if ( ! undergrowth_prompts_enabled() ) {
+		return;
+	}
+
+	$wanted = UNDERGROWTH_PROMPT_BATCH - count( undergrowth_prompts( 'new' ) );
+
+	if ( $wanted > 0 ) {
+		undergrowth_write_prompts( $wanted, UNDERGROWTH_PROMPT_BATCH_CALLS );
 	}
 }
 
@@ -585,39 +601,64 @@ function undergrowth_prompt_reply_is_final( WP_Error $error ): bool {
  * Asks Claude for one more question, trying sources in order, and adds it
  * to the batch as new.
  *
- * Each source is sent at most once, whatever the model answers, so a source
- * it cannot turn into a valid question is not paid for again. A failed
- * request ends the run and the source is tried again next time.
- *
  * @param callable|null $accept Tells whether a source record may be used, or null for any.
  * @return bool True when a prompt was written.
  */
 function undergrowth_write_prompt( ?callable $accept = null ): bool {
+	return 1 === undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, $accept );
+}
+
+/**
+ * Asks Claude for new questions, trying sources in order, and adds each one
+ * to the batch as new.
+ *
+ * Each source is sent at most once, whatever the model answers, so a source
+ * it cannot turn into a valid question is not paid for again. A failed
+ * request ends the run and the source is tried again next time.
+ *
+ * Passing $accept limits the run, for instance to the sources an author may
+ * answer about, or to one kind of question that holds a place in the batch.
+ *
+ * @param int           $wanted Questions to write at most.
+ * @param int           $limit  Requests to send at most.
+ * @param callable|null $accept Tells whether a source record may be used, or null for any.
+ * @return int Questions written.
+ */
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null ): int {
 	if ( ! undergrowth_prompts_enabled() ) {
-		return false;
+		return 0;
 	}
 
-	$calls = 0;
+	$calls   = 0;
+	$written = 0;
 
 	foreach ( undergrowth_prompt_candidates() as $record ) {
+		if ( $written >= $wanted ) {
+			break;
+		}
+
 		if ( null !== $accept && ! $accept( $record ) ) {
 			continue;
 		}
 
 		// A source that needs a check needs two requests. One that would go
 		// over the limit waits for the next run without anything being sent.
-		if ( $calls + ( empty( $record['rest'] ) ? 1 : 2 ) > UNDERGROWTH_PROMPT_MAX_CALLS ) {
+		if ( $calls + ( empty( $record['rest'] ) ? 1 : 2 ) > $limit ) {
 			continue;
 		}
 
 		$result = undergrowth_write_prompt_from( $record, $calls );
 
-		if ( 'skipped' !== $result ) {
-			return 'written' === $result;
+		if ( 'failed' === $result ) {
+			break;
+		}
+
+		if ( 'written' === $result ) {
+			++$written;
 		}
 	}
 
-	return false;
+	return $written;
 }
 
 /**

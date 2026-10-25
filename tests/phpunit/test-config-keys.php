@@ -82,14 +82,14 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertSame( 2, substr_count( $html, 'Nothing is sent while there is no key.' ) );
 	}
 
-	public function test_scheduling_the_prompt_cycle_writes_no_first_prompt_for_a_saved_key() {
+	public function test_scheduling_the_prompt_batch_writes_no_first_prompt_for_a_saved_key() {
 		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
-		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+		wp_unschedule_hook( 'undergrowth_prompt_batch' );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
 
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
@@ -114,7 +114,7 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	public function test_first_prompt_is_queued_once_for_a_key_in_wp_config() {
 		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 
 		undergrowth_queue_config_first_prompt();
 

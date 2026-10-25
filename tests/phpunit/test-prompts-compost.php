@@ -249,8 +249,8 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 
 		$this->assertTrue( undergrowth_dismiss_prompt( undergrowth_current_prompt()['key'] ) );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNull( undergrowth_current_prompt() );
 		$this->assertCount( 1, $this->written() );
@@ -261,7 +261,7 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		undergrowth_write_prompt();
 		undergrowth_save_prompt( undergrowth_current_prompt()['key'] );
 
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$saved = undergrowth_prompts( 'saved' );
 

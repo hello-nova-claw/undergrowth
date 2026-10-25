@@ -420,7 +420,7 @@ function undergrowth_render_key_field( array $args ): void {
 		$notice = __( 'With a key, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.claude.com/settings/keys', __( 'Get a key from Anthropic', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending anything to Anthropic', 'undergrowth' );
-		$retry  = __( 'Undergrowth tries again at its next monthly cycle.', 'undergrowth' );
+		$retry  = __( 'Undergrowth tries again at its next weekly batch.', 'undergrowth' );
 	}
 
 	$provider  = $args['provider'];

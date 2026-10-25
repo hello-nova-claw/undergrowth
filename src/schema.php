@@ -397,6 +397,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_previous_clusters' );
 	delete_option( 'undergrowth_new_clusters' );
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	wp_unschedule_hook( 'undergrowth_prompt_batch' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 	delete_post_meta_by_key( 'undergrowth_cluster' );
 	delete_post_meta_by_key( 'undergrowth_stage' );

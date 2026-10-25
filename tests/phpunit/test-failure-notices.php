@@ -121,7 +121,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( $words, $text );
 		$this->assertStringContainsString( '(status ' . $status . ')', $text );
 		$this->assertStringContainsString( $this->when(), $text );
-		$this->assertStringContainsString( 'next monthly cycle', $text );
+		$this->assertStringContainsString( 'next weekly batch', $text );
 	}
 
 	/**
@@ -140,7 +140,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'skipped', $text );
 		$this->assertStringContainsString( $this->when(), $text );
 		$this->assertStringNotContainsString( 'problem on its side', $text );
-		$this->assertStringNotContainsString( 'next monthly cycle', $text );
+		$this->assertStringNotContainsString( 'next weekly batch', $text );
 		$this->assertStringNotContainsString( 'status', $text );
 	}
 
