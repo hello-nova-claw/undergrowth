@@ -500,8 +500,9 @@ function undergrowth_measure_stage( int $post_id ): string {
 		ARRAY_A
 	);
 
-	$out = 0;
-	$in  = 0;
+	$out      = 0;
+	$in       = 0;
+	$from_hub = 0;
 
 	foreach ( (array) $rows as $row ) {
 		$outgoing = (int) $row['source_id'] === $post_id;
@@ -515,6 +516,7 @@ function undergrowth_measure_stage( int $post_id ): string {
 			++$out;
 		} else {
 			++$in;
+			$from_hub += metadata_exists( 'post', $other->ID, 'undergrowth_hub' ) ? 1 : 0;
 		}
 	}
 
@@ -522,7 +524,9 @@ function undergrowth_measure_stage( int $post_id ): string {
 	// the cluster lookup.
 	$clustered = $in > 0 && array() !== undergrowth_cluster_members( $post_id );
 
-	if ( $clustered && $in >= 3 && undergrowth_has_hub_link( $post_id ) ) {
+	// A link the author accepted from a hub, where pages are indexed, is the
+	// hub's own link, so it is not one of the three.
+	if ( $clustered && $in - $from_hub >= 3 && undergrowth_has_hub_link( $post_id ) ) {
 		return 'evergreen';
 	}
 
