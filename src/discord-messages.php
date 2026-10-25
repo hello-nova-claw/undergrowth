@@ -23,7 +23,7 @@ add_action( 'deleted_post', 'undergrowth_discord_forget_post_failures', 10, 2 );
 add_action( 'add_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 add_action( 'update_option_undergrowth_discord_channel_id', 'undergrowth_discord_start_posting' );
 
-foreach ( array( 'application_id', 'public_key', 'bot_token', 'channel_id' ) as $undergrowth_discord_field ) {
+foreach ( undergrowth_discord_fields() as $undergrowth_discord_field ) {
 	add_action( 'add_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
 	add_action( 'update_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );
 	add_action( 'delete_option_undergrowth_discord_' . $undergrowth_discord_field, 'undergrowth_discord_track_setup' );

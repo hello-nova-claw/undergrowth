@@ -414,7 +414,7 @@ function undergrowth_map_export_row( int $post_id, string $group, string $words,
  * @return string The title on one line.
  */
 function undergrowth_map_export_text( string $title ): string {
-	return trim( (string) preg_replace( '/\s+/u', ' ', html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
+	return trim( undergrowth_collapse_spaces( html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
 }
 
 /**

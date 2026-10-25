@@ -107,7 +107,7 @@ function undergrowth_split_sentences( string $html ): array {
 				}
 			}
 
-			$part = trim( (string) preg_replace( '/\s+/u', ' ', str_replace( array( $open, $close ), '', $part ) ) );
+			$part = trim( undergrowth_collapse_spaces( str_replace( array( $open, $close ), '', $part ) ) );
 
 			if ( '' !== $part ) {
 				$sentences[] = array(

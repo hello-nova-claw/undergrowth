@@ -264,4 +264,22 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<div class="notice notice-warning inline"><p>Salt &amp; &lt;b&gt;pepper&lt;/b&gt;</p></div>', $html );
 		$this->assertStringContainsString( '<div class="notice notice-warning inline" id="undergrowth-file-error"><p>Files.</p></div>', $html );
 	}
+
+	public function test_last_failure_reads_only_a_recorded_failure() {
+		delete_option( 'undergrowth_last_file_error' );
+		$this->assertNull( undergrowth_last_failure( 'undergrowth_last_file_error' ) );
+
+		update_option( 'undergrowth_last_file_error', 'broken' );
+		$this->assertNull( undergrowth_last_failure( 'undergrowth_last_file_error' ) );
+
+		update_option( 'undergrowth_last_file_error', array( 'code' => 'no_folder' ) );
+		$this->assertNull( undergrowth_last_failure( 'undergrowth_last_file_error' ) );
+
+		$failure = array(
+			'code' => 'no_folder',
+			'time' => 1000,
+		);
+		update_option( 'undergrowth_last_file_error', $failure );
+		$this->assertSame( $failure, undergrowth_last_failure( 'undergrowth_last_file_error' ) );
+	}
 }

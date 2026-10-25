@@ -711,7 +711,7 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
 		'anchor' => '',
 		'offset' => -1,
 	) : array(
-		'anchor' => (string) preg_replace( '/\s+/u', ' ', $choice['word'] ),
+		'anchor' => undergrowth_collapse_spaces( $choice['word'] ),
 		'offset' => $choice['offset'],
 	);
 }

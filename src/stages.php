@@ -871,8 +871,38 @@ function undergrowth_pinned_marker( int $post_id ): string {
 	}
 
 	return sprintf(
-		' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true" title="%1$s"></span><span class="screen-reader-text">%1$s</span>',
-		esc_attr__( 'Pinned', 'undergrowth' )
+		' <span class="dashicons dashicons-sticky undergrowth-pinned" aria-hidden="true"></span><span class="screen-reader-text">%s</span>',
+		esc_html__( 'Pinned', 'undergrowth' )
+	);
+}
+
+/**
+ * Builds core's dash for an empty table cell, with words for screen readers.
+ *
+ * @param string $label What the cell lacks, such as "No growth stage".
+ * @return string Cell HTML.
+ */
+function undergrowth_empty_cell( string $label ): string {
+	return sprintf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>', esc_html( $label ) );
+}
+
+/**
+ * Builds one link in a list table's row of views, marked when it is the
+ * view on screen.
+ *
+ * @param string $url     Where the view leads.
+ * @param string $label   The view's name.
+ * @param int    $count   How many items it holds.
+ * @param bool   $current Whether it is the view on screen.
+ * @return string Link HTML.
+ */
+function undergrowth_view_link( string $url, string $label, int $count, bool $current ): string {
+	return sprintf(
+		'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
+		esc_url( $url ),
+		$current ? ' class="current" aria-current="page"' : '',
+		esc_html( $label ),
+		esc_html( number_format_i18n( $count ) )
 	);
 }
 

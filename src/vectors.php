@@ -22,10 +22,11 @@ defined( 'ABSPATH' ) || exit;
  *     @type string $model        Model name.
  *     @type string $language     Locale of the post, such as en_US.
  *     @type string $content_hash SHA-256 of the text that was embedded.
+ *     @type string $embedded_at  Optional. When the text was read, as a UTC MySQL date. Default now.
  * }
  * @return bool True when the row was written.
  *
- * @phpstan-param array{provider: string, model: string, language: string, content_hash: string} $meta
+ * @phpstan-param array{provider: string, model: string, language: string, content_hash: string, embedded_at?: string} $meta
  */
 function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bool {
 	global $wpdb;
@@ -54,7 +55,7 @@ function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bo
 			'dimensions'   => count( $clean ),
 			'embedding'    => wp_json_encode( $clean ),
 			'content_hash' => $meta['content_hash'],
-			'embedded_at'  => current_time( 'mysql', true ),
+			'embedded_at'  => $meta['embedded_at'] ?? current_time( 'mysql', true ),
 		),
 		array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
 	);

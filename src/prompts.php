@@ -1041,5 +1041,5 @@ function undergrowth_prompt_quotes_author( string $quoted, array $authors, bool 
  * @return string Normalised text.
  */
 function undergrowth_prompt_normalise( string $text ): string {
-	return trim( (string) preg_replace( '/\s+/u', ' ', str_replace( array( '’', '‘' ), "'", $text ) ) );
+	return trim( undergrowth_collapse_spaces( str_replace( array( '’', '‘' ), "'", $text ) ) );
 }

@@ -146,7 +146,7 @@ function undergrowth_register_settings(): void {
 	add_settings_field( 'undergrowth_post_types', __( 'Post types', 'undergrowth' ), 'undergrowth_render_post_types_field', 'undergrowth', 'undergrowth_links' );
 	// A failed save on Accept is the only thing this row ever says, so it is
 	// there only while there is one to report.
-	if ( is_array( get_option( 'undergrowth_last_accept_error' ) ) ) {
+	if ( null !== undergrowth_last_failure( 'undergrowth_last_accept_error' ) ) {
 		add_settings_field( 'undergrowth_accept_error', __( 'Accept', 'undergrowth' ), 'undergrowth_render_accept_error_field', 'undergrowth', 'undergrowth_links' );
 	}
 
@@ -389,7 +389,7 @@ function undergrowth_render_prompts_section(): void {
 function undergrowth_render_key_field( array $args ): void {
 	if ( 'openai' === $args['provider'] ) {
 		$key    = undergrowth_openai_key();
-		$error  = get_option( 'undergrowth_last_embed_error' );
+		$error  = undergrowth_last_failure( 'undergrowth_last_embed_error' );
 		$notice = __( 'With a key, the title and text of each published post without a password are sent to OpenAI. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.openai.com/api-keys', __( 'Get a key from OpenAI', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending posts to OpenAI', 'undergrowth' );
@@ -403,7 +403,7 @@ function undergrowth_render_key_field( array $args ): void {
 			: __( 'Posts that were not read are tried again within the hour.', 'undergrowth' );
 	} else {
 		$key    = undergrowth_anthropic_key();
-		$error  = get_option( 'undergrowth_last_prompt_error' );
+		$error  = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
 		$notice = __( 'With a key, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.claude.com/settings/keys', __( 'Get a key from Anthropic', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending anything to Anthropic', 'undergrowth' );
@@ -413,7 +413,7 @@ function undergrowth_render_key_field( array $args ): void {
 	$provider  = $args['provider'];
 	$constant  = 'openai' === $provider ? 'UNDERGROWTH_OPENAI_API_KEY' : 'UNDERGROWTH_ANTHROPIC_API_KEY';
 	$in_config = '' !== undergrowth_key_from_config( $constant );
-	$failed    = is_array( $error ) && isset( $error['time'] );
+	$failed    = null !== $error;
 
 	// Everything said about the field below it, so a screen reader reads
 	// "leave the field blank to keep it" and the last failure on focus.
@@ -733,13 +733,25 @@ function undergrowth_render_memory_folder_field(): void {
  * Prints why the last per-post file was not written, when one was not.
  */
 function undergrowth_render_file_failure_notice(): void {
-	$error = get_option( 'undergrowth_last_file_error' );
+	$error = undergrowth_last_failure( 'undergrowth_last_file_error' );
 
-	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+	if ( null === $error ) {
 		return;
 	}
 
 	undergrowth_print_failure_notice( undergrowth_file_failure_text( $error ), 'undergrowth-file-error' );
+}
+
+/**
+ * Reads the failure recorded in an option, if there is one.
+ *
+ * @param string $option Option a failure is recorded in.
+ * @return array<string, mixed>|null The failure, or null when none is recorded.
+ */
+function undergrowth_last_failure( string $option ): ?array {
+	$error = get_option( $option );
+
+	return is_array( $error ) && isset( $error['time'] ) ? $error : null;
 }
 
 /**
@@ -817,9 +829,9 @@ function undergrowth_file_failure_text( array $error ): string {
  * Prints why the last Accept could not save the post it would link.
  */
 function undergrowth_render_accept_error_field(): void {
-	$error = get_option( 'undergrowth_last_accept_error' );
+	$error = undergrowth_last_failure( 'undergrowth_last_accept_error' );
 
-	if ( ! is_array( $error ) || ! isset( $error['time'] ) ) {
+	if ( null === $error ) {
 		return;
 	}
 

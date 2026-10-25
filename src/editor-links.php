@@ -280,7 +280,7 @@ function undergrowth_editor_link_span( int $source_id, int $target_id ): ?array 
 	}
 
 	// A line break inside the words in the post shows as a space.
-	$words = (string) preg_replace( '/\s+/u', ' ', $choice['word'] );
+	$words = undergrowth_collapse_spaces( $choice['word'] );
 
 	return mb_substr( $sentence, $choice['offset'], mb_strlen( $words ) ) === $words ? array(
 		'sentence' => $sentence,

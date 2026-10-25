@@ -354,7 +354,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$last  = 0;
 
 		if ( null !== $choice ) {
-			$end = $choice['offset'] + mb_strlen( (string) preg_replace( '/\s+/u', ' ', $choice['word'] ) );
+			$end = $choice['offset'] + mb_strlen( undergrowth_collapse_spaces( $choice['word'] ) );
 
 			foreach ( $words as $index => $word ) {
 				$first = $word['offset'] === $choice['offset'] ? $index : $first;
@@ -420,7 +420,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		$sentence = $item['sentence'];
 
 		// A line break inside the words in the post shows as a space.
-		$words  = null === $choice ? '' : (string) preg_replace( '/\s+/u', ' ', $choice['word'] );
+		$words  = null === $choice ? '' : undergrowth_collapse_spaces( $choice['word'] );
 		$length = mb_strlen( $words );
 
 		if ( null === $choice || mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
