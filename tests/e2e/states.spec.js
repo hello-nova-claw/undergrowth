@@ -69,6 +69,11 @@ const PROMPT_NOTICES = [
 	'prompt_removed',
 	'prompt_restored',
 	'prompt_gone',
+	'more_written&undergrowth_count=2',
+	'more_partial&undergrowth_count=1',
+	'more_failed',
+	'more_none',
+	'more_wait',
 ];
 
 const WITHOUT_POSTS = [
@@ -448,7 +453,7 @@ const WITH_POSTS = [
 	},
 	...PROMPT_NOTICES.map( ( notice ) => ( {
 		screen: 'studio',
-		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		state: `notice-${ notice.split( '&' )[ 0 ].replaceAll( '_', '-' ) }`,
 		page: [
 			STUDIO[ 0 ],
 			`${ STUDIO[ 1 ] }&undergrowth_notice=${ notice }`,

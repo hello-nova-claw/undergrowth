@@ -2060,7 +2060,7 @@ msgid "No new questions right now. Each week Undergrowth writes up to five more 
 msgstr ""
 
 #: src/studio.php
-msgid "Replace asks Claude for a different question straight away, using this site’s Anthropic API key."
+msgid "Replace asks Claude for a different question straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices."
 msgstr ""
 
 #: src/studio.php
@@ -2069,6 +2069,20 @@ msgstr ""
 
 #: src/studio.php
 msgid "Replace"
+msgstr ""
+
+#. translators: %s: number of questions asked for.
+#: src/studio.php
+#, php-format
+msgid "More questions asks Claude for up to %s questions straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices."
+msgstr ""
+
+#: src/studio.php
+msgid "More questions"
+msgstr ""
+
+#: src/studio.php
+msgid "Asking Claude for more questions…"
 msgstr ""
 
 #: src/studio.php
@@ -2108,6 +2122,10 @@ msgid "You cannot answer questions about this post."
 msgstr ""
 
 #: src/studio.php
+msgid "You cannot ask for more questions."
+msgstr ""
+
+#: src/studio.php
 msgid "Dismissed. Undergrowth won’t ask that again."
 msgstr ""
 
@@ -2135,12 +2153,48 @@ msgstr ""
 msgid "Claude could not write a different question just now, so this one stays. Try again later."
 msgstr ""
 
+#. translators: %s: number of new questions.
+#: src/studio.php
+#, php-format
+msgid "Claude wrote %s new question for you."
+msgid_plural "Claude wrote %s new questions for you."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/studio.php
+msgid "You can ask for more questions again in a few minutes."
+msgstr ""
+
+#: src/studio.php
+msgid "Then a request to Anthropic failed, so there are fewer than you asked for."
+msgstr ""
+
+#: src/studio.php
+msgid "No new question was written."
+msgstr ""
+
+#: src/studio.php
+msgid "Undergrowth found nothing new in your posts to ask about just now, so nothing was sent. It looks again each week."
+msgstr ""
+
+#: src/studio.php
+msgid "You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes."
+msgstr ""
+
+#: src/studio.php
+msgid "There is no Anthropic API key, so nothing was sent."
+msgstr ""
+
 #: src/studio.php
 msgid "Claude writes each question from your own posts: a gap among them, a post you moved to compost, or a reader’s question in a comment. It only ever asks; it never writes a draft, a title or an outline, and it quotes nobody but you."
 msgstr ""
 
 #: src/studio.php
 msgid "Save keeps a question in your idea bank, with the posts it came from, until you remove it. Dismiss removes it for good, and its notice has an Undo. Replace asks Claude for a different question straight away, using this site’s Anthropic API key."
+msgstr ""
+
+#: src/studio.php
+msgid "Each week Undergrowth tops the new questions up to five. Once none is left, More questions asks Claude for a few more straight away. Each question usually costs one or two cents from your own Anthropic account, and nothing is sent until you choose it."
 msgstr ""
 
 #: build/blocks/growth-stage/index.js

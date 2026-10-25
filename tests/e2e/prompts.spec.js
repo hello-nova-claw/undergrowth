@@ -148,6 +148,61 @@ test.describe( 'Prompt studio', () => {
 		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
 	} );
 
+	test( 'asks for more questions only once the cost is shown', async ( {
+		admin,
+		page,
+		requestUtils,
+	} ) => {
+		await admin.visitAdminPage( ...STUDIO );
+		await page.locator( `${ QUESTIONS } button[value="dismiss"]` ).click();
+
+		const more = page.locator( '#undergrowth-more-prompts button' );
+
+		await expect( page.locator( '#undergrowth-more-cost' ) ).toBeVisible();
+		await expect( more ).toHaveAttribute(
+			'aria-describedby',
+			'undergrowth-more-cost'
+		);
+		await expectNoA11yViolations( page, '.wrap' );
+
+		// A second reader's question gives Claude something new to ask about.
+		const [ post ] = await requestUtils.rest( {
+			path: '/wp/v2/posts',
+			params: { per_page: 1 },
+		} );
+
+		await requestUtils.rest( {
+			method: 'POST',
+			path: '/wp/v2/comments',
+			data: {
+				post: post.id,
+				content: 'When do you lift them?',
+				author_name: 'Another reader',
+				author_email: 'another@example.com',
+				status: 'approved',
+			},
+		} );
+
+		await more.focus();
+		await page.keyboard.press( 'Enter' );
+
+		await expect( page.locator( NOTICE ) ).toHaveClass( /notice-success/ );
+		await expect( page.locator( NOTICE ) ).toBeFocused();
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
+	} );
+
+	test( 'says so when there is nothing new to ask about', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( ...STUDIO );
+		await page.locator( `${ QUESTIONS } button[value="save"]` ).click();
+		await page.locator( '#undergrowth-more-prompts button' ).click();
+
+		await expect( page.locator( NOTICE ) ).toHaveClass( /notice-info/ );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 0 );
+	} );
+
 	test( 'fits a phone screen without scrolling sideways', async ( {
 		admin,
 		page,

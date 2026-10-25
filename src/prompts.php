@@ -19,6 +19,9 @@ const UNDERGROWTH_PROMPT_MAX_LENGTH  = 300;
 const UNDERGROWTH_PROMPT_MAX_CALLS   = 3;
 const UNDERGROWTH_PROMPT_BATCH       = 5;
 const UNDERGROWTH_PROMPT_BATCH_CALLS = 10;
+const UNDERGROWTH_PROMPT_MORE        = 3;
+const UNDERGROWTH_PROMPT_MORE_CALLS  = 6;
+const UNDERGROWTH_PROMPT_MORE_WAIT   = 10 * MINUTE_IN_SECONDS;
 const UNDERGROWTH_PROMPT_DATA_CHARS  = 1000;
 const UNDERGROWTH_PROMPT_COMMENTS    = 50;
 const UNDERGROWTH_PROMPT_COMPOSTED   = 20;
@@ -587,6 +590,32 @@ function undergrowth_prompt_reply_is_final( WP_Error $error ): bool {
  */
 function undergrowth_write_prompt(): bool {
 	return 1 === undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS );
+}
+
+/**
+ * Asks Claude for up to UNDERGROWTH_PROMPT_MORE questions straight away,
+ * when the author chooses More questions.
+ *
+ * Each question is kept as soon as it is written, so one paid for is never
+ * thrown away when a later request fails.
+ *
+ * @return array{written: int, error: array<string, mixed>|null} Questions written, and the failure that stopped the run, if one did.
+ */
+function undergrowth_write_more_prompts(): array {
+	$before  = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
+	$start   = time();
+	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS );
+	$error   = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
+
+	// A refusal is recorded too, but it is an answer, and the run went on.
+	if ( null === $error || $error === $before || (int) $error['time'] < $start || in_array( $error['code'] ?? '', array( 'refusal', 'max_tokens' ), true ) ) {
+		$error = null;
+	}
+
+	return array(
+		'written' => $written,
+		'error'   => $error,
+	);
 }
 
 /**

@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'admin_menu', 'undergrowth_add_studio_page' );
 add_action( 'admin_post_undergrowth_studio', 'undergrowth_handle_studio' );
 add_action( 'admin_post_undergrowth_restore_prompt', 'undergrowth_handle_restore_prompt' );
+add_action( 'admin_post_undergrowth_more_prompts', 'undergrowth_handle_more_prompts' );
 add_action( 'load-posts_page_undergrowth-studio', 'undergrowth_add_studio_help' );
 add_filter( 'removable_query_args', 'undergrowth_studio_removable_query_args' );
 
@@ -35,9 +36,10 @@ function undergrowth_add_studio_page(): void {
  * @param string $view   '' for new questions, 'saved' for the idea bank.
  * @param string $notice Result to show there, if any.
  * @param string $key    Key of the question the result is about, if any.
+ * @param int    $count  Number of questions the result is about, if any.
  * @return string Admin URL.
  */
-function undergrowth_studio_url( string $view = '', string $notice = '', string $key = '' ): string {
+function undergrowth_studio_url( string $view = '', string $notice = '', string $key = '', int $count = 0 ): string {
 	$args = array( 'page' => 'undergrowth-studio' );
 
 	if ( 'saved' === $view ) {
@@ -50,6 +52,10 @@ function undergrowth_studio_url( string $view = '', string $notice = '', string 
 
 	if ( '' !== $key ) {
 		$args['undergrowth_prompt'] = rawurlencode( $key );
+	}
+
+	if ( $count > 0 ) {
+		$args['undergrowth_count'] = $count;
 	}
 
 	return add_query_arg( $args, admin_url( 'edit.php' ) );
@@ -65,6 +71,7 @@ function undergrowth_studio_url( string $view = '', string $notice = '', string 
 function undergrowth_studio_removable_query_args( $args ) {
 	$args   = (array) $args;
 	$args[] = 'undergrowth_prompt';
+	$args[] = 'undergrowth_count';
 
 	return $args;
 }
@@ -171,10 +178,11 @@ function undergrowth_render_studio( string $view, array $tabs, array $fresh, arr
 function undergrowth_render_new_prompts( array $prompts ): void {
 	if ( array() === $prompts ) {
 		echo '<p>' . esc_html__( 'No new questions right now. Each week Undergrowth writes up to five more from your posts, when it finds something new to ask about. The questions you saved are in the idea bank.', 'undergrowth' ) . '</p>';
+		undergrowth_render_more_prompts_form();
 		return;
 	}
 
-	echo '<p>' . esc_html__( 'Replace asks Claude for a different question straight away, using this site’s Anthropic API key.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'Replace asks Claude for a different question straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices.', 'undergrowth' ) . '</p>';
 	echo '<ul class="undergrowth-questions">';
 
 	foreach ( $prompts as $prompt ) {
@@ -189,6 +197,49 @@ function undergrowth_render_new_prompts( array $prompts ): void {
 	}
 
 	echo '</ul>';
+}
+
+/**
+ * Prints More questions, with what a click sends and roughly costs, for a
+ * user who may ask about every post.
+ *
+ * The notice is shown before the button, and nothing is sent until it is
+ * pressed.
+ */
+function undergrowth_render_more_prompts_form(): void {
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		return;
+	}
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="undergrowth-more-prompts">
+		<input type="hidden" name="action" value="undergrowth_more_prompts" />
+		<?php wp_nonce_field( 'undergrowth_more_prompts' ); ?>
+		<p id="undergrowth-more-cost">
+			<?php
+			echo esc_html(
+				sprintf(
+					/* translators: %s: number of questions asked for. */
+					__( 'More questions asks Claude for up to %s questions straight away, using this site’s Anthropic API key. Each question usually costs one or two cents at Anthropic’s published prices.', 'undergrowth' ),
+					number_format_i18n( UNDERGROWTH_PROMPT_MORE )
+				)
+			);
+			?>
+		</p>
+		<p>
+			<button type="submit" class="button button-primary" aria-describedby="undergrowth-more-cost"><?php esc_html_e( 'More questions', 'undergrowth' ); ?></button>
+			<span class="spinner" style="float: none;"></span>
+			<span class="screen-reader-text" role="status" id="undergrowth-more-status"></span>
+		</p>
+	</form>
+	<?php
+	// Asking Claude takes a few seconds, so the wait is shown and spoken,
+	// and a second click does not send the requests again.
+	wp_print_inline_script_tag(
+		sprintf(
+			"document.getElementById( 'undergrowth-more-prompts' ).addEventListener( 'submit', function ( event ) { var form = event.currentTarget; if ( form.dataset.sent ) { event.preventDefault(); return; } form.dataset.sent = '1'; form.querySelector( 'button' ).setAttribute( 'aria-disabled', 'true' ); form.querySelector( '.spinner' ).classList.add( 'is-active' ); document.getElementById( 'undergrowth-more-status' ).textContent = %s; } );",
+			wp_json_encode( __( 'Asking Claude for more questions…', 'undergrowth' ) )
+		)
+	);
 }
 
 /**
@@ -307,6 +358,42 @@ function undergrowth_handle_studio(): void {
 }
 
 /**
+ * Asks Claude for more questions when the author chooses More questions,
+ * then returns to the Prompt studio with what happened.
+ *
+ * Each author may ask once every UNDERGROWTH_PROMPT_MORE_WAIT seconds.
+ */
+function undergrowth_handle_more_prompts(): void {
+	check_admin_referer( 'undergrowth_more_prompts' );
+
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		wp_die( esc_html__( 'You cannot ask for more questions.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$user   = get_current_user_id();
+	$last   = (int) get_user_meta( $user, 'undergrowth_more_prompts_at', true );
+	$result = array( 'written' => 0 );
+
+	if ( ! undergrowth_prompts_enabled() ) {
+		$notice = 'more_no_key';
+	} elseif ( $last > time() - UNDERGROWTH_PROMPT_MORE_WAIT ) {
+		$notice = 'more_wait';
+	} else {
+		update_user_meta( $user, 'undergrowth_more_prompts_at', time() );
+		$result = undergrowth_write_more_prompts();
+
+		if ( null !== $result['error'] ) {
+			$notice = $result['written'] > 0 ? 'more_partial' : 'more_failed';
+		} else {
+			$notice = $result['written'] > 0 ? 'more_written' : 'more_none';
+		}
+	}
+
+	wp_safe_redirect( undergrowth_studio_url( '', $notice, '', $result['written'] ) );
+	exit;
+}
+
+/**
  * Brings back the question named by the Undo link in the dismissed notice,
  * then returns to the Prompt studio.
  */
@@ -367,7 +454,13 @@ function undergrowth_render_studio_notice(): void {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
 	$key    = isset( $_GET['undergrowth_prompt'] ) ? sanitize_text_field( wp_unslash( $_GET['undergrowth_prompt'] ) ) : '';
+	$count  = isset( $_GET['undergrowth_count'] ) ? absint( $_GET['undergrowth_count'] ) : 0;
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+	if ( 0 === strpos( $notice, 'more_' ) ) {
+		undergrowth_render_more_prompts_notice( $notice, $count );
+		return;
+	}
 
 	$messages = array(
 		'prompt_dismissed'    => __( 'Dismissed. Undergrowth won’t ask that again.', 'undergrowth' ),
@@ -390,6 +483,37 @@ function undergrowth_render_studio_notice(): void {
 }
 
 /**
+ * Prints the notice for More questions.
+ *
+ * @param string $notice Result of the click.
+ * @param int    $count  Questions Claude wrote.
+ */
+function undergrowth_render_more_prompts_notice( string $notice, int $count ): void {
+	$error   = undergrowth_last_failure( 'undergrowth_last_prompt_error' );
+	$written = sprintf(
+		/* translators: %s: number of new questions. */
+		_n( 'Claude wrote %s new question for you.', 'Claude wrote %s new questions for you.', $count, 'undergrowth' ),
+		number_format_i18n( $count )
+	);
+	$failure = null === $error ? '' : undergrowth_failure_text( 'Anthropic', $error, __( 'You can ask for more questions again in a few minutes.', 'undergrowth' ) );
+
+	$messages = array(
+		'more_written' => array( 'notice-success', $written ),
+		'more_partial' => array( 'notice-warning', $written . ' ' . __( 'Then a request to Anthropic failed, so there are fewer than you asked for.', 'undergrowth' ) . ' ' . $failure ),
+		'more_failed'  => array( 'notice-warning', __( 'No new question was written.', 'undergrowth' ) . ' ' . $failure ),
+		'more_none'    => array( 'notice-info', __( 'Undergrowth found nothing new in your posts to ask about just now, so nothing was sent. It looks again each week.', 'undergrowth' ) ),
+		'more_wait'    => array( 'notice-warning', __( 'You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes.', 'undergrowth' ) ),
+		'more_no_key'  => array( 'notice-warning', __( 'There is no Anthropic API key, so nothing was sent.', 'undergrowth' ) ),
+	);
+
+	if ( ! isset( $messages[ $notice ] ) ) {
+		return;
+	}
+
+	undergrowth_print_result_notices( array( $messages[ $notice ][0] => '<p>' . esc_html( trim( $messages[ $notice ][1] ) ) . '</p>' ) );
+}
+
+/**
  * Adds the Help tab on the Prompt studio.
  */
 function undergrowth_add_studio_help(): void {
@@ -399,6 +523,7 @@ function undergrowth_add_studio_help(): void {
 		array(
 			__( 'Claude writes each question from your own posts: a gap among them, a post you moved to compost, or a reader’s question in a comment. It only ever asks; it never writes a draft, a title or an outline, and it quotes nobody but you.', 'undergrowth' ),
 			__( 'Save keeps a question in your idea bank, with the posts it came from, until you remove it. Dismiss removes it for good, and its notice has an Undo. Replace asks Claude for a different question straight away, using this site’s Anthropic API key.', 'undergrowth' ),
+			__( 'Each week Undergrowth tops the new questions up to five. Once none is left, More questions asks Claude for a few more straight away. Each question usually costs one or two cents from your own Anthropic account, and nothing is sent until you choose it.', 'undergrowth' ),
 		)
 	);
 }
