@@ -342,6 +342,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_embed_retry_at' );
 	delete_option( 'undergrowth_last_prompt_error' );
+	delete_option( 'undergrowth_prompts' );
 	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_config_prompt_queued' );
 	delete_option( 'undergrowth_snoozed_prompts' );

@@ -124,7 +124,7 @@ class Test_Settings_Code_Provider extends WP_UnitTestCase {
 	}
 
 	public function test_link_suggestions_name_the_model_and_provider_that_read_the_posts() {
-		$this->assertSame( 1, preg_match( '#<h2[^>]*>Link suggestions</h2>.*<p id="undergrowth-links-provider">(.*?)</p>.*<h2[^>]*>Questions on your Dashboard</h2>#s', $this->render(), $provider ) );
+		$this->assertSame( 1, preg_match( '#<h2[^>]*>Link suggestions</h2>.*<p id="undergrowth-links-provider">(.*?)</p>.*<h2[^>]*>Questions in your Prompt studio</h2>#s', $this->render(), $provider ) );
 
 		$text = wp_strip_all_tags( $provider[1] );
 

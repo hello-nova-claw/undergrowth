@@ -28,8 +28,7 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->editor = self::factory()->user->create( array( 'role' => 'editor' ) );
 		wp_set_current_user( $this->editor );
 		delete_option( 'undergrowth_suggest_links' );
-		delete_option( 'undergrowth_prompt' );
-		delete_option( 'undergrowth_dismissed_prompt' );
+		delete_option( 'undergrowth_prompts' );
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_first_run' );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
@@ -37,7 +36,7 @@ class Test_Undo extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		unset( $_GET['source'], $_GET['target'], $_GET['key'], $_GET['undergrowth_notice'], $_GET['undergrowth_undo'], $_REQUEST['_wpnonce'] );
+		unset( $_GET['source'], $_GET['target'], $_GET['key'], $_GET['undergrowth_notice'], $_GET['undergrowth_prompt'], $_GET['undergrowth_undo'], $_REQUEST['_wpnonce'] );
 		undergrowth_delete_memory_folder();
 		set_current_screen( 'front' );
 
@@ -306,35 +305,40 @@ class Test_Undo extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Waits a prompt about a post the editor can edit.
+	 * Adds a new question about a post the editor can edit.
 	 *
-	 * @return array<string, mixed> The prompt.
+	 * @param string $key Key of the question.
+	 * @return array<string, mixed> The question.
 	 */
-	private function prompt(): array {
-		$prompt = array(
-			'key'      => 'gap:1',
+	private function prompt( string $key = 'gap:1' ): array {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$prompt  = array(
+			'key'      => $key,
 			'source'   => 'gap',
-			'post_id'  => self::factory()->post->create( array( 'post_status' => 'publish' ) ),
+			'post_id'  => $post_id,
+			'posts'    => array( $post_id ),
 			'question' => 'What sits between these posts?',
 			'time'     => time(),
+			'status'   => 'new',
 		);
 
-		update_option( 'undergrowth_prompt', $prompt );
+		update_option( 'undergrowth_prompts', array_merge( get_option( 'undergrowth_prompts', array() ), array( $prompt ) ) );
 
 		return $prompt;
 	}
 
 	/**
-	 * Renders the Dashboard's result notice.
+	 * Renders the Prompt studio's result notice.
 	 *
-	 * @param string $notice Notice the Dashboard was returned to with.
+	 * @param string $notice Notice the studio was returned to with.
+	 * @param string $key    Key of the question the notice is about.
 	 * @return string
 	 */
-	private function dashboard_notice( string $notice ): string {
+	private function studio_notice( string $notice, string $key = 'gap:1' ): string {
 		$_GET['undergrowth_notice'] = $notice;
-		set_current_screen( 'dashboard' );
+		$_GET['undergrowth_prompt'] = $key;
 		ob_start();
-		undergrowth_render_prompt_notice();
+		undergrowth_render_studio_notice();
 
 		return (string) ob_get_clean();
 	}
@@ -353,30 +357,30 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_restore_prompt( 'gap:1' ) );
 	}
 
-	public function test_a_question_is_not_restored_over_a_newer_one() {
+	public function test_a_question_is_restored_beside_newer_ones() {
 		$this->prompt();
 		undergrowth_dismiss_prompt( 'gap:1' );
+		$this->prompt( 'gap:2' );
 
-		$newer = array_merge( $this->prompt(), array( 'key' => 'gap:2' ) );
-		update_option( 'undergrowth_prompt', $newer );
-
-		$this->assertFalse( undergrowth_restore_prompt( 'gap:1' ) );
-		$this->assertSame( 'gap:2', undergrowth_current_prompt()['key'] );
+		$this->assertTrue( undergrowth_restore_prompt( 'gap:1' ) );
+		$this->assertSame( array( 'gap:2', 'gap:1' ), array_column( undergrowth_prompts( 'new' ), 'key' ) );
 	}
 
-	public function test_only_the_last_dismissed_question_can_be_restored() {
+	public function test_only_a_dismissed_question_can_be_restored() {
 		$this->prompt();
 		undergrowth_dismiss_prompt( 'gap:1' );
+		$this->prompt( 'gap:2' );
 
 		$this->assertFalse( undergrowth_restore_prompt( 'gap:9' ) );
-		$this->assertNull( undergrowth_current_prompt() );
+		$this->assertFalse( undergrowth_restore_prompt( 'gap:2' ) );
+		$this->assertSame( array( 'gap:2' ), array_column( undergrowth_prompts( 'new' ), 'key' ) );
 	}
 
 	public function test_the_dismissed_notice_offers_an_undo_that_brings_the_question_back() {
 		$this->prompt();
 		undergrowth_dismiss_prompt( 'gap:1' );
 
-		$html = $this->dashboard_notice( 'prompt_dismissed' );
+		$html = $this->studio_notice( 'prompt_dismissed' );
 
 		$this->assertStringContainsString( 'won’t ask that again', $html );
 		$this->assertStringContainsString( 'role="status"', $html );
@@ -384,17 +388,17 @@ class Test_Undo extends WP_UnitTestCase {
 		$this->follow( $this->undo_link( $html, 'undergrowth_restore_prompt' ) );
 		$location = $this->call( 'undergrowth_handle_restore_prompt' );
 
-		$this->assertSame( admin_url( 'index.php?undergrowth_notice=prompt_restored' ), $location );
+		$this->assertSame( admin_url( 'edit.php?page=undergrowth-studio&undergrowth_notice=prompt_restored' ), $location );
 		$this->assertSame( 'gap:1', undergrowth_current_prompt()['key'] );
-		$this->assertStringContainsString( 'The question is back', $this->dashboard_notice( 'prompt_restored' ) );
+		$this->assertStringContainsString( 'The question is back', $this->studio_notice( 'prompt_restored' ) );
 	}
 
-	public function test_the_dismissed_notice_offers_no_undo_once_another_question_waits() {
+	public function test_the_dismissed_notice_offers_no_undo_once_the_question_is_back() {
 		$this->prompt();
 		undergrowth_dismiss_prompt( 'gap:1' );
-		update_option( 'undergrowth_prompt', array_merge( $this->prompt(), array( 'key' => 'gap:2' ) ) );
+		undergrowth_restore_prompt( 'gap:1' );
 
-		$this->assertStringNotContainsString( 'undergrowth_restore_prompt', $this->dashboard_notice( 'prompt_dismissed' ) );
+		$this->assertStringNotContainsString( 'undergrowth_restore_prompt', $this->studio_notice( 'prompt_dismissed' ) );
 	}
 
 	public function test_the_dismissed_notice_offers_no_undo_to_a_user_who_cannot_edit_the_post() {
@@ -402,14 +406,14 @@ class Test_Undo extends WP_UnitTestCase {
 		undergrowth_dismiss_prompt( 'gap:1' );
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'author' ) ) );
 
-		$this->assertStringNotContainsString( 'undergrowth_restore_prompt', $this->dashboard_notice( 'prompt_dismissed' ) );
+		$this->assertStringNotContainsString( 'undergrowth_restore_prompt', $this->studio_notice( 'prompt_dismissed' ) );
 	}
 
 	public function test_restoring_a_question_without_a_valid_nonce_is_refused() {
 		$this->prompt();
 		undergrowth_dismiss_prompt( 'gap:1' );
 		$_GET['key']          = 'gap:1';
-		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_prompt_gap:1' );
+		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_studio_gap:1' );
 
 		try {
 			$this->call( 'undergrowth_handle_restore_prompt' );
@@ -438,7 +442,7 @@ class Test_Undo extends WP_UnitTestCase {
 		$_GET['key']          = 'gap:1';
 		$_REQUEST['_wpnonce'] = wp_create_nonce( 'undergrowth_restore_prompt_gap:1' );
 
-		$this->assertSame( admin_url( 'index.php?undergrowth_notice=prompt_gone' ), $this->call( 'undergrowth_handle_restore_prompt' ) );
+		$this->assertSame( admin_url( 'edit.php?page=undergrowth-studio&undergrowth_notice=prompt_gone' ), $this->call( 'undergrowth_handle_restore_prompt' ) );
 	}
 
 	public function test_uninstall_forgets_the_dismissed_question() {
@@ -447,7 +451,7 @@ class Test_Undo extends WP_UnitTestCase {
 
 		undergrowth_uninstall_site();
 
-		$this->assertFalse( get_option( 'undergrowth_dismissed_prompt' ) );
+		$this->assertFalse( get_option( 'undergrowth_prompts' ) );
 	}
 
 	/**

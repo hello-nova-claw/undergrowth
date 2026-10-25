@@ -165,7 +165,7 @@ function undergrowth_register_settings(): void {
 	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
 	add_settings_field( 'undergrowth_surprise', __( 'Surprise scale', 'undergrowth' ), 'undergrowth_render_surprise_field', 'undergrowth', 'undergrowth_links' );
 
-	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
+	add_settings_section( 'undergrowth_prompts', __( 'Questions in your Prompt studio', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
 	add_settings_field(
 		'undergrowth_anthropic_api_key',
@@ -382,10 +382,10 @@ function undergrowth_render_links_section(): void {
 }
 
 /**
- * Prints the one-sentence introduction to the Dashboard questions section.
+ * Prints the one-sentence introduction to the Prompt studio section.
  */
 function undergrowth_render_prompts_section(): void {
-	echo '<p id="undergrowth-prompts-intro">' . esc_html__( 'Undergrowth asks Claude to write you an occasional question about your own writing, shown only to you, on your Dashboard.', 'undergrowth' ) . '</p>';
+	echo '<p id="undergrowth-prompts-intro">' . esc_html__( 'Undergrowth asks Claude to write you questions about your own writing, shown only to you, in Posts › Prompt studio.', 'undergrowth' ) . '</p>';
 }
 
 /**
@@ -975,7 +975,7 @@ function undergrowth_add_settings_help(): void {
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),
 			array(
-				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ),
+				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace in the Prompt studio. The questions appear only in your Prompt studio, never to your readers.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-files'   => array(

@@ -402,9 +402,21 @@ class Test_Settings extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'No question yet', $this->render() );
 	}
 
-	public function test_page_stops_saying_there_is_no_question_while_one_is_snoozed() {
+	public function test_page_stops_saying_there_is_no_question_while_one_is_saved() {
 		update_option( 'undergrowth_anthropic_api_key', self::ANTHROPIC_KEY );
-		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:1' ) ), false );
+		update_option(
+			'undergrowth_prompts',
+			array(
+				array(
+					'key'      => 'comment:2',
+					'source'   => 'comment',
+					'post_id'  => 1,
+					'question' => 'Why?',
+					'status'   => 'saved',
+				),
+			),
+			false
+		);
 
 		$this->assertStringNotContainsString( 'No question yet', $this->render() );
 	}
@@ -563,7 +575,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertSame( 3, preg_match_all( '#<h2[^>]*>([^<]+)</h2>#', $html, $headings ) );
-		$this->assertSame( array( 'Link suggestions', 'Questions on your Dashboard', 'Discord (optional)' ), $headings[1] );
+		$this->assertSame( array( 'Link suggestions', 'Questions in your Prompt studio', 'Discord (optional)' ), $headings[1] );
 	}
 
 	public function test_each_section_opens_with_one_sentence() {
@@ -579,7 +591,7 @@ class Test_Settings extends WP_UnitTestCase {
 	public function test_key_fields_are_rows_of_their_sections() {
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<th scope="row"><label for="undergrowth_openai_api_key">OpenAI API key</label></th>.*<h2[^>]*>Questions on your Dashboard</h2>.*<th scope="row"><label for="undergrowth_anthropic_api_key">Anthropic API key</label></th>.*<h2[^>]*>Discord \(optional\)</h2>#s', $html );
+		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<th scope="row"><label for="undergrowth_openai_api_key">OpenAI API key</label></th>.*<h2[^>]*>Questions in your Prompt studio</h2>.*<th scope="row"><label for="undergrowth_anthropic_api_key">Anthropic API key</label></th>.*<h2[^>]*>Discord \(optional\)</h2>#s', $html );
 	}
 
 	public function test_key_descriptions_say_in_two_sentences_what_is_sent() {
@@ -649,7 +661,7 @@ class Test_Settings extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<input type="checkbox" id="undergrowth_suggest_links" name="undergrowth_suggest_links" value="1" checked=\'checked\' />.*<h2[^>]*>Questions on your Dashboard</h2>#s', $html );
+		$this->assertMatchesRegularExpression( '#<h2[^>]*>Link suggestions</h2>.*<input type="checkbox" id="undergrowth_suggest_links" name="undergrowth_suggest_links" value="1" checked=\'checked\' />.*<h2[^>]*>Questions in your Prompt studio</h2>#s', $html );
 		$this->assertStringContainsString( 'Suggest links between my posts', $html );
 	}
 
