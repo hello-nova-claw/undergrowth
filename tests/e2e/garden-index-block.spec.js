@@ -108,7 +108,12 @@ test.describe( 'Garden index block', () => {
 		await editor.selectBlocks(
 			editor.canvas.locator( '[data-type="undergrowth/garden-index"]' )
 		);
-		await editor.openDocumentSettingsSidebar();
+		// Through the store, since the toggle's name is translated.
+		await page.evaluate( () =>
+			window.wp.data
+				.dispatch( 'core/edit-post' )
+				.openGeneralSidebar( 'edit-post/block' )
+		);
 		const stage = page.locator( '.block-editor-block-inspector select' );
 		const evergreen = await stage
 			.locator( 'option[value="evergreen"]' )
