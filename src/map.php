@@ -368,8 +368,9 @@ function undergrowth_map_export_rows(): array {
 	_prime_post_caches( array_merge( array_merge( array(), ...array_column( $map, 'members' ) ), $ungrouped ), false, true );
 
 	foreach ( $map as $cluster ) {
-		$name  = undergrowth_plain_line( undergrowth_post_title( $cluster['members'][0] ) );
-		$words = implode( ', ', undergrowth_cluster_terms( $cluster['leader'], $name ) );
+		$title = undergrowth_post_title( $cluster['members'][0] );
+		$name  = undergrowth_map_export_text( $title );
+		$words = implode( ', ', undergrowth_cluster_terms( $cluster['leader'], undergrowth_plain_line( $title ) ) );
 
 		foreach ( $cluster['members'] as $post_id ) {
 			$rows[] = undergrowth_map_export_row( $post_id, $name, $words, $cluster['gap'] );
@@ -396,11 +397,24 @@ function undergrowth_map_export_row( int $post_id, string $group, string $words,
 	return array(
 		'group'     => $group,
 		'words'     => $words,
-		'title'     => undergrowth_plain_line( undergrowth_post_title( $post_id ) ),
+		'title'     => undergrowth_map_export_text( undergrowth_post_title( $post_id ) ),
 		'permalink' => (string) get_permalink( $post_id ),
 		'stage'     => undergrowth_stage_label( undergrowth_get_stage( $post_id ) ),
 		'gap'       => $gap,
 	);
+}
+
+/**
+ * Turns a post title into the text the Map shows for it.
+ *
+ * The Map escapes a title, so markup in it reads as written; only entities,
+ * such as the curly quotes core adds, become characters again.
+ *
+ * @param string $title Title as get_the_title() returns it.
+ * @return string The title on one line.
+ */
+function undergrowth_map_export_text( string $title ): string {
+	return trim( (string) preg_replace( '/\s+/u', ' ', html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ) );
 }
 
 /**

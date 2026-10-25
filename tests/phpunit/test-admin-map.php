@@ -428,6 +428,23 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->assertLessThan( 5, $counts[12] - $counts[2] );
 	}
 
+	public function test_export_keeps_titles_as_the_map_shows_them() {
+		$posts = $this->plant_clusters();
+		wp_update_post(
+			array(
+				'ID'         => $posts['Yacon'],
+				'post_title' => "<em>Yacon</em> &amp; the frost's\nedge",
+			)
+		);
+
+		$rows = array_column( undergrowth_map_export_rows(), null, 'permalink' );
+		$row  = $rows[ get_permalink( $posts['Yacon'] ) ];
+
+		// Markup reads as written, as on the escaped screen; entities become characters.
+		$this->assertSame( '<em>Yacon</em> & the frost’s edge', $row['title'] );
+		$this->assertSame( $row['title'], $row['group'] );
+	}
+
 	public function test_export_carries_the_words_the_map_shows() {
 		$posts = $this->plant_clusters();
 		update_option(
