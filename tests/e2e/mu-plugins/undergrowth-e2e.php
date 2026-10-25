@@ -260,6 +260,14 @@ add_action(
 		if ( is_array( $record ) && function_exists( 'undergrowth_run_pollination_cycle' ) ) {
 			undergrowth_run_pollination_cycle( $record['after'], $record['pass'] );
 		}
+
+		// And the refresh its end queues, which offers the cross-pollination links.
+		foreach ( (array) _get_cron_array() as $time => $hooks ) {
+			foreach ( $hooks['undergrowth_refresh_sources'] ?? array() as $event ) {
+				wp_unschedule_event( $time, 'undergrowth_refresh_sources', $event['args'] );
+				do_action_ref_array( 'undergrowth_refresh_sources', $event['args'] );
+			}
+		}
 	}
 );
 
