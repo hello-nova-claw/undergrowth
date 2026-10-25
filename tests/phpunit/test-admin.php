@@ -587,6 +587,45 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_suggest_links' ) );
 	}
 
+	public function test_a_row_action_button_points_at_its_form_by_id() {
+		$this->assertSame(
+			'<button type="submit" form="undergrowth-veto-4-5" class="button-link" aria-label="Veto &quot;Oca&quot;">Veto</button>',
+			undergrowth_row_action_button(
+				'veto',
+				array(
+					'source' => 4,
+					'target' => 5,
+				),
+				'Veto "Oca"',
+				'Veto'
+			)
+		);
+		$this->assertSame( 'undergrowth-pin-7', undergrowth_row_action_form_id( 'pin', array( 'post' => 7 ) ) );
+	}
+
+	public function test_a_row_action_form_holds_its_fields_in_order_and_a_nonce_for_them() {
+		$form = undergrowth_row_action_form(
+			'accept',
+			array(
+				'source' => 4,
+				'target' => 5,
+			)
+		);
+
+		$this->assertStringStartsWith( '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="undergrowth-accept-4-5"><input type="hidden" name="action" value="undergrowth_accept" /><input type="hidden" name="source" value="4" /><input type="hidden" name="target" value="5" />', $form );
+		$this->assertStringContainsString( 'value="' . wp_create_nonce( 'undergrowth_accept_4_5' ) . '"', $form );
+		$this->assertStringEndsWith( '</form>', $form );
+
+		$this->assertStringContainsString( '<input type="hidden" name="post" value="7" />', undergrowth_row_action_form( 'pin', array( 'post' => 7 ) ) );
+		$this->assertStringContainsString( wp_create_nonce( 'undergrowth_pin_7' ), undergrowth_row_action_form( 'pin', array( 'post' => 7 ) ) );
+	}
+
+	public function test_neither_list_table_builds_its_own_row_action_markup() {
+		foreach ( array( 'class-undergrowth-links-list-table.php', 'class-undergrowth-stages-list-table.php' ) as $file ) {
+			$this->assertStringNotContainsString( '<button type="submit" form=', (string) file_get_contents( dirname( __DIR__, 2 ) . '/src/' . $file ), $file );
+		}
+	}
+
 	public function test_the_link_gate_returns_the_posted_pair_once_the_nonce_and_capability_pass() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );

@@ -10,6 +10,8 @@
  */
 class Test_Clusters extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	/**
 	 * Publishes a post and stores a vector for it.
 	 *
@@ -18,23 +20,7 @@ class Test_Clusters extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function post_with_vector( array $vector, array $meta = array() ): int {
-		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
-
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array_merge(
-				array(
-					'provider'     => 'test-provider',
-					'model'        => 'test-model',
-					'language'     => 'en_US',
-					'content_hash' => 'hash',
-				),
-				$meta
-			)
-		);
-
-		return $post_id;
+		return $this->seed( '', $vector, array(), $meta );
 	}
 
 	/**

@@ -864,7 +864,10 @@ function undergrowth_add_settings_help(): void {
 	$tabs = array(
 		'undergrowth-links'   => array(
 			__( 'Link suggestions', 'undergrowth' ),
-			array( $links ),
+			array(
+				$links,
+				__( 'A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent.', 'undergrowth' ),
+			),
 		),
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),

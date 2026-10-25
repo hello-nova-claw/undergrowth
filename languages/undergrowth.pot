@@ -1752,6 +1752,10 @@ msgid "With a key, the title and text of each published post without a password 
 msgstr ""
 
 #: src/settings.php
+msgid "A draft is read only when you press Scan this draft in the editor: its title and text are sent the same way, once, to suggest links for it, and nothing about it is kept. Private posts, posts behind a password and comments are never sent."
+msgstr ""
+
+#: src/settings.php
 msgid "Questions"
 msgstr ""
 
