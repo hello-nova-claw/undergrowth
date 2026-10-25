@@ -323,6 +323,45 @@ const WITH_POSTS = [
 		],
 		notice: true,
 	} ) ),
+	// The one notice after Accept selected, built from the table's own
+	// suggestions, so nothing is changed: all linked, then one refused.
+	...[
+		[ 'notice-accepted-selected', [ 'accepted', 'accepted' ] ],
+		[ 'notice-accepted-selected-refused', [ 'accepted', 'edited' ] ],
+	].map( ( [ state, outcomes ] ) => ( {
+		screen: 'suggestions',
+		state,
+		page: SUGGESTIONS,
+		notice: true,
+		open: async ( page ) => {
+			const boxes = page.locator( 'input[name="link[]"]' );
+
+			if ( ( await boxes.count() ) < outcomes.length ) {
+				return false;
+			}
+
+			const results = [];
+
+			for ( const [ index, outcome ] of outcomes.entries() ) {
+				const pair = await boxes.nth( index ).getAttribute( 'value' );
+
+				results.push( `${ pair }.${ outcome }` );
+			}
+
+			await page.goto(
+				`${ page
+					.url()
+					.replace(
+						/#.*$/,
+						''
+					) }&undergrowth_notice=accepted_selected&undergrowth_results=${ results.join(
+					','
+				) }`
+			);
+
+			return true;
+		},
+	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
 	...[
 		[ 'view-seedling', 'undergrowth_stage=seedling' ],

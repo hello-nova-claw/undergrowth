@@ -1195,6 +1195,12 @@ function undergrowth_render_accepted_selected_notice(): void {
 			continue;
 		}
 
+		// The address can name any post, so no title is shown that the
+		// user could not read anyway.
+		if ( ! current_user_can( 'read_post', (int) $parts[1] ) || ! current_user_can( 'read_post', (int) $parts[2] ) ) {
+			continue;
+		}
+
 		++$count;
 		$linked += 'accepted' === $parts[3] ? 1 : 0;
 		$items  .= '<li>' . esc_html(

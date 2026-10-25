@@ -298,8 +298,16 @@ test.describe( 'Suggestions on Posts > Undergrowth', () => {
 
 			const menu = page.locator( '#bulk-action-selector-top' );
 
+			// Typing an option's first letters picks it in a closed menu, on
+			// every platform. Its words are read from the page, since this
+			// spec also runs in Hebrew and in the en_XA pseudo-locale.
+			const accept = (
+				await menu.locator( 'option[value="accept"]' ).textContent()
+			).trim();
+
 			await menu.focus();
-			await menu.selectOption( 'accept' );
+			await page.keyboard.type( accept.slice( 0, 4 ) );
+			await expect( menu ).toHaveValue( 'accept' );
 			await page.keyboard.press( 'Tab' );
 			await expect( page.locator( '#doaction' ) ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
