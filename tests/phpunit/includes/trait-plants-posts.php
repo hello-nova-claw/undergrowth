@@ -111,7 +111,19 @@ trait Plants_Posts {
 			$this->vectors[ $title ] = $vector;
 		}
 
-		$post_id  = self::factory()->post->create( array_merge( $fields, $args ) );
+		// Publishing would queue an embed; the vector is stored here instead.
+		$priority = has_action( 'wp_after_insert_post', 'undergrowth_queue_embed' );
+
+		if ( false !== $priority ) {
+			remove_action( 'wp_after_insert_post', 'undergrowth_queue_embed', $priority );
+		}
+
+		$post_id = self::factory()->post->create( array_merge( $fields, $args ) );
+
+		if ( false !== $priority ) {
+			add_action( 'wp_after_insert_post', 'undergrowth_queue_embed', $priority, 2 );
+		}
+
 		$post     = get_post( $post_id );
 		$identity = undergrowth_embed_identity();
 
