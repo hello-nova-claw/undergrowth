@@ -597,11 +597,15 @@ function undergrowth_write_prompt(): bool {
  * it cannot turn into a valid question is not paid for again. A failed
  * request ends the run and the source is tried again next time.
  *
- * @param int $wanted Questions to write at most.
- * @param int $limit  Requests to send at most.
+ * Passing sources lets a caller hold a place in the batch for one kind of
+ * question before the rest are filled.
+ *
+ * @param int           $wanted  Questions to write at most.
+ * @param int           $limit   Requests to send at most.
+ * @param string[]|null $sources Only these sources, such as 'gap', or null for all.
  * @return int Questions written.
  */
-function undergrowth_write_prompts( int $wanted, int $limit ): int {
+function undergrowth_write_prompts( int $wanted, int $limit, ?array $sources = null ): int {
 	if ( ! undergrowth_prompts_enabled() ) {
 		return 0;
 	}
@@ -612,6 +616,10 @@ function undergrowth_write_prompts( int $wanted, int $limit ): int {
 	foreach ( undergrowth_prompt_candidates() as $record ) {
 		if ( $written >= $wanted ) {
 			break;
+		}
+
+		if ( null !== $sources && ! in_array( $record['source'], $sources, true ) ) {
+			continue;
 		}
 
 		// A source that needs a check needs two requests. One that would go

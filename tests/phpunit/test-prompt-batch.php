@@ -265,6 +265,14 @@ class Test_Prompt_Batch extends WP_UnitTestCase {
 		$this->assertSame( array(), undergrowth_prompts( 'new' ) );
 	}
 
+	public function test_a_run_can_be_kept_to_some_sources() {
+		$this->offer( 2 );
+		$this->offer( 2, true );
+
+		$this->assertSame( 2, undergrowth_write_prompts( 5, UNDERGROWTH_PROMPT_BATCH_CALLS, array( 'compost' ) ) );
+		$this->assertSame( array( 'compost', 'compost' ), array_column( undergrowth_prompts( 'new' ), 'source' ) );
+	}
+
 	public function test_saving_a_key_fills_the_first_batch() {
 		$this->offer( 6 );
 		update_option( 'undergrowth_anthropic_api_key', '' );
