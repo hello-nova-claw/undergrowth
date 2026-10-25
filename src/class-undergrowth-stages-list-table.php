@@ -266,7 +266,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		$post_id = $item->ID;
 
 		if ( $this->can_pin( $post_id ) ) {
-			$this->row_forms[] = $this->form( $post_id, undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin' );
+			$this->row_forms[] = undergrowth_row_action_form( undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin', array( 'post' => $post_id ) );
 		}
 
 		return '<strong>' . undergrowth_post_link( $post_id, 'row-title' ) . '</strong>';
@@ -351,9 +351,9 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		if ( undergrowth_is_stage_pinned( $post_id ) ) {
 			return $this->row_actions(
 				array(
-					'unpin' => $this->button(
-						$post_id,
+					'unpin' => undergrowth_row_action_button(
 						'unpin',
+						array( 'post' => $post_id ),
 						/* translators: %1$s: post title. */
 						sprintf( __( 'Unpin the stage of %1$s', 'undergrowth' ), $title ),
 						__( 'Unpin', 'undergrowth' )
@@ -381,9 +381,9 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 
 		return $this->row_actions(
 			array(
-				'pin' => $select . $this->button(
-					$post_id,
+				'pin' => $select . undergrowth_row_action_button(
 					'pin',
+					array( 'post' => $post_id ),
 					/* translators: %1$s: post title. */
 					sprintf( __( 'Pin the stage of %1$s', 'undergrowth' ), $title ),
 					__( 'Pin', 'undergrowth' )
@@ -411,43 +411,6 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 	 * @return string Element id.
 	 */
 	private function form_id( int $post_id, string $action ): string {
-		return sprintf( 'undergrowth-%1$s-%2$d', $action, $post_id );
-	}
-
-	/**
-	 * Builds one row action, a button tied to its form by the form attribute.
-	 *
-	 * @param int    $post_id Post ID.
-	 * @param string $action  'pin' or 'unpin'.
-	 * @param string $label   Accessible name of the button.
-	 * @param string $text    Visible text of the button.
-	 * @return string Button HTML.
-	 */
-	private function button( int $post_id, string $action, string $label, string $text ): string {
-		return sprintf(
-			'<button type="submit" form="%1$s" class="button-link" aria-label="%2$s">%3$s</button>',
-			esc_attr( $this->form_id( $post_id, $action ) ),
-			esc_attr( $label ),
-			esc_html( $text )
-		);
-	}
-
-	/**
-	 * Builds one row's form, holding only hidden fields, with a nonce for
-	 * that post and action. Its controls point at it from the row actions.
-	 *
-	 * @param int    $post_id Post ID.
-	 * @param string $action  'pin' or 'unpin'.
-	 * @return string Form HTML.
-	 */
-	private function form( int $post_id, string $action ): string {
-		return sprintf(
-			'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_%3$s" /><input type="hidden" name="post" value="%4$d" />%5$s</form>',
-			esc_url( admin_url( 'admin-post.php' ) ),
-			esc_attr( $this->form_id( $post_id, $action ) ),
-			esc_attr( $action ),
-			$post_id,
-			wp_nonce_field( 'undergrowth_' . $action . '_' . $post_id, '_wpnonce', true, false )
-		);
+		return undergrowth_row_action_form_id( $action, array( 'post' => $post_id ) );
 	}
 }
