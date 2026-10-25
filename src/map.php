@@ -247,7 +247,7 @@ function undergrowth_label_clusters(): void {
 
 	$garden = array_keys( undergrowth_garden_posts() );
 
-	foreach ( array_chunk( $garden, undergrowth_post_chunk_size() ) as $chunk ) {
+	foreach ( undergrowth_chunks( $garden, undergrowth_post_chunk_size() ) as $chunk ) {
 		$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Caching every post is what this avoids; there is one placeholder for each ID in the chunk.
