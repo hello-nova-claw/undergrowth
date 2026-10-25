@@ -55,25 +55,17 @@ function undergrowth_register_blocks(): void {
  * @return string Badge markup, or an empty string when there is nothing to show.
  */
 function undergrowth_render_growth_stage_block( $attributes, $content, $block ): string {
-	$post = get_post( (int) ( $block->context['postId'] ?? 0 ) );
+	$post_id = (int) ( $block->context['postId'] ?? 0 );
 
-	// Only posts in the garden have a stage. A draft, a private post or one
-	// behind a password would otherwise show the Seedling default, and in a
-	// template or a Query Loop the password form would not hide it. A post
-	// type added to the index need not be public, hence the read check.
-	if (
-		! $post instanceof WP_Post
-		|| ! undergrowth_is_indexable( $post )
-		|| ( ! is_post_publicly_viewable( $post ) && ! current_user_can( 'read_post', $post->ID ) )
-	) {
+	// Only posts readers may see in the garden have a badge. A draft, a
+	// private post or one behind a password would otherwise show the
+	// Seedling default, and in a template or a Query Loop the password form
+	// would not hide it.
+	if ( ! undergrowth_is_garden_visible( $post_id ) ) {
 		return '';
 	}
 
-	$stage = undergrowth_get_stage( $post->ID );
-
-	if ( 'composting' === $stage ) {
-		return '';
-	}
+	$stage = undergrowth_get_stage( $post_id );
 
 	$name = undergrowth_stage_label( $stage );
 
