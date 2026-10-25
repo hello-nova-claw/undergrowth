@@ -2278,10 +2278,6 @@ msgid "More questions"
 msgstr ""
 
 #: src/studio.php
-msgid "Asking Claude for more questions…"
-msgstr ""
-
-#: src/studio.php
 msgid "Your idea bank is empty. Save a new question to keep it here for as long as you like."
 msgstr ""
 
@@ -2361,12 +2357,16 @@ msgstr[1] ""
 msgid "You can ask for more questions again in a few minutes."
 msgstr ""
 
+#. translators: 1: how many questions Claude wrote, as a sentence, 2: why the next request failed, as one or more sentences.
 #: src/studio.php
-msgid "Then a request to Anthropic failed, so there are fewer than you asked for."
+#, php-format
+msgid "%1$s Then a request to Anthropic failed, so there are fewer than you asked for. %2$s"
 msgstr ""
 
+#. translators: %1$s: why the request failed, as one or more sentences.
 #: src/studio.php
-msgid "No new question was written."
+#, php-format
+msgid "No new question was written. %1$s"
 msgstr ""
 
 #: src/studio.php

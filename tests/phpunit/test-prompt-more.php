@@ -27,6 +27,13 @@ class Test_Prompt_More extends WP_UnitTestCase {
 	private $statuses = array();
 
 	/**
+	 * True to answer every request with a refusal.
+	 *
+	 * @var bool
+	 */
+	private $refuse = false;
+
+	/**
 	 * Source records the test offers.
 	 *
 	 * @var array<int, array<string, mixed>>
@@ -39,6 +46,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 		$this->requests = array();
 		$this->statuses = array();
 		$this->sources  = array();
+		$this->refuse   = false;
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
 		delete_option( 'undergrowth_prompts' );
@@ -93,7 +101,7 @@ class Test_Prompt_More extends WP_UnitTestCase {
 							'text' => 'What else is there to say about part ' . str_repeat( 'i', count( $this->requests ) ) . '?',
 						),
 					),
-					'stop_reason' => 'end_turn',
+					'stop_reason' => $this->refuse ? 'refusal' : 'end_turn',
 				)
 			),
 			'response' => array(
@@ -185,8 +193,6 @@ class Test_Prompt_More extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'aria-describedby="undergrowth-more-cost"', $html );
 		$this->assertMatchesRegularExpression( '#<p id="undergrowth-more-cost">\s*More questions asks Claude for up to 3 questions straight away, using this site’s Anthropic API key\. Each question usually costs one or two cents#', $html );
 		$this->assertLessThan( strpos( $html, '>More questions</button>' ), strpos( $html, 'id="undergrowth-more-cost"' ) );
-		$this->assertStringContainsString( 'class="spinner"', $html );
-		$this->assertStringContainsString( 'role="status" id="undergrowth-more-status"', $html );
 		$this->assertSame( array(), $this->requests );
 	}
 
@@ -304,21 +310,12 @@ class Test_Prompt_More extends WP_UnitTestCase {
 
 	public function test_a_refusal_is_not_a_failure() {
 		$this->offer( 2 );
-		$refused = static function ( $preempt, $args ) {
-			return false !== strpos( (string) $args['body'], 'Oca' ) && ! did_action( 'undergrowth_prompt_written' )
-				? array(
-					'headers'  => array(),
-					'body'     => '{"content":[],"stop_reason":"refusal"}',
-					'response' => array( 'code' => 200 ),
-				)
-				: $preempt;
-		};
-		add_filter( 'pre_http_request', $refused, 5, 2 );
+		$this->refuse = true;
 
 		$location = $this->click();
 
-		$this->assertStringNotContainsString( 'more_failed', $location );
-		$this->assertStringNotContainsString( 'more_partial', $location );
+		$this->assertCount( 2, $this->requests );
+		$this->assertStringContainsString( 'undergrowth_notice=more_none', $location );
 	}
 
 	public function test_no_key_sends_nothing() {

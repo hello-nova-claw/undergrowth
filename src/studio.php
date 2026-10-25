@@ -227,19 +227,9 @@ function undergrowth_render_more_prompts_form(): void {
 		</p>
 		<p>
 			<button type="submit" class="button button-primary" aria-describedby="undergrowth-more-cost"><?php esc_html_e( 'More questions', 'undergrowth' ); ?></button>
-			<span class="spinner" style="float: none;"></span>
-			<span class="screen-reader-text" role="status" id="undergrowth-more-status"></span>
 		</p>
 	</form>
 	<?php
-	// Asking Claude takes a few seconds, so the wait is shown and spoken,
-	// and a second click does not send the requests again.
-	wp_print_inline_script_tag(
-		sprintf(
-			"document.getElementById( 'undergrowth-more-prompts' ).addEventListener( 'submit', function ( event ) { var form = event.currentTarget; if ( form.dataset.sent ) { event.preventDefault(); return; } form.dataset.sent = '1'; form.querySelector( 'button' ).setAttribute( 'aria-disabled', 'true' ); form.querySelector( '.spinner' ).classList.add( 'is-active' ); document.getElementById( 'undergrowth-more-status' ).textContent = %s; } );",
-			wp_json_encode( __( 'Asking Claude for more questions…', 'undergrowth' ) )
-		)
-	);
 }
 
 /**
@@ -500,8 +490,23 @@ function undergrowth_render_more_prompts_notice( string $notice, int $count ): v
 
 	$messages = array(
 		'more_written' => array( 'notice-success', $written ),
-		'more_partial' => array( 'notice-warning', $written . ' ' . __( 'Then a request to Anthropic failed, so there are fewer than you asked for.', 'undergrowth' ) . ' ' . $failure ),
-		'more_failed'  => array( 'notice-warning', __( 'No new question was written.', 'undergrowth' ) . ' ' . $failure ),
+		'more_partial' => array(
+			'notice-warning',
+			sprintf(
+				/* translators: 1: how many questions Claude wrote, as a sentence, 2: why the next request failed, as one or more sentences. */
+				__( '%1$s Then a request to Anthropic failed, so there are fewer than you asked for. %2$s', 'undergrowth' ),
+				$written,
+				$failure
+			),
+		),
+		'more_failed'  => array(
+			'notice-warning',
+			sprintf(
+				/* translators: %1$s: why the request failed, as one or more sentences. */
+				__( 'No new question was written. %1$s', 'undergrowth' ),
+				$failure
+			),
+		),
 		'more_none'    => array( 'notice-info', __( 'Undergrowth found nothing new in your posts to ask about just now, so nothing was sent. It looks again each week.', 'undergrowth' ) ),
 		'more_wait'    => array( 'notice-warning', __( 'You asked for more questions a few minutes ago, so nothing was sent this time. Try again in ten minutes.', 'undergrowth' ) ),
 		'more_no_key'  => array( 'notice-warning', __( 'There is no Anthropic API key, so nothing was sent.', 'undergrowth' ) ),
