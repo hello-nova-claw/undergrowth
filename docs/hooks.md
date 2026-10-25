@@ -54,6 +54,13 @@ The link, cluster and gap thresholds are measured from the site's own scores whe
 |---|---|---|
 | `undergrowth_anchor_stopwords` | `src/anchor-words.php` | The words that cannot carry a link in a language: `never` never carry one, and `named` only when the target's title or a heading holds them. |
 
+### More like this
+
+| Filter | Where | What it changes |
+|---|---|---|
+| `undergrowth_similar_stage_weights` | `src/similar.php` | How much each growth stage lifts or sinks a post in "More like this", as a multiplier keyed by stage. Default Evergreen 1.15, Budding 1.1, Sprout 1, Seedling 0.9. |
+| `undergrowth_similar_freshness` | `src/similar.php` | The lift a recently updated post gets in "More like this", as `array( 'lift' => …, 'half_life' => … )`. Default a lift of 0.1 for a post updated today, halving every 180 days. |
+
 ### Writing prompts
 
 | Filter | Where | What it changes |

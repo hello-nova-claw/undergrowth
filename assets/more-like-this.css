@@ -1,0 +1,24 @@
+/*
+ * A plain list the theme dresses. Only the image is held to its column, so
+ * a large featured image never runs past the block.
+ */
+.undergrowth-more-like-this-list {
+	margin: 0;
+	padding-inline-start: 0;
+	list-style: none;
+}
+
+.undergrowth-more-like-this-item + .undergrowth-more-like-this-item {
+	margin-block-start: 1em;
+}
+
+.undergrowth-more-like-this-link img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin-block-end: 0.5em;
+}
+
+.undergrowth-more-like-this-excerpt {
+	margin-block: 0.25em 0;
+}
