@@ -805,6 +805,67 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 }
 
 /**
+ * Returns the id of the form behind a row action on Posts > Undergrowth.
+ *
+ * @param string             $action Action name, such as 'veto'.
+ * @param array<string, int> $fields Post IDs the action names, in order, keyed by field name.
+ * @return string Element id.
+ */
+function undergrowth_row_action_form_id( string $action, array $fields ): string {
+	return 'undergrowth-' . $action . '-' . implode( '-', array_map( 'intval', $fields ) );
+}
+
+/**
+ * Builds one row action, a button tied to its form by the form attribute.
+ *
+ * The buttons sit outside their forms so they flow in the row actions like
+ * core's own, which use the same button-link class. Both list tables build
+ * them here, so their markup cannot drift apart.
+ *
+ * @param string             $action Action name.
+ * @param array<string, int> $fields Post IDs the action names, as for undergrowth_row_action_form().
+ * @param string             $label  Accessible name.
+ * @param string             $text   Visible text.
+ * @return string Button HTML.
+ */
+function undergrowth_row_action_button( string $action, array $fields, string $label, string $text ): string {
+	return sprintf(
+		'<button type="submit" form="%1$s" class="button-link" aria-label="%2$s">%3$s</button>',
+		esc_attr( undergrowth_row_action_form_id( $action, $fields ) ),
+		esc_attr( $label ),
+		esc_html( $text )
+	);
+}
+
+/**
+ * Builds the form behind one row action, holding only hidden fields.
+ *
+ * Each action is a separate form so it works without JavaScript and carries
+ * a nonce for exactly the posts it names, which its handler checks.
+ *
+ * @param string             $action Action name.
+ * @param array<string, int> $fields Post IDs the action names, in order, keyed by field name.
+ * @return string Form HTML.
+ */
+function undergrowth_row_action_form( string $action, array $fields ): string {
+	$ids    = array_map( 'intval', $fields );
+	$hidden = '';
+
+	foreach ( $ids as $name => $id ) {
+		$hidden .= sprintf( '<input type="hidden" name="%1$s" value="%2$d" />', esc_attr( $name ), $id );
+	}
+
+	return sprintf(
+		'<form method="post" action="%1$s" id="%2$s"><input type="hidden" name="action" value="undergrowth_%3$s" />%4$s%5$s</form>',
+		esc_url( admin_url( 'admin-post.php' ) ),
+		esc_attr( undergrowth_row_action_form_id( $action, $ids ) ),
+		esc_attr( $action ),
+		$hidden,
+		wp_nonce_field( 'undergrowth_' . $action . '_' . implode( '_', $ids ), '_wpnonce', true, false )
+	);
+}
+
+/**
  * Returns a post's title, or "(no title)" as core's lists name an untitled
  * post, so a link or a button's name is never empty.
  *
