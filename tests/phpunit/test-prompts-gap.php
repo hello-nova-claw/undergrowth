@@ -10,6 +10,8 @@
  */
 class Test_Prompts_Gap extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	const QUESTION = 'Between "Oca grows in cold soil." and "Yacon needs a long season." is there a post you haven’t written?';
 
 	/**
@@ -28,6 +30,9 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 
 	public function set_up() {
 		parent::set_up();
+
+		// Files hold the questions only once visitors are known to be refused.
+		update_option( 'undergrowth_memory_exposed', array( 'exposed' => false ), false );
 
 		$this->requests = array();
 		$this->reply    = self::QUESTION;
@@ -88,24 +93,8 @@ class Test_Prompts_Gap extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function member( string $title, string $content, array $vector, int $leader = 0 ): int {
-		$post_id = self::factory()->post->create(
-			array(
-				'post_title'   => $title,
-				'post_content' => $content,
-				'post_status'  => 'publish',
-			)
-		);
+		$post_id = $this->seed( $title, $vector, array( 'post_content' => $content ) );
 
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array(
-				'provider'     => 'test-provider',
-				'model'        => 'test-model',
-				'language'     => 'en_US',
-				'content_hash' => 'hash',
-			)
-		);
 		update_post_meta( $post_id, 'undergrowth_cluster', 0 === $leader ? $post_id : $leader );
 
 		return $post_id;

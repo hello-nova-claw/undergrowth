@@ -415,6 +415,9 @@ function undergrowth_anchor_terms( int $target_id, string $text, array $corpus, 
 		return array();
 	}
 
+	// The stop words follow the target's language while the sentence scored
+	// is the source's. That holds because vectors are only compared within
+	// one language, so the two posts always share it.
 	$locale = undergrowth_post_language( $target );
 	$stop   = undergrowth_anchor_stopwords( $locale );
 	$never  = array_flip( $stop['never'] );

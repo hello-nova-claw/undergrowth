@@ -346,6 +346,43 @@ const WITH_POSTS = [
 		],
 		notice: true,
 	} ) ),
+	// The one notice after Accept selected, built from the table's own
+	// suggestions, so nothing is changed: all linked, then one refused.
+	...[
+		[ 'notice-accepted-selected', [ 'accepted', 'accepted' ] ],
+		[ 'notice-accepted-selected-refused', [ 'accepted', 'edited' ] ],
+	].map( ( [ state, outcomes ] ) => ( {
+		screen: 'suggestions',
+		state,
+		page: SUGGESTIONS,
+		notice: true,
+		open: async ( page, admin ) => {
+			const boxes = page.locator( 'input[name="link[]"]' );
+
+			if ( ( await boxes.count() ) < outcomes.length ) {
+				return false;
+			}
+
+			const results = [];
+
+			for ( const [ index, outcome ] of outcomes.entries() ) {
+				const pair = await boxes.nth( index ).getAttribute( 'value' );
+
+				results.push( `${ pair }.${ outcome }` );
+			}
+
+			await admin.visitAdminPage(
+				SUGGESTIONS[ 0 ],
+				`${
+					SUGGESTIONS[ 1 ]
+				}&undergrowth_notice=accepted_selected&undergrowth_results=${ results.join(
+					','
+				) }`
+			);
+
+			return true;
+		},
+	} ) ),
 	{ screen: 'stages', state: 'table', page: STAGES },
 	...[
 		[ 'view-seedling', 'undergrowth_stage=seedling' ],
@@ -738,7 +775,9 @@ function capture( states ) {
 
 				// Opens what this state is about, such as a row's form. A build
 				// without it is listed as skipped, as a missing notice is.
-				const opened = entry.open ? await entry.open( page ) : true;
+				const opened = entry.open
+					? await entry.open( page, admin )
+					: true;
 
 				// Opens core's Help panel on the tab this state is about.
 				const helpTab = entry.help

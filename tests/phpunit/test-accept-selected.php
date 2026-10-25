@@ -215,6 +215,23 @@ class Test_Accept_Selected extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<li>', $html );
 	}
 
+	public function test_a_result_naming_a_post_the_user_cannot_read_is_left_out() {
+		list( $oca, $yacon ) = $this->garden();
+		$secret              = self::factory()->post->create( array( 'post_title' => 'Secret' ) );
+		$deny                = static function ( $caps, $cap, $user_id, $args ) use ( $secret ) {
+			return 'read_post' === $cap && isset( $args[0] ) && $secret === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+		};
+		add_filter( 'map_meta_cap', $deny, 10, 4 );
+
+		$html = $this->render( admin_url( 'edit.php?page=undergrowth-links&undergrowth_notice=accepted_selected&undergrowth_results=' . $oca . '-' . $secret . '.accepted,' . $oca . '-' . $yacon . '.edited' ) );
+
+		remove_filter( 'map_meta_cap', $deny, 10 );
+
+		$this->assertStringNotContainsString( 'Secret', $html );
+		// The readable one is still listed, and counted alone.
+		$this->assertStringContainsString( 'Linked 0 of 1 selected suggestion.', $html );
+	}
+
 	public function test_the_results_address_is_removed_once_shown() {
 		set_current_screen( 'posts_page_undergrowth-links' );
 

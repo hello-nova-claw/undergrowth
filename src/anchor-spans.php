@@ -80,6 +80,8 @@ function undergrowth_anchor_words( string $text ): array {
  * @return array<int, array{offset: int, length: int}> Character offset and length of each run in the sentence.
  */
 function undergrowth_anchor_spans( string $sentence, array $terms, string $title, string $locale ): array {
+	// $locale is the target's language, but the sentence is the source's.
+	// Vectors are only compared within one language, so they are the same.
 	$words   = undergrowth_anchor_words( $sentence );
 	$never   = array_flip( undergrowth_anchor_stopwords( $locale )['never'] );
 	$english = 0 === strpos( $locale, 'en' );

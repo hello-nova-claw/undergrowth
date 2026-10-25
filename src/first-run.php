@@ -67,19 +67,31 @@ function undergrowth_render_first_run_notice(): void {
 	}
 
 	$settings = sprintf(
-		'<a href="%1$s">%2$s</a>',
+		'<a class="button button-primary" href="%1$s">%2$s</a>',
 		esc_url( undergrowth_settings_url() ),
 		esc_html__( 'Add a key in Settings', 'undergrowth' )
 	);
 	$dismiss  = sprintf(
-		'<a href="%1$s">%2$s</a>',
+		'<a class="button" href="%1$s">%2$s</a>',
 		esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=undergrowth_dismiss_first_run' ), 'undergrowth_dismiss_first_run' ) ),
 		esc_html__( 'Dismiss for good', 'undergrowth' )
 	);
 	?>
 	<div id="undergrowth-first-run" class="notice notice-info">
 		<p><?php esc_html_e( 'Undergrowth suggests links between your own posts once it has an OpenAI API key to read them with.', 'undergrowth' ); ?></p>
-		<p><?php echo wp_kses( $settings . ' | ' . $dismiss, array( 'a' => array( 'href' => array() ) ) ); ?></p>
+		<p>
+			<?php
+			echo wp_kses(
+				$settings . ' ' . $dismiss,
+				array(
+					'a' => array(
+						'class' => array(),
+						'href'  => array(),
+					),
+				)
+			);
+			?>
+		</p>
 	</div>
 	<?php
 }

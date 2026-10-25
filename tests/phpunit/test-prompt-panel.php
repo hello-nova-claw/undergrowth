@@ -40,6 +40,9 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// Files hold the questions only once visitors are known to be refused.
+		update_option( 'undergrowth_memory_exposed', array( 'exposed' => false ), false );
+
 		$this->requests = 0;
 		$this->start_planting();
 		$this->author = self::factory()->user->create( array( 'role' => 'author' ) );

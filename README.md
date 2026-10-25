@@ -41,7 +41,7 @@ There is no WordPress.org release yet. To install a build:
 
 ## Development
 
-You need Node 22 (see `.nvmrc`), Composer, and Docker for `wp-env`.
+You need Node 24 (see `.nvmrc`), Composer, and Docker for `wp-env`.
 
 ```bash
 npm install

@@ -58,7 +58,7 @@ Undergrowth contacts three services, each only once you set it up: OpenAI, to re
 
 = What is sent to OpenAI? =
 
-With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model. OpenAI returns a vector, which nobody sees. Drafts, private posts and comments are never sent. Requests go to `api.openai.com` from WP-Cron, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/). Remove the key to stop.
+With an OpenAI key saved, the title and text of each published post that is not password-protected are sent to OpenAI's embeddings API when the post is read, and again when you change it. Very long posts are shortened to fit the model. OpenAI returns a vector, which nobody sees. A draft is sent only when you press Scan this draft in the editor: its title and text, once, and nothing about it is kept. Private posts, posts behind a password and comments are never sent. Requests go to `api.openai.com` from WP-Cron, or from the editor for a scan, under [OpenAI's services agreement](https://openai.com/policies/services-agreement/) and [privacy policy](https://openai.com/policies/privacy-policy/). Remove the key to stop.
 
 = What is sent to Anthropic? =
 
@@ -95,7 +95,7 @@ The settings page then says the key is in `wp-config.php` and never shows it.
 
 = Where does Undergrowth keep its notes about each post? =
 
-In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so the plugin can read them back. On Apache an `.htaccess` file refuses web access. The folder's random name is hard to guess but is no protection on its own, so on nginx, or any server that ignores `.htaccess`, add the deny rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
+In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so the plugin can read them back. `.htaccess` and `web.config` files refuse web access on Apache and IIS. Undergrowth checks every hour. If the files can be opened, Site Health and Settings say so and Claude's questions are left out of them; add the nginx or Caddy rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
 
 = What does deleting the plugin remove? =
 
