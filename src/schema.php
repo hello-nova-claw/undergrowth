@@ -138,6 +138,13 @@ function undergrowth_install_schema(): bool {
 		}
 	}
 
+	// Before clustering, the monthly event measured stages straight away.
+	// Only that event has no arguments; the batches it chained are left to
+	// finish. It is cleared here, once per upgrade, rather than on every load.
+	if ( false !== wp_next_scheduled( 'undergrowth_stage_cycle' ) ) {
+		wp_clear_scheduled_hook( 'undergrowth_stage_cycle' );
+	}
+
 	update_option( 'undergrowth_schema_version', UNDERGROWTH_SCHEMA_VERSION, false );
 
 	return true;
