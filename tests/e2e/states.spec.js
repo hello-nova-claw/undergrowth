@@ -95,6 +95,12 @@ const WITHOUT_POSTS = [
 	},
 	{
 		screen: 'settings',
+		state: 'accept-last-error',
+		page: SETTINGS,
+		fixture: 'accept-last-error',
+	},
+	{
+		screen: 'settings',
 		state: 'file-last-error',
 		page: SETTINGS,
 		fixture: 'file-last-error',
@@ -154,6 +160,12 @@ const WITHOUT_POSTS = [
 		fixture: 'no-provider',
 	},
 	{ screen: 'profile', state: 'discord-user', page: PROFILE },
+	{
+		screen: 'profile',
+		state: 'digest-on',
+		page: PROFILE,
+		fixture: 'digest-on',
+	},
 	{
 		screen: 'privacy',
 		state: 'policy-guide',

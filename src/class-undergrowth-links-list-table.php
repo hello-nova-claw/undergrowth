@@ -348,7 +348,7 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * @return string Link HTML.
 	 */
 	private function edit_link( int $post_id, string $link_class = '' ): string {
-		$title = esc_html( undergrowth_post_title( $post_id ) );
+		$title = '<bdi>' . esc_html( undergrowth_post_title( $post_id ) ) . '</bdi>';
 		$link  = get_edit_post_link( $post_id, 'raw' );
 
 		// A post the user cannot edit is named, not linked. In a line of

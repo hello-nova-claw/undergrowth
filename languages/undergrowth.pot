@@ -18,6 +18,7 @@ msgstr ""
 #: src/abilities.php
 #: src/admin.php
 #: src/dashboard.php
+#: src/digest.php
 #: src/discord-clicks.php
 #: src/privacy.php
 #: src/settings.php
@@ -169,6 +170,10 @@ msgid "You cannot change this post."
 msgstr ""
 
 #: src/admin.php
+msgid "You cannot export the Map."
+msgstr ""
+
+#: src/admin.php
 #: src/help.php
 #: src/settings.php
 msgid "Suggestions"
@@ -238,6 +243,22 @@ msgstr[1] ""
 msgid "Words that set this group apart: %1$s."
 msgstr ""
 
+#: src/admin.php
+msgid "Export the Map as"
+msgstr ""
+
+#: src/admin.php
+msgid "CSV, for a spreadsheet"
+msgstr ""
+
+#: src/admin.php
+msgid "Markdown, for notes"
+msgstr ""
+
+#: src/admin.php
+msgid "Export"
+msgstr ""
+
 #. translators: 1: number of posts, 2: number of groups, such as "4 groups".
 #: src/admin.php
 #, php-format
@@ -275,6 +296,7 @@ msgid "Not close enough to other posts yet"
 msgstr ""
 
 #: src/admin.php
+#: src/map.php
 msgid "Not in a group yet"
 msgstr ""
 
@@ -391,6 +413,7 @@ msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
 #: src/discord-messages.php
+#: src/settings.php
 #: build/editor/index.js
 #: src/editor/draft-scan.js
 #: src/editor/links-sidebar.js
@@ -468,6 +491,7 @@ msgid "Cancel"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
+#: src/map.php
 msgid "Post"
 msgstr ""
 
@@ -809,6 +833,80 @@ msgstr ""
 msgid "Yes, undo everything"
 msgstr ""
 
+#: src/digest.php
+msgid "Undergrowth monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "The monthly email is off. You can turn it back on from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "This link no longer works. You can turn the monthly email off from your profile."
+msgstr ""
+
+#: src/digest.php
+msgid "Stop the monthly email of new link suggestions?"
+msgstr ""
+
+#: src/digest.php
+msgid "Turn off the monthly email"
+msgstr ""
+
+#. translators: %s: site title.
+#: src/digest.php
+#, php-format
+msgid "[%s] Link suggestions worth a look"
+msgstr ""
+
+#: src/digest.php
+msgid "These are the strongest link suggestions Undergrowth made since its last email. Nothing changes on your site until you accept one."
+msgstr ""
+
+#. translators: 1: number of the suggestion in the list, 2: title of the post the link would point to.
+#: src/digest.php
+#, php-format
+msgid "%1$s. A link to “%2$s”"
+msgstr ""
+
+#. translators: 1: title of the post the link would sit in, 2: the sentence, with the words to link in square brackets.
+#: src/digest.php
+#, php-format
+msgid "In “%1$s”: %2$s"
+msgstr ""
+
+#: src/digest.php
+msgid "Accept or veto them on Posts > Undergrowth:"
+msgstr ""
+
+#: src/digest.php
+msgid "You get this email because you turned it on in your profile. To stop it:"
+msgstr ""
+
+#. translators: %s: title of the post nearest the middle of the group.
+#: src/digest.php
+#, php-format
+msgid "Both posts are in the group around “%s” on the Map."
+msgstr ""
+
+#. translators: %s: words from the sentence that the other post uses too.
+#: src/digest.php
+#, php-format
+msgid "Both posts use the words “%s”."
+msgstr ""
+
+#: src/digest.php
+msgid "Monthly email"
+msgstr ""
+
+#: src/digest.php
+msgid "Email me the best new link suggestions once a month"
+msgstr ""
+
+#: src/digest.php
+msgid "At most five, after the monthly cycle, and only when there are new ones. Each email has a link to turn it off."
+msgstr ""
+
 #: src/discord-clicks.php
 msgid "Undergrowth does not know this button, so nothing was changed."
 msgstr ""
@@ -1104,6 +1202,10 @@ msgid "When a post you moved to compost sits near a group that is new this month
 msgstr ""
 
 #: src/help.php
+msgid "Export, at the end of the Map, downloads every post on it as CSV for a spreadsheet or as a Markdown table for your notes: one row per post, with its group, the group's words, its link, its stage and whether its group has a gap."
+msgstr ""
+
+#: src/help.php
 msgid "Compost rests a post. It stays published, its links stay in place, and readers see no difference. Nothing is deleted."
 msgstr ""
 
@@ -1165,6 +1267,34 @@ msgstr ""
 
 #: src/links.php
 msgid "Saving this post would also remove content that only someone allowed to post unfiltered HTML can save, such as an embed, so nothing was changed. Someone with that permission can accept this link."
+msgstr ""
+
+#: src/map.php
+msgid "Group"
+msgstr ""
+
+#: src/map.php
+msgid "Words"
+msgstr ""
+
+#: src/map.php
+msgid "Link"
+msgstr ""
+
+#: src/map.php
+msgid "Stage"
+msgstr ""
+
+#: src/map.php
+msgid "Gap"
+msgstr ""
+
+#: src/map.php
+msgid "Yes"
+msgstr ""
+
+#: src/map.php
+msgid "No"
 msgstr ""
 
 #: src/memory.php
@@ -1583,6 +1713,32 @@ msgstr ""
 
 #: src/settings.php
 msgid "A post’s file could not be written. Check that the uploads folder can be written to."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress treated the post as empty and refused to save it, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress could not find the post to save, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "The database did not take the change, so the link was not added."
+msgstr ""
+
+#: src/settings.php
+msgid "WordPress did not save the post, so the link was not added."
+msgstr ""
+
+#. translators: %1$s: error code WordPress gave, such as rest_cannot_edit.
+#: src/settings.php
+#, php-format
+msgid "WordPress did not save the post, so the link was not added. It reported the error %1$s."
+msgstr ""
+
+#: src/settings.php
+msgid "The suggestion is still on Posts > Undergrowth, so you can accept it again."
 msgstr ""
 
 #. translators: 1: model name, such as nomic-embed-text, 2: provider name, such as ollama.

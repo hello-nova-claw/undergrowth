@@ -83,7 +83,7 @@ class Test_Failure_Notices extends WP_UnitTestCase {
 
 		$html = (string) ob_get_clean();
 
-		$this->assertSame( 1, preg_match( '#<div class="notice notice-warning inline">\s*<p>(.*?)</p>#s', $html, $match ) );
+		$this->assertSame( 1, preg_match( '#<div class="notice notice-warning inline" id="undergrowth-(?:openai|anthropic|discord)-error">\s*<p>(.*?)</p>#s', $html, $match ) );
 
 		return trim( (string) preg_replace( '/\s+/', ' ', wp_strip_all_tags( $match[1] ) ) );
 	}

@@ -226,7 +226,7 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 		$this->assertStringContainsString( self::QUESTION, $html );
 		// Older versions of wp_kses() write the escaped & differently.
 		$this->assertMatchesRegularExpression( '/href="[^"]*post\.php\?post=' . $this->post_id . '(&amp;|&#038;)action=edit"/', $html );
-		$this->assertStringContainsString( 'Growing oca', $html );
+		$this->assertStringContainsString( '<bdi>Growing oca</bdi></a>', $html );
 		$this->assertStringContainsString( 'reader', $html );
 		$this->assertStringContainsString( 'Only you can see it', $html );
 		$this->assertMatchesRegularExpression( '/<button type="submit" class="button" name="undergrowth_choice" value="snooze">/', $html );
@@ -253,7 +253,7 @@ class Test_Prompt_Panel extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertMatchesRegularExpression( '#<a href="[^"]*post=' . $this->post_id . '[^"]*">\(no title\)</a>#', $this->render() );
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*post=' . $this->post_id . '[^"]*"><bdi>\(no title\)</bdi></a>#', $this->render() );
 	}
 
 	public function test_question_is_escaped() {

@@ -31,20 +31,12 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	private $model = 'test-model-v1';
 
-	/**
-	 * Seconds the test provider takes for each text.
-	 *
-	 * @var float
-	 */
-	private $delay = 0.0;
-
 	public function set_up() {
 		parent::set_up();
 
 		$this->embedded = array();
 		$this->failing  = array();
 		$this->model    = 'test-model-v1';
-		$this->delay    = 0.0;
 
 		delete_option( 'undergrowth_openai_api_key' );
 		delete_option( 'undergrowth_backfill' );
@@ -68,8 +60,6 @@ class Test_Backfill extends WP_UnitTestCase {
 	 */
 	public function provider( $vector, $text ) {
 		$this->embedded[] = $text;
-
-		usleep( (int) ( $this->delay * 1000000 ) );
 
 		return in_array( $text, $this->failing, true ) ? array() : array( 0.1, 0.2, 0.3 );
 	}
@@ -227,9 +217,12 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 	}
 
+	/**
+	 * A budget of nothing is spent as soon as the first post is done, however
+	 * fast or slow the runner, so no other post is started.
+	 */
 	public function test_run_never_starts_a_post_once_its_budget_is_spent() {
-		$this->time_budget( 0.1 );
-		$this->delay = 0.2;
+		$this->time_budget( 0 );
 		$this->archive( 3 );
 
 		do_action( 'undergrowth_backfill' );
@@ -380,16 +373,9 @@ class Test_Backfill extends WP_UnitTestCase {
 	public function test_text_too_long_is_not_sent_again_once_the_budget_is_spent() {
 		$this->archive( 1 );
 		$sent = &$this->openai_answers( 400 );
-		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0.05 );
-		add_filter(
-			'pre_http_request',
-			static function ( $preempt ) {
-				usleep( 100000 );
-
-				return $preempt;
-			},
-			5
-		);
+		// A budget of nothing has passed by the time the first answer is back,
+		// however fast the runner.
+		add_filter( 'undergrowth_backfill_time_budget', static fn() => 0 );
 
 		do_action( 'undergrowth_backfill' );
 

@@ -18,6 +18,7 @@ add_action( 'admin_post_undergrowth_choose_words', 'undergrowth_handle_choose_wo
 add_action( 'admin_post_undergrowth_pin', 'undergrowth_handle_pin' );
 add_action( 'admin_post_undergrowth_unpin', 'undergrowth_handle_unpin' );
 add_action( 'admin_post_undergrowth_dismiss_resurfacing', 'undergrowth_handle_dismiss_resurfacing' );
+add_action( 'admin_post_undergrowth_export_map', 'undergrowth_handle_export_map' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_handle_stages_bulk' );
 add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_results' );
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
@@ -120,17 +121,55 @@ function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): s
 }
 
 /**
- * Vetoes the link posted from a row's form, then returns to the screen.
+ * Reads the pair a link action names, and lets the request go on only with
+ * that action's nonce and when the user may edit the post the link sits in.
+ *
+ * Every write that names a link pair passes through here, so the gate
+ * cannot differ from one handler to the next. Pin, Unpin and Dismiss name
+ * one post, and use undergrowth_posted_post_id() instead.
+ *
+ * @param string $action    Action name, such as 'veto', after the undergrowth_ prefix.
+ * @param bool   $from_link True to read the pair from the address, as an Undo link sends it.
+ * @return int[] Source and target post IDs.
  */
-function undergrowth_handle_veto(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+function undergrowth_posted_link_pair( string $action, bool $from_link = false ): array {
+	// phpcs:disable WordPress.Security.NonceVerification -- check_admin_referer() runs before anything changes.
+	$input  = $from_link ? $_GET : $_POST;
+	$source = isset( $input['source'] ) ? absint( wp_unslash( $input['source'] ) ) : 0;
+	$target = isset( $input['target'] ) ? absint( wp_unslash( $input['target'] ) ) : 0;
+	// phpcs:enable
 
-	check_admin_referer( 'undergrowth_veto_' . $source . '_' . $target );
+	check_admin_referer( 'undergrowth_' . $action . '_' . $source . '_' . $target );
 
 	if ( ! current_user_can( 'edit_post', $source ) ) {
 		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
+
+	return array( $source, $target );
+}
+
+/**
+ * Reads the post a row action on the Growth stages or Map tab names, and
+ * lets the request go on only with that action's nonce. Each action checks
+ * what the user may do to the post itself.
+ *
+ * @param string $action Action name, such as 'pin', after the undergrowth_ prefix.
+ * @return int Post ID.
+ */
+function undergrowth_posted_post_id( string $action ): int {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- check_admin_referer() runs before anything changes.
+	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
+
+	check_admin_referer( 'undergrowth_' . $action . '_' . $post_id );
+
+	return $post_id;
+}
+
+/**
+ * Vetoes the link posted from a row's form, then returns to the screen.
+ */
+function undergrowth_handle_veto(): void {
+	list( $source, $target ) = undergrowth_posted_link_pair( 'veto' );
 
 	$result = undergrowth_veto_result( $source, $target );
 	$url    = undergrowth_suggestions_url( $result );
@@ -150,16 +189,7 @@ function undergrowth_handle_veto(): void {
  * returns to the screen.
  */
 function undergrowth_handle_unveto(): void {
-	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- check_admin_referer() runs before anything changes.
-	$source = isset( $_GET['source'] ) ? absint( wp_unslash( $_GET['source'] ) ) : 0;
-	$target = isset( $_GET['target'] ) ? absint( wp_unslash( $_GET['target'] ) ) : 0;
-	// phpcs:enable
-
-	check_admin_referer( 'undergrowth_unveto_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
+	list( $source, $target ) = undergrowth_posted_link_pair( 'unveto', true );
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_unveto_link( $source, $target ) ? 'unvetoed' : 'unveto_gone' ) );
 	exit;
@@ -206,14 +236,7 @@ function undergrowth_unveto_link_html( string $pair ): string {
  * link straight to what changed.
  */
 function undergrowth_handle_accept(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_accept_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
+	list( $source, $target ) = undergrowth_posted_link_pair( 'accept' );
 
 	$result = undergrowth_accept_link( $source, $target );
 	$url    = undergrowth_suggestions_url( $result );
@@ -234,18 +257,13 @@ function undergrowth_handle_accept(): void {
  * Saves the words chosen in a row's Choose words form, then returns to the screen.
  */
 function undergrowth_handle_choose_words(): void {
-	$source = isset( $_POST['source'] ) ? absint( wp_unslash( $_POST['source'] ) ) : 0;
-	$target = isset( $_POST['target'] ) ? absint( wp_unslash( $_POST['target'] ) ) : 0;
+	list( $source, $target ) = undergrowth_posted_link_pair( 'choose_words' );
 
-	check_admin_referer( 'undergrowth_choose_words_' . $source . '_' . $target );
-
-	if ( ! current_user_can( 'edit_post', $source ) ) {
-		wp_die( esc_html__( 'You cannot change links in this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
-
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Checked by undergrowth_posted_link_pair().
 	$first = isset( $_POST['first'] ) ? (int) $_POST['first'] : -1;
 	$last  = isset( $_POST['last'] ) ? (int) $_POST['last'] : -1;
 	$shown = isset( $_POST['shown'] ) ? sanitize_key( wp_unslash( $_POST['shown'] ) ) : '';
+	// phpcs:enable
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_choose_words( $source, $target, $first, $last, $shown ) ) );
 	exit;
@@ -255,10 +273,9 @@ function undergrowth_handle_choose_words(): void {
  * Pins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_pin(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-	$stage   = isset( $_POST['stage'] ) ? sanitize_key( wp_unslash( $_POST['stage'] ) ) : '';
-
-	check_admin_referer( 'undergrowth_pin_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'pin' );
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checked by undergrowth_posted_post_id().
+	$stage = isset( $_POST['stage'] ) ? sanitize_key( wp_unslash( $_POST['stage'] ) ) : '';
 
 	undergrowth_finish_stage_action( undergrowth_pin_stage( $post_id, $stage ), 'pinned' );
 }
@@ -267,9 +284,7 @@ function undergrowth_handle_pin(): void {
  * Unpins the stage posted from a row's form, then returns to the stages tab.
  */
 function undergrowth_handle_unpin(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_unpin_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'unpin' );
 
 	undergrowth_finish_stage_action( undergrowth_unpin_stage( $post_id ), 'unpinned' );
 }
@@ -279,9 +294,7 @@ function undergrowth_handle_unpin(): void {
  * the Map tab.
  */
 function undergrowth_handle_dismiss_resurfacing(): void {
-	$post_id = isset( $_POST['post'] ) ? absint( wp_unslash( $_POST['post'] ) ) : 0;
-
-	check_admin_referer( 'undergrowth_dismiss_resurfacing_' . $post_id );
+	$post_id = undergrowth_posted_post_id( 'dismiss_resurfacing' );
 
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		wp_die( esc_html__( 'You cannot change this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
@@ -289,6 +302,46 @@ function undergrowth_handle_dismiss_resurfacing(): void {
 
 	wp_safe_redirect( undergrowth_suggestions_url( undergrowth_dismiss_resurfacing( $post_id ) ? 'resurfacing_dismissed' : 'resurfacing_gone', 'map' ) );
 	exit;
+}
+
+/**
+ * Sends the Map as a file to download, in the format posted from the Map
+ * tab's export form: CSV, or a Markdown table.
+ */
+function undergrowth_handle_export_map(): void {
+	check_admin_referer( 'undergrowth_export_map' );
+
+	if ( ! current_user_can( 'edit_others_posts' ) ) {
+		wp_die( esc_html__( 'You cannot export the Map.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$markdown = isset( $_POST['format'] ) && 'markdown' === sanitize_key( wp_unslash( $_POST['format'] ) );
+	$rows     = undergrowth_map_export_rows();
+
+	// Headers cannot follow output, which a test run has always printed.
+	foreach ( headers_sent() ? array() : undergrowth_map_export_headers( $markdown ) as $name => $value ) {
+		header( "{$name}: {$value}" );
+	}
+
+	// A file to download, not a page: escaping for HTML would change the text.
+	// admin-post.php ends after this action, so the file is the whole response.
+	echo $markdown ? undergrowth_map_export_markdown( $rows ) : undergrowth_map_export_csv( $rows ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+/**
+ * Returns the headers that send the Map export as a file to download.
+ *
+ * @param bool $markdown True for Markdown, false for CSV.
+ * @return array<string, string> Header values keyed by name, core's no-cache headers first.
+ */
+function undergrowth_map_export_headers( bool $markdown ): array {
+	return array_merge(
+		array_filter( wp_get_nocache_headers(), 'is_string' ),
+		array(
+			'Content-Type'        => ( $markdown ? 'text/markdown' : 'text/csv' ) . '; charset=utf-8',
+			'Content-Disposition' => 'attachment; filename="undergrowth-map-' . wp_date( 'Y-m-d' ) . ( $markdown ? '.md' : '.csv' ) . '"',
+		)
+	);
 }
 
 /**
@@ -566,12 +619,13 @@ function undergrowth_render_map_tab(): void {
 		printf(
 			'<h2 id="%1$s">%2$s</h2>',
 			esc_attr( $id ),
-			esc_html(
+			sprintf(
 				$cluster['gap']
 					/* translators: %1$s: title of the post nearest the middle of the group. */
-					? sprintf( __( 'Around “%1$s”, with a gap', 'undergrowth' ), $title )
+					? esc_html__( 'Around “%1$s”, with a gap', 'undergrowth' )
 					/* translators: %1$s: title of the post nearest the middle of the group. */
-					: sprintf( __( 'Around “%1$s”', 'undergrowth' ), $title )
+					: esc_html__( 'Around “%1$s”', 'undergrowth' ),
+				'<bdi>' . esc_html( $title ) . '</bdi>'
 			)
 		);
 
@@ -617,6 +671,30 @@ function undergrowth_render_map_tab(): void {
 	}
 
 	undergrowth_render_ungrouped_posts( $counts['ungrouped'] );
+	undergrowth_render_map_export_form();
+}
+
+/**
+ * Prints the form that downloads the Map, every post on it one row, as CSV
+ * or Markdown, to take to a spreadsheet or a notes app.
+ *
+ * It comes last, so the keyboard reaches the groups' posts first.
+ */
+function undergrowth_render_map_export_form(): void {
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="undergrowth-map-export">
+		<input type="hidden" name="action" value="undergrowth_export_map" />
+		<?php wp_nonce_field( 'undergrowth_export_map', '_wpnonce', false ); ?>
+		<p>
+			<label for="undergrowth-export-format"><?php esc_html_e( 'Export the Map as', 'undergrowth' ); ?></label>
+			<select id="undergrowth-export-format" name="format">
+				<option value="csv"><?php esc_html_e( 'CSV, for a spreadsheet', 'undergrowth' ); ?></option>
+				<option value="markdown"><?php esc_html_e( 'Markdown, for notes', 'undergrowth' ); ?></option>
+			</select>
+			<?php submit_button( __( 'Export', 'undergrowth' ), 'secondary', 'submit', false ); ?>
+		</p>
+	</form>
+	<?php
 }
 
 /**
@@ -719,7 +797,10 @@ function undergrowth_render_map_post( int $post_id, string $note ): void {
 				undergrowth_post_link( $post_id ),
 				esc_html( $note )
 			),
-			array( 'a' => array( 'href' => array() ) )
+			array(
+				'a'   => array( 'href' => array() ),
+				'bdi' => array(),
+			)
 		)
 	);
 }
@@ -788,7 +869,10 @@ function undergrowth_render_resurfacing_signals( array $signals ): void {
 					undergrowth_post_link( $post_id ),
 					undergrowth_post_link( $newest )
 				),
-				array( 'a' => array( 'href' => array() ) )
+				array(
+					'a'   => array( 'href' => array() ),
+					'bdi' => array(),
+				)
 			),
 			esc_url( admin_url( 'admin-post.php' ) ),
 			(int) $post_id
@@ -923,12 +1007,15 @@ function undergrowth_print_result_notices( array $notices ): void {
 /**
  * Builds a post's title, linked to its editor when the user can edit it.
  *
+ * The title is isolated, so a title in another script never reorders the
+ * sentence or the quotation marks around it.
+ *
  * @param int    $post_id    Post ID.
  * @param string $link_class Class for the link, such as core's row-title, if any.
  * @return string Escaped HTML.
  */
 function undergrowth_post_link( int $post_id, string $link_class = '' ): string {
-	$title = esc_html( undergrowth_post_title( $post_id ) );
+	$title = '<bdi>' . esc_html( undergrowth_post_title( $post_id ) ) . '</bdi>';
 	$link  = get_edit_post_link( $post_id, 'raw' );
 
 	// Core's own edit_post_link() also gives no link for an empty address.
