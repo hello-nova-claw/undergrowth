@@ -22,11 +22,12 @@ class Test_Thresholds extends WP_UnitTestCase {
 	/**
 	 * Plants posts in groups of identical vectors, every group equally far from the others.
 	 *
-	 * @param int $groups Number of groups.
-	 * @param int $size   Posts in each group.
+	 * @param int  $groups Number of groups.
+	 * @param int  $size   Posts in each group.
+	 * @param bool $embed  Embed each post through the provider, instead of storing its vector.
 	 * @return int[] Post IDs, group by group.
 	 */
-	private function plant_groups( int $groups, int $size ): array {
+	private function plant_groups( int $groups, int $size, bool $embed = false ): array {
 		$ids = array();
 
 		for ( $g = 0; $g < $groups; $g++ ) {
@@ -34,7 +35,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 			$vector[ $g ] = 1.5;
 
 			for ( $i = 0; $i < $size; $i++ ) {
-				$ids[] = $this->plant( "Group {$g} post {$i}", $vector );
+				$ids[] = $embed ? $this->plant( "Group {$g} post {$i}", $vector ) : $this->seed( "Group {$g} post {$i}", $vector );
 			}
 		}
 
@@ -202,10 +203,10 @@ class Test_Thresholds extends WP_UnitTestCase {
 	}
 
 	public function test_measurement_never_compares_vectors_of_different_lengths() {
-		$this->plant( 'Short one', array( 1.0, 0.0, 0.0 ) );
-		$this->plant( 'Short two', array( 0.0, 1.0, 0.0 ) );
-		$this->plant( 'Long one', array( 1.0, 0.0, 0.0, 0.0 ) );
-		$this->plant( 'Long two', array( 0.0, 0.0, 0.0, 1.0 ) );
+		$this->seed( 'Short one', array( 1.0, 0.0, 0.0 ) );
+		$this->seed( 'Short two', array( 0.0, 1.0, 0.0 ) );
+		$this->seed( 'Long one', array( 1.0, 0.0, 0.0, 0.0 ) );
+		$this->seed( 'Long two', array( 0.0, 0.0, 0.0, 1.0 ) );
 
 		undergrowth_measure_scores();
 
@@ -295,7 +296,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 		$this->assertSame( UNDERGROWTH_MIN_LINK_SIMILARITY, undergrowth_min_link_similarity() );
 		$this->assertSame( UNDERGROWTH_MIN_CLUSTER_SIMILARITY, undergrowth_min_cluster_similarity() );
 
-		$this->plant( 'Group 0 post 19', array( 1.5 ) );
+		$this->seed( 'Group 0 post 19', array( 1.5 ) );
 		undergrowth_measure_scores();
 		$stored = get_option( 'undergrowth_scores' );
 
@@ -343,7 +344,7 @@ class Test_Thresholds extends WP_UnitTestCase {
 		};
 		add_filter( 'pre_http_request', $answer, 10, 3 );
 
-		$this->plant_groups( 5, 4 );
+		$this->plant_groups( 5, 4, true );
 		undergrowth_measure_scores();
 
 		remove_filter( 'pre_http_request', $answer, 10 );

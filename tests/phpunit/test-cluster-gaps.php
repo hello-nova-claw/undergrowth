@@ -10,6 +10,8 @@
  */
 class Test_Cluster_Gaps extends WP_UnitTestCase {
 
+	use Plants_Posts;
+
 	/**
 	 * Publishes a post, stores its vector and puts it in a cluster.
 	 *
@@ -19,18 +21,8 @@ class Test_Cluster_Gaps extends WP_UnitTestCase {
 	 * @return int Post ID.
 	 */
 	private function member( array $vector, int $leader = 0, string $model = 'test-model' ): int {
-		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$post_id = $this->seed( '', $vector, array(), array( 'model' => $model ) );
 
-		undergrowth_save_vector(
-			$post_id,
-			$vector,
-			array(
-				'provider'     => 'test-provider',
-				'model'        => $model,
-				'language'     => 'en_US',
-				'content_hash' => 'hash',
-			)
-		);
 		update_post_meta( $post_id, 'undergrowth_cluster', 0 === $leader ? $post_id : $leader );
 
 		return $post_id;
