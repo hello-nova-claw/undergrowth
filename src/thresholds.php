@@ -94,6 +94,7 @@ function undergrowth_measure_scores(): void {
 	$groups = array();
 	$seen   = array();
 	$after  = 0;
+	$size   = undergrowth_vector_chunk_size();
 
 	do {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
@@ -104,7 +105,7 @@ function undergrowth_measure_scores(): void {
 				$identity['provider'],
 				$identity['model'],
 				$after,
-				UNDERGROWTH_VECTOR_CHUNK
+				$size
 			),
 			ARRAY_A
 		);
@@ -128,7 +129,7 @@ function undergrowth_measure_scores(): void {
 
 		unset( $rows );
 		$wpdb->flush();
-	} while ( UNDERGROWTH_VECTOR_CHUNK === $fetched );
+	} while ( $size === $fetched );
 
 	$weights = array();
 
