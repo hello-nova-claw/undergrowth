@@ -687,6 +687,40 @@ const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
 	} )
 );
 
+// Filled in once the post exists, since the panel's shot needs its ID.
+const tendPosts = {};
+
+// An Evergreen post untouched for two years carries a "Worth a look" note
+// on the Growth stages tab and in its editor panel.
+const WITH_TEND = [
+	// A build without the note shows none, and is listed as skipped.
+	{
+		screen: 'stages',
+		state: 'worth-a-look',
+		page: STAGES,
+		open: async ( page ) =>
+			( await page.locator( '.undergrowth-tend' ).count() ) > 0,
+	},
+	{
+		screen: 'editor-panel',
+		state: 'worth-a-look',
+		panel: () => tendPosts.stale,
+		open: ( page ) =>
+			page.evaluate(
+				async ( id ) =>
+					Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) ) &&
+					Boolean(
+						(
+							await window.wp.apiFetch( {
+								path: `/undergrowth/v1/posts/${ id }/stage`,
+							} )
+						).tend
+					),
+				tendPosts.stale
+			),
+	},
+];
+
 // Filled in once the sidebar's posts exist, since the shots need their IDs.
 const sidebarPosts = {};
 
@@ -1447,6 +1481,41 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_GARDEN_INDEX );
+	} );
+
+	test.describe( 'with an Evergreen post worth a look', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// Created with an old date, which stays its last edit.
+			const date = new Date( Date.now() - 2 * 365 * 24 * 3600 * 1000 );
+			tendPosts.stale = (
+				await requestUtils.createPost( {
+					title: 'Oca',
+					content: '<p>Oca grows here.</p>',
+					status: 'publish',
+					date: date.toISOString().slice( 0, 19 ),
+				} )
+			).id;
+
+			// A build from before the panel has no route to pin through, and
+			// its shots are listed as skipped. Any other failure stops the
+			// run, rather than capturing a post with no note.
+			await requestUtils
+				.rest( {
+					method: 'POST',
+					path: `/undergrowth/v1/posts/${ tendPosts.stale }/stage`,
+					data: { action: 'pin', stage: 'evergreen' },
+				} )
+				.catch( ( error ) => {
+					if ( error?.code !== 'rest_no_route' ) {
+						throw error;
+					}
+				} );
+		} );
+
+		capture( WITH_TEND );
 	} );
 
 	test.describe( 'with the editor panel', () => {

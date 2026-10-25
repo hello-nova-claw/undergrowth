@@ -110,6 +110,49 @@ describe( 'Editor stage panel', () => {
 		expect( button( container, 'Compost' ) ).toBeDefined();
 	} );
 
+	test( 'shows a Worth a look note and dismisses it', async () => {
+		replies = [
+			{
+				...inGarden( 'evergreen' ),
+				tend: 'Worth a look: you last edited this Evergreen post 2 years ago.',
+			},
+			{
+				...inGarden( 'evergreen' ),
+				tend: null,
+				message: 'Dismissed.',
+			},
+		];
+
+		const container = await renderPanel();
+		const note = container.querySelector( '.undergrowth-tend' );
+
+		expect( note.textContent ).toContain( 'Worth a look' );
+		expect( note.className ).toContain( 'is-info' );
+
+		button( container, 'Dismiss note' ).click();
+		await waitFor( () => ! container.querySelector( '.undergrowth-tend' ) );
+
+		expect( requests[ 1 ] ).toMatchObject( {
+			path: '/undergrowth/v1/posts/42/stage',
+			method: 'POST',
+			data: { action: 'dismiss_tend' },
+		} );
+		expect( container.querySelector( '.undergrowth-tend' ) ).toBeNull();
+		// The button is gone, so focus goes to the result, not the page.
+		expect( document.activeElement ).toBe(
+			container.querySelector( '.undergrowth-stage' )
+		);
+	} );
+
+	test( 'shows no note when the post is not worth a look', async () => {
+		replies = [ { ...inGarden( 'evergreen' ), tend: null } ];
+
+		const container = await renderPanel();
+
+		expect( container.querySelector( '.undergrowth-tend' ) ).toBeNull();
+		expect( button( container, 'Dismiss note' ) ).toBeUndefined();
+	} );
+
 	test( 'says a draft gets a stage once published, and offers nothing', async () => {
 		replies = [
 			{ in_garden: false, stage: null, label: '', pinned: false },

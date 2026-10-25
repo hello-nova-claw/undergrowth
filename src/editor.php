@@ -43,7 +43,7 @@ function undergrowth_register_editor_routes(): void {
 				'args'                => $post + array(
 					'action' => array(
 						'type'     => 'string',
-						'enum'     => array( 'pin', 'unpin', 'compost', 'return' ),
+						'enum'     => array( 'pin', 'unpin', 'compost', 'return', 'dismiss_tend' ),
 						'required' => true,
 					),
 					'stage'  => array(
@@ -80,7 +80,8 @@ function undergrowth_rest_get_stage( WP_REST_Request $request ): WP_REST_Respons
 }
 
 /**
- * Pins, unpins, composts or returns the post, then answers with its stage.
+ * Pins, unpins, composts or returns the post, or dismisses its "Worth a
+ * look" note, then answers with its stage.
  *
  * @param WP_REST_Request $request Request.
  * @return WP_REST_Response|WP_Error The new stage with a message, or why it was refused.
@@ -91,6 +92,12 @@ function undergrowth_rest_change_stage( WP_REST_Request $request ) {
 
 	if ( 'pin' === $action && ! isset( $request['stage'] ) ) {
 		return new WP_Error( 'rest_missing_callback_param', __( 'Choose a stage to pin.', 'undergrowth' ), array( 'status' => 400 ) );
+	}
+
+	if ( 'dismiss_tend' === $action ) {
+		$done = undergrowth_dismiss_tend( $post_id ) ? 'tend_dismissed' : 'tend_gone';
+
+		return new WP_REST_Response( undergrowth_editor_stage( $post_id ) + array( 'message' => undergrowth_tend_result_messages()[ $done ] ) );
 	}
 
 	switch ( $action ) {
@@ -124,7 +131,7 @@ function undergrowth_rest_change_stage( WP_REST_Request $request ) {
  * Describes a post's stage for the editor panel.
  *
  * @param int $post_id Post ID.
- * @return array{in_garden: bool, stage: ?string, label: string, pinned: bool, choices: array<int, array{value: string, label: string}>} The stage.
+ * @return array{in_garden: bool, stage: ?string, label: string, pinned: bool, tend: ?string, choices: array<int, array{value: string, label: string}>} The stage, and a note when the post is worth a look.
  */
 function undergrowth_editor_stage( int $post_id ): array {
 	$post      = get_post( $post_id );
@@ -136,6 +143,7 @@ function undergrowth_editor_stage( int $post_id ): array {
 		'stage'     => $stage,
 		'label'     => null === $stage ? '' : undergrowth_stage_label( $stage ),
 		'pinned'    => $in_garden && 'composting' !== $stage && undergrowth_is_stage_pinned( $post_id ),
+		'tend'      => $in_garden ? undergrowth_tend_note( $post_id ) : null,
 		'choices'   => array_map(
 			static function ( string $choice ): array {
 				return array(
