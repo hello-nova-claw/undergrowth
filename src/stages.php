@@ -612,9 +612,10 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
  *
  * @param string $hook     Cron hook of the pass.
  * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
  * @return string Token of this run.
  */
-function undergrowth_mark_pass( string $hook, int $after_id ): string {
+function undergrowth_mark_pass( string $hook, int $after_id, string $pass = '' ): string {
 	$run = wp_generate_uuid4();
 
 	update_option(
@@ -623,11 +624,38 @@ function undergrowth_mark_pass( string $hook, int $after_id ): string {
 			'after' => $after_id,
 			'at'    => time(),
 			'run'   => $run,
+			'pass'  => $pass,
 		),
 		false
 	);
 
 	return $run;
+}
+
+/**
+ * Returns the ID of the pass now under way.
+ *
+ * @param string $hook Cron hook of the pass.
+ * @return string Pass ID, or an empty string when no pass with an ID is under way.
+ */
+function undergrowth_current_pass( string $hook ): string {
+	// Another request may have started a new pass since this one read the record.
+	wp_cache_delete( $hook . '_pass', 'options' );
+
+	$pass = get_option( $hook . '_pass' );
+
+	return is_array( $pass ) ? (string) ( $pass['pass'] ?? '' ) : '';
+}
+
+/**
+ * Returns the arguments of a batch's cron event.
+ *
+ * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
+ * @return array<int, int|string> Event arguments.
+ */
+function undergrowth_pass_args( int $after_id, string $pass ): array {
+	return '' === $pass ? array( $after_id ) : array( $after_id, $pass );
 }
 
 /**
@@ -651,10 +679,11 @@ function undergrowth_owns_pass( string $hook, string $run ): bool {
  *
  * @param string $hook     Cron hook of the pass.
  * @param int    $after_id Post ID the batch starts after.
+ * @param string $pass     ID of the pass, or an empty string for a pass without one.
  */
-function undergrowth_queue_pass_batch( string $hook, int $after_id ): void {
-	undergrowth_mark_pass( $hook, $after_id );
-	wp_schedule_single_event( time(), $hook, array( $after_id ) );
+function undergrowth_queue_pass_batch( string $hook, int $after_id, string $pass = '' ): void {
+	undergrowth_mark_pass( $hook, $after_id, $pass );
+	wp_schedule_single_event( time(), $hook, undergrowth_pass_args( $after_id, $pass ) );
 }
 
 /**
@@ -683,12 +712,13 @@ function undergrowth_resume_stalled_passes(): void {
 		}
 
 		$after_id = (int) $pass['after'];
+		$pass_id  = (string) ( $pass['pass'] ?? '' );
 
-		if ( false !== wp_next_scheduled( $hook, array( $after_id ) ) || false !== wp_next_scheduled( $hook, array( 0 ) ) ) {
+		if ( false !== wp_next_scheduled( $hook, undergrowth_pass_args( $after_id, $pass_id ) ) || false !== wp_next_scheduled( $hook, array( 0 ) ) ) {
 			continue;
 		}
 
-		undergrowth_queue_pass_batch( $hook, $after_id );
+		undergrowth_queue_pass_batch( $hook, $after_id, $pass_id );
 	}
 }
 
@@ -741,7 +771,7 @@ function undergrowth_stage_action_error( int $post_id ): ?WP_Error {
  * @return WP_Error The error.
  */
 function undergrowth_stage_not_saved(): WP_Error {
-	return new WP_Error( 'undergrowth_not_saved', __( 'The stage could not be saved, so nothing was changed.', 'undergrowth' ) );
+	return new WP_Error( 'undergrowth_not_saved', undergrowth_stage_result_messages()['stage_not_saved'] );
 }
 
 /**
@@ -751,7 +781,40 @@ function undergrowth_stage_not_saved(): WP_Error {
  * @return WP_Error The error.
  */
 function undergrowth_pin_lost(): WP_Error {
-	return new WP_Error( 'undergrowth_pin_lost', __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ) );
+	return new WP_Error( 'undergrowth_pin_lost', undergrowth_stage_result_messages()['stage_pin_lost'] );
+}
+
+/**
+ * Returns the error for a pin that failed after its marker was stored, when
+ * the marker could not be taken away again.
+ *
+ * @return WP_Error The error.
+ */
+function undergrowth_pin_left(): WP_Error {
+	return new WP_Error( 'undergrowth_pin_left', undergrowth_stage_result_messages()['stage_pin_left'] );
+}
+
+/**
+ * Returns the sentence for each result of a stage action, by result.
+ *
+ * The admin notice and the editor's REST route both read from here, so each
+ * sentence is written once.
+ *
+ * @return array<string, string> Sentences, by result.
+ */
+function undergrowth_stage_result_messages(): array {
+	return array(
+		'pinned'           => __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' ),
+		'unpinned'         => __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' ),
+		'composted'        => __( 'Moved to compost. The post stays published, and no links are suggested to or from it.', 'undergrowth' ),
+		'returned'         => __( 'Returned to the garden. Its stage was measured again from the links you have accepted.', 'undergrowth' ),
+		'stage_refused'    => __( 'That stage cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_composting' => __( 'A composting post cannot be pinned, so nothing was changed.', 'undergrowth' ),
+		'not_pinned'       => __( 'That stage was not pinned, so nothing was changed.', 'undergrowth' ),
+		'stage_not_saved'  => __( 'The stage could not be saved, so nothing was changed. Try again in a moment.', 'undergrowth' ),
+		'stage_pin_left'   => __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ),
+		'stage_pin_lost'   => __( 'The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it.', 'undergrowth' ),
+	);
 }
 
 /**
@@ -854,6 +917,20 @@ function undergrowth_garden_meta_query(): array {
 }
 
 /**
+ * Builds the meta query that keeps a query to composting posts.
+ *
+ * @return array<int, array<string, string>> Meta query.
+ */
+function undergrowth_composting_meta_query(): array {
+	return array(
+		array(
+			'key'   => 'undergrowth_stage',
+			'value' => 'composting',
+		),
+	);
+}
+
+/**
  * Builds the meta query clause for one of the stage filters.
  *
  * Each post is read as undergrowth_get_stage() reads it: one with no stage
@@ -917,15 +994,13 @@ function undergrowth_count_pinned(): int {
 	}
 
 	$query = new WP_Query(
-		array(
-			'post_type'              => $post_types,
-			'post_status'            => 'publish',
-			'has_password'           => false,
-			'meta_query'             => array( undergrowth_stage_filter_meta_query( 'pinned' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
-			'posts_per_page'         => 1,
-			'fields'                 => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
+		undergrowth_garden_query_args(
+			array(
+				'meta_query'             => array( undergrowth_stage_filter_meta_query( 'pinned' ) ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Counted once per screen.
+				'posts_per_page'         => 1,
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+			)
 		)
 	);
 
@@ -1041,7 +1116,7 @@ function undergrowth_pin_stage( int $post_id, string $stage ) {
 			delete_post_meta( $post_id, 'undergrowth_stage_pinned' );
 
 			if ( undergrowth_is_stage_pinned( $post_id ) ) {
-				return new WP_Error( 'undergrowth_pin_left', __( 'The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it.', 'undergrowth' ) );
+				return undergrowth_pin_left();
 			}
 		}
 

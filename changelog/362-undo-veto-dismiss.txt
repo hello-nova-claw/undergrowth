@@ -1,0 +1,1 @@
+Veto, and Dismiss for good on the Dashboard question and on the first-run notice, now each show an Undo in the notice that follows, in case it was chosen by mistake. Discord messages say that a veto there is permanent.

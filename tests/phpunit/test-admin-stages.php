@@ -456,6 +456,14 @@ class Test_Admin_Stages extends WP_UnitTestCase {
 		$this->assertStringContainsString( $message, $this->render() );
 	}
 
+	public function test_every_stage_notice_reads_the_stage_result_table() {
+		foreach ( undergrowth_stage_result_messages() as $notice => $message ) {
+			$_GET['undergrowth_notice'] = $notice;
+
+			$this->assertStringContainsString( esc_html( $message ), $this->render(), $notice );
+		}
+	}
+
 	/**
 	 * Notices the stage forms return with.
 	 *

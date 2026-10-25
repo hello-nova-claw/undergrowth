@@ -60,7 +60,7 @@ class Test_Links extends WP_UnitTestCase {
 
 		$columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', undergrowth_links_table() ) );
 
-		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'sentence_index', 'anchor', 'anchor_offset', 'anchor_chosen', 'created_at', 'updated_at' ), $columns );
+		$this->assertSame( array( 'id', 'source_id', 'target_id', 'state', 'score', 'sentence', 'anchor', 'anchor_offset', 'anchor_chosen', 'created_at', 'updated_at' ), $columns );
 	}
 
 	public function test_closest_posts_are_proposed_best_first() {
@@ -219,7 +219,7 @@ class Test_Links extends WP_UnitTestCase {
 	public function test_every_link_result_has_a_message() {
 		$messages = undergrowth_link_result_messages();
 
-		foreach ( array( 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'needs_admin', 'forbidden' ) as $result ) {
+		foreach ( array( 'accepted', 'vetoed', 'unchanged', 'gone', 'not_proposed', 'edited', 'no_word', 'not_saved', 'needs_admin', 'forbidden' ) as $result ) {
 			$this->assertNotSame( '', $messages[ $result ] ?? '', $result );
 		}
 	}

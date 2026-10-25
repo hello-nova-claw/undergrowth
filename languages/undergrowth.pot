@@ -33,7 +33,7 @@ msgstr ""
 
 #. Description of the plugin
 #: undergrowth.php
-msgid "Uses AI to read your site and ask you questions. It never writes a word your readers will see."
+msgid "Links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide."
 msgstr ""
 
 #. Author of the plugin
@@ -156,6 +156,12 @@ msgstr ""
 
 #: src/admin.php
 msgid "You cannot change links in this post."
+msgstr ""
+
+#: src/admin.php
+#: src/dashboard.php
+#: src/first-run.php
+msgid "Undo"
 msgstr ""
 
 #: src/admin.php
@@ -357,42 +363,19 @@ msgid "Each suggestion is a link from one of your posts to another, at a sentenc
 msgstr ""
 
 #: src/admin.php
-#: src/editor.php
-msgid "Stage pinned. The monthly cycle will leave it as it is."
-msgstr ""
-
-#: src/admin.php
-#: src/editor.php
-msgid "Stage unpinned and measured again from the links you have accepted."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "A composting post cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "That stage was not pinned, so nothing was changed."
-msgstr ""
-
-#: src/admin.php
-msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
-msgstr ""
-
-#: src/admin.php
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
-msgstr ""
-
-#: src/admin.php
 msgid "Dismissed. The post stays composting."
 msgstr ""
 
 #: src/admin.php
 msgid "That post has no signal to dismiss, so nothing was changed."
+msgstr ""
+
+#: src/admin.php
+msgid "Undone. This link can be suggested again."
+msgstr ""
+
+#: src/admin.php
+msgid "That veto can no longer be undone, so nothing was changed."
 msgstr ""
 
 #: src/admin.php
@@ -646,6 +629,10 @@ msgstr ""
 msgid "That question is no longer waiting, so nothing was changed."
 msgstr ""
 
+#: src/dashboard.php
+msgid "Undone. The question is back."
+msgstr ""
+
 #: src/dev-tools.php
 msgid "Dev tools"
 msgstr ""
@@ -664,6 +651,10 @@ msgstr ""
 
 #: src/dev-tools.php
 msgid "Not accepted, no words could be linked safely"
+msgstr ""
+
+#: src/dev-tools.php
+msgid "Not accepted, the post could not be saved"
 msgstr ""
 
 #: src/dev-tools.php
@@ -896,6 +887,10 @@ msgid "To: %s"
 msgstr ""
 
 #: src/discord-messages.php
+msgid "A veto is permanent."
+msgstr ""
+
+#: src/discord-messages.php
 msgid "Open in WordPress"
 msgstr ""
 
@@ -1036,12 +1031,12 @@ msgstr ""
 msgid "Choose a stage to pin."
 msgstr ""
 
-#: src/editor.php
-msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+#: src/first-run.php
+msgid "Undone. The notice is back."
 msgstr ""
 
-#: src/editor.php
-msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+#: src/first-run.php
+msgid "That notice can no longer come back, so nothing was changed."
 msgstr ""
 
 #: src/first-run.php
@@ -1054,6 +1049,10 @@ msgstr ""
 
 #: src/first-run.php
 msgid "You cannot change Undergrowth’s settings."
+msgstr ""
+
+#: src/first-run.php
+msgid "Dismissed. This notice won’t come back."
 msgstr ""
 
 #. translators: %1$s: link to the suggestions screen.
@@ -1087,7 +1086,7 @@ msgid "Choose words lets you pick other words of the same sentence for the link:
 msgstr ""
 
 #: src/help.php
-msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post."
+msgid "Accept adds that one link and saves a revision, so you can see or undo the change. Veto removes the suggestion, and it is never suggested again, even after you edit either post. The notice after a veto has an Undo, in case you chose it by mistake."
 msgstr ""
 
 #: src/help.php
@@ -1168,6 +1167,10 @@ msgstr ""
 
 #: src/links.php
 msgid "No words in that sentence could be linked safely, so nothing was changed. You can add the link by hand."
+msgstr ""
+
+#: src/links.php
+msgid "The post could not be saved, so nothing was changed. Try again in a moment."
 msgstr ""
 
 #: src/links.php
@@ -1389,6 +1392,10 @@ msgid "Posts read"
 msgstr ""
 
 #: src/settings.php
+msgid "Post types"
+msgstr ""
+
+#: src/settings.php
 msgid "Per-post files"
 msgstr ""
 
@@ -1398,6 +1405,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Anthropic API key"
+msgstr ""
+
+#: src/settings.php
+msgid "Choose at least one post type for Undergrowth to read. The ones chosen before are kept."
 msgstr ""
 
 #: src/settings.php
@@ -1508,6 +1519,14 @@ msgstr ""
 
 #: src/settings.php
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
+msgstr ""
+
+#: src/settings.php
+msgid "Code on this site chooses which post types are read, so these boxes cannot be changed here."
+msgstr ""
+
+#: src/settings.php
+msgid "Undergrowth reads the published posts of each type ticked here, and suggests links among them. Unticking a type takes its posts out of suggestions, growth stages and the Map."
 msgstr ""
 
 #. translators: %1$s: service name, such as Anthropic.
@@ -1770,7 +1789,39 @@ msgid "You cannot change the growth stage of this post."
 msgstr ""
 
 #: src/stages.php
-msgid "The stage could not be saved, so nothing was changed."
+msgid "Stage pinned. The monthly cycle will leave it as it is."
+msgstr ""
+
+#: src/stages.php
+msgid "Stage unpinned and measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+msgstr ""
+
+#: src/stages.php
+msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "A composting post cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "That stage was not pinned, so nothing was changed."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
+msgstr ""
+
+#: src/stages.php
+msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
 msgstr ""
 
 #: src/stages.php

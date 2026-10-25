@@ -26,8 +26,9 @@ const UNDERGROWTH_BLOCK_ELEMENTS = 'table|thead|tfoot|caption|col|colgroup|tbody
  * @return string 'accepted', or why nothing changed: 'gone', 'forbidden'
  *                (the user cannot edit the source post), 'not_proposed',
  *                'edited' (the sentence is no longer in the post), 'no_word'
- *                (no word could be linked safely) or 'needs_admin' (saving
- *                would also strip content the user may not save).
+ *                (no word could be linked safely), 'not_saved' (WordPress
+ *                refused to save the post) or 'needs_admin' (saving would
+ *                also strip content the user may not save).
  */
 function undergrowth_accept_link( int $source_id, int $target_id ): string {
 	global $wpdb;
@@ -146,7 +147,7 @@ function undergrowth_link_accepted( int $source_id, WP_Post $target ): string {
 		true
 	);
 
-	return is_wp_error( $updated ) || 0 === $updated ? 'no_word' : 'accepted';
+	return is_wp_error( $updated ) || 0 === $updated ? 'not_saved' : 'accepted';
 }
 
 /**
@@ -336,13 +337,17 @@ function undergrowth_find_in_sentence( string $content, string $sentence, string
 	foreach ( undergrowth_linkable_paragraphs( $content ) as $paragraph ) {
 		list( $inner, $inner_start, $plain ) = $paragraph;
 
-		$start = mb_strpos( $plain, $sentence );
+		// The same sentence can appear twice in a paragraph, its first copy
+		// already linked, so a match may sit in any copy.
+		$starts = array();
 
-		if ( false === $start ) {
-			continue;
+		for ( $start = mb_strpos( $plain, $sentence ); false !== $start; $start = mb_strpos( $plain, $sentence, $start + 1 ) ) {
+			$starts[] = $start;
 		}
 
-		$end = $start + mb_strlen( $sentence );
+		if ( array() === $starts ) {
+			continue;
+		}
 
 		foreach ( ( new Undergrowth_HTML_Text( $inner ) )->text_nodes() as $node ) {
 			list( $text, $node_at, $in_link ) = $node;
@@ -373,8 +378,9 @@ function undergrowth_find_in_sentence( string $content, string $sentence, string
 				$before = ltrim( undergrowth_plain_text( substr( $inner, 0, $node_at + $at ) ) );
 				$from   = mb_strlen( $before );
 				$shown  = mb_strlen( (string) preg_replace( '/\s+/u', ' ', $word ) );
+				$start  = undergrowth_sentence_copy_at( $starts, mb_strlen( $sentence ), $from, $shown, $offset );
 
-				if ( $from < $start || $from + $shown > $end || ( null !== $offset && $from - $start !== $offset ) ) {
+				if ( null === $start ) {
 					continue;
 				}
 
@@ -392,6 +398,26 @@ function undergrowth_find_in_sentence( string $content, string $sentence, string
 					'position' => $inner_start + $node_at + $at,
 				);
 			}
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Finds the copy of a sentence that holds a match.
+ *
+ * @param int[]    $starts Character offsets where each copy of the sentence starts in the paragraph.
+ * @param int      $length Length of the sentence in characters.
+ * @param int      $from   Character offset of the match in the paragraph.
+ * @param int      $shown  Length of the match in characters, as a reader sees it.
+ * @param int|null $offset Character offset in the sentence the match must start at, or null for anywhere in it.
+ * @return int|null Where that copy starts, or null when no copy holds the match.
+ */
+function undergrowth_sentence_copy_at( array $starts, int $length, int $from, int $shown, ?int $offset ): ?int {
+	foreach ( $starts as $start ) {
+		if ( $from >= $start && $from + $shown <= $start + $length && ( null === $offset || $from - $start === $offset ) ) {
+			return $start;
 		}
 	}
 

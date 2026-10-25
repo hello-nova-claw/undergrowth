@@ -3,8 +3,8 @@
  * The first-run path: one notice on the Plugins screen after activation,
  * while no key is saved, and a link on to suggestions once the first key is.
  *
- * The notice never comes back once it is dismissed or a key is saved, and it
- * never counts days. There is no wizard and nothing on any other screen.
+ * The notice never comes back once a key is saved, nor once it is dismissed
+ * unless the Undo right after brings it back. It never counts days. There is no wizard and nothing on any other screen.
  *
  * @package Undergrowth
  */
@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'admin_notices', 'undergrowth_render_first_run_notice' );
 add_action( 'admin_post_undergrowth_dismiss_first_run', 'undergrowth_dismiss_first_run' );
+add_action( 'admin_post_undergrowth_restore_first_run', 'undergrowth_restore_first_run' );
 add_action( 'add_option_undergrowth_openai_api_key', 'undergrowth_first_key_added', 10, 2 );
 add_action( 'update_option_undergrowth_openai_api_key', 'undergrowth_first_key_saved', 10, 2 );
 
@@ -41,6 +42,18 @@ function undergrowth_render_first_run_notice(): void {
 
 	if ( ! $screen instanceof WP_Screen || 'plugins' !== $screen->id || ! current_user_can( 'manage_options' ) ) {
 		return;
+	}
+
+	// The notice only selects which fixed message to show; nothing is changed.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
+
+	if ( 'first_run_dismissed' === $notice ) {
+		undergrowth_render_first_run_dismissed_notice();
+	} elseif ( 'first_run_restored' === $notice ) {
+		undergrowth_print_result_notices( array( 'notice-success' => '<p>' . esc_html__( 'Undone. The notice is back.', 'undergrowth' ) . '</p>' ) );
+	} elseif ( 'first_run_gone' === $notice ) {
+		undergrowth_print_result_notices( array( 'notice-warning' => '<p>' . esc_html__( 'That notice can no longer come back, so nothing was changed.', 'undergrowth' ) . '</p>' ) );
 	}
 
 	if ( 'waiting' !== get_option( 'undergrowth_first_run' ) ) {
@@ -81,10 +94,67 @@ function undergrowth_dismiss_first_run(): void {
 		wp_die( esc_html__( 'You cannot change Undergrowth’s settings.', 'undergrowth' ), '', array( 'response' => 403 ) );
 	}
 
-	undergrowth_end_first_run();
+	// Dismissed rather than done, so only a dismissal can be undone, never
+	// the end that saving a key brings. A Dismiss link left open while a key
+	// was saved in another tab finds the first run done, and leaves it so.
+	if ( 'waiting' !== get_option( 'undergrowth_first_run' ) ) {
+		wp_safe_redirect( admin_url( 'plugins.php' ) );
+		exit;
+	}
 
-	wp_safe_redirect( admin_url( 'plugins.php' ) );
+	update_option( 'undergrowth_first_run', 'dismissed', false );
+
+	wp_safe_redirect( add_query_arg( 'undergrowth_notice', 'first_run_dismissed', admin_url( 'plugins.php' ) ) );
 	exit;
+}
+
+/**
+ * Says the first-run notice is dismissed, with an Undo while no key is saved.
+ */
+function undergrowth_render_first_run_dismissed_notice(): void {
+	$undo = '';
+
+	if ( undergrowth_can_restore_first_run() ) {
+		$undo = sprintf(
+			' <a href="%1$s">%2$s</a>',
+			esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=undergrowth_restore_first_run' ), 'undergrowth_restore_first_run' ) ),
+			esc_html__( 'Undo', 'undergrowth' )
+		);
+	}
+
+	undergrowth_print_result_notices( array( 'notice-success' => '<p>' . esc_html__( 'Dismissed. This notice won’t come back.', 'undergrowth' ) . $undo . '</p>' ) );
+}
+
+/**
+ * Brings the first-run notice back, from the Undo in the dismissed notice,
+ * while no key is saved. Then returns to Plugins.
+ */
+function undergrowth_restore_first_run(): void {
+	check_admin_referer( 'undergrowth_restore_first_run' );
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You cannot change Undergrowth’s settings.', 'undergrowth' ), '', array( 'response' => 403 ) );
+	}
+
+	$notice = 'first_run_gone';
+
+	if ( undergrowth_can_restore_first_run() ) {
+		update_option( 'undergrowth_first_run', 'waiting', false );
+		$notice = 'first_run_restored';
+	}
+
+	wp_safe_redirect( add_query_arg( 'undergrowth_notice', $notice, admin_url( 'plugins.php' ) ) );
+	exit;
+}
+
+/**
+ * Says whether the first-run notice can come back: it was dismissed, and no
+ * key has been saved since.
+ *
+ * @return bool True when the Undo can bring it back.
+ */
+function undergrowth_can_restore_first_run(): bool {
+	return 'dismissed' === get_option( 'undergrowth_first_run' ) && ! undergrowth_has_embed_provider();
 }
 
 /**

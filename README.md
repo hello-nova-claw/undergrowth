@@ -1,10 +1,10 @@
 # Undergrowth
 
-Undergrowth uses AI to read your site and ask you questions. It never writes a word your readers will see.
+Undergrowth links your posts to each other in your own words, and shows you what your archive is really about. The AI reads; you decide.
 
 It is a WordPress plugin for personal bloggers. It treats a site as a garden: it finds links between your own posts, groups posts that belong together, tracks how each post grows, and now and then asks you a question about your own writing. You approve every change, and a veto is remembered.
 
-The rule behind every feature: the AI may speak **to** the author, never **for** the author. It ranks, groups, proposes and asks. It never writes, rewrites or publishes text for readers, and it does no keyword research, trend tracking or competitor analysis.
+The rule behind every feature: the AI may speak **to** the author, never **for** the author. It ranks, groups, proposes and asks. It never writes, rewrites or publishes text for readers. Internal links in your own words, between posts that belong together, are SEO from a different direction.
 
 ## Features
 

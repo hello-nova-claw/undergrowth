@@ -48,21 +48,12 @@ function undergrowth_register_editor_routes(): void {
 					),
 					'stage'  => array(
 						'type' => 'string',
-						'enum' => undergrowth_pinnable_stages(),
+						'enum' => UNDERGROWTH_GARDEN_STAGES,
 					),
 				),
 			),
 		)
 	);
-}
-
-/**
- * Names the stages an author may pin, in growing order.
- *
- * @return string[] Stage slugs.
- */
-function undergrowth_pinnable_stages(): array {
-	return array_values( array_diff( UNDERGROWTH_STAGES, array( 'composting' ) ) );
 }
 
 /**
@@ -104,20 +95,20 @@ function undergrowth_rest_change_stage( WP_REST_Request $request ) {
 
 	switch ( $action ) {
 		case 'pin':
-			$result  = undergrowth_pin_stage( $post_id, (string) $request['stage'] );
-			$message = __( 'Stage pinned. The monthly cycle will leave it as it is.', 'undergrowth' );
+			$result = undergrowth_pin_stage( $post_id, (string) $request['stage'] );
+			$done   = 'pinned';
 			break;
 		case 'unpin':
-			$result  = undergrowth_unpin_stage( $post_id );
-			$message = __( 'Stage unpinned and measured again from the links you have accepted.', 'undergrowth' );
+			$result = undergrowth_unpin_stage( $post_id );
+			$done   = 'unpinned';
 			break;
 		case 'compost':
-			$result  = undergrowth_compost_post( $post_id );
-			$message = __( 'Moved to compost. The post stays published, and no links are suggested to or from it.', 'undergrowth' );
+			$result = undergrowth_compost_post( $post_id );
+			$done   = 'composted';
 			break;
 		default:
-			$result  = undergrowth_return_post( $post_id );
-			$message = __( 'Returned to the garden. Its stage was measured again from the links you have accepted.', 'undergrowth' );
+			$result = undergrowth_return_post( $post_id );
+			$done   = 'returned';
 	}
 
 	if ( is_wp_error( $result ) ) {
@@ -126,7 +117,7 @@ function undergrowth_rest_change_stage( WP_REST_Request $request ) {
 		return $result;
 	}
 
-	return new WP_REST_Response( undergrowth_editor_stage( $post_id ) + array( 'message' => $message ) );
+	return new WP_REST_Response( undergrowth_editor_stage( $post_id ) + array( 'message' => undergrowth_stage_result_messages()[ $done ] ) );
 }
 
 /**
@@ -152,7 +143,7 @@ function undergrowth_editor_stage( int $post_id ): array {
 					'label' => undergrowth_stage_label( $choice ),
 				);
 			},
-			undergrowth_pinnable_stages()
+			UNDERGROWTH_GARDEN_STAGES
 		),
 	);
 }
