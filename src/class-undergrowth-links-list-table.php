@@ -42,8 +42,82 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
+			'cb'       => '<input type="checkbox" />',
 			'sentence' => __( 'Suggestion', 'undergrowth' ),
 			'source'   => __( 'In this post', 'undergrowth' ),
+		);
+	}
+
+	/**
+	 * Offers Accept for the suggestions the author has checked. Nothing is
+	 * checked to begin with, and there is no way to accept everything.
+	 *
+	 * @return array<string, string> Bulk action labels keyed by action.
+	 */
+	public function get_bulk_actions() {
+		return array( 'accept' => __( 'Accept selected', 'undergrowth' ) );
+	}
+
+	/**
+	 * Prints the bulk menu and its Apply button, as core does, but tied by
+	 * the form attribute to the bulk form after the table. Each row already
+	 * holds its own Accept and Veto forms, and forms cannot nest.
+	 *
+	 * The menu has its own name, since admin-post.php routes on "action".
+	 *
+	 * @param string $which 'top' or 'bottom'.
+	 */
+	protected function bulk_actions( $which = '' ) {
+		$two = 'bottom' === $which ? '2' : '';
+
+		printf(
+			'<label for="bulk-action-selector-%1$s" class="screen-reader-text">%2$s</label><select name="undergrowth_bulk%3$s" id="bulk-action-selector-%1$s" form="%4$s"><option value="-1">%5$s</option>',
+			esc_attr( $which ),
+			esc_html__( 'Select bulk action', 'undergrowth' ),
+			esc_attr( $two ),
+			esc_attr( UNDERGROWTH_ACCEPT_SELECTED_FORM ),
+			esc_html__( 'Bulk actions', 'undergrowth' )
+		);
+
+		foreach ( $this->get_bulk_actions() as $action => $label ) {
+			printf( '<option value="%1$s">%2$s</option>', esc_attr( $action ), esc_html( $label ) );
+		}
+
+		echo '</select>';
+
+		submit_button(
+			__( 'Apply', 'undergrowth' ),
+			'action compact',
+			'bulk_action',
+			false,
+			array(
+				'id'   => 'doaction' . $two,
+				'form' => UNDERGROWTH_ACCEPT_SELECTED_FORM,
+			)
+		);
+	}
+
+	/**
+	 * Prints a row's checkbox, named by the link it selects.
+	 *
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Row.
+	 * @return string Checkbox HTML.
+	 */
+	public function column_cb( $item ) {
+		$pair = $item['source_id'] . '-' . $item['target_id'];
+
+		return sprintf(
+			'<label class="screen-reader-text" for="cb-select-%1$s">%2$s</label><input id="cb-select-%1$s" type="checkbox" name="link[]" value="%1$s" form="%3$s" />',
+			esc_attr( $pair ),
+			esc_html(
+				sprintf(
+					/* translators: 1: title of the post the link would sit in, 2: title of the post it would point to. */
+					__( 'Select the link from %1$s to %2$s', 'undergrowth' ),
+					undergrowth_post_title( $item['source_id'] ),
+					undergrowth_post_title( $item['target_id'] )
+				)
+			),
+			esc_attr( UNDERGROWTH_ACCEPT_SELECTED_FORM )
 		);
 	}
 
