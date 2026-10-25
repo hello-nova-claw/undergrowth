@@ -589,11 +589,11 @@ msgstr ""
 msgid "No suggestions yet"
 msgstr ""
 
-#. translators: %s: number of suggestions.
+#. translators: %1$s: number of suggestions.
 #: src/class-undergrowth-orphans-list-table.php
 #, php-format
-msgid "See all %s suggestion"
-msgid_plural "See all %s suggestions"
+msgid "See all %1$s suggestion"
+msgid_plural "See all %1$s suggestions"
 msgstr[0] ""
 msgstr[1] ""
 

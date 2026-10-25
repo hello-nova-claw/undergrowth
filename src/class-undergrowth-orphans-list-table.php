@@ -160,8 +160,8 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 				esc_url( undergrowth_links_in_url( $item->ID ) ),
 				esc_html(
 					sprintf(
-						/* translators: %s: number of suggestions. */
-						_n( 'See all %s suggestion', 'See all %s suggestions', count( $suggestions ), 'undergrowth' ),
+						/* translators: %1$s: number of suggestions. */
+						_n( 'See all %1$s suggestion', 'See all %1$s suggestions', count( $suggestions ), 'undergrowth' ),
 						number_format_i18n( count( $suggestions ) )
 					)
 				)
