@@ -362,6 +362,7 @@ msgid "Return to garden"
 msgstr ""
 
 #: src/admin.php
+#: src/pollination.php
 msgid "Dismiss"
 msgstr ""
 
@@ -1306,6 +1307,10 @@ msgid "A large group whose posts already link to each other may get a hub propos
 msgstr ""
 
 #: src/help.php
+msgid "Cross-pollination lists pairs of groups that sit apart but could spark something together: two posts about different things that are not far apart, a post that sits near both groups, or words both groups use and the rest of your site rarely does. The surprise scale on Settings › Undergrowth sets how far apart a pair may be. Dismiss a pair and it is never shown again."
+msgstr ""
+
+#: src/help.php
 msgid "When a post you moved to compost sits near a group that is new this month, a notice says so here. Return it to the garden or dismiss the notice; either is fine."
 msgstr ""
 
@@ -1463,6 +1468,84 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
+#: src/pollination.php
+msgid "Close cousins"
+msgstr ""
+
+#: src/pollination.php
+msgid "Cautious"
+msgstr ""
+
+#: src/pollination.php
+msgid "Curious"
+msgstr ""
+
+#: src/pollination.php
+msgid "Adventurous"
+msgstr ""
+
+#: src/pollination.php
+msgid "Wild"
+msgstr ""
+
+#: src/pollination.php
+msgid "You cannot change the Map."
+msgstr ""
+
+#: src/pollination.php
+msgid "Dismissed. This pair will not be shown again."
+msgstr ""
+
+#: src/pollination.php
+msgid "That pair is no longer shown, so nothing was changed."
+msgstr ""
+
+#: src/pollination.php
+msgid "Cross-pollination"
+msgstr ""
+
+#: src/pollination.php
+msgid "Pairs of groups that sit apart but could spark something together, found from your own posts once a month."
+msgstr ""
+
+#. translators: 1: name of the step on the surprise scale, such as "Cautious", 2: address of Settings > Undergrowth.
+#: src/pollination.php
+#, php-format
+msgid "The surprise scale is at %1$s. <a href=\"%2$s\">Change it on Settings › Undergrowth</a>."
+msgstr ""
+
+#: src/pollination.php
+msgid "No pairs at this step yet. A higher step on the surprise scale reaches further."
+msgstr ""
+
+#. translators: 1: title of a post in one group, 2: title of a post in the other.
+#: src/pollination.php
+#, php-format
+msgid "%1$s and %2$s are about different things, but not far apart."
+msgstr ""
+
+#. translators: %1$s: title of a post.
+#: src/pollination.php
+#, php-format
+msgid "%1$s sits near both groups."
+msgstr ""
+
+#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
+#: src/pollination.php
+#, php-format
+msgid "Both groups use words the rest of your site rarely does: %1$s."
+msgstr ""
+
+#: src/pollination.php
+msgid "A post connecting these two groups would link both halves of your garden."
+msgstr ""
+
+#. translators: 1: title the first group is named after, 2: title the second group is named after.
+#: src/pollination.php
+#, php-format
+msgid "Around %1$s, and around %2$s"
+msgstr ""
+
 #. translators: %1$s: post title. Must begin with the translation of “Return to garden”, the words on the link, so voice control can find it.
 #: src/posts-screen.php
 #, php-format
@@ -1600,6 +1683,10 @@ msgid "Per-post files"
 msgstr ""
 
 #: src/settings.php
+msgid "Surprise scale"
+msgstr ""
+
+#: src/settings.php
 msgid "Questions on your Dashboard"
 msgstr ""
 
@@ -1719,6 +1806,10 @@ msgstr ""
 
 #: src/settings.php
 msgid "Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on."
+msgstr ""
+
+#: src/settings.php
+msgid "How far apart the pairs on the Map’s Cross-pollination list may be. Close cousins shows groups that nearly belong together; Wild reaches much further. It changes what is shown at once, without reading your posts again."
 msgstr ""
 
 #: src/settings.php
