@@ -589,6 +589,15 @@ class Test_Stages extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_monthly', wp_get_schedule( 'undergrowth_cluster_cycle' ) );
 	}
 
+	public function test_upgrade_tries_again_when_the_old_event_could_not_be_cleared() {
+		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
+		delete_option( 'undergrowth_schema_version' );
+		add_filter( 'pre_clear_scheduled_hook', '__return_false' );
+
+		$this->assertFalse( undergrowth_install_schema() );
+		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
+	}
+
 	public function test_loading_a_page_leaves_old_events_to_the_upgrade() {
 		wp_schedule_event( time(), 'undergrowth_monthly', 'undergrowth_stage_cycle' );
 
