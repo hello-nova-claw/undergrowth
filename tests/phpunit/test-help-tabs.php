@@ -48,7 +48,7 @@ class Test_Help_Tabs extends WP_UnitTestCase {
 		$tabs = $this->tabs( 'posts_page_undergrowth-links', 'posts_page_undergrowth-links' );
 
 		$this->assertSame(
-			array( 'undergrowth-overview', 'undergrowth-suggestions', 'undergrowth-stages', 'undergrowth-map', 'undergrowth-compost' ),
+			array( 'undergrowth-overview', 'undergrowth-suggestions', 'undergrowth-orphans', 'undergrowth-stages', 'undergrowth-map', 'undergrowth-compost' ),
 			array_keys( $tabs )
 		);
 	}

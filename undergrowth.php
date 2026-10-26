@@ -41,6 +41,7 @@ require_once __DIR__ . '/src/class-undergrowth-html-text.php';
 require_once __DIR__ . '/src/accept.php';
 require_once __DIR__ . '/src/choose-words.php';
 require_once __DIR__ . '/src/stages.php';
+require_once __DIR__ . '/src/orphans.php';
 require_once __DIR__ . '/src/visibility.php';
 require_once __DIR__ . '/src/popularity.php';
 require_once __DIR__ . '/src/similar.php';
