@@ -161,6 +161,23 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_studio_seen', true ) );
 	}
 
+	public function test_turning_the_email_off_forgets_the_visit() {
+		$user_id = $this->subscriber();
+		update_user_meta( $user_id, 'undergrowth_studio_seen', (string) time() );
+
+		undergrowth_turn_digest_off( $user_id );
+
+		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_studio_seen', true ) );
+	}
+
+	public function test_the_link_in_the_email_turns_it_off_and_forgets_the_visit() {
+		$user_id = $this->subscriber();
+		update_user_meta( $user_id, 'undergrowth_studio_seen', (string) time() );
+
+		$this->assertTrue( undergrowth_digest_off( $user_id, undergrowth_digest_key( $user_id ) ) );
+		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_studio_seen', true ) );
+	}
+
 	public function test_no_line_while_questions_are_off() {
 		$this->subscriber();
 		$this->question( time() - HOUR_IN_SECONDS );
