@@ -728,6 +728,21 @@ const WITH_GARDEN_FILTERS = [
 	},
 ];
 
+// The Garden page pattern as readers see it once inserted, and in the
+// editor with its intro still a placeholder.
+const WITH_GARDEN_PAGE = [
+	{
+		screen: 'pattern-garden-page',
+		state: 'front-page',
+		front: () => `/?page_id=${ gardenFeedPages.pattern }`,
+	},
+	{
+		screen: 'pattern-garden-page',
+		state: 'editor-page',
+		edit: () => gardenFeedPages.pattern,
+	},
+];
+
 // Filled in once the list's posts exist, since the shots need their IDs.
 const linkedFromPosts = {};
 
@@ -1628,6 +1643,15 @@ test.describe( 'Screenshot catalogue', () => {
 				} )
 			).id;
 
+			gardenFeedPages.pattern = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:pattern {"slug":"undergrowth/garden-page"} /-->',
+					status: 'publish',
+				} )
+			).id;
+
 			gardenFeedPages.filters = (
 				await requestUtils.createPage( {
 					title: 'Garden',
@@ -1640,6 +1664,7 @@ test.describe( 'Screenshot catalogue', () => {
 
 		capture( WITH_GARDEN_FEED );
 		capture( WITH_GARDEN_FILTERS );
+		capture( WITH_GARDEN_PAGE );
 	} );
 
 	test.describe( 'with an Evergreen post worth a look', () => {
