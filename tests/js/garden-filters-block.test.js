@@ -72,7 +72,8 @@ describe( 'Garden filters block', () => {
 
 		expect( type.title ).toBe( metadata.title );
 		expect( type.attributes.topicSource.default ).toBe( 'post_tag' );
-		expect( type.attributes.typeSource.default ).toBe( 'post_format' );
+		// The types follow the garden feed on the same page.
+		expect( type.attributes.typeSource ).toBeUndefined();
 		expect( type.supports.interactivity ).toBe( true );
 	} );
 
