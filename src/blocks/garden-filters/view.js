@@ -6,12 +6,20 @@ const { actions } = store( 'undergrowth/garden', {
 	actions: {
 		/**
 		 * Loads another garden address and swaps the feed and the filters in
-		 * place, keeping the address in the browser's history.
+		 * place, keeping the address in the browser's history. If the router
+		 * cannot load, the browser goes there as it would without JavaScript.
 		 *
 		 * @param {string} href Address to load.
 		 */
 		*go( href ) {
-			const router = yield import( '@wordpress/interactivity-router' );
+			let router;
+
+			try {
+				router = yield import( '@wordpress/interactivity-router' );
+			} catch {
+				window.location.assign( href );
+				return;
+			}
 
 			yield router.actions.navigate( href );
 		},

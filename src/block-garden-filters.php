@@ -45,6 +45,20 @@ function undergrowth_register_garden_filters_block(): void {
 }
 
 /**
+ * Decides whether WordPress would render a synced pattern, as core's
+ * core/block does, so a feed it would not show never sets the types.
+ *
+ * @param WP_Post|null $synced The wp_block post a core/block refers to.
+ * @return bool True for a published synced pattern with no password.
+ */
+function undergrowth_garden_filters_renders_synced( ?WP_Post $synced ): bool {
+	return null !== $synced
+		&& 'wp_block' === $synced->post_type
+		&& 'publish' === $synced->post_status
+		&& '' === $synced->post_password;
+}
+
+/**
  * Finds the type setting of the garden feed on the page being shown.
  *
  * The filters offer the types the feed filters by, so the two can never
@@ -74,7 +88,7 @@ function undergrowth_garden_filters_type_source(): string {
 				// A synced pattern is stored as a wp_block post.
 				$key    = 'block:' . (int) ( $block['attrs']['ref'] ?? 0 );
 				$synced = get_post( (int) ( $block['attrs']['ref'] ?? 0 ) );
-				$inner  = $synced instanceof WP_Post && 'wp_block' === $synced->post_type ? parse_blocks( $synced->post_content ) : array();
+				$inner  = undergrowth_garden_filters_renders_synced( $synced ) ? parse_blocks( $synced->post_content ) : array();
 			}
 
 			if ( '' !== $key && isset( $opened[ $key ] ) ) {
