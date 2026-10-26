@@ -49,26 +49,39 @@ function undergrowth_register_garden_filters_block(): void {
  *
  * The filters offer the types the feed filters by, so the two can never
  * disagree. The feed is looked for in the page's blocks, inside groups,
- * columns and patterns.
+ * columns, patterns and synced patterns.
  *
  * @return string The feed's typeSource, or post_format when the page holds no feed.
  */
 function undergrowth_garden_filters_type_source(): string {
 	$post_id = get_the_ID() ? get_the_ID() : get_queried_object_id();
-	$find    = static function ( array $blocks ) use ( &$find ): ?string {
+	// A pattern is opened once on each path, so one that holds itself, or
+	// another that holds it, cannot loop.
+	$find = static function ( array $blocks, array $opened ) use ( &$find ): ?string {
 		foreach ( $blocks as $block ) {
 			if ( 'undergrowth/garden-feed' === $block['blockName'] ) {
 				return (string) ( $block['attrs']['typeSource'] ?? 'post_format' );
 			}
 
 			$inner = $block['innerBlocks'];
+			$key   = '';
 
 			if ( 'core/pattern' === $block['blockName'] ) {
+				$key     = 'pattern:' . (string) ( $block['attrs']['slug'] ?? '' );
 				$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( (string) ( $block['attrs']['slug'] ?? '' ) );
 				$inner   = is_array( $pattern ) ? parse_blocks( (string) $pattern['content'] ) : array();
+			} elseif ( 'core/block' === $block['blockName'] ) {
+				// A synced pattern is stored as a wp_block post.
+				$key    = 'block:' . (int) ( $block['attrs']['ref'] ?? 0 );
+				$synced = get_post( (int) ( $block['attrs']['ref'] ?? 0 ) );
+				$inner  = $synced instanceof WP_Post && 'wp_block' === $synced->post_type ? parse_blocks( $synced->post_content ) : array();
 			}
 
-			$found = $find( $inner );
+			if ( '' !== $key && isset( $opened[ $key ] ) ) {
+				continue;
+			}
+
+			$found = $find( $inner, '' === $key ? $opened : $opened + array( $key => true ) );
 
 			if ( null !== $found ) {
 				return $found;
@@ -78,7 +91,7 @@ function undergrowth_garden_filters_type_source(): string {
 		return null;
 	};
 
-	return $post_id ? ( $find( parse_blocks( (string) get_post_field( 'post_content', $post_id ) ) ) ?? 'post_format' ) : 'post_format';
+	return $post_id ? ( $find( parse_blocks( (string) get_post_field( 'post_content', $post_id ) ), array() ) ?? 'post_format' ) : 'post_format';
 }
 
 /**
