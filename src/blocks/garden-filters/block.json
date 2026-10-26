@@ -1,0 +1,55 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "undergrowth/garden-filters",
+	"version": "0.1.0",
+	"title": "Garden filters",
+	"category": "widgets",
+	"icon": "filter",
+	"description": "Lets readers narrow the garden feed by topic, growth stage and type. Works without JavaScript, and updates the feed in place with it.",
+	"keywords": [ "garden", "filter", "topics", "stages" ],
+	"textdomain": "undergrowth",
+	"attributes": {
+		"topicSource": {
+			"type": "string",
+			"enum": [ "post_tag", "category" ],
+			"default": "post_tag"
+		},
+		"typeSource": {
+			"type": "string",
+			"default": "post_format"
+		},
+		"showTopics": {
+			"type": "boolean",
+			"default": true
+		},
+		"showStage": {
+			"type": "boolean",
+			"default": true
+		},
+		"showType": {
+			"type": "boolean",
+			"default": true
+		}
+	},
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"align": [ "wide", "full" ],
+		"color": {
+			"text": true,
+			"background": true,
+			"link": true
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js",
+	"viewScriptModule": "file:./view.js"
+}
