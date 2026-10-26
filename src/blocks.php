@@ -50,6 +50,41 @@ function undergrowth_register_blocks(): void {
 }
 
 /**
+ * Draws a growth stage's icon.
+ *
+ * The drawings are Undergrowth's own, in lines of the text colour, so they
+ * follow the theme and every colour a block sets. Composting has none,
+ * since readers are never shown it.
+ *
+ * @param string $stage One of UNDERGROWTH_STAGES.
+ * @param string $label Accessible name, or an empty string when text beside
+ *                      the icon already says the stage.
+ * @return string SVG markup, or an empty string for a stage with no icon.
+ */
+function undergrowth_stage_icon( string $stage, string $label = '' ): string {
+	$drawings = array(
+		// Two seed leaves on a short stem.
+		'seedling'  => '<path d="M5 20h14"/><path d="M12 20v-7"/><path d="M12 13c-3.6 0-5.6-2-5.6-5.2 3.6 0 5.6 2 5.6 5.2z"/><path d="M12 13c0-3.2 2-5.2 5.6-5.2 0 3.2-2 5.2-5.6 5.2z"/>',
+		// A taller stem with a leaf on each side, still growing at the tip.
+		'sprout'    => '<path d="M5 20h14"/><path d="M12 20V5"/><path d="M12 15.5c-3.2 0-5.2-1.8-5.2-4.6 3.2 0 5.2 1.8 5.2 4.6z"/><path d="M12 11.5c0-2.8 2-4.6 5.2-4.6 0 2.8-2 4.6-5.2 4.6z"/><path d="M12 5c.8-1 1.8-1.5 3-1.5"/>',
+		// Leaves low on the stem and a closed bud on top.
+		'budding'   => '<path d="M5 20h14"/><path d="M12 20v-9"/><path d="M12 17c-2.8 0-4.6-1.5-4.6-4 2.8 0 4.6 1.5 4.6 4z"/><path d="M12 15.5c0-2.5 1.8-4 4.6-4 0 2.5-1.8 4-4.6 4z"/><path d="M12 11c-2.2-1.4-2.8-4.4 0-7.5 2.8 3.1 2.2 6.1 0 7.5z"/>',
+		// A conifer in three tiers on its trunk.
+		'evergreen' => '<path d="M12 3 7.5 8.5H10L6 13.5h3L5 18.5h14l-4-5h3l-4-5h2.5z"/><path d="M12 18.5V21"/>',
+	);
+
+	if ( ! isset( $drawings[ $stage ] ) ) {
+		return '';
+	}
+
+	return sprintf(
+		'<svg class="undergrowth-stage-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" %1$s>%2$s</svg>',
+		'' === $label ? 'aria-hidden="true" focusable="false"' : 'role="img" aria-label="' . esc_attr( $label ) . '"',
+		$drawings[ $stage ]
+	);
+}
+
+/**
  * Renders the growth-stage badge for the post in block context.
  *
  * A composted post shows nothing. Composting is the author's private choice
@@ -77,10 +112,11 @@ function undergrowth_render_growth_stage_block( $attributes, $content, $block ):
 	$name = undergrowth_stage_label( $stage );
 
 	// The visible word alone does not say what it is, so screen readers get
-	// the whole label instead.
+	// the whole label instead. The icon beside the word adds nothing for them.
 	return sprintf(
-		'<p %1$s><span class="screen-reader-text">%2$s</span><span aria-hidden="true">%3$s</span></p>',
+		'<p %1$s>%2$s<span class="screen-reader-text">%3$s</span><span aria-hidden="true">%4$s</span></p>',
 		get_block_wrapper_attributes( array( 'class' => 'is-stage-' . $stage ) ),
+		empty( $attributes['showIcon'] ) ? '' : undergrowth_stage_icon( $stage ),
 		esc_html(
 			sprintf(
 				/* translators: %s: growth stage name, such as Sprout. */
