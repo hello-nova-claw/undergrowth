@@ -1,0 +1,97 @@
+/*
+ * The feed is a grid of entries that fills the width it is given, one
+ * column on a phone. The featured entry spans the whole row.
+ */
+.wp-block-undergrowth-garden-feed-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+	gap: 1.5rem 2rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wp-block-undergrowth-garden-feed-item {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-areas:
+		"stage title"
+		". excerpt"
+		". details";
+	column-gap: 0.5rem;
+	align-content: start;
+	margin: 0;
+}
+
+.wp-block-undergrowth-garden-feed-item.is-featured {
+	grid-column: 1 / -1;
+}
+
+/*
+ * Each title is a link of its own, kept at least 24px tall for touch and
+ * pointer users (WCAG 2.5.8), even at a small font size.
+ */
+.wp-block-undergrowth-garden-feed-title {
+	display: block;
+	grid-area: title;
+	min-height: 24px;
+	font-weight: 600;
+}
+
+.is-featured .wp-block-undergrowth-garden-feed-title {
+	font-size: 1.5em;
+}
+
+.wp-block-undergrowth-garden-feed-title img {
+	display: block;
+	width: 100%;
+	height: auto;
+	margin-block-end: 0.5rem;
+}
+
+.wp-block-undergrowth-garden-feed-stage {
+	grid-area: stage;
+	align-self: start;
+}
+
+.wp-block-undergrowth-garden-feed-stage .undergrowth-stage-icon {
+	display: block;
+	width: 1.5em;
+	height: 1.5em;
+}
+
+/* The image sits above the title, so the icon moves down beside it. */
+.is-featured .wp-block-undergrowth-garden-feed-stage {
+	align-self: end;
+}
+
+.wp-block-undergrowth-garden-feed-excerpt {
+	grid-area: excerpt;
+	margin: 0.25rem 0 0;
+}
+
+.wp-block-undergrowth-garden-feed-details {
+	grid-area: details;
+	margin: 0.25rem 0 0;
+	font-size: 0.875em;
+	opacity: 0.8;
+}
+
+.wp-block-undergrowth-garden-feed-type::after {
+	content: " ·";
+}
+
+/* Page links are small words, so each gets a 24px target. */
+.wp-block-undergrowth-garden-feed-pages {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: 2rem;
+}
+
+.wp-block-undergrowth-garden-feed-pages .page-numbers {
+	display: inline-block;
+	min-width: 24px;
+	min-height: 24px;
+	text-align: center;
+}
