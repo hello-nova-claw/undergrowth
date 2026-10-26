@@ -477,13 +477,13 @@ function undergrowth_read_log( int $post_id, string $meta_key, array $fields ): 
  * cluster whose links all run one way, which the handover's rules leave
  * between Sprout and Budding.
  *
- * Evergreen is never measured yet. Its rule also needs a hub linking to the
- * post, and hubs come only from fusion in reader mode, so until hubs exist
- * the author can pin Evergreen but the cycle never reaches it. Composting is
- * never measured; only the author chooses it.
+ * A post in a cluster with three or more links in is Evergreen once a hub
+ * readers can see links to it: a page started from the Map that the author
+ * published (see hubs.php). The hub's own link is not one of the three.
+ * Composting is never measured; only the author chooses it.
  *
  * @param int $post_id Post ID.
- * @return string 'seedling', 'sprout' or 'budding'.
+ * @return string 'seedling', 'sprout', 'budding' or 'evergreen'.
  */
 function undergrowth_measure_stage( int $post_id ): string {
 	global $wpdb;
@@ -500,8 +500,9 @@ function undergrowth_measure_stage( int $post_id ): string {
 		ARRAY_A
 	);
 
-	$out = 0;
-	$in  = 0;
+	$out      = 0;
+	$in       = 0;
+	$from_hub = 0;
 
 	foreach ( (array) $rows as $row ) {
 		$outgoing = (int) $row['source_id'] === $post_id;
@@ -515,10 +516,21 @@ function undergrowth_measure_stage( int $post_id ): string {
 			++$out;
 		} else {
 			++$in;
+			$from_hub += metadata_exists( 'post', $other->ID, 'undergrowth_hub' ) ? 1 : 0;
 		}
 	}
 
-	if ( $out > 0 && $in > 0 && array() !== undergrowth_cluster_members( $post_id ) ) {
+	// Budding and Evergreen both need a link in, so a post with none skips
+	// the cluster lookup.
+	$clustered = $in > 0 && array() !== undergrowth_cluster_members( $post_id );
+
+	// A link the author accepted from a hub, where pages are indexed, is the
+	// hub's own link, so it is not one of the three.
+	if ( $clustered && $in - $from_hub >= 3 && undergrowth_has_hub_link( $post_id ) ) {
+		return 'evergreen';
+	}
+
+	if ( $clustered && $out > 0 && $in > 0 ) {
 		return 'budding';
 	}
 
@@ -715,7 +727,8 @@ function undergrowth_end_pass( string $hook ): void {
 }
 
 /**
- * Runs again the batch of a clustering or stage pass that died.
+ * Runs again the batch of a clustering, stage or cross-pollination pass
+ * that died.
  *
  * Runs from the hourly check. A pass is resumed only when its batch started
  * at least UNDERGROWTH_PASS_STALL ago and neither that batch nor a new pass
@@ -723,7 +736,7 @@ function undergrowth_end_pass( string $hook ): void {
  * long gives the pass up to the new one.
  */
 function undergrowth_resume_stalled_passes(): void {
-	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle' ) as $hook ) {
+	foreach ( array( 'undergrowth_cluster_cycle', 'undergrowth_stage_cycle', 'undergrowth_pollination_cycle' ) as $hook ) {
 		$pass = get_option( $hook . '_pass' );
 
 		if ( ! is_array( $pass ) || ! isset( $pass['after'], $pass['at'] ) || time() - (int) $pass['at'] < UNDERGROWTH_PASS_STALL ) {

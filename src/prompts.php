@@ -1,7 +1,7 @@
 <?php
 /**
- * Writing prompts: one question at a time to the author, written by Claude
- * from the author's own garden.
+ * Writing prompts: questions to the author, written by Claude from the
+ * author's own garden, which the Prompt studio lists.
  *
  * A prompt is never a draft and never reaches readers. Whatever a source
  * carries from a stranger is passed to the model as data inside a JSON
@@ -15,14 +15,16 @@ defined( 'ABSPATH' ) || exit;
 
 // The rules ask for under 250 characters, so a question that runs a little
 // over is still kept, not thrown away.
-const UNDERGROWTH_PROMPT_MAX_LENGTH = 300;
-const UNDERGROWTH_PROMPT_MAX_CALLS  = 3;
-const UNDERGROWTH_PROMPT_DATA_CHARS = 1000;
-const UNDERGROWTH_PROMPT_COMMENTS   = 50;
-const UNDERGROWTH_PROMPT_COMPOSTED  = 20;
-const UNDERGROWTH_PROMPT_PAGES      = 10;
-const UNDERGROWTH_PROMPT_GAP_POSTS  = 3;
-const UNDERGROWTH_PROMPT_SENTENCES  = 20;
+const UNDERGROWTH_PROMPT_MAX_LENGTH  = 300;
+const UNDERGROWTH_PROMPT_MAX_CALLS   = 3;
+const UNDERGROWTH_PROMPT_BATCH       = 5;
+const UNDERGROWTH_PROMPT_BATCH_CALLS = 10;
+const UNDERGROWTH_PROMPT_DATA_CHARS  = 1000;
+const UNDERGROWTH_PROMPT_COMMENTS    = 50;
+const UNDERGROWTH_PROMPT_COMPOSTED   = 20;
+const UNDERGROWTH_PROMPT_PAGES       = 10;
+const UNDERGROWTH_PROMPT_GAP_POSTS   = 3;
+const UNDERGROWTH_PROMPT_SENTENCES   = 20;
 
 // Question marks in the scripts WordPress ships translations for: the
 // full-width one used in Chinese and Japanese, the Arabic one, the Greek one,
@@ -31,11 +33,21 @@ const UNDERGROWTH_PROMPT_SENTENCES  = 20;
 // undergrowth_question_marks() adds for Greek only.
 const UNDERGROWTH_QUESTION_MARKS = "?？؟\u{037e}՞፧";
 
-const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed', 'restored' );
+// Events a post's prompt log may hold. A snooze no longer exists, but logs
+// written before the Prompt studio still hold it.
+const UNDERGROWTH_PROMPT_EVENTS = array( 'asked', 'dismissed', 'snoozed', 'restored', 'saved', 'removed', 'replaced' );
 
-add_action( 'init', 'undergrowth_schedule_prompt_cycle' );
+// What a stored question can be: new in the batch, kept in the idea bank, or
+// dismissed and kept a little while so an Undo can bring it back.
+const UNDERGROWTH_PROMPT_STATUSES = array( 'new', 'saved', 'dismissed' );
+
+// Dismissed questions kept for Undo. Their sources are recorded as sent, so a
+// dismissed question never comes back once it is dropped.
+const UNDERGROWTH_PROMPT_KEEP_DISMISSED = 10;
+
+add_action( 'init', 'undergrowth_schedule_prompt_batch' );
 add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
-add_action( 'undergrowth_prompt_cycle', 'undergrowth_run_prompt_cycle' );
+add_action( 'undergrowth_prompt_batch', 'undergrowth_run_prompt_batch' );
 add_action( 'undergrowth_write_prompt', 'undergrowth_write_first_prompt' );
 add_action( 'add_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
 add_action( 'update_option_undergrowth_anthropic_api_key', 'undergrowth_queue_first_prompt' );
@@ -45,11 +57,18 @@ add_filter( 'undergrowth_prompt_sources', 'undergrowth_compost_prompt_sources', 
 add_action( 'undergrowth_prompt_written', 'undergrowth_log_written_prompt', 10, 2 );
 
 /**
- * Schedules the monthly prompt cycle when it is not scheduled yet.
+ * Schedules the weekly prompt batch when it is not scheduled yet.
+ *
+ * The batch replaced a monthly cycle that wrote one question, so a site
+ * upgraded from it loses that event here.
  */
-function undergrowth_schedule_prompt_cycle(): void {
-	if ( false === wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
-		wp_schedule_event( time() + MONTH_IN_SECONDS, 'undergrowth_monthly', 'undergrowth_prompt_cycle' );
+function undergrowth_schedule_prompt_batch(): void {
+	if ( false !== wp_next_scheduled( 'undergrowth_prompt_cycle' ) ) {
+		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	}
+
+	if ( false === wp_next_scheduled( 'undergrowth_prompt_batch' ) ) {
+		wp_schedule_event( time() + WEEK_IN_SECONDS, 'weekly', 'undergrowth_prompt_batch' );
 	}
 }
 
@@ -58,17 +77,17 @@ function undergrowth_schedule_prompt_cycle(): void {
  *
  * Such a key is never saved, so the option hooks that ask for the first
  * prompt never fire. This asks once, and remembers that it did: a prompt
- * that is dismissed or snoozed leaves nothing queued, and asking again on
- * every request would skip the monthly wait.
+ * that is dismissed or saved leaves nothing queued, and asking again on
+ * every request would skip the weekly wait.
  */
 function undergrowth_queue_config_first_prompt(): void {
 	if ( '' === undergrowth_key_from_config( 'UNDERGROWTH_ANTHROPIC_API_KEY' ) || false !== get_option( 'undergrowth_config_prompt_queued' ) ) {
 		return;
 	}
 
-	// A snoozed prompt means the author has been asked already, with a key
+	// A stored question means the author has been asked already, with a key
 	// that was saved before it moved to wp-config.php.
-	if ( array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() ) ) {
+	if ( array() !== undergrowth_stored_prompts() ) {
 		update_option( 'undergrowth_config_prompt_queued', 1 );
 		return;
 	}
@@ -82,8 +101,8 @@ function undergrowth_queue_config_first_prompt(): void {
 }
 
 /**
- * Writes a first prompt soon after a key is saved, so the author does not
- * wait a month for the first one.
+ * Fills the first batch soon after a key is saved, so the author does not
+ * wait a week for it.
  *
  * Saving the same key again, or removing it, writes nothing.
  */
@@ -104,146 +123,345 @@ function undergrowth_unschedule_prompts(): void {
 	}
 
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	wp_unschedule_hook( 'undergrowth_prompt_batch' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 }
 
 /**
- * Writes the first prompt, queued when a key is saved.
- *
- * Actions expect no return value, so this wraps the writer.
+ * Fills the first batch, queued when a key is saved.
  */
 function undergrowth_write_first_prompt(): void {
-	undergrowth_write_prompt();
+	undergrowth_run_prompt_batch();
 }
 
 /**
- * Runs the monthly prompt cycle.
+ * Runs the weekly prompt batch: tops the new questions up to
+ * UNDERGROWTH_PROMPT_BATCH, from sources not used before.
  *
- * A prompt still waiting stays. Otherwise a snoozed prompt comes back
- * first, without asking Claude again, and only then is a new one written.
+ * With the batch already full, nothing is sent. When the garden has no
+ * source left, or a request fails, the batch stops short rather than pad.
  */
-function undergrowth_run_prompt_cycle(): void {
-	if ( ! undergrowth_prompts_enabled() || null !== undergrowth_current_prompt() || undergrowth_wake_snoozed_prompt() ) {
+function undergrowth_run_prompt_batch(): void {
+	if ( ! undergrowth_prompts_enabled() ) {
 		return;
 	}
 
-	undergrowth_write_prompt();
+	$wanted = UNDERGROWTH_PROMPT_BATCH - count( undergrowth_prompts( 'new' ) );
+
+	if ( $wanted > 0 ) {
+		undergrowth_write_prompts( $wanted, UNDERGROWTH_PROMPT_BATCH_CALLS );
+	}
 }
 
 /**
- * Brings back the oldest snoozed prompt whose post is still read.
+ * Returns every stored question, whatever its status, oldest first.
  *
- * @return bool True when a prompt came back.
+ * The first call after an upgrade moves the single waiting question, and any
+ * snoozed or just dismissed one, from the options that held them before the
+ * Prompt studio.
+ *
+ * @return array<int, array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}> Questions.
  */
-function undergrowth_wake_snoozed_prompt(): bool {
-	$snoozed = get_option( 'undergrowth_snoozed_prompts', array() );
-	$snoozed = is_array( $snoozed ) ? array_values( $snoozed ) : array();
+function undergrowth_stored_prompts(): array {
+	$stored = get_option( 'undergrowth_prompts', null );
 
-	while ( array() !== $snoozed ) {
-		$prompt = array_shift( $snoozed );
-
-		update_option( 'undergrowth_snoozed_prompts', $snoozed, false );
-
-		if ( ! is_array( $prompt ) ) {
-			continue;
-		}
-
-		$prompt['time'] = time();
-		update_option( 'undergrowth_prompt', $prompt, false );
-		$current = undergrowth_current_prompt();
-
-		if ( null === $current ) {
-			delete_option( 'undergrowth_prompt' );
-			continue;
-		}
-
-		undergrowth_log_prompt( $current['post_id'], 'asked', $current );
-
-		return true;
+	if ( null === $stored ) {
+		$stored = undergrowth_migrate_prompts();
 	}
 
-	return false;
-}
+	$prompts = array();
 
-/**
- * Removes the waiting prompt for good.
- *
- * Its source was recorded as sent when the prompt was written, so the same
- * source never prompts again.
- *
- * @param string $key Key of the prompt the author chose to dismiss.
- * @return bool True when it was the waiting prompt and is gone.
- */
-function undergrowth_dismiss_prompt( string $key ): bool {
-	$prompt = undergrowth_current_prompt();
+	foreach ( (array) $stored as $prompt ) {
+		$prompt = undergrowth_clean_stored_prompt( $prompt );
 
-	if ( null === $prompt || $prompt['key'] !== $key ) {
-		return false;
+		if ( null !== $prompt ) {
+			$prompts[] = $prompt;
+		}
 	}
 
-	// Kept only so the Undo in the result notice can bring it back.
-	update_option( 'undergrowth_dismissed_prompt', $prompt, false );
-	delete_option( 'undergrowth_prompt' );
-	undergrowth_log_prompt( $prompt['post_id'], 'dismissed', $prompt );
-
-	return true;
+	return $prompts;
 }
 
 /**
- * Returns the question dismissed last, while the Undo can still bring it
- * back: no other question waits, and its post is still read.
+ * Checks the shape of one stored question.
  *
- * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
+ * @param mixed  $prompt Stored question.
+ * @param string $status Status to give a question stored without one.
+ * @return array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}|null The question, or null.
  */
-function undergrowth_dismissed_prompt(): ?array {
-	if ( null !== undergrowth_current_prompt() ) {
+function undergrowth_clean_stored_prompt( $prompt, string $status = 'new' ): ?array {
+	if ( ! is_array( $prompt ) || ! is_string( $prompt['key'] ?? null ) || '' === $prompt['key'] || ! is_string( $prompt['question'] ?? null ) || ! is_string( $prompt['source'] ?? null ) ) {
 		return null;
 	}
 
-	return undergrowth_readable_prompt( get_option( 'undergrowth_dismissed_prompt' ) );
+	$post_id = (int) ( $prompt['post_id'] ?? 0 );
+	$posts   = array_map( 'intval', (array) ( $prompt['posts'] ?? array() ) );
+	$status  = is_string( $prompt['status'] ?? null ) ? $prompt['status'] : $status;
+
+	if ( $post_id <= 0 || ! in_array( $status, UNDERGROWTH_PROMPT_STATUSES, true ) ) {
+		return null;
+	}
+
+	return array(
+		'key'      => $prompt['key'],
+		'source'   => $prompt['source'],
+		'post_id'  => $post_id,
+		'posts'    => array_values( array_unique( array_merge( array( $post_id ), array_filter( $posts ) ) ) ),
+		'question' => $prompt['question'],
+		'time'     => (int) ( $prompt['time'] ?? 0 ),
+		'status'   => $status,
+	);
 }
 
 /**
- * Brings back the question dismissed last, from the Undo in the result
- * notice.
+ * Moves questions from the options used before the Prompt studio.
  *
- * @param string $key Key of the prompt to bring back.
- * @return bool True when it waits again.
+ * The waiting question and every snoozed one join the batch as new, since
+ * there is no snooze any more, and the question dismissed last stays for its
+ * Undo. Nothing is written for a site that never had a question.
+ *
+ * @return array<int, array<string, mixed>> The moved questions.
  */
-function undergrowth_restore_prompt( string $key ): bool {
-	$prompt = undergrowth_dismissed_prompt();
+function undergrowth_migrate_prompts(): array {
+	$legacy = array(
+		'undergrowth_prompt'           => 'new',
+		'undergrowth_snoozed_prompts'  => 'new',
+		'undergrowth_dismissed_prompt' => 'dismissed',
+	);
+	$found  = false;
+	$moved  = array();
+	$keys   = array();
 
-	if ( null === $prompt || $prompt['key'] !== $key ) {
+	foreach ( $legacy as $option => $status ) {
+		$value = get_option( $option );
+
+		if ( false === $value ) {
+			continue;
+		}
+
+		$found = true;
+		$list  = 'undergrowth_snoozed_prompts' === $option ? (array) $value : array( $value );
+
+		foreach ( $list as $prompt ) {
+			$prompt = is_array( $prompt ) ? array_merge( $prompt, array( 'status' => $status ) ) : $prompt;
+			$prompt = undergrowth_clean_stored_prompt( $prompt );
+
+			if ( null !== $prompt && ! isset( $keys[ $prompt['key'] ] ) ) {
+				$keys[ $prompt['key'] ] = true;
+				$moved[]                = $prompt;
+			}
+		}
+	}
+
+	if ( $found ) {
+		update_option( 'undergrowth_prompts', $moved, false );
+
+		foreach ( array_keys( $legacy ) as $option ) {
+			delete_option( $option );
+		}
+	}
+
+	return $moved;
+}
+
+/**
+ * Stores the list of questions, keeping only the latest dismissed ones.
+ *
+ * @param array<int, array<string, mixed>> $prompts Questions, oldest first.
+ */
+function undergrowth_store_prompts( array $prompts ): void {
+	$dismissed = 0;
+
+	for ( $i = count( $prompts ) - 1; $i >= 0; $i-- ) {
+		if ( 'dismissed' === $prompts[ $i ]['status'] && ++$dismissed > UNDERGROWTH_PROMPT_KEEP_DISMISSED ) {
+			unset( $prompts[ $i ] );
+		}
+	}
+
+	update_option( 'undergrowth_prompts', array_values( $prompts ), false );
+}
+
+/**
+ * Returns the questions with one status that the author can still read:
+ * questions are on, and the post each is about is still in the index.
+ *
+ * @param string $status 'new', 'saved' or 'dismissed'.
+ * @return array<int, array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}> Questions, oldest first.
+ */
+function undergrowth_prompts( string $status = 'new' ): array {
+	$prompts = array();
+
+	foreach ( undergrowth_stored_prompts() as $prompt ) {
+		if ( $status === $prompt['status'] ) {
+			$prompt = undergrowth_readable_prompt( $prompt );
+
+			if ( null !== $prompt ) {
+				$prompts[] = $prompt;
+			}
+		}
+	}
+
+	return $prompts;
+}
+
+/**
+ * Returns the oldest new question, if one is waiting.
+ *
+ * With no key saved the feature is off, so nothing is waiting.
+ *
+ * @return array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}|null The question, or null.
+ */
+function undergrowth_current_prompt(): ?array {
+	return undergrowth_prompts( 'new' )[0] ?? null;
+}
+
+/**
+ * Returns one readable question by its key, whatever its status.
+ *
+ * @param string $key Key of the question.
+ * @return array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}|null The question, or null.
+ */
+function undergrowth_find_prompt( string $key ): ?array {
+	foreach ( undergrowth_stored_prompts() as $prompt ) {
+		if ( $key === $prompt['key'] ) {
+			return undergrowth_readable_prompt( $prompt );
+		}
+	}
+
+	return null;
+}
+
+/**
+ * Moves a question from one status to another, and logs the change in its
+ * post's record.
+ *
+ * @param string      $key   Key of the question.
+ * @param string      $from  Status it must have now.
+ * @param string|null $to    New status, or null to forget it.
+ * @param string      $event Event for the post's log.
+ * @return bool True when the question had that status and was moved.
+ */
+function undergrowth_move_prompt( string $key, string $from, ?string $to, string $event ): bool {
+	$prompt = undergrowth_find_prompt( $key );
+
+	if ( null === $prompt || $from !== $prompt['status'] ) {
 		return false;
 	}
 
-	update_option( 'undergrowth_prompt', $prompt, false );
-	delete_option( 'undergrowth_dismissed_prompt' );
-	undergrowth_log_prompt( $prompt['post_id'], 'restored', $prompt );
+	$prompts = array();
+	$moved   = null;
+
+	foreach ( undergrowth_stored_prompts() as $stored ) {
+		if ( $key !== $stored['key'] ) {
+			$prompts[] = $stored;
+		} elseif ( null !== $to ) {
+			// A question moved to the end, so the latest dismissed are kept
+			// and the idea bank lists questions in the order they were saved.
+			$moved = array_merge( $stored, array( 'status' => $to ) );
+		}
+	}
+
+	if ( null !== $moved ) {
+		$prompts[] = $moved;
+	}
+
+	undergrowth_store_prompts( $prompts );
+	undergrowth_log_prompt( $prompt['post_id'], $event, $prompt );
 
 	return true;
 }
 
 /**
- * Puts the waiting prompt aside until the next monthly cycle.
+ * Dismisses a new question for good.
  *
- * @param string $key Key of the prompt the author chose to snooze.
- * @return bool True when it was the waiting prompt and is put aside.
+ * Its source was recorded as sent when the question was written, so the
+ * same source never prompts again.
+ *
+ * @param string $key Key of the question the author chose to dismiss.
+ * @return bool True when it was a new question and is gone.
  */
-function undergrowth_snooze_prompt( string $key ): bool {
-	$prompt = undergrowth_current_prompt();
+function undergrowth_dismiss_prompt( string $key ): bool {
+	return undergrowth_move_prompt( $key, 'new', 'dismissed', 'dismissed' );
+}
 
-	if ( null === $prompt || $prompt['key'] !== $key ) {
+/**
+ * Returns a question dismissed lately, while the Undo can still bring it
+ * back.
+ *
+ * @param string $key Key of the question.
+ * @return array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}|null The question, or null.
+ */
+function undergrowth_dismissed_prompt( string $key ): ?array {
+	$prompt = undergrowth_find_prompt( $key );
+
+	return null !== $prompt && 'dismissed' === $prompt['status'] ? $prompt : null;
+}
+
+/**
+ * Brings back a dismissed question, from the Undo in the result notice.
+ *
+ * @param string $key Key of the question to bring back.
+ * @return bool True when it is new again.
+ */
+function undergrowth_restore_prompt( string $key ): bool {
+	return undergrowth_move_prompt( $key, 'dismissed', 'new', 'restored' );
+}
+
+/**
+ * Saves a new question to the idea bank, where it stays until the author
+ * removes it.
+ *
+ * @param string $key Key of the question.
+ * @return bool True when it was a new question and is saved.
+ */
+function undergrowth_save_prompt( string $key ): bool {
+	return undergrowth_move_prompt( $key, 'new', 'saved', 'saved' );
+}
+
+/**
+ * Removes a question from the idea bank for good.
+ *
+ * @param string $key Key of the question.
+ * @return bool True when it was saved and is gone.
+ */
+function undergrowth_remove_saved_prompt( string $key ): bool {
+	return undergrowth_move_prompt( $key, 'saved', null, 'removed' );
+}
+
+/**
+ * Swaps a new question for another one, written straight away from the
+ * next unused source in the garden.
+ *
+ * The old question goes only once the new one is written, so a failed
+ * request or a garden with no source left changes nothing. Only sources
+ * the author may answer about are tried, so the new question is theirs.
+ *
+ * @param string $key Key of the question to replace.
+ * @return bool True when a new question took its place.
+ */
+function undergrowth_replace_prompt( string $key ): bool {
+	$prompt = undergrowth_find_prompt( $key );
+
+	if ( null === $prompt || 'new' !== $prompt['status'] || ! undergrowth_write_prompt( 'undergrowth_user_can_answer_prompt' ) ) {
 		return false;
 	}
 
-	$snoozed   = get_option( 'undergrowth_snoozed_prompts', array() );
-	$snoozed   = is_array( $snoozed ) ? array_values( $snoozed ) : array();
-	$snoozed[] = $prompt;
+	return undergrowth_move_prompt( $key, 'new', 'dismissed', 'replaced' );
+}
 
-	update_option( 'undergrowth_snoozed_prompts', $snoozed, false );
-	delete_option( 'undergrowth_prompt' );
-	undergrowth_log_prompt( $prompt['post_id'], 'snoozed', $prompt );
+/**
+ * Tells whether the current user may see and answer a question: they can
+ * edit every post it came from, since a question may quote any of them.
+ *
+ * @param array{post_id: int, posts: int[]} $prompt The question.
+ * @return bool True when they can edit each of its posts.
+ */
+function undergrowth_user_can_answer_prompt( array $prompt ): bool {
+	foreach ( array_merge( array( $prompt['post_id'] ), $prompt['posts'] ) as $post_id ) {
+		if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -324,51 +542,45 @@ function undergrowth_prompt_log( int $post_id ): array {
 }
 
 /**
- * Returns the prompt waiting for the author, if there is one.
+ * Returns a stored question while questions are on and its post is still
+ * read, with only the source posts that are still in the index.
  *
- * With no key saved the feature is off, so nothing is waiting.
- *
- * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
+ * @param array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string} $prompt Stored question.
+ * @return array{key: string, source: string, post_id: int, posts: int[], question: string, time: int, status: string}|null The question, or null.
  */
-function undergrowth_current_prompt(): ?array {
-	return undergrowth_readable_prompt( get_option( 'undergrowth_prompt' ) );
-}
-
-/**
- * Checks a stored prompt, and returns it while questions are on and its
- * post is still read.
- *
- * @param mixed $prompt Stored prompt.
- * @return array{key: string, source: string, post_id: int, question: string, time: int}|null The prompt, or null.
- */
-function undergrowth_readable_prompt( $prompt ): ?array {
-	if ( ! undergrowth_prompts_enabled() || ! is_array( $prompt ) || ! is_string( $prompt['key'] ?? null ) || ! is_string( $prompt['question'] ?? null ) || ! is_string( $prompt['source'] ?? null ) ) {
+function undergrowth_readable_prompt( array $prompt ): ?array {
+	if ( ! undergrowth_prompts_enabled() ) {
 		return null;
 	}
 
-	$post = get_post( (int) ( $prompt['post_id'] ?? 0 ) );
+	$post = get_post( $prompt['post_id'] );
 
 	if ( ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
 		return null;
 	}
 
-	return array(
-		'key'      => $prompt['key'],
-		'source'   => $prompt['source'],
-		'post_id'  => $post->ID,
-		'question' => $prompt['question'],
-		'time'     => (int) ( $prompt['time'] ?? 0 ),
+	$prompt['posts'] = array_values(
+		array_filter(
+			$prompt['posts'],
+			static function ( $post_id ) {
+				$source = get_post( $post_id );
+
+				return $source instanceof WP_Post && undergrowth_is_indexable( $source );
+			}
+		)
 	);
+
+	return $prompt;
 }
 
 /**
  * Tells whether a question has ever been written for the author: one is
- * waiting, one is snoozed, or one was logged, even on a post since deleted.
+ * stored, or one was logged, even on a post since deleted.
  *
  * @return bool True once a question has been written.
  */
 function undergrowth_has_written_prompt(): bool {
-	return false !== get_option( 'undergrowth_prompt_written' ) || null !== undergrowth_current_prompt() || array() !== (array) get_option( 'undergrowth_snoozed_prompts', array() );
+	return false !== get_option( 'undergrowth_prompt_written' ) || array() !== undergrowth_stored_prompts();
 }
 
 /**
@@ -386,36 +598,67 @@ function undergrowth_prompt_reply_is_final( WP_Error $error ): bool {
 }
 
 /**
- * Asks Claude for a prompt when none is waiting, trying sources in order.
+ * Asks Claude for one more question, trying sources in order, and adds it
+ * to the batch as new.
+ *
+ * @param callable|null $accept Tells whether a source record may be used, or null for any.
+ * @return bool True when a prompt was written.
+ */
+function undergrowth_write_prompt( ?callable $accept = null ): bool {
+	return 1 === undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, $accept );
+}
+
+/**
+ * Asks Claude for new questions, trying sources in order, and adds each one
+ * to the batch as new.
  *
  * Each source is sent at most once, whatever the model answers, so a source
  * it cannot turn into a valid question is not paid for again. A failed
  * request ends the run and the source is tried again next time.
  *
- * @return bool True when a prompt was written.
+ * Passing $accept limits the run, for instance to the sources an author may
+ * answer about, or to one kind of question that holds a place in the batch.
+ *
+ * @param int           $wanted Questions to write at most.
+ * @param int           $limit  Requests to send at most.
+ * @param callable|null $accept Tells whether a source record may be used, or null for any.
+ * @return int Questions written.
  */
-function undergrowth_write_prompt(): bool {
-	if ( ! undergrowth_prompts_enabled() || null !== undergrowth_current_prompt() ) {
-		return false;
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null ): int {
+	if ( ! undergrowth_prompts_enabled() ) {
+		return 0;
 	}
 
-	$calls = 0;
+	$calls   = 0;
+	$written = 0;
 
 	foreach ( undergrowth_prompt_candidates() as $record ) {
+		if ( $written >= $wanted ) {
+			break;
+		}
+
+		if ( null !== $accept && ! $accept( $record ) ) {
+			continue;
+		}
+
 		// A source that needs a check needs two requests. One that would go
 		// over the limit waits for the next run without anything being sent.
-		if ( $calls + ( empty( $record['rest'] ) ? 1 : 2 ) > UNDERGROWTH_PROMPT_MAX_CALLS ) {
+		if ( $calls + ( empty( $record['rest'] ) ? 1 : 2 ) > $limit ) {
 			continue;
 		}
 
 		$result = undergrowth_write_prompt_from( $record, $calls );
 
-		if ( 'skipped' !== $result ) {
-			return 'written' === $result;
+		if ( 'failed' === $result ) {
+			break;
+		}
+
+		if ( 'written' === $result ) {
+			++$written;
 		}
 	}
 
-	return false;
+	return $written;
 }
 
 /**
@@ -424,8 +667,8 @@ function undergrowth_write_prompt(): bool {
  * The source is recorded as sent once its outcome is known. A request that
  * failed is not an outcome, so the source stays for the next run.
  *
- * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source record.
- * @param int                                                                                                                        $calls  Requests made so far this run, counted up here.
+ * @param array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source record.
+ * @param int                                                                                                                                      $calls  Requests made so far this run, counted up here.
  * @return string 'written', 'skipped' when this source gave no prompt, or 'failed' when a request failed.
  */
 function undergrowth_write_prompt_from( array $record, int &$calls ): string {
@@ -457,15 +700,19 @@ function undergrowth_write_prompt_from( array $record, int &$calls ): string {
 		return 'skipped';
 	}
 
-	$prompt = array(
+	$prompt    = array(
 		'key'      => $record['key'],
 		'source'   => $record['source'],
 		'post_id'  => $record['post_id'],
+		'posts'    => $record['posts'],
 		'question' => $question,
 		'time'     => time(),
+		'status'   => 'new',
 	);
+	$prompts   = undergrowth_stored_prompts();
+	$prompts[] = $prompt;
 
-	update_option( 'undergrowth_prompt', $prompt, false );
+	undergrowth_store_prompts( $prompts );
 
 	/**
 	 * Fires after a prompt is written and waiting for the author.
@@ -482,16 +729,16 @@ function undergrowth_write_prompt_from( array $record, int &$calls ): string {
  * Collects the source records a prompt may be written from, leaving out
  * any that has been sent before.
  *
- * @return array<int, array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool, rest?: bool}> Records, best first.
+ * @return array<int, array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool}> Records, best first.
  */
 function undergrowth_prompt_candidates(): array {
 	/**
 	 * Filters the sources a prompt may be written from, best first.
 	 *
 	 * Each record names its source, a key that is the same every time the
-	 * same thing is found, the post it is about, that post's title, exact
-	 * sentences from that post, and any text from someone other than the
-	 * author, which is sent only as data.
+	 * same thing is found, the post it is about, any other posts its
+	 * sentences come from, exact sentences from those posts, and any text
+	 * from someone other than the author, which is sent only as data.
 	 *
 	 * @param array<int, array<string, mixed>> $records Source records.
 	 */
@@ -535,7 +782,7 @@ function undergrowth_sent_prompt_keys(): array {
  * Checks the shape of a source record from the filter.
  *
  * @param mixed $record Record from the filter.
- * @return array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool, rest?: bool}|null The record, or null when it is unusable.
+ * @return array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool}|null The record, or null when it is unusable.
  */
 function undergrowth_clean_prompt_record( $record ): ?array {
 	if ( ! is_array( $record ) || ! is_string( $record['source'] ?? null ) || ! is_string( $record['key'] ?? null ) || '' === $record['key'] ) {
@@ -549,11 +796,13 @@ function undergrowth_clean_prompt_record( $record ): ?array {
 	}
 
 	$quotes = array_values( array_filter( (array) ( $record['quotes'] ?? array() ), 'is_string' ) );
+	$posts  = array_values( array_unique( array_merge( array( $post->ID ), array_filter( array_map( 'intval', (array) ( $record['posts'] ?? array() ) ) ) ) ) );
 
 	return array(
 		'source'  => sanitize_key( $record['source'] ),
 		'key'     => $record['key'],
 		'post_id' => $post->ID,
+		'posts'   => $posts,
 		'title'   => $post->post_title,
 		'quotes'  => $quotes,
 		'data'    => is_string( $record['data'] ?? null ) ? mb_substr( $record['data'], 0, UNDERGROWTH_PROMPT_DATA_CHARS, 'UTF-8' ) : '',
@@ -623,6 +872,7 @@ function undergrowth_gap_prompt_sources( $records ): array {
 
 	foreach ( undergrowth_cluster_gaps() as $gap ) {
 		$quotes = array();
+		$posts  = array();
 
 		// The nearest posts that have a sentence of their own, so a post made
 		// only of quotes never leaves the gap with fewer of the author's words.
@@ -632,6 +882,7 @@ function undergrowth_gap_prompt_sources( $records ): array {
 
 			if ( null !== $quote ) {
 				$quotes[] = $quote;
+				$posts[]  = $post_id;
 			}
 
 			if ( count( $quotes ) >= UNDERGROWTH_PROMPT_GAP_POSTS ) {
@@ -647,6 +898,7 @@ function undergrowth_gap_prompt_sources( $records ): array {
 			'source'  => 'gap',
 			'key'     => 'gap:' . hash( 'sha256', implode( ',', $gap['cluster'] ) ),
 			'post_id' => $gap['members'][0],
+			'posts'   => $posts,
 			'quotes'  => $quotes,
 		);
 	}
@@ -925,7 +1177,7 @@ function undergrowth_prompt_rests( string $question ) {
  * The record is sent as JSON, so text from a reader stays inside a string
  * and cannot pose as part of the message around it.
  *
- * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source record.
+ * @param array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source record.
  * @return string The user message.
  */
 function undergrowth_prompt_user( array $record ): string {
@@ -952,8 +1204,8 @@ function undergrowth_prompt_user( array $record ): string {
  * Checks a reply from the model and returns it only when it is a single
  * question to the author that quotes nobody but the author.
  *
- * @param string                                                                                                                     $reply  Text the model returned.
- * @param array{source: string, key: string, post_id: int, title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source the reply was written from.
+ * @param string                                                                                                                                   $reply  Text the model returned.
+ * @param array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source the reply was written from.
  * @return string|null The question, or null when the reply must be thrown away.
  */
 function undergrowth_validate_prompt( string $reply, array $record ): ?string {

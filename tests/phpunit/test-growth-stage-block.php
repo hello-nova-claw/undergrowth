@@ -129,10 +129,12 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 
 	public function test_registers_again_without_a_build() {
 		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/growth-stage' );
+		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/more-like-this' );
 
 		undergrowth_register_blocks();
 
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/growth-stage' ) );
+		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/more-like-this' ) );
 	}
 
 	/**

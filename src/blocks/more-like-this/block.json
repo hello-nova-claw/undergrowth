@@ -1,0 +1,47 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "undergrowth/more-like-this",
+	"version": "0.1.0",
+	"title": "More like this",
+	"category": "theme",
+	"icon": "networking",
+	"description": "Lists your posts closest in meaning to this one, lifting Evergreen and recently updated posts. Shows only titles, your own excerpts, featured images and links.",
+	"keywords": [ "related", "similar", "garden" ],
+	"textdomain": "undergrowth",
+	"usesContext": [ "postId", "postType" ],
+	"attributes": {
+		"postsToShow": {
+			"type": "integer",
+			"default": 3,
+			"minimum": 1,
+			"maximum": 6
+		},
+		"showImage": {
+			"type": "boolean",
+			"default": false
+		},
+		"showExcerpt": {
+			"type": "boolean",
+			"default": false
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"color": {
+			"text": true,
+			"background": true,
+			"link": true
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js"
+}

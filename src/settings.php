@@ -102,6 +102,17 @@ function undergrowth_register_settings(): void {
 		)
 	);
 
+	register_setting(
+		'undergrowth',
+		'undergrowth_surprise',
+		array(
+			'type'              => 'integer',
+			'default'           => UNDERGROWTH_SURPRISE_DEFAULT,
+			'show_in_rest'      => false,
+			'sanitize_callback' => 'undergrowth_sanitize_surprise',
+		)
+	);
+
 	foreach ( $keys as $option => $sanitize_callback ) {
 		register_setting(
 			'undergrowth',
@@ -151,8 +162,10 @@ function undergrowth_register_settings(): void {
 	}
 
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_surprise', __( 'Surprise scale', 'undergrowth' ), 'undergrowth_render_surprise_field', 'undergrowth', 'undergrowth_links' );
 
-	add_settings_section( 'undergrowth_prompts', __( 'Questions on your Dashboard', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
+	add_settings_section( 'undergrowth_prompts', __( 'Questions in your Prompt studio', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
 	add_settings_field(
 		'undergrowth_anthropic_api_key',
@@ -369,10 +382,10 @@ function undergrowth_render_links_section(): void {
 }
 
 /**
- * Prints the one-sentence introduction to the Dashboard questions section.
+ * Prints the one-sentence introduction to the Prompt studio section.
  */
 function undergrowth_render_prompts_section(): void {
-	echo '<p id="undergrowth-prompts-intro">' . esc_html__( 'Undergrowth asks Claude to write you an occasional question about your own writing, shown only to you, on your Dashboard.', 'undergrowth' ) . '</p>';
+	echo '<p id="undergrowth-prompts-intro">' . esc_html__( 'Undergrowth asks Claude to write you questions about your own writing, shown only to you, in Posts › Prompt studio.', 'undergrowth' ) . '</p>';
 }
 
 /**
@@ -407,7 +420,7 @@ function undergrowth_render_key_field( array $args ): void {
 		$notice = __( 'With a key, each request sends Anthropic a post’s title and a few sentences quoted from your posts, never a whole post, plus a reader’s comment when the question comes from one. Nothing is sent while there is no key.', 'undergrowth' );
 		$link   = array( 'https://platform.claude.com/settings/keys', __( 'Get a key from Anthropic', 'undergrowth' ) );
 		$remove = __( 'Remove the saved key and stop sending anything to Anthropic', 'undergrowth' );
-		$retry  = __( 'Undergrowth tries again at its next monthly cycle.', 'undergrowth' );
+		$retry  = __( 'Undergrowth tries again at its next weekly batch.', 'undergrowth' );
 	}
 
 	$provider  = $args['provider'];
@@ -552,6 +565,26 @@ function undergrowth_render_suggest_links_field(): void {
 		<?php esc_html_e( 'Suggest links between my posts', 'undergrowth' ); ?>
 	</label>
 	<p class="description"><?php esc_html_e( 'Turning this off keeps your suggestions and vetoes, and suggests nothing new until you turn it back on.', 'undergrowth' ); ?></p>
+	<?php
+}
+
+/**
+ * Prints the surprise scale: five steps from close cousins to wild, which
+ * set how far apart the Map's cross-pollination pairs may be.
+ */
+function undergrowth_render_surprise_field(): void {
+	$current = undergrowth_surprise_step();
+	?>
+	<fieldset aria-describedby="undergrowth_surprise_description">
+		<legend class="screen-reader-text"><?php esc_html_e( 'Surprise scale', 'undergrowth' ); ?></legend>
+		<?php foreach ( undergrowth_surprise_steps() as $step => $name ) : ?>
+			<label for="undergrowth_surprise_<?php echo (int) $step; ?>">
+				<input type="radio" id="undergrowth_surprise_<?php echo (int) $step; ?>" name="undergrowth_surprise" value="<?php echo (int) $step; ?>"<?php checked( $current, $step ); ?> />
+				<?php echo esc_html( $name ); ?>
+			</label><br />
+		<?php endforeach; ?>
+	</fieldset>
+	<p class="description" id="undergrowth_surprise_description"><?php esc_html_e( 'How far apart the pairs on the Map’s Cross-pollination list may be. Close cousins shows groups that nearly belong together; Wild reaches much further. It changes what is shown at once, without reading your posts again.', 'undergrowth' ); ?></p>
 	<?php
 }
 
@@ -701,6 +734,43 @@ function undergrowth_render_posts_read_field(): void {
 	if ( undergrowth_backfill_stalled() ) {
 		undergrowth_print_failure_notice( undergrowth_backfill_stalled_text(), 'undergrowth-backfill-stalled' );
 	}
+}
+
+/**
+ * Says which stats plugin "More like this" reads recent views from, or that
+ * none is active.
+ */
+function undergrowth_render_popularity_field(): void {
+	$slug  = undergrowth_popularity_source();
+	$label = undergrowth_popularity_source_label();
+	?>
+	<p id="undergrowth-popularity">
+		<?php
+		if ( null === $label ) {
+			esc_html_e( 'No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter.', 'undergrowth' );
+		} else {
+			echo esc_html(
+				sprintf(
+					/* translators: %1$s: name of a stats plugin, such as Jetpack Stats. */
+					__( '“More like this” reads your posts’ recent views from %1$s once a day, as many as it gives.', 'undergrowth' ),
+					$label
+				)
+			);
+		}
+		?>
+	</p>
+	<p class="description">
+		<?php
+		if ( 'jetpack' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. Jetpack asks WordPress.com for them, as it does for its own Stats screen.', 'undergrowth' );
+		} elseif ( 'koko' === $slug || 'pvc' === $slug ) {
+			esc_html_e( 'Undergrowth counts no views itself. They are read from your own database, and nothing leaves your site.', 'undergrowth' );
+		} else {
+			esc_html_e( 'Undergrowth counts no views itself.', 'undergrowth' );
+		}
+		?>
+	</p>
+	<?php
 }
 
 /**
@@ -905,7 +975,7 @@ function undergrowth_add_settings_help(): void {
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),
 			array(
-				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. The questions appear only on your Dashboard, never to your readers.', 'undergrowth' ),
+				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace in the Prompt studio. The questions appear only in your Prompt studio, never to your readers.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-files'   => array(

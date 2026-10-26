@@ -82,14 +82,14 @@ class Test_Config_Keys extends WP_UnitTestCase {
 		$this->assertSame( 2, substr_count( $html, 'Nothing is sent while there is no key.' ) );
 	}
 
-	public function test_scheduling_the_prompt_cycle_writes_no_first_prompt_for_a_saved_key() {
+	public function test_scheduling_the_prompt_batch_writes_no_first_prompt_for_a_saved_key() {
 		update_option( 'undergrowth_anthropic_api_key', self::SAVED_KEY );
-		wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+		wp_unschedule_hook( 'undergrowth_prompt_batch' );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
 
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 	}
 
@@ -114,13 +114,13 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	public function test_first_prompt_is_queued_once_for_a_key_in_wp_config() {
 		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 
 		undergrowth_queue_config_first_prompt();
 
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
 
-		// The prompt was written and then dismissed or snoozed, which leaves
+		// The prompt was written and then dismissed or saved, which leaves
 		// no current prompt and nothing queued. Later requests must not ask
 		// for another before the monthly cycle.
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
@@ -156,16 +156,27 @@ class Test_Config_Keys extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A key moved from the settings page to wp-config.php while a prompt is
-	 * snoozed must not start a second one.
+	 * A key moved from the settings page to wp-config.php once a question is
+	 * saved must not start a second one.
 	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
-	public function test_no_first_prompt_is_queued_while_a_prompt_is_snoozed() {
+	public function test_no_first_prompt_is_queued_once_a_question_is_saved() {
 		define( 'UNDERGROWTH_ANTHROPIC_API_KEY', self::ANTHROPIC_KEY );
 		wp_unschedule_hook( 'undergrowth_write_prompt' );
-		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
+		update_option(
+			'undergrowth_prompts',
+			array(
+				array(
+					'key'      => 'comment:2',
+					'source'   => 'comment',
+					'post_id'  => 1,
+					'question' => 'Why?',
+					'status'   => 'saved',
+				),
+			)
+		);
 
 		undergrowth_queue_config_first_prompt();
 

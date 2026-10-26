@@ -252,6 +252,58 @@ add_action(
 		}
 
 		undergrowth_run_cluster_cycle( 0 );
+
+		// The cross-pollination pass the cluster pass queued for cron. A test
+		// site has fewer posts than one batch.
+		$record = get_option( 'undergrowth_pollination_cycle_pass' );
+
+		if ( is_array( $record ) && function_exists( 'undergrowth_run_pollination_cycle' ) ) {
+			undergrowth_run_pollination_cycle( $record['after'], $record['pass'] );
+		}
+
+		// And the refresh its end queues, which offers the cross-pollination links.
+		foreach ( (array) _get_cron_array() as $time => $hooks ) {
+			foreach ( $hooks['undergrowth_refresh_sources'] ?? array() as $event ) {
+				wp_unschedule_event( $time, 'undergrowth_refresh_sources', $event['args'] );
+				do_action_ref_array( 'undergrowth_refresh_sources', $event['args'] );
+			}
+		}
+	}
+);
+
+/**
+ * Makes every group on the Map dense enough for a hub, since accepting
+ * links one by one would make a test far slower than what it checks.
+ */
+function undergrowth_e2e_any_group_is_dense(): void {
+	add_filter( 'undergrowth_hub_min_size', '__return_zero' );
+	add_filter(
+		'undergrowth_hub_min_linked_share',
+		static function () {
+			return 0.0;
+		}
+	);
+}
+
+// A test asks for a hub draft for the first group on the Map, as Start a
+// hub draft makes it, by visiting any admin page with this argument.
+add_action(
+	'admin_init',
+	static function () {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test sites only; it makes a draft no reader sees.
+		if ( ! isset( $_GET['undergrowth_e2e_hub'] ) || ! current_user_can( 'manage_options' ) || ! function_exists( 'undergrowth_start_hub' ) ) {
+			return;
+		}
+
+		undergrowth_e2e_any_group_is_dense();
+
+		$map = undergrowth_cluster_map();
+		$hub = array() === $map ? new WP_Error( 'no_group' ) : undergrowth_start_hub( $map[0]['leader'] );
+
+		// A test that asked for a hub must not go on to shoot a Map without one.
+		if ( is_wp_error( $hub ) ) {
+			wp_die( 'No hub draft was started.', '', array( 'response' => 500 ) );
+		}
 	}
 );
 
@@ -321,7 +373,7 @@ add_filter(
 
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
-switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'accept-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
+switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'accept-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'prompt-studio', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'hubs', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {
 	case 'first-run':
 		// As right after activation on a site with no key.
 		add_filter(
@@ -433,8 +485,7 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 		);
 		// Other specs leave questions behind on the test site, and this state
 		// is the one before the first question.
-		add_filter( 'pre_option_undergrowth_prompt', '__return_empty_array' );
-		add_filter( 'pre_option_undergrowth_snoozed_prompts', '__return_empty_array' );
+		add_filter( 'pre_option_undergrowth_prompts', '__return_empty_array' );
 		add_filter( 'option_undergrowth_prompt_written', '__return_false' );
 		break;
 
@@ -446,9 +497,9 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 			}
 		);
 		add_filter(
-			'pre_option_undergrowth_snoozed_prompts',
+			'pre_option_undergrowth_prompt_written',
 			static function () {
-				return array( array( 'key' => 'comment:1' ) );
+				return 1;
 			}
 		);
 		break;
@@ -499,12 +550,63 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				return 'not-a-real-anthropic-key-mnop';
 			}
 		);
-		add_action(
-			'load-index.php',
-			static function () {
-				if ( function_exists( 'undergrowth_write_prompt' ) ) {
-					undergrowth_write_prompt();
+		foreach ( array( 'load-index.php', 'load-posts_page_undergrowth-studio' ) as $hook ) {
+			add_action(
+				$hook,
+				static function () {
+					if ( function_exists( 'undergrowth_write_prompt' ) && null === undergrowth_current_prompt() ) {
+						undergrowth_write_prompt();
+					}
 				}
+			);
+		}
+		break;
+
+	// Three new questions and two saved ones about the newest posts, for the
+	// screenshots of a full Prompt studio. Nothing is stored.
+	case 'prompt-studio':
+		add_filter(
+			'pre_option_undergrowth_anthropic_api_key',
+			static function () {
+				return 'not-a-real-anthropic-key-mnop';
+			}
+		);
+		add_filter(
+			'pre_option_undergrowth_prompts',
+			static function () {
+				$posts = get_posts(
+					array(
+						'numberposts' => 3,
+						'fields'      => 'ids',
+					)
+				);
+
+				if ( count( $posts ) < 3 ) {
+					return array();
+				}
+
+				$questions = array(
+					array( 'comment', 'new', array( $posts[0] ), 'Readers keep asking how you store oca over winter. What do you actually do?' ),
+					array( 'gap', 'new', $posts, 'What do you see between “I lift the tubers after the first frost” and your posts on seed saving?' ),
+					array( 'compost', 'new', array( $posts[2] ), 'What did you mean when you wrote that a garden is never finished?' ),
+					array( 'gap', 'saved', array( $posts[1], $posts[2] ), 'What links the way you save seed to the way you plan a bed?' ),
+					array( 'comment', 'saved', array( $posts[1] ), 'A reader asked which yacon you grow. Which one, and why that one?' ),
+				);
+				$prompts   = array();
+
+				foreach ( $questions as $i => list( $source, $status, $ids, $question ) ) {
+					$prompts[] = array(
+						'key'      => 'e2e:' . $i,
+						'source'   => $source,
+						'post_id'  => $ids[0],
+						'posts'    => $ids,
+						'question' => $question,
+						'time'     => 1767225600,
+						'status'   => $status,
+					);
+				}
+
+				return $prompts;
 			}
 		);
 		break;
@@ -635,6 +737,10 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 
 	// Fixture vectors are too few and too regular to leave a cluster's centre
 	// empty at the real threshold, so only a perfectly tight cluster has none.
+	case 'hubs':
+		undergrowth_e2e_any_group_is_dense();
+		break;
+
 	case 'tight-gaps':
 		add_filter(
 			'undergrowth_gap_similarity',

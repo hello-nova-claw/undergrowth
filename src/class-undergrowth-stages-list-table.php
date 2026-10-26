@@ -263,7 +263,16 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 			$this->row_forms[] = undergrowth_row_action_form( undergrowth_is_stage_pinned( $post_id ) ? 'unpin' : 'pin', array( 'post' => $post_id ) );
 		}
 
-		return '<strong>' . undergrowth_post_link( $post_id, 'row-title' ) . '</strong>';
+		$note = current_user_can( 'edit_post', $post_id ) ? undergrowth_tend_note( $post_id ) : null;
+
+		if ( null === $note ) {
+			return '<strong>' . undergrowth_post_link( $post_id, 'row-title' ) . '</strong>';
+		}
+
+		$this->row_forms[] = undergrowth_row_action_form( 'dismiss_tend', array( 'post' => $post_id ) );
+
+		// A note to the author only, never shown to readers.
+		return '<strong>' . undergrowth_post_link( $post_id, 'row-title' ) . '</strong><p class="undergrowth-tend">' . esc_html( $note ) . '</p>';
 	}
 
 	/**
@@ -341,10 +350,21 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		}
 
 		$title = undergrowth_post_title( $post_id );
+		$tend  = array();
+
+		if ( null !== undergrowth_tend_reason( $post_id ) ) {
+			$tend['dismiss_tend'] = undergrowth_row_action_button(
+				'dismiss_tend',
+				array( 'post' => $post_id ),
+				/* translators: %1$s: post title. Must begin with the translation of “Dismiss note”, the words on the button, so voice control can find it. */
+				sprintf( __( 'Dismiss note on %1$s', 'undergrowth' ), $title ),
+				__( 'Dismiss note', 'undergrowth' )
+			);
+		}
 
 		if ( undergrowth_is_stage_pinned( $post_id ) ) {
 			return $this->row_actions(
-				array(
+				$tend + array(
 					'unpin' => undergrowth_row_action_button(
 						'unpin',
 						array( 'post' => $post_id ),
@@ -374,7 +394,7 @@ class Undergrowth_Stages_List_Table extends WP_List_Table {
 		);
 
 		return $this->row_actions(
-			array(
+			$tend + array(
 				'pin' => $select . undergrowth_row_action_button(
 					'pin',
 					array( 'post' => $post_id ),

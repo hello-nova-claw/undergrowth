@@ -1,0 +1,1 @@
+Evergreen posts you haven't edited in a year, or whose group on the Map has grown since, now carry a quiet "Worth a look" note on the Growth stages tab and in the editor panel, for you only. Dismiss it, and it stays away until your next edit.

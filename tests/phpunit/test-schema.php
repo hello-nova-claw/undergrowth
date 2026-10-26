@@ -300,6 +300,34 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', undergrowth_links_table() ) ) );
 	}
 
+	public function test_upgrade_to_version_7_marks_every_stored_link_as_usual() {
+		global $wpdb;
+
+		$current = $this->install_version( 2 );
+		$links   = undergrowth_links_table();
+
+		$wpdb->insert(
+			$links,
+			array(
+				'source_id'  => 1,
+				'target_id'  => 2,
+				'state'      => 'proposed',
+				'score'      => 0.5,
+				'sentence'   => 'Oca grows here.',
+				'created_at' => '2026-10-01 00:00:00',
+				'updated_at' => '2026-10-01 00:00:00',
+			)
+		);
+		update_option( 'undergrowth_schema_version', 6 );
+
+		undergrowth_maybe_upgrade_schema();
+
+		$this->assert_current_columns( $current );
+		// MariaDB fills the default in; the SQLite driver leaves it null. The
+		// code reads either as a usual link.
+		$this->assertSame( '', (string) $wpdb->get_var( $wpdb->prepare( 'SELECT kind FROM %i WHERE source_id = 1', $links ) ) );
+	}
+
 	public function test_upgrade_drops_the_sentence_index_nothing_reads() {
 		global $wpdb;
 
@@ -368,10 +396,11 @@ class Test_Schema extends WP_UnitTestCase {
 		add_post_meta( $post_id, 'undergrowth_prompt_keys', 'comment:1' );
 		add_post_meta( $post_id, 'undergrowth_prompt_log', array( 'event' => 'asked' ) );
 		update_option( 'undergrowth_snoozed_prompts', array( array( 'key' => 'comment:2' ) ) );
+		update_option( 'undergrowth_prompts', array( array( 'key' => 'comment:3' ) ) );
 		update_option( 'undergrowth_prompt_written', 1 );
 		update_option( 'undergrowth_config_prompt_queued', 1 );
 		wp_schedule_single_event( time(), 'undergrowth_write_prompt' );
-		undergrowth_schedule_prompt_cycle();
+		undergrowth_schedule_prompt_batch();
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		undergrowth_schedule_backfill_check();
 		update_option( 'undergrowth_backfill', array( 'after' => 5 ) );
@@ -410,10 +439,11 @@ class Test_Schema extends WP_UnitTestCase {
 		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_keys', false ) );
 		$this->assertSame( array(), get_post_meta( $post_id, 'undergrowth_prompt_log', false ) );
 		$this->assertFalse( get_option( 'undergrowth_snoozed_prompts' ) );
+		$this->assertFalse( get_option( 'undergrowth_prompts' ) );
 		$this->assertFalse( get_option( 'undergrowth_prompt_written' ) );
 		$this->assertFalse( get_option( 'undergrowth_config_prompt_queued' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_write_prompt' ) );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_cycle' ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_prompt_batch' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill' ) );
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_backfill_check' ) );
 		$this->assertFalse( get_option( 'undergrowth_backfill' ) );

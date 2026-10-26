@@ -1,0 +1,1 @@
+"More like this" now also weighs how often each post was read lately, taken once a day from Jetpack Stats, Koko Analytics or Post Views Counter if one is active, with recent days counting more, and gives its quiet slot to the least read close post. Undergrowth counts no views itself, and Settings > Undergrowth says which stats plugin it reads.

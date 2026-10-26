@@ -43,8 +43,7 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		update_option( 'undergrowth_anthropic_api_key', 'sk-ant-test-0123456789abcd' );
 		undergrowth_unschedule_prompts();
-		delete_option( 'undergrowth_prompt' );
-		delete_option( 'undergrowth_snoozed_prompts' );
+		delete_option( 'undergrowth_prompts' );
 		add_filter( 'pre_http_request', array( $this, 'fake_http' ), 10, 2 );
 	}
 
@@ -250,30 +249,33 @@ class Test_Prompts_Compost extends WP_UnitTestCase {
 
 		$this->assertTrue( undergrowth_dismiss_prompt( undergrowth_current_prompt()['key'] ) );
 
-		do_action( 'undergrowth_prompt_cycle' );
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
+		do_action( 'undergrowth_prompt_batch' );
 
 		$this->assertNull( undergrowth_current_prompt() );
 		$this->assertCount( 1, $this->written() );
 	}
 
-	public function test_snoozed_composted_post_prompt_returns_next_cycle() {
-		$this->composted();
+	public function test_saved_composted_post_question_stays_without_being_asked_again() {
+		$post_id = $this->composted();
 		undergrowth_write_prompt();
-		undergrowth_snooze_prompt( undergrowth_current_prompt()['key'] );
+		undergrowth_save_prompt( undergrowth_current_prompt()['key'] );
 
-		do_action( 'undergrowth_prompt_cycle' );
+		do_action( 'undergrowth_prompt_batch' );
 
-		$this->assertSame( self::QUESTION, undergrowth_current_prompt()['question'] );
+		$saved = undergrowth_prompts( 'saved' );
+
+		$this->assertSame( self::QUESTION, $saved[0]['question'] );
+		$this->assertSame( array( $post_id ), $saved[0]['posts'] );
 		$this->assertCount( 1, $this->written() );
 	}
 
-	public function test_widget_says_the_question_comes_from_a_composted_post() {
+	public function test_studio_says_the_question_comes_from_a_composted_post() {
 		$this->composted();
 		undergrowth_write_prompt();
 
 		ob_start();
-		undergrowth_render_prompt_widget();
+		undergrowth_render_new_prompts( undergrowth_prompts( 'new' ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'moved to compost', $html );

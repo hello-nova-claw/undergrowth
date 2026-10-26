@@ -1,11 +1,10 @@
 <?php
 /**
- * The one Undergrowth widget on the Dashboard. It holds the question for the
- * author, one prompt at a time, and, only with Jetpack Stats, the page views
- * meter line.
+ * The one Undergrowth widget on the Dashboard. It points to the Prompt studio
+ * when new questions are waiting there and, only with Jetpack Stats, holds
+ * the page views meter line.
  *
- * There is no list of prompts, no count and no empty state: with nothing to
- * show, there is no widget at all.
+ * With nothing to show, there is no widget at all.
  *
  * @package Undergrowth
  */
@@ -13,19 +12,15 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'wp_dashboard_setup', 'undergrowth_add_dashboard_widget' );
-add_action( 'admin_post_undergrowth_prompt', 'undergrowth_handle_prompt' );
-add_action( 'admin_post_undergrowth_restore_prompt', 'undergrowth_handle_restore_prompt' );
-add_action( 'admin_notices', 'undergrowth_render_prompt_notice' );
 
 /**
- * Tells whether a prompt is waiting for someone who can edit its post.
+ * Tells whether new questions are waiting for the current user: questions
+ * about posts they can edit.
  *
  * @return bool
  */
 function undergrowth_user_has_prompt(): bool {
-	$prompt = undergrowth_current_prompt();
-
-	return null !== $prompt && current_user_can( 'edit_post', $prompt['post_id'] );
+	return array() !== undergrowth_user_prompts( 'new' );
 }
 
 /**
@@ -44,7 +39,7 @@ function undergrowth_add_dashboard_widget(): void {
  */
 function undergrowth_render_dashboard_widget(): void {
 	if ( undergrowth_user_has_prompt() ) {
-		echo '<div class="undergrowth-prompt"><h3>' . esc_html__( 'A question for you', 'undergrowth' ) . '</h3>';
+		echo '<div class="undergrowth-prompt"><h3>' . esc_html__( 'Prompt studio', 'undergrowth' ) . '</h3>';
 		undergrowth_render_prompt_widget();
 		echo '</div>';
 	}
@@ -57,155 +52,19 @@ function undergrowth_render_dashboard_widget(): void {
 }
 
 /**
- * Prints the waiting prompt, where it came from, and the two choices.
+ * Prints how many new questions wait in the Prompt studio, with a link.
  */
 function undergrowth_render_prompt_widget(): void {
-	$prompt = undergrowth_current_prompt();
+	$count = count( undergrowth_user_prompts( 'new' ) );
 
-	if ( null === $prompt || ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
+	if ( 0 === $count ) {
 		return;
 	}
 
-	$link = undergrowth_post_link( $prompt['post_id'] );
-
-	if ( 'comment' === $prompt['source'] ) {
-		/* translators: %1$s: title of the post, linked to its editor. */
-		$from = __( 'Claude wrote this question from a reader’s comment on %1$s and your own words there. Only you can see it.', 'undergrowth' );
-	} elseif ( 'compost' === $prompt['source'] ) {
-		/* translators: %1$s: title of the post, linked to its editor. */
-		$from = __( 'Claude wrote this question from %1$s, a post you moved to compost. Only you can see it.', 'undergrowth' );
-	} elseif ( 'gap' === $prompt['source'] ) {
-		/* translators: %1$s: title of the post, linked to its editor. */
-		$from = __( 'Claude wrote this question from a gap among your posts, next to %1$s. Only you can see it.', 'undergrowth' );
-	} else {
-		/* translators: %1$s: title of the post, linked to its editor. */
-		$from = __( 'Claude wrote this question from your post %1$s. Only you can see it.', 'undergrowth' );
-	}
-
-	$allowed = array(
-		'a'   => array( 'href' => array() ),
-		'bdi' => array(),
-	);
+	/* translators: %s: number of new questions. */
+	$waiting = _n( '%s new question from your own posts is in the Prompt studio.', '%s new questions from your own posts are in the Prompt studio.', $count, 'undergrowth' );
 	?>
-	<p><strong><?php echo esc_html( $prompt['question'] ); ?></strong></p>
-	<p class="description"><?php echo wp_kses( sprintf( esc_html( $from ), $link ), $allowed ); ?></p>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-		<input type="hidden" name="action" value="undergrowth_prompt" />
-		<input type="hidden" name="key" value="<?php echo esc_attr( $prompt['key'] ); ?>" />
-		<?php wp_nonce_field( 'undergrowth_prompt_' . $prompt['key'] ); ?>
-		<p>
-			<button type="submit" class="button" name="undergrowth_choice" value="snooze"><?php esc_html_e( 'Ask me next month', 'undergrowth' ); ?></button>
-			<button type="submit" class="button" name="undergrowth_choice" value="dismiss"><?php esc_html_e( 'Dismiss for good', 'undergrowth' ); ?></button>
-		</p>
-	</form>
+	<p><?php echo esc_html( sprintf( $waiting, number_format_i18n( $count ) ) ); ?></p>
+	<p><a href="<?php echo esc_url( undergrowth_studio_url() ); ?>"><?php esc_html_e( 'Open the Prompt studio', 'undergrowth' ); ?></a></p>
 	<?php
-}
-
-/**
- * Dismisses or snoozes the prompt posted from the widget, then returns to
- * the Dashboard.
- */
-function undergrowth_handle_prompt(): void {
-	$key = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
-
-	check_admin_referer( 'undergrowth_prompt_' . $key );
-
-	$choice = isset( $_POST['undergrowth_choice'] ) ? sanitize_key( wp_unslash( $_POST['undergrowth_choice'] ) ) : '';
-	$prompt = undergrowth_current_prompt();
-	$url    = admin_url( 'index.php' );
-
-	if ( null !== $prompt && $prompt['key'] === $key && ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
-		wp_die( esc_html__( 'You cannot answer questions about this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
-
-	if ( 'dismiss' === $choice ) {
-		$url = add_query_arg( 'undergrowth_notice', undergrowth_dismiss_prompt( $key ) ? 'prompt_dismissed' : 'prompt_gone', $url );
-	} elseif ( 'snooze' === $choice ) {
-		$url = add_query_arg( 'undergrowth_notice', undergrowth_snooze_prompt( $key ) ? 'prompt_snoozed' : 'prompt_gone', $url );
-	}
-
-	wp_safe_redirect( $url );
-	exit;
-}
-
-/**
- * Brings back the question named by the Undo link in the dismissed notice,
- * then returns to the Dashboard.
- */
-function undergrowth_handle_restore_prompt(): void {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- check_admin_referer() runs before anything changes.
-	$key = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
-
-	check_admin_referer( 'undergrowth_restore_prompt_' . $key );
-
-	$prompt = undergrowth_dismissed_prompt();
-
-	if ( null !== $prompt && $prompt['key'] === $key && ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
-		wp_die( esc_html__( 'You cannot answer questions about this post.', 'undergrowth' ), '', array( 'response' => 403 ) );
-	}
-
-	wp_safe_redirect( add_query_arg( 'undergrowth_notice', undergrowth_restore_prompt( $key ) ? 'prompt_restored' : 'prompt_gone', admin_url( 'index.php' ) ) );
-	exit;
-}
-
-/**
- * Builds the Undo link for the question just dismissed, for a user who may
- * answer it.
- *
- * @return string Escaped link, or an empty string when it cannot come back.
- */
-function undergrowth_restore_prompt_link_html(): string {
-	$prompt = undergrowth_dismissed_prompt();
-
-	if ( null === $prompt || ! current_user_can( 'edit_post', $prompt['post_id'] ) ) {
-		return '';
-	}
-
-	$url = add_query_arg(
-		array(
-			'action' => 'undergrowth_restore_prompt',
-			'key'    => rawurlencode( $prompt['key'] ),
-		),
-		admin_url( 'admin-post.php' )
-	);
-
-	return sprintf(
-		' <a href="%1$s">%2$s</a>',
-		esc_url( wp_nonce_url( $url, 'undergrowth_restore_prompt_' . $prompt['key'] ) ),
-		esc_html__( 'Undo', 'undergrowth' )
-	);
-}
-
-/**
- * Prints the notice for the choice that brought the author back to the
- * Dashboard.
- *
- * The notice takes focus, so a keyboard or screen reader user hears the
- * result instead of landing at the top of the page.
- */
-function undergrowth_render_prompt_notice(): void {
-	$screen = get_current_screen();
-
-	if ( ! $screen instanceof WP_Screen || 'dashboard' !== $screen->id ) {
-		return;
-	}
-
-	// The notice only selects which fixed message to show; nothing is changed.
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	$notice = isset( $_GET['undergrowth_notice'] ) ? sanitize_key( wp_unslash( $_GET['undergrowth_notice'] ) ) : '';
-
-	$messages = array(
-		'prompt_dismissed' => __( 'Dismissed. Undergrowth won’t ask that again.', 'undergrowth' ),
-		'prompt_snoozed'   => __( 'Snoozed. This question comes back next month.', 'undergrowth' ),
-		'prompt_gone'      => __( 'That question is no longer waiting, so nothing was changed.', 'undergrowth' ),
-		'prompt_restored'  => __( 'Undone. The question is back.', 'undergrowth' ),
-	);
-
-	if ( ! isset( $messages[ $notice ] ) ) {
-		return;
-	}
-
-	$undo = 'prompt_dismissed' === $notice ? undergrowth_restore_prompt_link_html() : '';
-
-	undergrowth_print_result_notices( array( 'prompt_gone' === $notice ? 'notice-warning' : 'notice-success' => '<p>' . esc_html( $messages[ $notice ] ) . $undo . '</p>' ) );
 }
