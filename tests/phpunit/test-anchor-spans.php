@@ -377,6 +377,24 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 			undergrowth_one_word_anchor_counts()
 		);
 		$this->assertContains( 'Suggestions linking one word: 2 of 2', undergrowth_scores_report() );
+
+		// Words in a script without spaces are counted in neither.
+		$wpdb->update(
+			undergrowth_links_table(),
+			array( 'anchor' => '菊芋' ),
+			array(
+				'source_id' => $source,
+				'target_id' => $target,
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'one' => 1,
+				'all' => 1,
+			),
+			undergrowth_one_word_anchor_counts()
+		);
 	}
 
 	public function test_words_the_author_chose_keep_their_sentence() {

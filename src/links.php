@@ -1194,18 +1194,24 @@ function undergrowth_one_word_anchor_counts(): array {
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
 	$anchors = (array) $wpdb->get_col( $wpdb->prepare( "SELECT anchor FROM %i WHERE state = %s AND anchor_chosen = 0 AND anchor <> ''", undergrowth_links_table(), 'proposed' ) );
-	$one     = 0;
+	$counts  = array(
+		'one' => 0,
+		'all' => 0,
+	);
 
 	foreach ( $anchors as $anchor ) {
-		if ( ! preg_match( '/\s|[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', (string) $anchor ) ) {
-			++$one;
+		if ( preg_match( '/[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', (string) $anchor ) ) {
+			continue;
+		}
+
+		++$counts['all'];
+
+		if ( ! preg_match( '/\s/u', (string) $anchor ) ) {
+			++$counts['one'];
 		}
 	}
 
-	return array(
-		'one' => $one,
-		'all' => count( $anchors ),
-	);
+	return $counts;
 }
 
 /**
