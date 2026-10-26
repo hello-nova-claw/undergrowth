@@ -740,6 +740,8 @@ const WITH_GARDEN_PAGE = [
 		screen: 'pattern-garden-page',
 		state: 'editor-page',
 		edit: () => gardenFeedPages.pattern,
+		// The count has its own preview, which can load after the feed's.
+		ready: '.wp-block-undergrowth-garden-count-number',
 	},
 ];
 
@@ -1039,6 +1041,10 @@ function capture( states ) {
 						)
 						.first()
 						.waitFor();
+
+					if ( entry.ready ) {
+						await editor.canvas.locator( entry.ready ).waitFor();
+					}
 				} else if ( entry.list ) {
 					await admin.editPost( entry.list() );
 					const block = editor.canvas.locator(
