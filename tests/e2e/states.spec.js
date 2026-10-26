@@ -707,6 +707,27 @@ const WITH_GARDEN_FEED = [
 	},
 ];
 
+// The garden filters above the feed: every topic, then one chosen with a
+// type, and in the editor.
+const WITH_GARDEN_FILTERS = [
+	{
+		screen: 'block-garden-filters',
+		state: 'front-all',
+		front: () => `/?page_id=${ gardenFeedPages.filters }`,
+	},
+	{
+		screen: 'block-garden-filters',
+		state: 'front-chosen',
+		front: () =>
+			`/?page_id=${ gardenFeedPages.filters }&topic=roots&type=standard`,
+	},
+	{
+		screen: 'block-garden-filters',
+		state: 'editor-filters',
+		edit: () => gardenFeedPages.filters,
+	},
+];
+
 // Filled in once the list's posts exist, since the shots need their IDs.
 const linkedFromPosts = {};
 
@@ -999,7 +1020,7 @@ function capture( states ) {
 					// Block previews are rendered by the server after load.
 					await editor.canvas
 						.locator(
-							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder, .wp-block-undergrowth-garden-feed ul, .wp-block-undergrowth-garden-feed .components-placeholder, .wp-block-undergrowth-linked-from ul, .wp-block-undergrowth-linked-from .components-placeholder'
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder, .wp-block-undergrowth-garden-feed ul, .wp-block-undergrowth-garden-feed .components-placeholder, .wp-block-undergrowth-garden-filters form, .wp-block-undergrowth-garden-filters .components-placeholder, .wp-block-undergrowth-linked-from ul, .wp-block-undergrowth-linked-from .components-placeholder'
 						)
 						.first()
 						.waitFor();
@@ -1552,11 +1573,37 @@ test.describe( 'Screenshot catalogue', () => {
 			await requestUtils.deleteAllPages();
 			await skipWelcomeGuide( requestUtils );
 
-			for ( const [ title, format, excerpt ] of [
-				[ 'Oca', 'standard', 'Small tubers that keep through winter.' ],
-				[ 'Yacon', 'aside', 'Sweet roots, eaten raw.' ],
-				[ 'Mashua', 'standard', '' ],
-				[ 'Ulluco', 'standard', 'Bright, waxy and slow to grow.' ],
+			// Tags outlive deleted posts, so an earlier run's tags are reused.
+			const tags = {};
+			for ( const slug of [ 'roots', 'leaves' ] ) {
+				const [ found ] = await requestUtils.rest( {
+					path: '/wp/v2/tags',
+					params: { slug },
+				} );
+				tags[ slug ] =
+					found ??
+					( await requestUtils.rest( {
+						method: 'POST',
+						path: '/wp/v2/tags',
+						data: { name: slug, slug },
+					} ) );
+			}
+
+			for ( const [ title, format, excerpt, tag ] of [
+				[
+					'Oca',
+					'standard',
+					'Small tubers that keep through winter.',
+					'roots',
+				],
+				[ 'Yacon', 'aside', 'Sweet roots, eaten raw.', 'roots' ],
+				[ 'Mashua', 'standard', '', 'leaves' ],
+				[
+					'Ulluco',
+					'standard',
+					'Bright, waxy and slow to grow.',
+					'roots',
+				],
 			] ) {
 				await requestUtils.rest( {
 					method: 'POST',
@@ -1567,6 +1614,7 @@ test.describe( 'Screenshot catalogue', () => {
 						content: `<p>${ title } grows here.</p>`,
 						status: 'publish',
 						format,
+						tags: [ tags[ tag ].id ],
 					},
 				} );
 			}
@@ -1579,9 +1627,19 @@ test.describe( 'Screenshot catalogue', () => {
 					status: 'publish',
 				} )
 			).id;
+
+			gardenFeedPages.filters = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:undergrowth/garden-filters /--><!-- wp:undergrowth/garden-feed {"postsPerPage":3} /-->',
+					status: 'publish',
+				} )
+			).id;
 		} );
 
 		capture( WITH_GARDEN_FEED );
+		capture( WITH_GARDEN_FILTERS );
 	} );
 
 	test.describe( 'with an Evergreen post worth a look', () => {
