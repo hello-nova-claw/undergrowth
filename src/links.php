@@ -21,7 +21,8 @@ const UNDERGROWTH_ANCHOR_SENTENCES = 10;
 // suggestions are chosen again. 2: two words or more (#511).
 const UNDERGROWTH_ANCHOR_RULES = 2;
 
-add_action( 'plugins_loaded', 'undergrowth_maybe_refresh_anchors' );
+// On init, once every plugin has added its filters for a post's language.
+add_action( 'init', 'undergrowth_maybe_refresh_anchors' );
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
@@ -1173,7 +1174,8 @@ function undergrowth_maybe_refresh_anchors(): void {
 		return;
 	}
 
-	update_option( 'undergrowth_anchor_rules', UNDERGROWTH_ANCHOR_RULES, false );
+	// Read on every request, so it loads with the other options.
+	update_option( 'undergrowth_anchor_rules', UNDERGROWTH_ANCHOR_RULES, true );
 
 	if ( get_option( 'undergrowth_index_identity' ) === undergrowth_index_target() && false === wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) ) {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );

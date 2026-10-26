@@ -302,6 +302,9 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 
 	public function test_a_noun_never_joins_the_verb_after_it() {
 		$this->assertSame( array( 'passion' ), $this->spans( 'The passion rebuilds the world.', array( 'passion' ) ) );
+		$this->assertSame( array( 'plant' ), $this->spans( 'The plant grows fast.', array( 'plant' ) ) );
+		$this->assertSame( array( 'fish' ), $this->spans( 'The fish swims.', array( 'fish' ) ) );
+		$this->assertSame( 'actual horizon', $this->spans( 'We saw the actual horizon.', array( 'actual' ) )[0] );
 	}
 
 	public function test_two_things_named_together_make_a_run() {
@@ -458,9 +461,26 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
 
+		// Once the rules are recorded, nothing is queued again.
 		update_option( 'undergrowth_index_identity', undergrowth_index_target(), false );
 		undergrowth_maybe_refresh_anchors();
 
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
+
+		// A refresh already waiting is not queued twice.
+		delete_option( 'undergrowth_anchor_rules' );
+		undergrowth_maybe_refresh_anchors();
+		delete_option( 'undergrowth_anchor_rules' );
+		undergrowth_maybe_refresh_anchors();
+
+		$events = array_filter(
+			_get_cron_array(),
+			static function ( $hooks ) {
+				return isset( $hooks['undergrowth_refresh_index'] );
+			}
+		);
+
+		$this->assertCount( 1, $events );
+		$this->assertCount( 1, current( $events )['undergrowth_refresh_index'] );
 	}
 }
