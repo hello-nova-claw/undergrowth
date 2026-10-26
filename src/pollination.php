@@ -56,6 +56,9 @@ const UNDERGROWTH_THREAD_TERMS = 3;
 
 add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle', 10, 2 );
 add_action( 'undergrowth_pollination_start', 'undergrowth_start_pollination' );
+// After the other sources: a cross-pollination question holds its own place
+// in the weekly batch, so it never has to win one from them.
+add_filter( 'undergrowth_prompt_sources', 'undergrowth_pollination_prompt_sources', 25 );
 // A new step on the surprise scale moves the band the cross-pollination
 // suggestions come from.
 add_action( 'add_option_undergrowth_surprise', 'undergrowth_refresh_cross_links' );
@@ -1144,4 +1147,72 @@ function undergrowth_cross_link_label( int $source_id, int $target_id ): string 
 		);
 
 	return '<p class="undergrowth-cross"><strong>' . esc_html__( 'Cross-pollination.', 'undergrowth' ) . '</strong> ' . $reason . '</p>';
+}
+
+/**
+ * Offers the cross-pollination pairs as sources for questions, best first.
+ *
+ * Each record quotes one sentence from each of two posts, the author's own
+ * words only: the sweet-spot posts when the pair has them, otherwise the
+ * post each group is named after. Its key names the two posts, so each is
+ * asked about once. A pair with a post that has no sentence of its own is
+ * no source.
+ *
+ * @param mixed $records Records found so far.
+ * @return array<int, array<string, mixed>> Records with the pairs added.
+ */
+function undergrowth_pollination_prompt_sources( $records ): array {
+	$records = (array) $records;
+
+	foreach ( undergrowth_pollination_pairs() as $pair ) {
+		$ends   = null === $pair['sweet'] ? array( $pair['members'][0][0], $pair['members'][1][0] ) : array( $pair['sweet'][0], $pair['sweet'][1] );
+		$quotes = array();
+
+		foreach ( $ends as $post_id ) {
+			$post  = get_post( $post_id );
+			$quote = $post instanceof WP_Post ? undergrowth_longest_sentence( $post ) : null;
+
+			if ( null === $quote ) {
+				continue 2;
+			}
+
+			$quotes[] = $quote;
+		}
+
+		$records[] = array(
+			'source'  => 'cross',
+			'key'     => 'cross:' . min( $ends ) . '-' . max( $ends ),
+			'post_id' => $ends[0],
+			'posts'   => $ends,
+			'quotes'  => $quotes,
+		);
+	}
+
+	return $records;
+}
+
+/**
+ * Tells whether a source record is a cross-pollination pair.
+ *
+ * @param array<string, mixed> $record Source record.
+ * @return bool True for a pair.
+ */
+function undergrowth_is_cross_prompt_record( array $record ): bool {
+	return 'cross' === ( $record['source'] ?? '' );
+}
+
+/**
+ * Writes the weekly batch's cross-pollination question, when the batch has
+ * room, holds none yet, and a pair can give one.
+ *
+ * @return int Questions written: 1 or 0.
+ */
+function undergrowth_write_cross_prompt(): int {
+	foreach ( undergrowth_prompts( 'new' ) as $prompt ) {
+		if ( 'cross' === $prompt['source'] ) {
+			return 0;
+		}
+	}
+
+	return undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, 'undergrowth_is_cross_prompt_record' );
 }
