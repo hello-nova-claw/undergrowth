@@ -68,6 +68,7 @@ require_once __DIR__ . '/src/block-linked-from.php';
 require_once __DIR__ . '/src/block-garden-index.php';
 require_once __DIR__ . '/src/block-garden-feed.php';
 require_once __DIR__ . '/src/block-garden-filters.php';
+require_once __DIR__ . '/src/block-garden-count.php';
 require_once __DIR__ . '/src/editor.php';
 require_once __DIR__ . '/src/editor-links.php';
 require_once __DIR__ . '/src/draft-scan.php';
