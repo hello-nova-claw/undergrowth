@@ -65,7 +65,8 @@ function undergrowth_turn_digest_on( int $user_id ): void {
 }
 
 /**
- * Turns the monthly email off for a user.
+ * Turns the monthly email off for a user, and forgets when they last opened
+ * the Prompt studio, which is kept only for the email.
  *
  * @param int $user_id User ID.
  */
@@ -73,6 +74,7 @@ function undergrowth_turn_digest_off( int $user_id ): void {
 	delete_user_meta( $user_id, 'undergrowth_digest' );
 	delete_user_meta( $user_id, 'undergrowth_digest_key' );
 	delete_user_meta( $user_id, 'undergrowth_digest_sent' );
+	delete_user_meta( $user_id, 'undergrowth_studio_seen' );
 }
 
 /**
