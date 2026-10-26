@@ -378,6 +378,7 @@ msgid "Dismiss"
 msgstr ""
 
 #: src/admin.php
+#: src/block-linked-from.php
 msgid "(no title)"
 msgstr ""
 
@@ -482,6 +483,12 @@ msgstr ""
 
 #: src/block-garden-index.php
 msgid "Other posts"
+msgstr ""
+
+#: src/block-linked-from.php
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Linked from"
 msgstr ""
 
 #: src/blocks.php
@@ -1726,8 +1733,10 @@ msgstr ""
 
 #: src/settings.php
 #: build/blocks/garden-index/index.js
+#: build/blocks/linked-from/index.js
 #: build/blocks/more-like-this/index.js
 #: src/blocks/garden-index/edit.js
+#: src/blocks/linked-from/edit.js
 #: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
@@ -2490,6 +2499,31 @@ msgstr ""
 msgid "Shows the growth stage of the post it is placed in."
 msgstr ""
 
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Readers see nothing here yet. This lists your published posts that link to this one through a suggestion you accepted."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Heading"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Leave empty to use “Linked from”."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Maximum posts"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Lists the posts that link to the post it is placed in."
+msgstr ""
+
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
 msgid "Readers see nothing here yet. Only published posts in the garden get a list, and only once Undergrowth has read posts close enough in meaning."
@@ -2690,8 +2724,10 @@ msgid "Lists your published posts by the groups on the Map, each with its growth
 msgstr ""
 
 #: build/blocks/garden-index/block.json
+#: build/blocks/linked-from/block.json
 #: build/blocks/more-like-this/block.json
 #: src/blocks/garden-index/block.json
+#: src/blocks/linked-from/block.json
 #: src/blocks/more-like-this/block.json
 msgctxt "block keyword"
 msgid "garden"
@@ -2749,6 +2785,30 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block title"
+msgid "Linked from"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block description"
+msgid "Lists your published posts that link to this one through a link you accepted in Undergrowth."
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "backlinks"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "links"
 msgstr ""
 
 #: build/blocks/more-like-this/block.json
