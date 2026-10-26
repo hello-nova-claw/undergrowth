@@ -1,0 +1,1 @@
+New "Garden filters" block lets readers narrow the garden feed by topic, growth stage and type. It works as plain links and a form, so every filtered garden has an address to share, and with JavaScript it updates the feed in place. It offers only the topics, stages and types your published garden holds.
