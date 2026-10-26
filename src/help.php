@@ -64,6 +64,15 @@ function undergrowth_add_screen_help(): void {
 	);
 
 	undergrowth_add_help_tab(
+		'undergrowth-orphans',
+		__( 'Orphans', 'undergrowth' ),
+		array(
+			__( 'An orphan is a post in your garden that no accepted link from another of your published posts points to. Readers who follow links, and search engines, reach it less easily. Undergrowth only knows the links it suggested and you accepted, so a link you added by hand is not counted.', 'undergrowth' ),
+			__( 'Beside each orphan are the best suggestions that would link to it, with Accept and Veto as on the Suggestions tab. Once you accept one, the post leaves the list. Composting posts and posts not read yet are never listed.', 'undergrowth' ),
+		)
+	);
+
+	undergrowth_add_help_tab(
 		'undergrowth-stages',
 		__( 'Growth stages', 'undergrowth' ),
 		array(

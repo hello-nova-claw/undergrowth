@@ -89,6 +89,11 @@ module.exports = {
 			hide: DISABLED_PAGING,
 			ready: '.undergrowth-links',
 		} ),
+		adminScreen( 'edit.php?page=undergrowth-links&tab=orphans', {
+			ignore: [ LIST_TABLE, DUPLICATE_NONCE_ID ],
+			hide: DISABLED_PAGING,
+			ready: '.undergrowth-orphans',
+		} ),
 		adminScreen( 'edit.php?page=undergrowth-links&tab=stages', {
 			ignore: [ LIST_TABLE, DUPLICATE_NONCE_ID ],
 			hide: DISABLED_PAGING,

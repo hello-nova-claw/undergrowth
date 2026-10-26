@@ -32,7 +32,8 @@ add_action( 'load-posts_page_undergrowth-links', 'undergrowth_forget_shown_resul
 add_filter( 'removable_query_args', 'undergrowth_notice_removable_query_args' );
 
 /**
- * Adds Posts > Undergrowth, with its Suggestions, Growth stages and Map tabs.
+ * Adds Posts > Undergrowth, with its Suggestions, Orphans, Growth stages and
+ * Map tabs.
  *
  * The slug is the one the screen had as Link suggestions, so old addresses,
  * including links in Discord messages already sent, still open it.
@@ -102,6 +103,13 @@ function undergrowth_load_stages_table(): void {
 }
 
 /**
+ * Loads the orphans table class, which extends a wp-admin class too.
+ */
+function undergrowth_load_orphans_table(): void {
+	require_once __DIR__ . '/class-undergrowth-orphans-list-table.php';
+}
+
+/**
  * Loads the proposals table class.
  *
  * It extends core's WP_List_Table, which belongs to wp-admin, so it is only
@@ -115,7 +123,7 @@ function undergrowth_load_list_table(): void {
  * Returns the address of the link suggestions screen.
  *
  * @param string $notice Notice to show on arrival, or an empty string.
- * @param string $tab    'stages' or 'map' for those tabs, or an empty string for the suggestions.
+ * @param string $tab    'orphans', 'stages' or 'map' for those tabs, or an empty string for the suggestions.
  * @return string Admin URL.
  */
 function undergrowth_suggestions_url( string $notice = '', string $tab = '' ): string {
@@ -169,14 +177,27 @@ function undergrowth_links_in_post( string $url = '' ): int {
 
 /**
  * Returns the address a Suggestions action goes back to: the view it was
- * taken from, narrowed to one post or not, with its notice.
+ * taken from, narrowed to one post or not, or the page of the Orphans tab
+ * it was taken from, with its notice.
  *
  * @param string $notice Notice to show on arrival.
  * @return string Admin URL.
  */
 function undergrowth_suggestions_return_url( string $notice ): string {
 	$referer = wp_get_referer();
-	$to      = false === $referer ? 0 : undergrowth_links_in_post( $referer );
+
+	if ( false !== $referer ) {
+		wp_parse_str( (string) wp_parse_url( $referer, PHP_URL_QUERY ), $query );
+
+		if ( isset( $query['tab'] ) && 'orphans' === $query['tab'] ) {
+			$paged = isset( $query['paged'] ) && is_string( $query['paged'] ) ? absint( $query['paged'] ) : 0;
+			$url   = undergrowth_suggestions_url( $notice, 'orphans' );
+
+			return $paged > 1 ? add_query_arg( 'paged', $paged, $url ) : $url;
+		}
+	}
+
+	$to = false === $referer ? 0 : undergrowth_links_in_post( $referer );
 
 	return 0 === $to ? undergrowth_suggestions_url( $notice ) : add_query_arg( 'undergrowth_notice', $notice, undergrowth_links_in_url( $to ) );
 }
@@ -517,8 +538,9 @@ function undergrowth_render_suggestions_page(): void {
 	}
 
 	$tabs = array(
-		''       => __( 'Suggestions', 'undergrowth' ),
-		'stages' => __( 'Growth stages', 'undergrowth' ),
+		''        => __( 'Suggestions', 'undergrowth' ),
+		'orphans' => __( 'Orphans', 'undergrowth' ),
+		'stages'  => __( 'Growth stages', 'undergrowth' ),
 	);
 
 	// The map appears once the monthly pass has made a cluster. A resurfacing
@@ -563,7 +585,9 @@ function undergrowth_render_suggestions_page(): void {
 		// A post returned to the garden from its resurfacing signal comes back here.
 		undergrowth_render_compost_notice();
 
-		if ( 'stages' === $tab ) {
+		if ( 'orphans' === $tab ) {
+			undergrowth_render_orphans_tab();
+		} elseif ( 'stages' === $tab ) {
 			undergrowth_render_stages_tab();
 		} elseif ( 'map' === $tab ) {
 			undergrowth_render_resurfacing_signals( undergrowth_visible_resurfacing_signals() );
@@ -579,6 +603,19 @@ function undergrowth_render_suggestions_page(): void {
 		?>
 	</div>
 	<?php
+}
+
+/**
+ * Prints the Orphans tab: the posts no accepted link points to.
+ */
+function undergrowth_render_orphans_tab(): void {
+	undergrowth_load_orphans_table();
+	$table = new Undergrowth_Orphans_List_Table();
+	$table->prepare_items();
+
+	echo '<p>' . esc_html__( 'These posts have no accepted link from another of your published posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted.', 'undergrowth' ) . '</p>';
+
+	$table->display();
 }
 
 /**
@@ -1197,6 +1234,27 @@ function undergrowth_post_title( int $post_id ): string {
 	$title = get_the_title( $post_id );
 
 	return '' === $title ? __( '(no title)', 'undergrowth' ) : $title;
+}
+
+/**
+ * Escapes a suggestion's sentence and marks the words Accept would link in it.
+ *
+ * @param string                                               $sentence The author's sentence.
+ * @param array{word: string, offset: int, position: int}|null $choice   Result of undergrowth_link_word_choice() for the suggestion.
+ * @return string HTML.
+ */
+function undergrowth_marked_sentence( string $sentence, ?array $choice ): string {
+	// A line break inside the words in the post shows as a space.
+	$words  = null === $choice ? '' : undergrowth_collapse_spaces( $choice['word'] );
+	$length = mb_strlen( $words );
+
+	if ( null === $choice || mb_substr( $sentence, $choice['offset'], $length ) !== $words ) {
+		return esc_html( $sentence );
+	}
+
+	return esc_html( mb_substr( $sentence, 0, $choice['offset'] ) )
+		. '<mark>' . esc_html( $words ) . '</mark>'
+		. esc_html( mb_substr( $sentence, $choice['offset'] + $length ) );
 }
 
 /**

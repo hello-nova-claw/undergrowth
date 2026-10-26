@@ -186,6 +186,11 @@ msgstr ""
 
 #: src/admin.php
 #: src/help.php
+msgid "Orphans"
+msgstr ""
+
+#: src/admin.php
+#: src/help.php
 msgid "Growth stages"
 msgstr ""
 
@@ -196,6 +201,10 @@ msgstr ""
 
 #: src/admin.php
 msgid "Undergrowth screen"
+msgstr ""
+
+#: src/admin.php
+msgid "These posts have no accepted link from another of your published posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted."
 msgstr ""
 
 #: src/admin.php
@@ -369,6 +378,7 @@ msgid "Dismiss"
 msgstr ""
 
 #: src/admin.php
+#: src/block-linked-from.php
 msgid "(no title)"
 msgstr ""
 
@@ -475,6 +485,12 @@ msgstr ""
 msgid "Other posts"
 msgstr ""
 
+#: src/block-linked-from.php
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Linked from"
+msgstr ""
+
 #: src/blocks.php
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
@@ -519,11 +535,13 @@ msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #, php-format
 msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #: src/discord-messages.php
 #: src/settings.php
 #: build/editor/index.js
@@ -534,11 +552,13 @@ msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #: src/discord-messages.php
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
@@ -602,11 +622,13 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+#: src/class-undergrowth-orphans-list-table.php
 #: src/class-undergrowth-stages-list-table.php
 #: src/map.php
 msgid "Post"
 msgstr ""
 
+#: src/class-undergrowth-orphans-list-table.php
 #: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
 #: build/blocks/garden-index/index.js
@@ -614,6 +636,36 @@ msgstr ""
 #: src/blocks/garden-index/edit.js
 #: src/blocks/growth-stage/edit.js
 msgid "Growth stage"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "Published"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "Could link here"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "No orphans. Every post in your garden that Undergrowth has read has at least one accepted link pointing to it."
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "No suggestions yet"
+msgstr ""
+
+#. translators: %1$s: number of suggestions.
+#: src/class-undergrowth-orphans-list-table.php
+#, php-format
+msgid "See all %1$s suggestion"
+msgid_plural "See all %1$s suggestions"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: title of the post the link would sit in, linked to its editor.
+#: src/class-undergrowth-orphans-list-table.php
+#, php-format
+msgid "In %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
@@ -1260,6 +1312,14 @@ msgid "A suggestion marked Cross-pollination links two posts from groups on the 
 msgstr ""
 
 #: src/help.php
+msgid "An orphan is a post in your garden that no accepted link from another of your published posts points to. Readers who follow links, and search engines, reach it less easily. Undergrowth only knows the links it suggested and you accepted, so a link you added by hand is not counted."
+msgstr ""
+
+#: src/help.php
+msgid "Beside each orphan are the best suggestions that would link to it, with Accept and Veto as on the Suggestions tab. Once you accept one, the post leaves the list. Composting posts and posts not read yet are never listed."
+msgstr ""
+
+#: src/help.php
 msgid "Seedling: a new post, with no more than one accepted link in or out."
 msgstr ""
 
@@ -1673,8 +1733,10 @@ msgstr ""
 
 #: src/settings.php
 #: build/blocks/garden-index/index.js
+#: build/blocks/linked-from/index.js
 #: build/blocks/more-like-this/index.js
 #: src/blocks/garden-index/edit.js
+#: src/blocks/linked-from/edit.js
 #: src/blocks/more-like-this/edit.js
 msgid "Settings"
 msgstr ""
@@ -2028,7 +2090,7 @@ msgid "Questions"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers."
+msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead, and one about a cross-pollination pair one sentence from each of its two posts. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers."
 msgstr ""
 
 #: src/settings.php
@@ -2334,6 +2396,12 @@ msgstr ""
 msgid "From a gap among your posts: %1$s."
 msgstr ""
 
+#. translators: %1$s: titles of the two posts, each linked to its editor, separated by commas.
+#: src/studio.php
+#, php-format
+msgid "Cross-pollination: from %1$s, in groups of your writing that sit apart."
+msgstr ""
+
 #. translators: %1$s: titles of the posts, each linked to its editor, separated by commas.
 #: src/studio.php
 #, php-format
@@ -2493,6 +2561,31 @@ msgstr ""
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Shows the growth stage of the post it is placed in."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Readers see nothing here yet. This lists your published posts that link to this one through a suggestion you accepted."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Heading"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Leave empty to use “Linked from”."
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Maximum posts"
+msgstr ""
+
+#: build/blocks/linked-from/index.js
+#: src/blocks/linked-from/edit.js
+msgid "Lists the posts that link to the post it is placed in."
 msgstr ""
 
 #: build/blocks/more-like-this/index.js
@@ -2695,8 +2788,10 @@ msgid "Lists your published posts by the groups on the Map, each with its growth
 msgstr ""
 
 #: build/blocks/garden-index/block.json
+#: build/blocks/linked-from/block.json
 #: build/blocks/more-like-this/block.json
 #: src/blocks/garden-index/block.json
+#: src/blocks/linked-from/block.json
 #: src/blocks/more-like-this/block.json
 msgctxt "block keyword"
 msgid "garden"
@@ -2754,6 +2849,30 @@ msgstr ""
 #: src/blocks/growth-stage/block.json
 msgctxt "block keyword"
 msgid "badge"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block title"
+msgid "Linked from"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block description"
+msgid "Lists your published posts that link to this one through a link you accepted in Undergrowth."
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "backlinks"
+msgstr ""
+
+#: build/blocks/linked-from/block.json
+#: src/blocks/linked-from/block.json
+msgctxt "block keyword"
+msgid "links"
 msgstr ""
 
 #: build/blocks/more-like-this/block.json

@@ -18,6 +18,7 @@ const WIDTHS = [ 1280, 390 ];
 
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
 const SUGGESTIONS = [ 'edit.php', 'page=undergrowth-links' ];
+const ORPHANS = [ 'edit.php', 'page=undergrowth-links&tab=orphans' ];
 const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
 const DEV = [ 'edit.php', 'page=undergrowth-links&tab=dev' ];
@@ -243,6 +244,7 @@ const WITHOUT_POSTS = [
 		fixture: 'first-key-saved',
 	},
 	{ screen: 'suggestions', state: 'empty', page: SUGGESTIONS },
+	{ screen: 'orphans', state: 'empty', page: ORPHANS },
 	{ screen: 'stages', state: 'empty', page: STAGES },
 	// The threshold meter. Without a fixture the site has no Jetpack.
 	{ screen: 'dashboard', state: 'meter-no-stats', page: DASHBOARD },
@@ -268,7 +270,7 @@ const WITHOUT_POSTS = [
 		help: 'undergrowth-meter',
 	},
 	// Each tab of Posts > Undergrowth, and Compost on the Posts list.
-	...[ 'overview', 'suggestions', 'stages', 'map', 'compost' ].map(
+	...[ 'overview', 'suggestions', 'orphans', 'stages', 'map', 'compost' ].map(
 		( part ) => ( {
 			screen: 'suggestions',
 			state: `help-${ part }`,
@@ -408,6 +410,7 @@ const WITH_POSTS = [
 			return true;
 		},
 	} ) ),
+	{ screen: 'orphans', state: 'table', page: ORPHANS },
 	{ screen: 'stages', state: 'table', page: STAGES },
 	...[
 		[ 'view-seedling', 'undergrowth_stage=seedling' ],
@@ -672,6 +675,29 @@ const WITH_GARDEN_INDEX = [
 		screen: 'block-garden-index',
 		state: 'editor-empty',
 		edit: () => gardenIndexPages.evergreen,
+	},
+];
+
+// Filled in once the list's posts exist, since the shots need their IDs.
+const linkedFromPosts = {};
+
+// The "Linked from" block on a post another post links to through an
+// accepted suggestion, and in the editor on a post nothing links to yet.
+const WITH_LINKED_FROM = [
+	{
+		screen: 'block-linked-from',
+		state: 'front-linked',
+		front: () => `/?p=${ linkedFromPosts.linked }`,
+	},
+	{
+		screen: 'block-linked-from',
+		state: 'editor-linked',
+		edit: () => linkedFromPosts.linked,
+	},
+	{
+		screen: 'block-linked-from',
+		state: 'editor-empty',
+		edit: () => linkedFromPosts.empty,
 	},
 ];
 
@@ -942,7 +968,7 @@ function capture( states ) {
 					// Block previews are rendered by the server after load.
 					await editor.canvas
 						.locator(
-							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder'
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder, .wp-block-undergrowth-linked-from ul, .wp-block-undergrowth-linked-from .components-placeholder'
 						)
 						.first()
 						.waitFor();
@@ -1522,6 +1548,73 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_TEND );
+	} );
+
+	test.describe( 'with a "Linked from" block', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// Oca's sentence about yacon is suggested as a link to Yacon.
+			const oca = await requestUtils.createPost( {
+				title: 'Oca',
+				content:
+					'<!-- wp:paragraph --><p>Oca grows here. I keep yacon nearby.</p><!-- /wp:paragraph --><!-- wp:undergrowth/linked-from /-->',
+				status: 'publish',
+			} );
+			const yacon = await requestUtils.createPost( {
+				title: 'Yacon',
+				content:
+					'<!-- wp:paragraph --><p>Yacon syrup is sweet.</p><!-- /wp:paragraph --><!-- wp:undergrowth/linked-from /-->',
+				status: 'publish',
+			} );
+
+			linkedFromPosts.linked = yacon.id;
+			linkedFromPosts.empty = oca.id;
+
+			// Accepted through the suggestion's own Accept form, as the
+			// author's click would send it.
+			const screen = await requestUtils.request.get(
+				'wp-admin/edit.php?page=undergrowth-links'
+			);
+			const form = [
+				...( await screen.text() ).matchAll(
+					/<form method="post" action="[^"]*" id="undergrowth-accept-[^"]*">([\s\S]*?)<\/form>/g
+				),
+			].find( ( match ) =>
+				match[ 1 ].includes( `name="source" value="${ oca.id }"` )
+			);
+
+			if ( ! form ) {
+				throw new Error( 'No suggestion for Oca to link to Yacon.' );
+			}
+
+			const fields = Object.fromEntries(
+				[
+					...form[ 1 ].matchAll(
+						/<input type="hidden"[^>]*name="([^"]*)" value="([^"]*)"/g
+					),
+				].map( ( [ , name, value ] ) => [ name, value ] )
+			);
+
+			await requestUtils.request.post( 'wp-admin/admin-post.php', {
+				form: fields,
+			} );
+
+			// A failed Accept would otherwise capture an empty list under
+			// the "linked" states' names.
+			const front = await requestUtils.request.get( `?p=${ yacon.id }` );
+
+			if (
+				! ( await front.text() ).includes(
+					`<li><a href="${ oca.link }">Oca</a></li>`
+				)
+			) {
+				throw new Error( 'Accepting the link did not list Oca.' );
+			}
+		} );
+
+		capture( WITH_LINKED_FROM );
 	} );
 
 	test.describe( 'with the editor panel', () => {

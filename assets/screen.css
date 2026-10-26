@@ -19,6 +19,18 @@
 	font-weight: 600;
 }
 
+/*
+ * Each suggestion beside an orphan holds a sentence, its post and its
+ * actions, so the suggestions need space between them to read as separate.
+ */
+.undergrowth-orphan-links {
+	margin: 0;
+}
+
+.undergrowth-orphan-links li + li {
+	margin-top: 16px;
+}
+
 /* A hub proposal's two buttons sit on one line, each in its own form. */
 .undergrowth-hub-actions {
 	margin: 0.5em 0;

@@ -1,0 +1,1 @@
+New "Linked from" block lists your published posts that link to the one being read, built only from links you accepted, with your own heading and a maximum number of posts.
