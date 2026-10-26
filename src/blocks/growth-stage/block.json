@@ -10,6 +10,12 @@
 	"keywords": [ "seedling", "sprout", "evergreen", "badge" ],
 	"textdomain": "undergrowth",
 	"usesContext": [ "postId", "postType" ],
+	"attributes": {
+		"showIcon": {
+			"type": "boolean",
+			"default": true
+		}
+	},
 	"supports": {
 		"html": false,
 		"color": {

@@ -1,0 +1,59 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "undergrowth/garden-feed",
+	"version": "0.1.0",
+	"title": "Garden feed",
+	"category": "widgets",
+	"icon": "list-view",
+	"description": "Lists every post readers may see in your garden, newest tended first, each with its growth stage. Readers can narrow it by topic, stage and type.",
+	"keywords": [ "garden", "feed", "stages", "tended" ],
+	"textdomain": "undergrowth",
+	"attributes": {
+		"showFeatured": {
+			"type": "boolean",
+			"default": true
+		},
+		"orderBy": {
+			"type": "string",
+			"enum": [ "tended", "newest", "stage" ],
+			"default": "tended"
+		},
+		"postsPerPage": {
+			"type": "integer",
+			"minimum": 1,
+			"maximum": 100,
+			"default": 20
+		},
+		"typeSource": {
+			"type": "string",
+			"default": "post_format"
+		},
+		"showExcerpt": {
+			"type": "boolean",
+			"default": true
+		},
+		"showType": {
+			"type": "boolean",
+			"default": true
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ],
+		"color": {
+			"text": true,
+			"background": true,
+			"link": true
+		},
+		"typography": {
+			"fontSize": true,
+			"lineHeight": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"editorScript": "file:./index.js"
+}

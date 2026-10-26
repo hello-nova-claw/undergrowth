@@ -110,6 +110,17 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_shows_the_stage_icon_before_the_name() {
+		$html = $this->render( $this->post_at( 'evergreen' ) );
+
+		$this->assertMatchesRegularExpression( '#^<p [^>]*><svg [^>]*aria-hidden="true" focusable="false"[^>]*>.*</svg><span class="screen-reader-text">#s', $html );
+		$this->assertSame( undergrowth_stage_icon( 'evergreen' ), substr( $html, strpos( $html, '<svg' ), strpos( $html, '</svg>' ) + 6 - strpos( $html, '<svg' ) ) );
+	}
+
+	public function test_can_leave_out_the_icon() {
+		$this->assertStringNotContainsString( '<svg', $this->render( $this->post_at( 'sprout' ), array( 'showIcon' => false ) ) );
+	}
+
 	public function test_a_new_post_shows_seedling() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 

@@ -34,8 +34,12 @@ test.describe( 'Growth stage block', () => {
 			1
 		);
 		await expect(
-			preview.locator( '[aria-hidden="true"]' )
+			preview.locator( 'span[aria-hidden="true"]' )
 		).not.toBeEmpty();
+		// The icon beside the name is hidden from screen readers.
+		await expect(
+			preview.locator( 'svg.undergrowth-stage-icon[aria-hidden="true"]' )
+		).toHaveCount( 1 );
 
 		await expectNoA11yViolations( page, [
 			'iframe[name="editor-canvas"]',

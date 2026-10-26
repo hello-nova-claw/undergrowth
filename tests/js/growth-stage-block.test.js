@@ -24,14 +24,19 @@ async function waitFor( condition ) {
 /**
  * Renders the editor preview into the document.
  *
- * @param {Object} context Block context.
+ * @param {Object} context    Block context.
+ * @param {Object} attributes Block attributes.
  * @return {HTMLElement} Container.
  */
-function renderEdit( context ) {
+function renderEdit( context, attributes = { showIcon: true } ) {
 	const container = document.createElement( 'div' );
 	document.body.appendChild( container );
 	createRoot( container ).render(
-		<Edit context={ context } attributes={ {} } />
+		<Edit
+			context={ context }
+			attributes={ attributes }
+			setAttributes={ () => {} }
+		/>
 	);
 
 	return container;
@@ -64,6 +69,23 @@ describe( 'Growth stage block', () => {
 
 		expect( type.title ).toBe( metadata.title );
 		expect( type.usesContext ).toEqual( [ 'postId', 'postType' ] );
+		expect( type.attributes.showIcon.default ).toBe( true );
+	} );
+
+	test( 'asks for the badge without its icon when it is turned off', async () => {
+		reply = { rendered: '<p>Sprout</p>' };
+
+		const container = renderEdit(
+			{ postId: 42, postType: 'post' },
+			{ showIcon: false, backgroundColor: 'accent' }
+		);
+
+		await waitFor( () => container.querySelector( 'p' ) );
+
+		const path = decodeURIComponent( requests[ 0 ].path );
+		expect( path ).toContain( 'attributes[showIcon]=false' );
+		// The wrapper carries the supports, so the preview never doubles them.
+		expect( path ).not.toContain( 'backgroundColor' );
 	} );
 
 	test( 'previews the server render of its own post', async () => {
