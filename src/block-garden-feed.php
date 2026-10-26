@@ -288,6 +288,23 @@ function undergrowth_garden_feed_item( int $post_id, bool $featured, string $tax
 }
 
 /**
+ * Builds the feed's wrapper attributes.
+ *
+ * The feed is a region the Interactivity API router replaces, so the
+ * garden filters can update it in place.
+ *
+ * @return string Attributes markup.
+ */
+function undergrowth_garden_feed_wrapper_attributes(): string {
+	return get_block_wrapper_attributes(
+		array(
+			'data-wp-interactive'   => 'undergrowth/garden',
+			'data-wp-router-region' => 'undergrowth/garden-feed',
+		)
+	);
+}
+
+/**
  * Renders the garden feed.
  *
  * @param array<string, mixed> $attributes Block attributes.
@@ -307,7 +324,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 
 		return sprintf(
 			'<div %1$s><p class="wp-block-undergrowth-garden-feed-none">%2$s</p></div>',
-			get_block_wrapper_attributes(),
+			undergrowth_garden_feed_wrapper_attributes(),
 			esc_html__( 'Nothing in the garden matches.', 'undergrowth' )
 		);
 	}
@@ -328,9 +345,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 	if ( $pages > 1 ) {
 		// The filters stay in each page's link, since it is built from the
 		// address the reader is on.
-		$nav = sprintf(
-			'<nav class="wp-block-undergrowth-garden-feed-pages" aria-label="%1$s">%2$s</nav>',
-			esc_attr__( 'Garden pages', 'undergrowth' ),
+		$links = new WP_HTML_Tag_Processor(
 			(string) paginate_links(
 				array(
 					'base'    => add_query_arg( 'garden-page', '%#%' ),
@@ -340,11 +355,22 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 				)
 			)
 		);
+
+		// With the garden filters on the page, each page loads in place.
+		while ( $links->next_tag( array( 'tag_name' => 'a' ) ) ) {
+			$links->set_attribute( 'data-wp-on--click', 'actions.navigate' );
+		}
+
+		$nav = sprintf(
+			'<nav class="wp-block-undergrowth-garden-feed-pages" aria-label="%1$s">%2$s</nav>',
+			esc_attr__( 'Garden pages', 'undergrowth' ),
+			$links->get_updated_html()
+		);
 	}
 
 	return sprintf(
 		'<div %1$s><ul class="wp-block-undergrowth-garden-feed-list">%2$s</ul>%3$s</div>',
-		get_block_wrapper_attributes(),
+		undergrowth_garden_feed_wrapper_attributes(),
 		$items,
 		$nav
 	);
