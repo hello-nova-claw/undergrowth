@@ -203,7 +203,14 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 
 	public function test_shows_only_an_excerpt_the_author_wrote() {
 		$this->post( 'Oca', 1, array( 'post_excerpt' => 'Small <b>tubers</b>.' ) );
-		$this->post( 'Yacon', 2, array( 'post_content' => 'A long body readers never see cut short here.' ) );
+		$this->post(
+			'Yacon',
+			2,
+			array(
+				'post_content' => 'A long body readers never see cut short here.',
+				'post_excerpt' => '',
+			)
+		);
 
 		$html = $this->render();
 
