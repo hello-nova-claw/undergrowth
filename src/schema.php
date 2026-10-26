@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 6;
+const UNDERGROWTH_SCHEMA_VERSION = 7;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -33,6 +33,7 @@ function undergrowth_protected_meta_keys(): array {
 		'undergrowth_stage',
 		'undergrowth_stage_log',
 		'undergrowth_stage_pinned',
+		'undergrowth_tend_dismissed',
 	);
 }
 
@@ -113,6 +114,7 @@ function undergrowth_install_schema(): bool {
 			anchor varchar(255) NOT NULL DEFAULT '',
 			anchor_offset int(11) NOT NULL DEFAULT -1,
 			anchor_chosen tinyint(1) NOT NULL DEFAULT 0,
+			kind varchar(20) NOT NULL DEFAULT '',
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
@@ -275,6 +277,11 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_start' );
+	delete_option( 'undergrowth_pollination_cycle.lock' );
+	delete_option( 'undergrowth_pollination_work' );
+	delete_option( 'undergrowth_pollination_cycle_pass' );
 	wp_unschedule_hook( 'undergrowth_backfill' );
 	wp_unschedule_hook( 'undergrowth_backfill_check' );
 	wp_unschedule_hook( 'undergrowth_stale_check' );
@@ -288,6 +295,7 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
 	wp_unschedule_hook( 'undergrowth_measure_similar' );
+	wp_unschedule_hook( 'undergrowth_read_popularity' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	delete_option( 'undergrowth_dev_job' );
@@ -326,6 +334,7 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
 	wp_unschedule_hook( 'undergrowth_measure_similar' );
+	wp_unschedule_hook( 'undergrowth_read_popularity' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );
@@ -335,6 +344,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_embed_retry_at' );
 	delete_option( 'undergrowth_last_prompt_error' );
+	delete_option( 'undergrowth_prompts' );
 	delete_option( 'undergrowth_prompt' );
 	delete_option( 'undergrowth_config_prompt_queued' );
 	delete_option( 'undergrowth_snoozed_prompts' );
@@ -369,17 +379,27 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_cluster_labels' );
 	// Hub pages are the author's and stay; only what marks them as hubs goes.
 	delete_option( 'undergrowth_hub_vetoes' );
+	delete_option( 'undergrowth_surprise' );
+	delete_option( 'undergrowth_pollination' );
+	delete_option( 'undergrowth_pollination_dismissed' );
 	delete_post_meta_by_key( 'undergrowth_hub' );
 	delete_post_meta_by_key( 'undergrowth_hub_link' );
+	delete_option( 'undergrowth_garden_index' );
 	delete_option( 'undergrowth_scores' );
 	delete_option( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_cluster_cycle' );
 	wp_unschedule_hook( 'undergrowth_stage_cycle' );
 	wp_unschedule_hook( 'undergrowth_resurfacing_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_cycle' );
+	wp_unschedule_hook( 'undergrowth_pollination_start' );
+	delete_option( 'undergrowth_pollination_cycle.lock' );
+	delete_option( 'undergrowth_pollination_work' );
+	delete_option( 'undergrowth_pollination_cycle_pass' );
 	delete_option( 'undergrowth_previous_clusters' );
 	delete_option( 'undergrowth_new_clusters' );
 	wp_unschedule_hook( 'undergrowth_prompt_cycle' );
+	wp_unschedule_hook( 'undergrowth_prompt_batch' );
 	wp_unschedule_hook( 'undergrowth_write_prompt' );
 	delete_post_meta_by_key( 'undergrowth_cluster' );
 	delete_post_meta_by_key( 'undergrowth_stage' );
@@ -392,7 +412,9 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_prompt_log' );
 	delete_post_meta_by_key( 'undergrowth_similar' );
 	delete_post_meta_by_key( 'undergrowth_similar_hidden' );
+	delete_post_meta_by_key( 'undergrowth_tend_dismissed' );
 	delete_option( 'undergrowth_similar_generation' );
+	delete_option( 'undergrowth_popularity' );
 	undergrowth_delete_memory_folder();
 	delete_option( 'undergrowth_memory_folder' );
 	delete_transient( 'undergrowth_old_folder_retry' );

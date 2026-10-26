@@ -139,7 +139,7 @@ class Test_Uninstall extends WP_UnitTestCase {
 		$this->assertContains( 'undergrowth_discord_user_id', $this->user_meta_keys() );
 		$this->assertContains( 'undergrowth_meter', $this->transients() );
 		$this->assertContains( 'undergrowth_embed_post', $this->events() );
-		$this->assertContains( 'undergrowth_prompt_cycle', $this->events() );
+		$this->assertContains( 'undergrowth_prompt_batch', $this->events() );
 		$this->assertNotContains( 'undergrowth_monthly', $this->events() );
 	}
 

@@ -4,8 +4,11 @@ const { expectNoA11yViolations } = require( './a11y' );
 // Selectors use ids and values, not text, because this spec also runs in
 // Hebrew and in the en_XA pseudo-locale.
 const WIDGET = '#undergrowth';
+const STUDIO = [ 'edit.php', 'page=undergrowth-studio' ];
+const QUESTIONS = '.undergrowth-questions';
+const NOTICE = '#undergrowth-notice';
 
-test.describe( 'Prompt on the Dashboard', () => {
+test.describe( 'Prompt studio', () => {
 	test.beforeEach( async ( { requestUtils, context, baseURL } ) => {
 		await requestUtils.deleteAllPosts();
 
@@ -38,74 +41,91 @@ test.describe( 'Prompt on the Dashboard', () => {
 		] );
 	} );
 
-	test( 'shows one question with no WCAG 2.2 AA violations', async ( {
+	test( 'the Dashboard points to the studio with no WCAG 2.2 AA violations', async ( {
 		admin,
 		page,
 	} ) => {
 		await admin.visitAdminPage( 'index.php' );
 
-		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
-		await expect(
-			page.locator( `${ WIDGET } .undergrowth-prompt strong` )
-		).toContainText( '?' );
+		const link = page.locator(
+			`${ WIDGET } .undergrowth-prompt a[href*="page=undergrowth-studio"]`
+		);
+
+		await expect( link ).toHaveCount( 1 );
 		await expectNoA11yViolations( page, WIDGET );
+
+		await link.focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( page ).toHaveURL( /page=undergrowth-studio/ );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
 	} );
 
-	test( 'snoozes by keyboard and moves focus to the notice', async ( {
+	test( 'lists the new question with no WCAG 2.2 AA violations', async ( {
 		admin,
 		page,
 	} ) => {
-		await admin.visitAdminPage( 'index.php' );
+		await admin.visitAdminPage( ...STUDIO );
 
-		const snooze = page.locator( `${ WIDGET } button[value="snooze"]` );
+		const question = page.locator( `${ QUESTIONS } li` );
 
-		await snooze.focus();
-		await expect( snooze ).toBeFocused();
+		await expect( question ).toHaveCount( 1 );
+		await expect( question.locator( 'strong' ) ).toContainText( '?' );
+		await expect( question.locator( 'button' ) ).toHaveCount( 3 );
+		await expectNoA11yViolations( page, '.wrap' );
+	} );
+
+	test( 'saves by keyboard to the idea bank and moves focus to the notice', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( ...STUDIO );
+
+		const save = page.locator( `${ QUESTIONS } button[value="save"]` );
+
+		await save.focus();
+		await expect( save ).toBeFocused();
 		await page.keyboard.press( 'Enter' );
 
-		await expect( page.locator( '#undergrowth-notice' ) ).toHaveClass(
-			/notice-success/
-		);
-		await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
+		await expect( page.locator( NOTICE ) ).toHaveClass( /notice-success/ );
+		await expect( page.locator( NOTICE ) ).toBeFocused();
 		// Core takes the result out of the address once it is shown.
 		await expect( page ).not.toHaveURL( /undergrowth_notice/ );
-		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
-		await expectNoA11yViolations( page, '#undergrowth-notice' );
-	} );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 0 );
+		await expectNoA11yViolations( page, '.wrap' );
 
-	test( 'dismisses for good', async ( { admin, page } ) => {
-		await admin.visitAdminPage( 'index.php' );
-
-		const dismiss = page.locator( `${ WIDGET } button[value="dismiss"]` );
-
-		await dismiss.focus();
-		await page.keyboard.press( 'Space' );
-
-		await expect( page.locator( '#undergrowth-notice' ) ).toHaveClass(
-			/notice-success/
+		await admin.visitAdminPage(
+			STUDIO[ 0 ],
+			`${ STUDIO[ 1 ] }&view=saved`
 		);
-		await expect( page.locator( '#undergrowth-notice' ) ).toBeFocused();
-		await expect( page ).not.toHaveURL( /undergrowth_notice/ );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
+		await expect(
+			page.locator( `${ QUESTIONS } a[href*="post.php"]` )
+		).toHaveCount( 1 );
+		await expectNoA11yViolations( page, '.wrap' );
 
-		await admin.visitAdminPage( 'index.php' );
-		await expect( page.locator( WIDGET ) ).toHaveCount( 0 );
+		await page.locator( `${ QUESTIONS } button[value="remove"]` ).focus();
+		await page.keyboard.press( 'Enter' );
+		await expect( page.locator( NOTICE ) ).toBeFocused();
+		await expect( page ).toHaveURL( /view=saved/ );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 0 );
 	} );
 
 	test( 'undoes a dismissal by keyboard and brings the question back', async ( {
 		admin,
 		page,
 	} ) => {
-		await admin.visitAdminPage( 'index.php' );
-		await page.locator( `${ WIDGET } button[value="dismiss"]` ).focus();
-		await page.keyboard.press( 'Enter' );
+		await admin.visitAdminPage( ...STUDIO );
+		await page.locator( `${ QUESTIONS } button[value="dismiss"]` ).focus();
+		await page.keyboard.press( 'Space' );
 
-		const notice = page.locator( '#undergrowth-notice' );
+		const notice = page.locator( NOTICE );
 		const undo = notice.locator(
 			'a[href*="action=undergrowth_restore_prompt"]'
 		);
 
 		await expect( notice ).toBeFocused();
-		await expectNoA11yViolations( page, '#undergrowth-notice' );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 0 );
+		await expectNoA11yViolations( page, NOTICE );
 
 		// The Undo is the first stop after the notice.
 		await page.keyboard.press( 'Tab' );
@@ -114,11 +134,18 @@ test.describe( 'Prompt on the Dashboard', () => {
 
 		await expect( notice ).toBeFocused();
 		await expect( notice ).toHaveClass( /notice-success/ );
-		await expect( page.locator( WIDGET ) ).toHaveCount( 1 );
-		await expect(
-			page.locator( `${ WIDGET } button[value="dismiss"]` )
-		).toBeVisible();
-		await expectNoA11yViolations( page, '#undergrowth-notice' );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
+	} );
+
+	test( 'keeps the question when there is nothing to replace it with', async ( {
+		admin,
+		page,
+	} ) => {
+		await admin.visitAdminPage( ...STUDIO );
+		await page.locator( `${ QUESTIONS } button[value="replace"]` ).click();
+
+		await expect( page.locator( NOTICE ) ).toHaveClass( /notice-warning/ );
+		await expect( page.locator( `${ QUESTIONS } li` ) ).toHaveCount( 1 );
 	} );
 
 	test( 'fits a phone screen without scrolling sideways', async ( {
@@ -126,14 +153,12 @@ test.describe( 'Prompt on the Dashboard', () => {
 		page,
 	} ) => {
 		await page.setViewportSize( { width: 390, height: 800 } );
-		await admin.visitAdminPage( 'index.php' );
+		await admin.visitAdminPage( ...STUDIO );
 
-		const widget = page.locator( WIDGET );
-
-		await expect( widget ).toHaveCount( 1 );
-
-		const overflow = await widget.evaluate(
-			( box ) => box.scrollWidth - box.clientWidth
+		const overflow = await page.evaluate(
+			() =>
+				document.documentElement.scrollWidth -
+				document.documentElement.clientWidth
 		);
 
 		expect( overflow ).toBeLessThanOrEqual( 0 );

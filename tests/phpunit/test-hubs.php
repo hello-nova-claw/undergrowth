@@ -352,10 +352,10 @@ class Test_Hubs extends WP_UnitTestCase {
 	}
 
 	public function test_group_that_changed_by_more_than_half_is_a_new_group() {
-		$this->assertTrue( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 6, 7 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 6, 7, 8 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ) ) );
-		$this->assertFalse( undergrowth_same_hub_group( array(), array() ) );
+		$this->assertTrue( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 6, 7 ) ) );
+		$this->assertFalse( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 6, 7, 8 ) ) );
+		$this->assertFalse( undergrowth_same_group( array( 1, 2, 3, 4, 5 ), array( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ) ) );
+		$this->assertFalse( undergrowth_same_group( array(), array() ) );
 	}
 
 	public function test_malformed_vetoes_are_left_out() {
@@ -492,6 +492,7 @@ class Test_Hubs extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="action" value="undergrowth_veto_hub"', $html );
 		$this->assertStringContainsString( 'aria-describedby="undergrowth-hub-' . $ids[0] . '"', $html );
 		$this->assertStringContainsString( 'id="undergrowth-hub-' . $ids[0] . '"', $html );
+		$this->assertStringContainsString( '<input type="hidden" name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_start_hub_' . $ids[0] ) . '" />', $html );
 	}
 
 	public function test_map_proposes_nothing_for_a_sparse_group() {

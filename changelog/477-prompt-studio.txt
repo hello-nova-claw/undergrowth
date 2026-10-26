@@ -1,0 +1,1 @@
+Posts › Prompt studio replaces the question on the Dashboard: Claude's questions from your own posts wait there to be saved to an idea bank, replaced or dismissed, and the Dashboard says how many are new.

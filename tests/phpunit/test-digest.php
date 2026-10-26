@@ -97,6 +97,22 @@ class Test_Digest extends WP_UnitTestCase {
 		return array( $source, $target );
 	}
 
+	public function test_turning_the_email_on_again_keeps_its_date_and_key() {
+		$user_id = $this->subscriber();
+		$since   = get_user_meta( $user_id, 'undergrowth_digest', true );
+		$key     = undergrowth_digest_key( $user_id );
+
+		undergrowth_turn_digest_on( $user_id );
+
+		$this->assertSame( $since, get_user_meta( $user_id, 'undergrowth_digest', true ) );
+		$this->assertSame( $key, undergrowth_digest_key( $user_id ) );
+	}
+
+	public function test_the_words_to_link_are_found_when_their_offset_is_stale() {
+		$this->assertSame( 'Oca keeps well after the [first frost].', undergrowth_digest_sentence( 'Oca keeps well after the first frost.', 'first frost', 3 ) );
+		$this->assertSame( 'Oca keeps well.', undergrowth_digest_sentence( 'Oca keeps well.', 'first frost', -1 ) );
+	}
+
 	public function test_the_email_is_off_until_the_user_turns_it_on() {
 		self::factory()->user->create( array( 'role' => 'editor' ) );
 		$this->proposal();

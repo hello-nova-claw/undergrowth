@@ -1,0 +1,1 @@
+In the editor, the "More like this" block now shows its colour and spacing once, as readers see it, instead of twice.

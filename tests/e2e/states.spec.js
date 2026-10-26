@@ -8,6 +8,7 @@ const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
 const { skipWelcomeGuide } = require( './preferences' );
+const { STYLED } = require( './supports' );
 
 const OUTPUT = path.resolve(
 	process.env.UNDERGROWTH_SCREENSHOTS_DIR || 'artifacts/screenshots'
@@ -22,6 +23,7 @@ const STAGES = [ 'edit.php', 'page=undergrowth-links&tab=stages' ];
 const MAP = [ 'edit.php', 'page=undergrowth-links&tab=map' ];
 const DEV = [ 'edit.php', 'page=undergrowth-links&tab=dev' ];
 const DASHBOARD = [ 'index.php' ];
+const STUDIO = [ 'edit.php', 'page=undergrowth-studio' ];
 const POSTS_LIST = [ 'edit.php', '' ];
 const PROFILE = [ 'profile.php', '' ];
 
@@ -54,18 +56,21 @@ const STAGE_NOTICES = [
 	'stage_not_saved',
 ];
 
-// Notices the Dashboard returns with after a prompt is dismissed or snoozed.
 const DEV_NOTICES = [
 	'dev_accept_started',
 	'dev_reset_started',
 	'dev_cycle_queued',
 	'dev_busy',
 ];
+// Notices the Prompt studio returns with after a choice on a question.
 const PROMPT_NOTICES = [
 	'prompt_dismissed',
-	'prompt_snoozed',
-	'prompt_gone',
+	'prompt_saved',
+	'prompt_replaced',
+	'prompt_not_replaced',
+	'prompt_removed',
 	'prompt_restored',
+	'prompt_gone',
 ];
 
 const WITHOUT_POSTS = [
@@ -117,6 +122,19 @@ const WITHOUT_POSTS = [
 		screen: 'settings',
 		state: 'prompt-key-saved',
 		page: SETTINGS,
+		fixture: 'prompt-key-saved',
+	},
+	{ screen: 'studio', state: 'off', page: STUDIO },
+	{
+		screen: 'studio',
+		state: 'empty',
+		page: STUDIO,
+		fixture: 'prompt-key-saved',
+	},
+	{
+		screen: 'studio',
+		state: 'idea-bank-empty',
+		page: [ STUDIO[ 0 ], `${ STUDIO[ 1 ] }&view=saved` ],
 		fixture: 'prompt-key-saved',
 	},
 	{
@@ -413,10 +431,33 @@ const WITH_POSTS = [
 		page: DASHBOARD,
 		fixture: 'prompt',
 	},
+	{
+		screen: 'studio',
+		state: 'batch',
+		page: STUDIO,
+		fixture: 'prompt-studio',
+	},
+	{
+		screen: 'studio',
+		state: 'idea-bank',
+		page: [ STUDIO[ 0 ], `${ STUDIO[ 1 ] }&view=saved` ],
+		fixture: 'prompt-studio',
+	},
+	{
+		screen: 'studio',
+		state: 'help-studio',
+		page: STUDIO,
+		fixture: 'prompt-studio',
+		help: 'undergrowth-studio',
+	},
 	...PROMPT_NOTICES.map( ( notice ) => ( {
-		screen: 'dashboard',
+		screen: 'studio',
 		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
-		page: [ DASHBOARD[ 0 ], `undergrowth_notice=${ notice }` ],
+		page: [
+			STUDIO[ 0 ],
+			`${ STUDIO[ 1 ] }&undergrowth_notice=${ notice }`,
+		],
+		fixture: 'prompt-studio',
 		notice: true,
 	} ) ),
 	...STAGE_NOTICES.map( ( notice ) => ( {
@@ -506,6 +547,35 @@ const WITH_CLUSTERS = [
 	} ) ),
 ];
 
+// Shown after a pass found two groups and a post near both: a pair on the
+// Cross-pollination list, and the notices after dismissing one.
+const WITH_POLLINATION = [
+	{ screen: 'map', state: 'pollination', page: MAP },
+	...[ 'pollination_dismissed', 'pollination_gone' ].map( ( notice ) => ( {
+		screen: 'map',
+		state: `notice-${ notice.replaceAll( '_', '-' ) }`,
+		page: [ MAP[ 0 ], `${ MAP[ 1 ] }&undergrowth_notice=${ notice }` ],
+		notice: true,
+	} ) ),
+	// The surprise scale with its wildest step chosen, not yet saved.
+	{
+		screen: 'settings',
+		state: 'surprise-wild',
+		page: SETTINGS,
+		open: async ( page ) => {
+			const wild = page.locator( '#undergrowth_surprise_5' );
+
+			if ( ( await wild.count() ) === 0 ) {
+				return false;
+			}
+
+			await wild.check();
+
+			return true;
+		},
+	},
+];
+
 // The same, once the first group has a hub draft.
 const WITH_HUB_DRAFT = [ { screen: 'map', state: 'hub-draft', page: MAP } ];
 
@@ -541,6 +611,12 @@ const WITH_BADGE = [
 		state: 'editor-composting',
 		edit: () => badgePosts.composting,
 	},
+	// Colour and padding set, shown once, as readers see them.
+	{
+		screen: 'block-growth-stage',
+		state: 'editor-styled',
+		edit: () => badgePosts.styled,
+	},
 ];
 
 // Filled in once the list's posts exist, since the shots need their IDs.
@@ -565,6 +641,35 @@ const WITH_MORE_LIKE_THIS = [
 		state: 'editor-empty',
 		list: () => listPosts.alone,
 	},
+	// Colour and padding set, shown once, as readers see them.
+	{
+		screen: 'block-more-like-this',
+		state: 'editor-styled',
+		list: () => listPosts.styled,
+	},
+];
+
+// Filled in once the index's pages exist, since the shots need their IDs.
+const gardenIndexPages = {};
+
+// The garden index on a page, after a cluster pass: one group and the posts
+// in none. In the editor, also filtered to a stage no post has reached.
+const WITH_GARDEN_INDEX = [
+	{
+		screen: 'block-garden-index',
+		state: 'front-groups',
+		front: () => `/?page_id=${ gardenIndexPages.all }`,
+	},
+	{
+		screen: 'block-garden-index',
+		state: 'editor-groups',
+		edit: () => gardenIndexPages.all,
+	},
+	{
+		screen: 'block-garden-index',
+		state: 'editor-empty',
+		edit: () => gardenIndexPages.evergreen,
+	},
 ];
 
 // Filled in once the panel's posts exist, since the shots need their IDs.
@@ -584,6 +689,40 @@ const WITH_PANEL = [ 'seedling', 'pinned', 'composting', 'draft' ].map(
 			),
 	} )
 );
+
+// Filled in once the post exists, since the panel's shot needs its ID.
+const tendPosts = {};
+
+// An Evergreen post untouched for two years carries a "Worth a look" note
+// on the Growth stages tab and in its editor panel.
+const WITH_TEND = [
+	// A build without the note shows none, and is listed as skipped.
+	{
+		screen: 'stages',
+		state: 'worth-a-look',
+		page: STAGES,
+		open: async ( page ) =>
+			( await page.locator( '.undergrowth-tend' ).count() ) > 0,
+	},
+	{
+		screen: 'editor-panel',
+		state: 'worth-a-look',
+		panel: () => tendPosts.stale,
+		open: ( page ) =>
+			page.evaluate(
+				async ( id ) =>
+					Boolean( window.wp.plugins?.getPlugin( 'undergrowth' ) ) &&
+					Boolean(
+						(
+							await window.wp.apiFetch( {
+								path: `/undergrowth/v1/posts/${ id }/stage`,
+							} )
+						).tend
+					),
+				tendPosts.stale
+			),
+	},
+];
 
 // Filled in once the sidebar's posts exist, since the shots need their IDs.
 const sidebarPosts = {};
@@ -797,10 +936,10 @@ function capture( states ) {
 					await page.goto( entry.front() );
 				} else if ( entry.edit ) {
 					await admin.editPost( entry.edit() );
-					// The badge preview is rendered by the server after load.
+					// Block previews are rendered by the server after load.
 					await editor.canvas
 						.locator(
-							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder'
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder'
 						)
 						.first()
 						.waitFor();
@@ -1180,6 +1319,41 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 	} );
 
+	test.describe( 'with a cross-pollination pair', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+
+			// Two groups of repeated fixture words, and one post with both.
+			for ( const [ title, content ] of [
+				[ 'First', 'yacon '.repeat( 6 ) ],
+				[ 'Second', 'yacon '.repeat( 6 ) ],
+				[ 'Third', 'yacon '.repeat( 6 ) ],
+				[ 'Roots', 'oca '.repeat( 6 ) ],
+				[ 'Old roots', 'oca '.repeat( 6 ) ],
+				[ 'Deep roots', 'oca '.repeat( 6 ) ],
+				[ 'Both', 'oca '.repeat( 3 ) + 'yacon '.repeat( 3 ) ],
+			] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ content.trim() }</p>`,
+					status: 'publish',
+				} );
+			}
+
+			const response = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			if ( ! response.ok() ) {
+				throw new Error(
+					`Clustering failed with HTTP ${ response.status() }.`
+				);
+			}
+		} );
+
+		capture( WITH_POLLINATION );
+	} );
+
 	test.describe( 'with a growth-stage badge', () => {
 		test.beforeAll( async ( { requestUtils } ) => {
 			await requestUtils.deleteAllPosts();
@@ -1197,6 +1371,16 @@ test.describe( 'Screenshot catalogue', () => {
 					} )
 				).id;
 			}
+
+			badgePosts.styled = (
+				await requestUtils.createPost( {
+					title: 'Mashua',
+					content: `<!-- wp:paragraph --><p>Oca grows here.</p><!-- /wp:paragraph --><!-- wp:undergrowth/growth-stage ${ JSON.stringify(
+						STYLED
+					) } /-->`,
+					status: 'publish',
+				} )
+			).id;
 
 			const list = await requestUtils.request.get( 'wp-admin/edit.php' );
 			const link = ( await list.text() ).match(
@@ -1246,7 +1430,95 @@ test.describe( 'Screenshot catalogue', () => {
 			}
 		} );
 
+		test.beforeAll( async ( { requestUtils } ) => {
+			listPosts.styled = (
+				await requestUtils.createPost( {
+					title: 'Oca again',
+					content: `<!-- wp:paragraph --><p>Oca oca oca.</p><!-- /wp:paragraph --><!-- wp:undergrowth/more-like-this ${ JSON.stringify(
+						STYLED
+					) } /-->`,
+					status: 'publish',
+				} )
+			).id;
+		} );
+
 		capture( WITH_MORE_LIKE_THIS );
+	} );
+
+	test.describe( 'with a garden index', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await requestUtils.deleteAllPages();
+			await skipWelcomeGuide( requestUtils );
+
+			// Three alike posts make one group; Bread is near none of them.
+			for ( const [ title, word ] of [
+				[ 'Oca', 'yacon' ],
+				[ 'Yacon', 'yacon' ],
+				[ 'Mashua', 'yacon' ],
+				[ 'Bread', '' ],
+			] ) {
+				await requestUtils.createPost( {
+					title,
+					content: `<p>${ Array( 6 ).fill( word ).join( ' ' ) }</p>`,
+					status: 'publish',
+				} );
+			}
+
+			await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			for ( const [ key, attributes ] of [
+				[ 'all', '' ],
+				[ 'evergreen', ' {"stage":"evergreen"}' ],
+			] ) {
+				gardenIndexPages[ key ] = (
+					await requestUtils.createPage( {
+						title: 'Garden',
+						content: `<!-- wp:undergrowth/garden-index${ attributes } /-->`,
+						status: 'publish',
+					} )
+				).id;
+			}
+		} );
+
+		capture( WITH_GARDEN_INDEX );
+	} );
+
+	test.describe( 'with an Evergreen post worth a look', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await skipWelcomeGuide( requestUtils );
+
+			// Created with an old date, which stays its last edit.
+			const date = new Date( Date.now() - 2 * 365 * 24 * 3600 * 1000 );
+			tendPosts.stale = (
+				await requestUtils.createPost( {
+					title: 'Oca',
+					content: '<p>Oca grows here.</p>',
+					status: 'publish',
+					date: date.toISOString().slice( 0, 19 ),
+				} )
+			).id;
+
+			// A build from before the panel has no route to pin through, and
+			// its shots are listed as skipped. Any other failure stops the
+			// run, rather than capturing a post with no note.
+			await requestUtils
+				.rest( {
+					method: 'POST',
+					path: `/undergrowth/v1/posts/${ tendPosts.stale }/stage`,
+					data: { action: 'pin', stage: 'evergreen' },
+				} )
+				.catch( ( error ) => {
+					if ( error?.code !== 'rest_no_route' ) {
+						throw error;
+					}
+				} );
+		} );
+
+		capture( WITH_TEND );
 	} );
 
 	test.describe( 'with the editor panel', () => {
