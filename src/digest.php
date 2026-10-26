@@ -300,13 +300,14 @@ function undergrowth_digest_suggestions( int $since, WP_User $user ): array {
 }
 
 /**
- * Remembers when a user last opened the Prompt studio, so the email never
- * points them to questions they have already seen there.
+ * Remembers when a user who gets the email last opened the Prompt studio,
+ * so the email never points them to questions they have already seen there.
+ * Nothing is kept for anyone else.
  */
 function undergrowth_note_studio_visit(): void {
 	$user_id = get_current_user_id();
 
-	if ( $user_id > 0 ) {
+	if ( $user_id > 0 && undergrowth_digest_is_on( $user_id ) ) {
 		update_user_meta( $user_id, 'undergrowth_studio_seen', (string) time() );
 	}
 }
