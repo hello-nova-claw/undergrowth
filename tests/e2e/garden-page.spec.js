@@ -51,11 +51,16 @@ test.describe( 'Garden page pattern', () => {
 		await requestUtils.deleteAllPosts();
 		await requestUtils.deleteAllPages();
 
-		for ( const title of [ 'Oca', 'Yacon' ] ) {
+		for ( const [ title, status ] of [
+			[ 'Oca', 'publish' ],
+			[ 'Yacon', 'publish' ],
+			// A draft readers must not see, in the count or the feed.
+			[ 'Mashua', 'draft' ],
+		] ) {
 			await requestUtils.createPost( {
 				title,
 				content: `<p>${ title } grows here.</p>`,
-				status: 'publish',
+				status,
 			} );
 		}
 	} );
@@ -89,6 +94,7 @@ test.describe( 'Garden page pattern', () => {
 		requestUtils,
 	} ) => {
 		const themes = await requestUtils.rest( { path: '/wp/v2/themes' } );
+		const active = themes.find( ( theme ) => theme.status === 'active' );
 		test.skip(
 			! themes.some(
 				( theme ) => theme.stylesheet === 'twentytwentyone'
@@ -107,7 +113,9 @@ test.describe( 'Garden page pattern', () => {
 			).toHaveCount( 2 );
 			await expectNoA11yViolations( page, PAGE );
 		} finally {
-			await requestUtils.activateTheme( 'twentytwentyfive' );
+			if ( active ) {
+				await requestUtils.activateTheme( active.stylesheet );
+			}
 		}
 	} );
 } );
