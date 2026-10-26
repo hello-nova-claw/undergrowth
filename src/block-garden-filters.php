@@ -45,6 +45,43 @@ function undergrowth_register_garden_filters_block(): void {
 }
 
 /**
+ * Finds the type setting of the garden feed on the page being shown.
+ *
+ * The filters offer the types the feed filters by, so the two can never
+ * disagree. The feed is looked for in the page's blocks, inside groups,
+ * columns and patterns.
+ *
+ * @return string The feed's typeSource, or post_format when the page holds no feed.
+ */
+function undergrowth_garden_filters_type_source(): string {
+	$post_id = get_the_ID() ? get_the_ID() : get_queried_object_id();
+	$find    = static function ( array $blocks ) use ( &$find ): ?string {
+		foreach ( $blocks as $block ) {
+			if ( 'undergrowth/garden-feed' === $block['blockName'] ) {
+				return (string) ( $block['attrs']['typeSource'] ?? 'post_format' );
+			}
+
+			$inner = $block['innerBlocks'];
+
+			if ( 'core/pattern' === $block['blockName'] ) {
+				$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( (string) ( $block['attrs']['slug'] ?? '' ) );
+				$inner   = is_array( $pattern ) ? parse_blocks( (string) $pattern['content'] ) : array();
+			}
+
+			$found = $find( $inner );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	};
+
+	return $post_id ? ( $find( parse_blocks( (string) get_post_field( 'post_content', $post_id ) ) ) ?? 'post_format' ) : 'post_format';
+}
+
+/**
  * Finds the topics, stages and types the visible garden holds.
  *
  * Only these are offered, so no choice leads to an empty garden by itself
@@ -146,7 +183,7 @@ function undergrowth_garden_filters_select( string $name, string $label, string 
  * @return string Filters markup, or an empty string when the garden is empty.
  */
 function undergrowth_render_garden_filters_block( $attributes ): string {
-	$type_taxonomy = undergrowth_garden_feed_type_taxonomy( (string) $attributes['typeSource'] );
+	$type_taxonomy = undergrowth_garden_feed_type_taxonomy( undergrowth_garden_filters_type_source() );
 	$filters       = undergrowth_garden_feed_filters();
 	$garden        = undergrowth_garden_feed_posts( 'tended', $type_taxonomy, array_fill_keys( array_keys( $filters ), '' ) );
 

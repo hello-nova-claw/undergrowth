@@ -524,9 +524,7 @@ msgstr ""
 
 #: src/block-garden-filters.php
 #: build/blocks/garden-feed/index.js
-#: build/blocks/garden-filters/index.js
 #: src/blocks/garden-feed/edit.js
-#: src/blocks/garden-filters/edit.js
 msgid "Type"
 msgstr ""
 
@@ -2602,7 +2600,6 @@ msgid "Readers see nothing here yet. This lists your published posts, newest ten
 msgstr ""
 
 #: build/blocks/garden-feed/index.js
-#: build/blocks/garden-filters/index.js
 #: src/blocks/garden-feed/type-options.js
 msgid "Post format"
 msgstr ""
@@ -2691,7 +2688,7 @@ msgstr ""
 
 #: build/blocks/garden-filters/index.js
 #: src/blocks/garden-filters/edit.js
-msgid "Use the same choice as the garden feed."
+msgid "The types follow the garden feed on this page."
 msgstr ""
 
 #: build/blocks/garden-index/index.js
