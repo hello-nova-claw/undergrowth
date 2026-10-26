@@ -6,7 +6,8 @@
  * Every word in it is the author's own or the plugin's: the sentence where
  * the link would sit, the posts' titles, and the name of a group on the Map
  * or words both posts use. It links to the Suggestions screen and never
- * accepts anything itself. Nothing is sent when nothing is new.
+ * accepts anything itself. Nothing is sent when nothing is new. When new
+ * questions wait in the Prompt studio, one line says so, once.
  *
  * @package Undergrowth
  */
@@ -26,6 +27,7 @@ add_action( 'show_user_profile', 'undergrowth_render_digest_field', 20 );
 add_action( 'personal_options_update', 'undergrowth_save_digest_field' );
 add_action( 'admin_post_undergrowth_digest_off', 'undergrowth_handle_digest_off' );
 add_action( 'admin_post_nopriv_undergrowth_digest_off', 'undergrowth_handle_digest_off' );
+add_action( 'load-posts_page_undergrowth-studio', 'undergrowth_note_studio_visit' );
 
 /**
  * Tells whether a user has turned the monthly email on.
@@ -215,7 +217,7 @@ function undergrowth_send_digest( WP_User $user ): bool {
 		__( '[%s] Link suggestions worth a look', 'undergrowth' ),
 		wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES )
 	);
-	$message = undergrowth_digest_message( $rows, $url );
+	$message = undergrowth_digest_message( $rows, $url, undergrowth_digest_has_new_questions( $user, $since ) );
 
 	if ( $switched ) {
 		restore_previous_locale();
@@ -298,13 +300,59 @@ function undergrowth_digest_suggestions( int $since, WP_User $user ): array {
 }
 
 /**
+ * Remembers when a user last opened the Prompt studio, so the email never
+ * points them to questions they have already seen there.
+ */
+function undergrowth_note_studio_visit(): void {
+	$user_id = get_current_user_id();
+
+	if ( $user_id > 0 ) {
+		update_user_meta( $user_id, 'undergrowth_studio_seen', (string) time() );
+	}
+}
+
+/**
+ * Tells whether a question new to the user waits in the Prompt studio: one
+ * written after their last email and their last visit to the studio, about
+ * posts they can edit.
+ *
+ * @param WP_User $user  The user the email is for.
+ * @param int     $since Unix time of their last email, or of turning it on.
+ * @return bool
+ */
+function undergrowth_digest_has_new_questions( WP_User $user, int $since ): bool {
+	$since = max( $since, (int) get_user_meta( $user->ID, 'undergrowth_studio_seen', true ) );
+
+	foreach ( undergrowth_prompts( 'new' ) as $prompt ) {
+		if ( $prompt['time'] <= $since ) {
+			continue;
+		}
+
+		// As undergrowth_user_can_answer_prompt() asks, for a user who is
+		// not the current one: the email is sent from cron.
+		$can = true;
+
+		foreach ( array_merge( array( $prompt['post_id'] ), $prompt['posts'] ) as $post_id ) {
+			$can = $can && user_can( $user, 'edit_post', (int) $post_id );
+		}
+
+		if ( $can ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Writes the email's plain text.
  *
- * @param array<int, array{source_id: int, target_id: int, sentence: string, anchor: string, anchor_offset: int}> $rows Suggestions, best first.
- * @param string                                                                                                  $off  Address that turns the email off.
+ * @param array<int, array{source_id: int, target_id: int, sentence: string, anchor: string, anchor_offset: int}> $rows      Suggestions, best first.
+ * @param string                                                                                                  $off       Address that turns the email off.
+ * @param bool                                                                                                    $questions Whether new questions wait in the Prompt studio.
  * @return string The message.
  */
-function undergrowth_digest_message( array $rows, string $off ): string {
+function undergrowth_digest_message( array $rows, string $off, bool $questions = false ): string {
 	$lines = array(
 		__( 'These are the strongest link suggestions Undergrowth made since its last email. Nothing changes on your site until you accept one.', 'undergrowth' ),
 		'',
@@ -343,6 +391,13 @@ function undergrowth_digest_message( array $rows, string $off ): string {
 	$lines[] = __( 'Accept or veto them on Posts > Undergrowth:', 'undergrowth' );
 	$lines[] = undergrowth_suggestions_url();
 	$lines[] = '';
+
+	if ( $questions ) {
+		$lines[] = __( 'New questions are waiting in your Prompt studio:', 'undergrowth' );
+		$lines[] = undergrowth_studio_url();
+		$lines[] = '';
+	}
+
 	$lines[] = __( 'You get this email because you turned it on in your profile. To stop it:', 'undergrowth' );
 	$lines[] = $off;
 

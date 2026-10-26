@@ -1011,6 +1011,10 @@ msgid "Accept or veto them on Posts > Undergrowth:"
 msgstr ""
 
 #: src/digest.php
+msgid "New questions are waiting in your Prompt studio:"
+msgstr ""
+
+#: src/digest.php
 msgid "You get this email because you turned it on in your profile. To stop it:"
 msgstr ""
 
