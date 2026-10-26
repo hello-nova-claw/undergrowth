@@ -103,7 +103,7 @@ function undergrowth_count_orphans(): int {
  * left out.
  *
  * @param int $post_id Post the suggestions would link to.
- * @return array<int, array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int}> Suggestions, best first.
+ * @return array<int, array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int, kind: string}> Suggestions, best first.
  */
 function undergrowth_suggestions_to( int $post_id ): array {
 	global $wpdb;
@@ -111,7 +111,7 @@ function undergrowth_suggestions_to( int $post_id ): array {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT source_id, target_id, sentence, anchor, anchor_offset FROM %i WHERE target_id = %d AND state = %s ORDER BY score DESC, source_id ASC',
+			'SELECT source_id, target_id, sentence, anchor, anchor_offset, kind FROM %i WHERE target_id = %d AND state = %s ORDER BY score DESC, source_id ASC',
 			undergrowth_links_table(),
 			$post_id,
 			'proposed'
@@ -138,6 +138,7 @@ function undergrowth_suggestions_to( int $post_id ): array {
 			'sentence'  => (string) $row['sentence'],
 			'anchor'    => (string) $row['anchor'],
 			'offset'    => (int) $row['anchor_offset'],
+			'kind'      => (string) $row['kind'],
 		);
 	}
 

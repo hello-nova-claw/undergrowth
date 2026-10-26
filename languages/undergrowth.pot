@@ -186,6 +186,11 @@ msgstr ""
 
 #: src/admin.php
 #: src/help.php
+msgid "Orphans"
+msgstr ""
+
+#: src/admin.php
+#: src/help.php
 msgid "Growth stages"
 msgstr ""
 
@@ -196,6 +201,10 @@ msgstr ""
 
 #: src/admin.php
 msgid "Undergrowth screen"
+msgstr ""
+
+#: src/admin.php
+msgid "These posts have no accepted link from another of your published posts, so readers following links find them less easily, and so do search engines. Newest first. Links you added by hand are not counted."
 msgstr ""
 
 #: src/admin.php
@@ -519,11 +528,13 @@ msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Accept”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #, php-format
 msgid "Accept the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #: src/discord-messages.php
 #: src/settings.php
 #: build/editor/index.js
@@ -534,11 +545,13 @@ msgstr ""
 
 #. translators: 1: title of the post the link would sit in, 2: title of the post it would point to. Must begin with the translation of “Veto”, the word on the button, so voice control can find it.
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #, php-format
 msgid "Veto the link from %1$s to %2$s"
 msgstr ""
 
 #: src/class-undergrowth-links-list-table.php
+#: src/class-undergrowth-orphans-list-table.php
 #: src/discord-messages.php
 #: build/editor/index.js
 #: src/editor/links-sidebar.js
@@ -602,11 +615,13 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+#: src/class-undergrowth-orphans-list-table.php
 #: src/class-undergrowth-stages-list-table.php
 #: src/map.php
 msgid "Post"
 msgstr ""
 
+#: src/class-undergrowth-orphans-list-table.php
 #: src/class-undergrowth-stages-list-table.php
 #: src/posts-screen.php
 #: build/blocks/garden-index/index.js
@@ -614,6 +629,36 @@ msgstr ""
 #: src/blocks/garden-index/edit.js
 #: src/blocks/growth-stage/edit.js
 msgid "Growth stage"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "Published"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "Could link here"
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "No orphans. Every post in your garden that Undergrowth has read has at least one accepted link pointing to it."
+msgstr ""
+
+#: src/class-undergrowth-orphans-list-table.php
+msgid "No suggestions yet"
+msgstr ""
+
+#. translators: %1$s: number of suggestions.
+#: src/class-undergrowth-orphans-list-table.php
+#, php-format
+msgid "See all %1$s suggestion"
+msgid_plural "See all %1$s suggestions"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: title of the post the link would sit in, linked to its editor.
+#: src/class-undergrowth-orphans-list-table.php
+#, php-format
+msgid "In %1$s"
 msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
@@ -1257,6 +1302,14 @@ msgstr ""
 
 #: src/help.php
 msgid "A suggestion marked Cross-pollination links two posts from groups on the Map that sit apart, as the surprise scale on Settings › Undergrowth allows. A post gets at most one, on top of its usual suggestions, and it is accepted or vetoed like any other."
+msgstr ""
+
+#: src/help.php
+msgid "An orphan is a post in your garden that no accepted link from another of your published posts points to. Readers who follow links, and search engines, reach it less easily. Undergrowth only knows the links it suggested and you accepted, so a link you added by hand is not counted."
+msgstr ""
+
+#: src/help.php
+msgid "Beside each orphan are the best suggestions that would link to it, with Accept and Veto as on the Suggestions tab. Once you accept one, the post leaves the list. Composting posts and posts not read yet are never listed."
 msgstr ""
 
 #: src/help.php

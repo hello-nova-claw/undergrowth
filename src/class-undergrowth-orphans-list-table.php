@@ -178,7 +178,7 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 	 * Prints one suggestion: the author's sentence with the words Accept
 	 * would link marked, the post it sits in, and Accept and Veto.
 	 *
-	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int} $item Suggestion.
+	 * @param array{source_id: int, target_id: int, sentence: string, anchor: string, offset: int, kind: string} $item Suggestion.
 	 * @return string HTML.
 	 */
 	private function suggestion( array $item ): string {
@@ -196,6 +196,7 @@ class Undergrowth_Orphans_List_Table extends WP_List_Table {
 				esc_html__( 'In %1$s', 'undergrowth' ),
 				undergrowth_post_link( $item['source_id'] )
 			) . '</p>'
+			. ( 'cross' === $item['kind'] ? undergrowth_cross_link_label( $item['source_id'], $item['target_id'] ) : '' )
 			. $this->row_actions(
 				array(
 					'accept' => undergrowth_row_action_button(
