@@ -131,7 +131,7 @@ describe( 'Garden filters block', () => {
 		);
 	} );
 
-	test( 'keeps the form\'s address when a query arg is named action', () => {
+	test( "keeps the form's address when a query arg is named action", () => {
 		// The page's own query args come back as hidden fields, and a field
 		// named action shadows the form's action property.
 		document.body.innerHTML = `<form action="/garden/" method="get">
