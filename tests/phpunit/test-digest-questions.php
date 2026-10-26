@@ -133,6 +133,8 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 
 	public function test_a_question_already_mentioned_by_an_earlier_email_is_not_mentioned_again() {
 		$user_id = $this->subscriber();
+		// Turned on before the question, so only the earlier email covers it.
+		update_user_meta( $user_id, 'undergrowth_digest', (string) ( time() - 31 * DAY_IN_SECONDS ) );
 		$this->question( time() - 30 * DAY_IN_SECONDS );
 		update_user_meta( $user_id, 'undergrowth_digest_sent', (string) ( time() - 25 * DAY_IN_SECONDS ) );
 
