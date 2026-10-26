@@ -78,6 +78,10 @@ Only the site's total page views for each of the last 30 days, added up into one
 
 No. Undergrowth has no view counter of its own. If Jetpack Stats, Koko Analytics or Post Views Counter is active, it reads your posts' views over the last 30 days from that plugin once a day (from Jetpack, only its most viewed 500), in the background, so recent views can lift a post a little. Recent days count more and older views fade. Nothing new leaves your site: Koko Analytics and Post Views Counter are read from your own database, and Jetpack fetches its numbers from WordPress.com as it does for its own Stats screen. With none of them, the block leaves popularity out, unless code on your site supplies views through the `undergrowth_post_popularity` filter. Settings > Undergrowth says which one is used.
 
+= How do I make a garden page? =
+
+Add a new page and choose Garden page from the patterns offered for it, or insert it later from the Undergrowth category of patterns. It sets a heading, an introduction for you to write, the number of posts in your garden, the garden filters and the garden feed, newest tended first. Change the heading, write your introduction and publish. Every block takes its colours and spacing from your theme. Readers see only your published posts that are public and not composting, and nothing a model wrote.
+
 = What does it cost? =
 
 Undergrowth is free. The services bill your own accounts. At OpenAI's published price for text-embedding-3-small, reading 500 posts of about 1,500 words costs about two cents. Each question from Claude is one or two short requests, usually one or two cents each.
