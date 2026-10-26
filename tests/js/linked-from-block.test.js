@@ -81,7 +81,12 @@ describe( 'Linked from block', () => {
 
 		const container = renderEdit(
 			{ postId: 42, postType: 'post' },
-			{ heading: 'Paths here', maxItems: 3 }
+			{
+				heading: 'Paths here',
+				maxItems: 3,
+				backgroundColor: 'accent',
+				style: { spacing: { padding: { top: '2em' } } },
+			}
 		);
 
 		await waitFor( () => container.querySelector( 'li a' ) );
@@ -93,6 +98,10 @@ describe( 'Linked from block', () => {
 		expect( requests[ 0 ].path ).toContain( 'post_id=42' );
 		expect( decodeURIComponent( requests[ 0 ].path ) ).toContain(
 			'attributes[maxItems]=3'
+		);
+		// The wrapper carries the supports, so the preview never doubles them.
+		expect( decodeURIComponent( requests[ 0 ].path ) ).not.toMatch(
+			/backgroundColor|padding/
 		);
 		expect( container.querySelector( 'h2' ).textContent ).toBe(
 			'Paths here'
