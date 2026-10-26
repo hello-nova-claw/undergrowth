@@ -18,6 +18,13 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 	 */
 	private $sent = array();
 
+	/**
+	 * Post the author may not edit, for refuse_only().
+	 *
+	 * @var int
+	 */
+	private $refused = 0;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -83,14 +90,15 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 	 *
 	 * @param int    $time   When it was written.
 	 * @param string $status 'new', 'saved' or 'dismissed'.
+	 * @param int[]  $posts  Other posts it came from.
 	 */
-	private function question( int $time, string $status = 'new' ): void {
+	private function question( int $time, string $status = 'new', array $posts = array() ): void {
 		$prompts   = (array) get_option( 'undergrowth_prompts', array() );
 		$prompts[] = array(
 			'key'      => 'gap-' . count( $prompts ),
 			'source'   => 'gap',
 			'post_id'  => self::factory()->post->create( array( 'post_title' => 'Yacon' ) ),
-			'posts'    => array(),
+			'posts'    => $posts,
 			'question' => 'What grows beside your yacon?',
 			'time'     => $time,
 			'status'   => $status,
@@ -194,6 +202,28 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 		add_filter( 'map_meta_cap', array( $this, 'refuse_yacon' ), 10, 4 );
 
 		$this->assertStringNotContainsString( 'Prompt studio', $this->message() );
+	}
+
+	public function test_no_line_when_the_author_cannot_edit_another_post_the_question_came_from() {
+		$this->subscriber();
+		$this->refused = self::factory()->post->create( array( 'post_title' => 'Mashua' ) );
+		$this->question( time() - HOUR_IN_SECONDS, 'new', array( $this->refused ) );
+		add_filter( 'map_meta_cap', array( $this, 'refuse_only' ), 10, 4 );
+
+		$this->assertStringNotContainsString( 'Prompt studio', $this->message() );
+	}
+
+	/**
+	 * Refuses editing one post.
+	 *
+	 * @param string[] $caps    Capabilities needed.
+	 * @param string   $cap     Capability asked for.
+	 * @param int      $user_id User ID.
+	 * @param array    $args    Post ID first, for edit_post.
+	 * @return string[]
+	 */
+	public function refuse_only( $caps, $cap, $user_id, $args ) {
+		return 'edit_post' === $cap && isset( $args[0] ) && $this->refused === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
 	}
 
 	/**
