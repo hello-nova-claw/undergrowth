@@ -241,6 +241,28 @@ class Test_Prompts_Cross extends WP_UnitTestCase {
 		$this->assertCount( UNDERGROWTH_PROMPT_BATCH - 1, $this->new_from( 'comment' ) );
 	}
 
+	public function test_cross_question_shares_the_batchs_budget_of_requests() {
+		list( $a ) = $this->garden();
+
+		for ( $i = 0; $i < 20; $i++ ) {
+			self::factory()->comment->create(
+				array(
+					'comment_post_ID'  => $a[1],
+					'comment_content'  => 'How do you store it over winter, part ' . $i . '?',
+					'comment_approved' => 1,
+				)
+			);
+		}
+
+		// No reply is a question, so every source is tried.
+		$this->reply = 'Not a question.';
+
+		undergrowth_run_prompt_batch();
+
+		$this->assertCount( UNDERGROWTH_PROMPT_BATCH_CALLS, $this->requests );
+		$this->assertStringContainsString( 'rarely meet', $this->requests[0]['messages'][0]['content'] );
+	}
+
 	public function test_without_a_pair_the_batch_is_unchanged() {
 		$this->garden( 0.0 );
 
