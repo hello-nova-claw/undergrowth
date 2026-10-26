@@ -20,6 +20,7 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 
 	public function tear_down() {
 		$_GET = array();
+		unset( $GLOBALS['post'] );
 
 		parent::tear_down();
 	}
@@ -155,16 +156,133 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertSame( array(), $this->options( $this->render(), 'type' ) );
 	}
 
-	public function test_can_take_the_types_from_another_taxonomy() {
+	/**
+	 * Puts the filters on a page beside a garden feed, as the post being shown.
+	 *
+	 * @param string $feed The feed's block markup.
+	 */
+	private function on_page_with( string $feed ): void {
+		$GLOBALS['post'] = get_post(
+			self::factory()->post->create(
+				array(
+					'post_type'    => 'page',
+					'post_status'  => 'publish',
+					'post_content' => '<!-- wp:group --><div class="wp-block-group"><!-- wp:undergrowth/garden-filters /-->' . $feed . '</div><!-- /wp:group -->',
+				)
+			)
+		);
+	}
+
+	public function test_takes_the_types_from_the_feed_on_the_same_page() {
 		$essay = self::factory()->category->create(
 			array(
 				'name' => 'Essay',
 				'slug' => 'essay',
 			)
 		);
+		set_post_format( $this->post( 'Oca', array( 'post_category' => array( $essay ) ) ), 'aside' );
+		$this->post( 'Yacon' );
+
+		$this->on_page_with( '<!-- wp:undergrowth/garden-feed {"typeSource":"category"} /-->' );
+
+		$this->assertSame( array( 'essay' => 'Essay' ), array_intersect_key( $this->options( $this->render(), 'type' ), array( 'essay' => true ) ) );
+		$this->assertArrayNotHasKey( 'aside', $this->options( $this->render(), 'type' ) );
+	}
+
+	public function test_takes_the_types_from_a_feed_inside_a_pattern() {
+		register_block_pattern(
+			'undergrowth-test/feed',
+			array(
+				'title'   => 'Feed',
+				'content' => '<!-- wp:undergrowth/garden-feed {"typeSource":"category"} /-->',
+			)
+		);
+		$essay = self::factory()->category->create( array( 'slug' => 'essay' ) );
 		$this->post( 'Oca', array( 'post_category' => array( $essay ) ) );
 
-		$this->assertSame( array( 'essay' => 'Essay' ), array_slice( $this->options( $this->render( array( 'typeSource' => 'category' ) ), 'type' ), 1 ) );
+		$this->on_page_with( '<!-- wp:pattern {"slug":"undergrowth-test/feed"} /-->' );
+		$html = $this->render();
+		unregister_block_pattern( 'undergrowth-test/feed' );
+
+		$this->assertArrayHasKey( 'essay', $this->options( $html, 'type' ) );
+	}
+
+	public function test_takes_the_types_from_a_feed_inside_a_synced_pattern() {
+		$synced = self::factory()->post->create(
+			array(
+				'post_type'    => 'wp_block',
+				'post_status'  => 'publish',
+				'post_content' => '<!-- wp:undergrowth/garden-feed {"typeSource":"category"} /-->',
+			)
+		);
+		$essay  = self::factory()->category->create( array( 'slug' => 'essay' ) );
+		$this->post( 'Oca', array( 'post_category' => array( $essay ) ) );
+
+		$this->on_page_with( '<!-- wp:block {"ref":' . $synced . '} /-->' );
+
+		$this->assertArrayHasKey( 'essay', $this->options( $this->render(), 'type' ) );
+	}
+
+	/**
+	 * Skips a synced pattern WordPress would not render.
+	 *
+	 * @dataProvider data_unrendered_synced_patterns
+	 *
+	 * @param array<string, string> $args Fields of the synced pattern.
+	 */
+	public function test_skips_a_synced_pattern_wordpress_would_not_render( array $args ) {
+		$hidden = self::factory()->post->create(
+			$args + array(
+				'post_type'    => 'wp_block',
+				'post_status'  => 'publish',
+				'post_content' => '<!-- wp:undergrowth/garden-feed {"typeSource":"category"} /-->',
+			)
+		);
+		set_post_format( $this->post( 'Oca' ), 'aside' );
+		$this->post( 'Yacon' );
+
+		$this->on_page_with( '<!-- wp:block {"ref":' . $hidden . '} /--><!-- wp:undergrowth/garden-feed /-->' );
+
+		$this->assertArrayHasKey( 'aside', $this->options( $this->render(), 'type' ) );
+	}
+
+	/**
+	 * Synced patterns core's block does not render.
+	 *
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function data_unrendered_synced_patterns(): array {
+		return array(
+			'draft'              => array( array( 'post_status' => 'draft' ) ),
+			'password-protected' => array( array( 'post_password' => 'oca' ) ),
+		);
+	}
+
+	public function test_a_pattern_that_holds_itself_is_read_once() {
+		register_block_pattern(
+			'undergrowth-test/loop',
+			array(
+				'title'   => 'Loop',
+				'content' => '<!-- wp:pattern {"slug":"undergrowth-test/loop"} /-->',
+			)
+		);
+		set_post_format( $this->post( 'Oca' ), 'aside' );
+		$this->post( 'Yacon' );
+
+		$this->on_page_with( '<!-- wp:pattern {"slug":"undergrowth-test/loop"} /-->' );
+		$html = $this->render();
+		unregister_block_pattern( 'undergrowth-test/loop' );
+
+		$this->assertArrayHasKey( 'aside', $this->options( $html, 'type' ) );
+	}
+
+	public function test_uses_post_formats_with_no_feed_on_the_page() {
+		set_post_format( $this->post( 'Oca' ), 'aside' );
+		$this->post( 'Yacon' );
+
+		$this->on_page_with( '' );
+
+		$this->assertArrayHasKey( 'aside', $this->options( $this->render(), 'type' ) );
 	}
 
 	public function test_links_each_tag_the_visible_garden_holds() {

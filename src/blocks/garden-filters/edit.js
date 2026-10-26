@@ -9,8 +9,6 @@ import {
 import { __ } from '@wordpress/i18n';
 import ServerSideRender from '@wordpress/server-side-render';
 
-import { useTypeOptions } from '../garden-feed/type-options';
-
 /**
  * Says why readers will see no filters, in place of the empty render.
  *
@@ -39,7 +37,6 @@ function NoPosts() {
  */
 export default function Edit( { attributes, setAttributes } ) {
 	const blockProps = useBlockProps();
-	const typeOptions = useTypeOptions();
 
 	return (
 		<div { ...blockProps }>
@@ -83,23 +80,13 @@ export default function Edit( { attributes, setAttributes } ) {
 					<ToggleControl
 						__nextHasNoMarginBottom
 						label={ __( 'Show the type', 'undergrowth' ) }
+						help={ __(
+							'The types follow the garden feed on this page.',
+							'undergrowth'
+						) }
 						checked={ attributes.showType }
 						onChange={ ( showType ) =>
 							setAttributes( { showType } )
-						}
-					/>
-					<SelectControl
-						__next40pxDefaultSize
-						__nextHasNoMarginBottom
-						label={ __( 'Type', 'undergrowth' ) }
-						help={ __(
-							'Use the same choice as the garden feed.',
-							'undergrowth'
-						) }
-						value={ attributes.typeSource }
-						options={ typeOptions }
-						onChange={ ( typeSource ) =>
-							setAttributes( { typeSource } )
 						}
 					/>
 				</PanelBody>

@@ -72,7 +72,8 @@ describe( 'Garden filters block', () => {
 
 		expect( type.title ).toBe( metadata.title );
 		expect( type.attributes.topicSource.default ).toBe( 'post_tag' );
-		expect( type.attributes.typeSource.default ).toBe( 'post_format' );
+		// The types follow the garden feed on the same page.
+		expect( type.attributes.typeSource ).toBeUndefined();
 		expect( type.supports.interactivity ).toBe( true );
 	} );
 
@@ -128,6 +129,19 @@ describe( 'Garden filters block', () => {
 
 		expect( formAddress( document.querySelector( 'form' ) ) ).toBe(
 			'http://localhost/garden/?page_id=7&topic=roots&stage=sprout'
+		);
+	} );
+
+	test( "keeps the form's address when a query arg is named action", () => {
+		// The page's own query args come back as hidden fields, and a field
+		// named action shadows the form's action property.
+		document.body.innerHTML = `<form action="/garden/" method="get">
+			<input type="hidden" name="action" value="x">
+			<select name="stage"><option value="sprout" selected>Sprout</option></select>
+		</form>`;
+
+		expect( formAddress( document.querySelector( 'form' ) ) ).toBe(
+			'http://localhost/garden/?action=x&stage=sprout'
 		);
 	} );
 } );

@@ -15,10 +15,6 @@
 			"enum": [ "post_tag", "category" ],
 			"default": "post_tag"
 		},
-		"typeSource": {
-			"type": "string",
-			"default": "post_format"
-		},
 		"showTopics": {
 			"type": "boolean",
 			"default": true

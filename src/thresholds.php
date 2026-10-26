@@ -389,7 +389,8 @@ function undergrowth_measure_gap_threshold(): void {
 }
 
 /**
- * Describes the site's measured scores and the thresholds in use, line by line.
+ * Describes the site's measured scores, the thresholds in use and how many
+ * suggestions link a single word, line by line.
  *
  * The real-posts test reads these to compare a provider's spread with the
  * fixed numbers. See the `wp undergrowth scores` command.
@@ -423,6 +424,9 @@ function undergrowth_scores_report(): array {
 		$source  = null === undergrowth_derived_threshold( $threshold[0] ) ? 'fixed' : 'measured';
 		$lines[] = $label . ' threshold in use: ' . number_format( $threshold[1], 3 ) . ' (' . $source . ')';
 	}
+
+	$anchors = undergrowth_one_word_anchor_counts();
+	$lines[] = 'Suggestions linking one word: ' . $anchors['one'] . ' of ' . $anchors['all'];
 
 	return $lines;
 }

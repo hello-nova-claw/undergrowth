@@ -606,6 +606,29 @@ function undergrowth_choose_sentence( int $source_id, int $target_id, array $cor
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
  */
 function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array $corpus, array $taken = array() ): ?array {
+	$ranked = undergrowth_rank_sentences_in( $source, $target_id, $corpus, $taken );
+
+	return array() === $ranked ? null : array( 'text' => $ranked[0] );
+}
+
+/**
+ * Lists the sentences in a post's content that fit a link to the target,
+ * best first.
+ *
+ * Sentences holding none of the post's other proposals come first, so
+ * accepting several links never crowds them into one sentence. Each group
+ * is in order of how much the sentence shares with the target, and in
+ * reading order where two share as much.
+ *
+ * @param WP_Post  $source    Post the link would sit in.
+ * @param int      $target_id Post the link would point to.
+ * @param array    $corpus    Result of undergrowth_build_corpus().
+ * @param string[] $taken     Sentences already holding another of the post's proposals.
+ * @return string[] The sentences, best first.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ */
+function undergrowth_rank_sentences_in( WP_Post $source, int $target_id, array $corpus, array $taken = array() ): array {
 	// Only sentences from paragraphs a link may go in are scored, each with
 	// its own paragraph's flags, so a heading or list item is never chosen,
 	// even when it shares a paragraph's words or text. The target's words
@@ -617,15 +640,11 @@ function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array 
 		}
 	);
 
-	$terms = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
-	$taken = array_flip( $taken );
-	$best  = array(
-		'free'  => null,
-		'taken' => null,
-	);
-	$top   = array(
-		'free'  => 0.0,
-		'taken' => 0.0,
+	$terms  = undergrowth_anchor_terms( $target_id, implode( ' ', array_column( $sentences, 'text' ) ), $corpus );
+	$taken  = array_flip( $taken );
+	$scores = array(
+		'free'  => array(),
+		'taken' => array(),
 	);
 
 	foreach ( $sentences as $sentence ) {
@@ -636,27 +655,44 @@ function undergrowth_choose_sentence_in( WP_Post $source, int $target_id, array 
 			$score += $terms[ $token ] ?? 0.0;
 		}
 
-		if ( $score > $top[ $kind ] ) {
-			$top[ $kind ]  = $score;
-			$best[ $kind ] = $sentence['text'];
+		if ( $score > ( $scores[ $kind ][ $sentence['text'] ] ?? 0.0 ) ) {
+			$scores[ $kind ][ $sentence['text'] ] = $score;
 		}
-	}
-
-	$best = $best['free'] ?? $best['taken'];
-
-	if ( null === $best ) {
-		return null;
 	}
 
 	// The sentence must also stand unlinked and unquoted among all of the
 	// post's sentences, which is where Accept looks for it.
+	$standing = array();
+
 	foreach ( undergrowth_split_sentences( $source->post_content ) as $sentence ) {
-		if ( $best === $sentence['text'] && ! $sentence['linked'] && ! $sentence['quoted'] ) {
-			return array( 'text' => $best );
+		if ( ! $sentence['linked'] && ! $sentence['quoted'] ) {
+			$standing[ $sentence['text'] ] = true;
 		}
 	}
 
-	return null;
+	$ranked = array();
+
+	foreach ( $scores as $group ) {
+		// Equal scores keep reading order, which sorting alone does not
+		// promise before PHP 8.
+		$position = array_flip( array_keys( $group ) );
+		uksort(
+			$group,
+			static function ( $a, $b ) use ( $group, $position ) {
+				$order = $group[ $b ] <=> $group[ $a ];
+
+				return 0 !== $order ? $order : $position[ $a ] <=> $position[ $b ];
+			}
+		);
+
+		foreach ( array_keys( $group ) as $text ) {
+			if ( isset( $standing[ (string) $text ] ) && ! in_array( (string) $text, $ranked, true ) ) {
+				$ranked[] = (string) $text;
+			}
+		}
+	}
+
+	return $ranked;
 }
 
 /**

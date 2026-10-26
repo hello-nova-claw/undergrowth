@@ -45,6 +45,70 @@ function undergrowth_register_garden_filters_block(): void {
 }
 
 /**
+ * Decides whether WordPress would render a synced pattern, as core's
+ * core/block does, so a feed it would not show never sets the types.
+ *
+ * @param WP_Post|null $synced The wp_block post a core/block refers to.
+ * @return bool True for a published synced pattern with no password.
+ */
+function undergrowth_garden_filters_renders_synced( ?WP_Post $synced ): bool {
+	return null !== $synced
+		&& 'wp_block' === $synced->post_type
+		&& 'publish' === $synced->post_status
+		&& '' === $synced->post_password;
+}
+
+/**
+ * Finds the type setting of the garden feed on the page being shown.
+ *
+ * The filters offer the types the feed filters by, so the two can never
+ * disagree. The feed is looked for in the page's blocks, inside groups,
+ * columns, patterns and synced patterns.
+ *
+ * @return string The feed's typeSource, or post_format when the page holds no feed.
+ */
+function undergrowth_garden_filters_type_source(): string {
+	$post_id = get_the_ID() ? get_the_ID() : get_queried_object_id();
+	// A pattern is opened once on each path, so one that holds itself, or
+	// another that holds it, cannot loop.
+	$find = static function ( array $blocks, array $opened ) use ( &$find ): ?string {
+		foreach ( $blocks as $block ) {
+			if ( 'undergrowth/garden-feed' === $block['blockName'] ) {
+				return (string) ( $block['attrs']['typeSource'] ?? 'post_format' );
+			}
+
+			$inner = $block['innerBlocks'];
+			$key   = '';
+
+			if ( 'core/pattern' === $block['blockName'] ) {
+				$key     = 'pattern:' . (string) ( $block['attrs']['slug'] ?? '' );
+				$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( (string) ( $block['attrs']['slug'] ?? '' ) );
+				$inner   = is_array( $pattern ) ? parse_blocks( (string) $pattern['content'] ) : array();
+			} elseif ( 'core/block' === $block['blockName'] ) {
+				// A synced pattern is stored as a wp_block post.
+				$key    = 'block:' . (int) ( $block['attrs']['ref'] ?? 0 );
+				$synced = get_post( (int) ( $block['attrs']['ref'] ?? 0 ) );
+				$inner  = undergrowth_garden_filters_renders_synced( $synced ) ? parse_blocks( $synced->post_content ) : array();
+			}
+
+			if ( '' !== $key && isset( $opened[ $key ] ) ) {
+				continue;
+			}
+
+			$found = $find( $inner, '' === $key ? $opened : $opened + array( $key => true ) );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	};
+
+	return $post_id ? ( $find( parse_blocks( (string) get_post_field( 'post_content', $post_id ) ), array() ) ?? 'post_format' ) : 'post_format';
+}
+
+/**
  * Finds the topics, stages and types the visible garden holds.
  *
  * Only these are offered, so no choice leads to an empty garden by itself
@@ -146,7 +210,7 @@ function undergrowth_garden_filters_select( string $name, string $label, string 
  * @return string Filters markup, or an empty string when the garden is empty.
  */
 function undergrowth_render_garden_filters_block( $attributes ): string {
-	$type_taxonomy = undergrowth_garden_feed_type_taxonomy( (string) $attributes['typeSource'] );
+	$type_taxonomy = undergrowth_garden_feed_type_taxonomy( undergrowth_garden_filters_type_source() );
 	$filters       = undergrowth_garden_feed_filters();
 	$garden        = undergrowth_garden_feed_posts( 'tended', $type_taxonomy, array_fill_keys( array_keys( $filters ), '' ) );
 

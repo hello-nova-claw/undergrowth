@@ -359,6 +359,7 @@ function undergrowth_uninstall_site(): void {
 	delete_option( 'undergrowth_post_types' );
 	delete_option( 'undergrowth_first_run' );
 	delete_option( 'undergrowth_schema_version' );
+	delete_option( 'undergrowth_anchor_rules' );
 	delete_transient( 'undergrowth_meter' );
 	wp_unschedule_hook( 'undergrowth_embed_post' );
 	wp_unschedule_hook( 'undergrowth_forget_unindexed_posts' );
