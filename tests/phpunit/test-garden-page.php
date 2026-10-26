@@ -112,6 +112,16 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertTrue( WP_Block_Pattern_Categories_Registry::get_instance()->is_registered( 'undergrowth' ) );
 	}
 
+	public function test_registers_the_pattern_again_after_it_is_removed() {
+		unregister_block_pattern( 'undergrowth/garden-page' );
+		unregister_block_pattern_category( 'undergrowth' );
+
+		undergrowth_register_garden_page_pattern();
+
+		$this->assertTrue( WP_Block_Patterns_Registry::get_instance()->is_registered( 'undergrowth/garden-page' ) );
+		$this->assertSame( array( 'page' ), WP_Block_Patterns_Registry::get_instance()->get_registered( 'undergrowth/garden-page' )['postTypes'] );
+	}
+
 	public function test_the_pattern_holds_the_garden_blocks_in_order() {
 		$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( 'undergrowth/garden-page' );
 		$names   = array();
