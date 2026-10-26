@@ -1,0 +1,1 @@
+New "Garden page" pattern builds a whole garden page in one step, from a heading, your own introduction, the new "Garden count" block, the garden filters and the garden feed. It is offered when you add a page, and in a new Undergrowth pattern category.

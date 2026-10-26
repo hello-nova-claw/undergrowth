@@ -728,6 +728,23 @@ const WITH_GARDEN_FILTERS = [
 	},
 ];
 
+// The Garden page pattern as readers see it once inserted, and in the
+// editor with its intro still a placeholder.
+const WITH_GARDEN_PAGE = [
+	{
+		screen: 'pattern-garden-page',
+		state: 'front-page',
+		front: () => `/?page_id=${ gardenFeedPages.pattern }`,
+	},
+	{
+		screen: 'pattern-garden-page',
+		state: 'editor-page',
+		edit: () => gardenFeedPages.pattern,
+		// The count has its own preview, which can load after the feed's.
+		ready: '.wp-block-undergrowth-garden-count-number',
+	},
+];
+
 // Filled in once the list's posts exist, since the shots need their IDs.
 const linkedFromPosts = {};
 
@@ -1024,6 +1041,10 @@ function capture( states ) {
 						)
 						.first()
 						.waitFor();
+
+					if ( entry.ready ) {
+						await editor.canvas.locator( entry.ready ).waitFor();
+					}
 				} else if ( entry.list ) {
 					await admin.editPost( entry.list() );
 					const block = editor.canvas.locator(
@@ -1628,6 +1649,15 @@ test.describe( 'Screenshot catalogue', () => {
 				} )
 			).id;
 
+			gardenFeedPages.pattern = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:pattern {"slug":"undergrowth/garden-page"} /-->',
+					status: 'publish',
+				} )
+			).id;
+
 			gardenFeedPages.filters = (
 				await requestUtils.createPage( {
 					title: 'Garden',
@@ -1640,6 +1670,7 @@ test.describe( 'Screenshot catalogue', () => {
 
 		capture( WITH_GARDEN_FEED );
 		capture( WITH_GARDEN_FILTERS );
+		capture( WITH_GARDEN_PAGE );
 	} );
 
 	test.describe( 'with an Evergreen post worth a look', () => {
