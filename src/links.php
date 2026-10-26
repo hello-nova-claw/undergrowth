@@ -14,6 +14,14 @@ const UNDERGROWTH_VECTOR_CHUNK         = 100;
 const UNDERGROWTH_POST_CHUNK           = 100;
 const UNDERGROWTH_REFRESH_BATCH        = 20;
 
+// Most sentences tried for a link on two words or more before one word is kept.
+const UNDERGROWTH_ANCHOR_SENTENCES = 10;
+
+// Raised whenever the rules for choosing a link's words change, so stored
+// suggestions are chosen again. 2: two words or more (#511).
+const UNDERGROWTH_ANCHOR_RULES = 2;
+
+add_action( 'plugins_loaded', 'undergrowth_maybe_refresh_anchors' );
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
@@ -717,6 +725,66 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
 }
 
 /**
+ * Picks the sentence and words for a proposed link.
+ *
+ * The best sentence wins when it gives a run of two words or more. A link
+ * on one word reads like an accident, so the post's other sentences that
+ * fit are tried next, best first, and the first that gives a longer run
+ * wins. Only when none does is the best sentence kept, on one word, and
+ * then the first one that gives any word at all. In a script written
+ * without spaces, a run of characters counts as long enough. A sentence
+ * the author chose words in is kept while it still fits.
+ *
+ * @param int      $post_id   Post the link would sit in.
+ * @param int      $target_id Post the link would point to.
+ * @param array    $corpus    Word counts across the pool.
+ * @param string[] $taken     Sentences already holding another of the post's proposals.
+ * @return array{text: string, anchor: string, offset: int}|null The sentence
+ *         and the words as undergrowth_proposal_anchor() gives them, or null
+ *         when no sentence fits.
+ *
+ * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ */
+function undergrowth_choose_proposal( int $post_id, int $target_id, array $corpus, array $taken = array() ): ?array {
+	global $wpdb;
+
+	$source = get_post( $post_id );
+	$ranked = $source instanceof WP_Post ? undergrowth_rank_sentences_in( $source, $target_id, $corpus, $taken ) : array();
+	$chosen = null;
+
+	// Words the author chose stay theirs while their sentence still fits.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+	$own = $wpdb->get_row( $wpdb->prepare( 'SELECT sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND target_id = %d AND state = %s AND anchor_chosen = 1', undergrowth_links_table(), $post_id, $target_id, 'proposed' ), ARRAY_A );
+
+	if ( is_array( $own ) && in_array( $own['sentence'], $ranked, true ) ) {
+		return array(
+			'text'   => (string) $own['sentence'],
+			'anchor' => (string) $own['anchor'],
+			'offset' => (int) $own['anchor_offset'],
+		);
+	}
+
+	foreach ( array_slice( $ranked, 0, UNDERGROWTH_ANCHOR_SENTENCES ) as $sentence ) {
+		$anchor = undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus );
+		$choice = array(
+			'text'   => $sentence,
+			'anchor' => $anchor['anchor'],
+			'offset' => $anchor['offset'],
+		);
+
+		if ( preg_match( '/\s|[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', $anchor['anchor'] ) ) {
+			return $choice;
+		}
+
+		if ( null === $chosen || ( '' === $chosen['anchor'] && '' !== $anchor['anchor'] ) ) {
+			$chosen = $choice;
+		}
+	}
+
+	return $chosen;
+}
+
+/**
  * Stores one proposal, or updates the one already stored for the pair.
  *
  * Accepted and vetoed rows are never touched. Words the author chose stay
@@ -728,16 +796,18 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
  * @param string $sentence  Sentence the link would sit in.
  * @param array  $corpus    Word counts across the pool.
  * @param string $kind      'cross' for a cross-pollination link, or an empty string.
+ * @param array  $anchor    Result of undergrowth_proposal_anchor() for the sentence, when already chosen.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ * @phpstan-param array{anchor: string, offset: int}|null $anchor
  */
-function undergrowth_store_proposal( int $post_id, int $target_id, float $score, string $sentence, array $corpus, string $kind ): void {
+function undergrowth_store_proposal( int $post_id, int $target_id, float $score, string $sentence, array $corpus, string $kind, ?array $anchor = null ): void {
 	global $wpdb;
 
 	$table   = undergrowth_links_table();
 	$now     = current_time( 'mysql', true );
 	$state   = undergrowth_link_state( $post_id, $target_id );
-	$anchor  = undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus );
+	$anchor  = $anchor ?? undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus );
 	$fields  = array(
 		'score'         => $score,
 		'sentence'      => $sentence,
@@ -828,7 +898,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 	// Nearest targets choose first, so the strongest link gets its best sentence.
 	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
-		$sentence = undergrowth_choose_sentence( $post_id, $target_id, $corpus, $taken );
+		$sentence = undergrowth_choose_proposal( $post_id, $target_id, $corpus, $taken );
 
 		if ( null === $sentence ) {
 			continue;
@@ -837,7 +907,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 		$targets[ $target_id ] = $score;
 		$taken[]               = $sentence['text'];
 
-		undergrowth_store_proposal( $post_id, $target_id, $score, $sentence['text'], $corpus, '' );
+		undergrowth_store_proposal( $post_id, $target_id, $score, $sentence['text'], $corpus, '', $sentence );
 
 		if ( count( $targets ) >= UNDERGROWTH_MAX_PROPOSALS ) {
 			break;
@@ -851,12 +921,12 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$cross = isset( $pool[ $post_id ] ) ? undergrowth_cross_link_target( $post_id, array_keys( $targets ), array_keys( $pool ) ) : null;
 
 	if ( null !== $cross ) {
-		$sentence = undergrowth_choose_sentence( $post_id, $cross[0], $corpus, $taken );
+		$sentence = undergrowth_choose_proposal( $post_id, $cross[0], $corpus, $taken );
 
 		if ( null !== $sentence ) {
 			$targets[ $cross[0] ] = $cross[1];
 
-			undergrowth_store_proposal( $post_id, $cross[0], $cross[1], $sentence['text'], $corpus, 'cross' );
+			undergrowth_store_proposal( $post_id, $cross[0], $cross[1], $sentence['text'], $corpus, 'cross', $sentence );
 		}
 	}
 
@@ -1088,6 +1158,52 @@ function undergrowth_refresh_posts( array $post_ids, float $budget = INF ): arra
 	}
 
 	return $reached;
+}
+
+/**
+ * Chooses every stored suggestion's sentence and words again, once, after
+ * an update changes the rules for choosing them.
+ *
+ * Only proposed links change. Accepted and vetoed ones stay as they are,
+ * and so do words the author chose. A site still being read queues the
+ * same refresh when its backfill ends, so nothing is queued for it here.
+ */
+function undergrowth_maybe_refresh_anchors(): void {
+	if ( UNDERGROWTH_ANCHOR_RULES === (int) get_option( 'undergrowth_anchor_rules' ) ) {
+		return;
+	}
+
+	update_option( 'undergrowth_anchor_rules', UNDERGROWTH_ANCHOR_RULES, false );
+
+	if ( get_option( 'undergrowth_index_identity' ) === undergrowth_index_target() && false === wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );
+	}
+}
+
+/**
+ * Counts the suggestions whose words are a single word, so the rate can be
+ * checked. Words the author chose and scripts written without spaces are
+ * left out.
+ *
+ * @return array{one: int, all: int} Suggestions on one word, and all suggestions with words.
+ */
+function undergrowth_one_word_anchor_counts(): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
+	$anchors = (array) $wpdb->get_col( $wpdb->prepare( "SELECT anchor FROM %i WHERE state = %s AND anchor_chosen = 0 AND anchor <> ''", undergrowth_links_table(), 'proposed' ) );
+	$one     = 0;
+
+	foreach ( $anchors as $anchor ) {
+		if ( ! preg_match( '/\s|[' . UNDERGROWTH_UNSPACED_SCRIPTS . ']/u', (string) $anchor ) ) {
+			++$one;
+		}
+	}
+
+	return array(
+		'one' => $one,
+		'all' => count( $anchors ),
+	);
 }
 
 /**

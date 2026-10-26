@@ -32,7 +32,8 @@ function undergrowth_register_dev_cli(): void {
 }
 
 /**
- * Prints how the site's posts score against each other, and the thresholds in use.
+ * Prints how the site's posts score against each other, the thresholds in
+ * use, and how many suggestions link a single word.
  *
  * The monthly cluster cycle measures the scores. To measure them now, run
  * `wp cron event run undergrowth_cluster_cycle` first.
