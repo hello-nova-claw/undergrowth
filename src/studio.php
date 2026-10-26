@@ -264,6 +264,11 @@ function undergrowth_prompt_source_text( string $source ): string {
 		return __( 'From a gap among your posts: %1$s.', 'undergrowth' );
 	}
 
+	if ( 'cross' === $source ) {
+		/* translators: %1$s: titles of the two posts, each linked to its editor, separated by commas. */
+		return __( 'Cross-pollination: from %1$s, in groups of your writing that sit apart.', 'undergrowth' );
+	}
+
 	/* translators: %1$s: titles of the posts, each linked to its editor, separated by commas. */
 	return __( 'From your posts: %1$s.', 'undergrowth' );
 }
