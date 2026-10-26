@@ -2301,7 +2301,7 @@ msgstr ""
 #. translators: 1: number of questions asked for, 2: number of requests sent at most.
 #: src/studio.php
 #, php-format
-msgid "More questions asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. A click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices, and they may be charged even when no new question comes of them."
+msgid "The More questions button asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. One click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices. A request may be charged even if it produces no question."
 msgstr ""
 
 #: src/studio.php

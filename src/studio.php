@@ -219,7 +219,7 @@ function undergrowth_render_more_prompts_form(): void {
 			echo esc_html(
 				sprintf(
 					/* translators: 1: number of questions asked for, 2: number of requests sent at most. */
-					__( 'More questions asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. A click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices, and they may be charged even when no new question comes of them.', 'undergrowth' ),
+					__( 'The More questions button asks Claude for up to %1$s questions straight away, using this site’s Anthropic API key. One click sends at most %2$s requests, each usually one or two cents at Anthropic’s published prices. A request may be charged even if it produces no question.', 'undergrowth' ),
 					number_format_i18n( UNDERGROWTH_PROMPT_MORE ),
 					number_format_i18n( UNDERGROWTH_PROMPT_MORE_CALLS )
 				)
