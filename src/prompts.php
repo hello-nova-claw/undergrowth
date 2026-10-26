@@ -149,15 +149,17 @@ function undergrowth_run_prompt_batch(): void {
 	}
 
 	$wanted = UNDERGROWTH_PROMPT_BATCH - count( undergrowth_prompts( 'new' ) );
+	$calls  = 0;
 
 	// One place goes to a cross-pollination question first, when a pair can
-	// give one (handover 12.6). Without a pair the batch fills as before.
+	// give one (handover 12.6). Without a pair the batch fills as before. Both
+	// share the batch's one budget of requests.
 	if ( $wanted > 0 ) {
-		$wanted -= undergrowth_write_cross_prompt();
+		$wanted -= undergrowth_write_cross_prompt( $calls );
 	}
 
-	if ( $wanted > 0 ) {
-		undergrowth_write_prompts( $wanted, UNDERGROWTH_PROMPT_BATCH_CALLS );
+	if ( $wanted > 0 && $calls < UNDERGROWTH_PROMPT_BATCH_CALLS ) {
+		undergrowth_write_prompts( $wanted, UNDERGROWTH_PROMPT_BATCH_CALLS - $calls, null, $calls );
 	}
 }
 
@@ -630,14 +632,15 @@ function undergrowth_write_prompt( ?callable $accept = null ): bool {
  * @param int           $wanted Questions to write at most.
  * @param int           $limit  Requests to send at most.
  * @param callable|null $accept Tells whether a source record may be used, or null for any.
+ * @param int           $calls  Requests sent, counted up here, so a caller can share one budget across runs.
  * @return int Questions written.
  */
-function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null ): int {
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null, int &$calls = 0 ): int {
 	if ( ! undergrowth_prompts_enabled() ) {
 		return 0;
 	}
 
-	$calls   = 0;
+	$limit  += $calls;
 	$written = 0;
 
 	foreach ( undergrowth_prompt_candidates() as $record ) {

@@ -1205,14 +1205,15 @@ function undergrowth_is_cross_prompt_record( array $record ): bool {
  * Writes the weekly batch's cross-pollination question, when the batch has
  * room, holds none yet, and a pair can give one.
  *
+ * @param int $calls Requests sent, counted up here.
  * @return int Questions written: 1 or 0.
  */
-function undergrowth_write_cross_prompt(): int {
+function undergrowth_write_cross_prompt( int &$calls = 0 ): int {
 	foreach ( undergrowth_prompts( 'new' ) as $prompt ) {
 		if ( 'cross' === $prompt['source'] ) {
 			return 0;
 		}
 	}
 
-	return undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, 'undergrowth_is_cross_prompt_record' );
+	return undergrowth_write_prompts( 1, UNDERGROWTH_PROMPT_MAX_CALLS, 'undergrowth_is_cross_prompt_record', $calls );
 }
