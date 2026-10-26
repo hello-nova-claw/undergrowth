@@ -1729,7 +1729,7 @@ msgid "Last opened the Prompt studio"
 msgstr ""
 
 #: src/privacy.php
-msgid "The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and when you last opened the Prompt studio, so the monthly email only mentions questions you have not seen."
+msgid "What Undergrowth keeps with your account: any Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and, if you get the monthly email, when you last opened the Prompt studio, so the email only mentions questions you have not seen."
 msgstr ""
 
 #: src/privacy.php

@@ -121,7 +121,7 @@ function undergrowth_export_personal_data( string $email_address ): array {
 			array(
 				'group_id'          => 'undergrowth',
 				'group_label'       => __( 'Undergrowth', 'undergrowth' ),
-				'group_description' => __( 'The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and when you last opened the Prompt studio, so the monthly email only mentions questions you have not seen.', 'undergrowth' ),
+				'group_description' => __( 'What Undergrowth keeps with your account: any Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and, if you get the monthly email, when you last opened the Prompt studio, so the email only mentions questions you have not seen.', 'undergrowth' ),
 				'item_id'           => 'undergrowth-' . $user->ID,
 				'data'              => $data,
 			),
