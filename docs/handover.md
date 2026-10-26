@@ -60,7 +60,7 @@ Digital garden tie-in (Maggie Appleton / Mike Caulfield): topography over timeli
 No reader data. Signals come from the author's own text only.
 - Index: embed every published post (title, headings, body). Re-embed on save.
 - Draft scans: on 2026-10-23 Anna approved author-initiated draft scans, sent only on an explicit click with the destination named (#323). Scan this draft in the editor's Undergrowth sidebar sends the draft once to the configured provider, named beside the button, and stores nothing about it. Drafts are otherwise never read.
-- Self-trade: propose up to 3 links per post to other posts, each with the sentence in the source post where the link fits. Accept inserts a plain `<a>` at that sentence, around one to four of the author's own words: a run of the target's title where the sentence has one, otherwise the phrase around the word the target is most about (decided 2026-10-23, #289; v1 linked one word, which read like an accident). Before accepting, the author can choose other words of the same sentence as the first and last of the link (#292); nothing can be typed, so the link is always the author's own words. Veto hides it permanently.
+- Self-trade: propose up to 3 links per post to other posts, each with the sentence in the source post where the link fits. Accept inserts a plain `<a>` at that sentence, around one to four of the author's own words: a run of the target's title where the sentence has one, otherwise the phrase around the word the target is most about (decided 2026-10-23, #289; v1 linked one word, which read like an accident). The suggested words are at least two (decided 2026-10-26, #511): the phrase grows around the word with its neighbours, such as "the composition of friendship" or "sounds and sights", and when the best sentence offers no such run, the post's other sentences that fit are tried first. One word is suggested only when no sentence offers more, and `wp undergrowth scores` counts those. Before accepting, the author can choose other words of the same sentence as the first and last of the link (#292); nothing can be typed, so the link is always the author's own words. Veto hides it permanently.
 - Map: cluster the vectors. Show clusters as a list with their posts. Flag any cluster whose centre has no post (a gap found from the author's own writing).
 - Threshold meter: one number, visits in last 30 days against the switch line. Nothing else shown until crossed.
 - Growth stages (see section 5).
@@ -194,7 +194,7 @@ Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 
 - The fixed 0.4 / 0.5 / 0.8 stay under 20 posts, before the first measurement, and for the providers in `UNDERGROWTH_FIXED_THRESHOLD_PROVIDERS` (filter `undergrowth_fixed_threshold_providers`).
 - That list holds `openai` until the real-posts test (docs/testing-v1.md) records its percentiles.
 - The threshold filters still have the last word. Each receives the derived value as its default.
-- `wp undergrowth scores` prints the measured percentiles and the thresholds in use.
+- `wp undergrowth scores` prints the measured percentiles, the thresholds in use, and how many suggestions link a single word.
 
 ### Search Console
 - Read tokens from Site Kit by Google if installed. Do not build own OAuth for v1 (Google app verification is a blocker for a public plugin).
