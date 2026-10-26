@@ -106,7 +106,10 @@ test.describe( 'Garden filters block', () => {
 			await page.locator( `${ FILTERS } button[type="submit"]` ).focus();
 			await page.keyboard.press( 'Enter' );
 
-			await expect( page ).toHaveURL( /page_id=\d+/ );
+			// Still the garden page, by ID or by its pretty permalink.
+			await expect( page ).toHaveURL(
+				new RegExp( `page_id=${ garden.id }|/garden/` )
+			);
 			await expect( page ).toHaveURL( /topic=roots/ );
 			await expect( page ).toHaveURL( /type=aside/ );
 			await expect( page.locator( `${ FEED } ${ TITLE }` ) ).toHaveText( [
