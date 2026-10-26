@@ -151,6 +151,16 @@ class Test_Digest_Questions extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Prompt studio', $this->message() );
 	}
 
+	public function test_a_visit_is_not_kept_for_a_user_without_the_email() {
+		$user_id = self::factory()->user->create( array( 'role' => 'editor' ) );
+
+		wp_set_current_user( $user_id );
+		do_action( 'load-posts_page_undergrowth-studio' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Core's hook for the screen.
+		wp_set_current_user( 0 );
+
+		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_studio_seen', true ) );
+	}
+
 	public function test_no_line_while_questions_are_off() {
 		$this->subscriber();
 		$this->question( time() - HOUR_IN_SECONDS );

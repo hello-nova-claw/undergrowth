@@ -102,6 +102,30 @@ class Test_Privacy extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_erase_personal_data( 'nobody@example.org' )['items_removed'] );
 	}
 
+	public function test_export_includes_the_last_prompt_studio_visit() {
+		$user_id = self::factory()->user->create( array( 'user_email' => 'visitor@example.org' ) );
+		update_user_meta( $user_id, 'undergrowth_studio_seen', '1700000000' );
+
+		$export = undergrowth_export_personal_data( 'visitor@example.org' );
+
+		$this->assertCount( 1, $export['data'] );
+		$this->assertSame( 'Last opened the Prompt studio', $export['data'][0]['data'][0]['name'] );
+		$this->assertSame( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), 1700000000 ), $export['data'][0]['data'][0]['value'] );
+	}
+
+	public function test_erase_removes_the_last_prompt_studio_visit_with_the_discord_user_id() {
+		$user_id = self::factory()->user->create( array( 'user_email' => 'linked@example.org' ) );
+		update_user_meta( $user_id, 'undergrowth_discord_user_id', self::DISCORD_ID );
+		update_user_meta( $user_id, 'undergrowth_studio_seen', '1700000000' );
+
+		$result = undergrowth_erase_personal_data( 'linked@example.org' );
+
+		$this->assertTrue( $result['items_removed'] );
+		$this->assertFalse( $result['items_retained'] );
+		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_studio_seen', true ) );
+		$this->assertSame( '', get_user_meta( $user_id, 'undergrowth_discord_user_id', true ) );
+	}
+
 	public function test_core_tools_export_and_erase_through_undergrowth() {
 		$user_id = self::factory()->user->create( array( 'user_email' => 'linked@example.org' ) );
 		update_user_meta( $user_id, 'undergrowth_discord_user_id', self::DISCORD_ID );
