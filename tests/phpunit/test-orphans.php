@@ -39,8 +39,9 @@ class Test_Orphans extends WP_UnitTestCase {
 	 * @param int    $target Post it points to.
 	 * @param string $state  'proposed', 'accepted' or 'vetoed'.
 	 * @param float  $score  Similarity.
+	 * @param string $kind   'cross' for a cross-pollination link, or empty.
 	 */
-	private function link( int $source, int $target, string $state, float $score = 0.9 ): void {
+	private function link( int $source, int $target, string $state, float $score = 0.9, string $kind = '' ): void {
 		global $wpdb;
 
 		$now = current_time( 'mysql', true );
@@ -52,6 +53,7 @@ class Test_Orphans extends WP_UnitTestCase {
 				'target_id'  => $target,
 				'state'      => $state,
 				'score'      => $score,
+				'kind'       => $kind,
 				'sentence'   => 'A sentence from post ' . $source . '.',
 				'created_at' => $now,
 				'updated_at' => $now,
@@ -165,6 +167,15 @@ class Test_Orphans extends WP_UnitTestCase {
 
 		wp_set_current_user( $current );
 		$this->assertSame( array( $locked, $yacon, $ulluco ), array_column( undergrowth_suggestions_to( $oca ), 'source_id' ) );
+	}
+
+	public function test_a_suggestion_keeps_its_kind_so_a_cross_pollination_link_is_named() {
+		$oca   = $this->seed( 'Oca', array( 1.0, 0.0 ) );
+		$yacon = $this->seed( 'Yacon', array( 0.9, 0.1 ) );
+
+		$this->link( $yacon, $oca, 'proposed', 0.9, 'cross' );
+
+		$this->assertSame( array( 'cross' ), array_column( undergrowth_suggestions_to( $oca ), 'kind' ) );
 	}
 
 	public function test_the_tab_lists_each_orphan_with_accept_and_veto_for_its_best_suggestions() {
