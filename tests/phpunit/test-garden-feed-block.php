@@ -10,15 +10,29 @@
  */
 class Test_Garden_Feed_Block extends WP_UnitTestCase {
 
+	/**
+	 * The request URI before the test, which page links are built from.
+	 *
+	 * @var string|null
+	 */
+	private $uri;
+
 	public function set_up() {
 		parent::set_up();
 
 		undergrowth_register_stage_meta();
-		$_GET = array();
+		$_GET      = array();
+		$this->uri = $_SERVER['REQUEST_URI'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Put back as it was.
 	}
 
 	public function tear_down() {
 		$_GET = array();
+
+		if ( null === $this->uri ) {
+			unset( $_SERVER['REQUEST_URI'] );
+		} else {
+			$_SERVER['REQUEST_URI'] = $this->uri;
+		}
 
 		parent::tear_down();
 	}
@@ -374,6 +388,19 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( '<script>', $html );
 		$this->assertStringNotContainsString( 'onerror', $html );
+	}
+
+	public function test_tells_the_editor_which_post_types_are_indexed() {
+		add_filter(
+			'undergrowth_post_types',
+			static function () {
+				return array( 'post', 'page' );
+			}
+		);
+
+		$settings = get_block_editor_settings( array(), new WP_Block_Editor_Context() );
+
+		$this->assertSame( array( 'post', 'page' ), $settings['undergrowthIndexedPostTypes'] );
 	}
 
 	public function test_every_stage_has_its_own_icon_with_an_accessible_name() {
