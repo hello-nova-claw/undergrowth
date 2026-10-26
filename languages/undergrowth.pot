@@ -17,6 +17,7 @@ msgstr ""
 #: undergrowth.php
 #: src/abilities.php
 #: src/admin.php
+#: src/block-garden-count.php
 #: src/dashboard.php
 #: src/digest.php
 #: src/discord-clicks.php
@@ -470,6 +471,41 @@ msgstr ""
 
 #: src/admin.php
 msgid "See the change"
+msgstr ""
+
+#. translators: Follows the number of posts, which is shown on its own.
+#: src/block-garden-count.php
+msgid "post in the garden"
+msgid_plural "posts in the garden"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/block-garden-count.php
+msgid "Pages for your garden, made of Undergrowth blocks."
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "Garden page"
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "A garden page: a heading, your own introduction, the number of posts, the filters and the garden feed."
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "garden"
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "digital garden"
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "The Garden"
+msgstr ""
+
+#: src/block-garden-count.php
+msgid "Write a few words about your garden: what grows here, and how to wander it."
 msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
@@ -1799,12 +1835,14 @@ msgid "When the user last opened the Prompt studio could not be removed. Try aga
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/garden-count/index.js
 #: build/blocks/garden-feed/index.js
 #: build/blocks/garden-filters/index.js
 #: build/blocks/garden-index/index.js
 #: build/blocks/growth-stage/index.js
 #: build/blocks/linked-from/index.js
 #: build/blocks/more-like-this/index.js
+#: src/blocks/garden-count/edit.js
 #: src/blocks/garden-feed/edit.js
 #: src/blocks/garden-filters/edit.js
 #: src/blocks/garden-index/edit.js
@@ -2591,6 +2629,26 @@ msgstr ""
 msgid "That note is no longer shown, so nothing was changed."
 msgstr ""
 
+#: build/blocks/garden-count/index.js
+#: src/blocks/garden-count/edit.js
+msgid "Garden count"
+msgstr ""
+
+#: build/blocks/garden-count/index.js
+#: src/blocks/garden-count/edit.js
+msgid "Readers see nothing here yet. This counts your published posts in the garden, once there are any."
+msgstr ""
+
+#: build/blocks/garden-count/index.js
+#: src/blocks/garden-count/edit.js
+msgid "Show the label"
+msgstr ""
+
+#: build/blocks/garden-count/index.js
+#: src/blocks/garden-count/edit.js
+msgid "Off shows the number alone."
+msgstr ""
+
 #: build/blocks/garden-feed/index.js
 #: src/blocks/garden-feed/edit.js
 msgid "Garden feed"
@@ -2956,6 +3014,52 @@ msgstr ""
 msgid "Stage to pin"
 msgstr ""
 
+#: build/blocks/garden-count/block.json
+#: src/blocks/garden-count/block.json
+msgctxt "block title"
+msgid "Garden count"
+msgstr ""
+
+#: build/blocks/garden-count/block.json
+#: src/blocks/garden-count/block.json
+msgctxt "block description"
+msgid "Shows how many posts readers can find in your garden."
+msgstr ""
+
+#: build/blocks/garden-count/block.json
+#: build/blocks/garden-feed/block.json
+#: build/blocks/garden-filters/block.json
+#: build/blocks/garden-index/block.json
+#: build/blocks/linked-from/block.json
+#: build/blocks/more-like-this/block.json
+#: src/blocks/garden-count/block.json
+#: src/blocks/garden-feed/block.json
+#: src/blocks/garden-filters/block.json
+#: src/blocks/garden-index/block.json
+#: src/blocks/linked-from/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
+msgstr ""
+
+#: build/blocks/garden-count/block.json
+#: src/blocks/garden-count/block.json
+msgctxt "block keyword"
+msgid "count"
+msgstr ""
+
+#: build/blocks/garden-count/block.json
+#: src/blocks/garden-count/block.json
+msgctxt "block keyword"
+msgid "number"
+msgstr ""
+
+#: build/blocks/garden-count/block.json
+#: src/blocks/garden-count/block.json
+msgctxt "block keyword"
+msgid "posts"
+msgstr ""
+
 #: build/blocks/garden-feed/block.json
 #: src/blocks/garden-feed/block.json
 msgctxt "block title"
@@ -2966,20 +3070,6 @@ msgstr ""
 #: src/blocks/garden-feed/block.json
 msgctxt "block description"
 msgid "Lists every post readers may see in your garden, newest tended first, each with its growth stage. Readers can narrow it by topic, stage and type."
-msgstr ""
-
-#: build/blocks/garden-feed/block.json
-#: build/blocks/garden-filters/block.json
-#: build/blocks/garden-index/block.json
-#: build/blocks/linked-from/block.json
-#: build/blocks/more-like-this/block.json
-#: src/blocks/garden-feed/block.json
-#: src/blocks/garden-filters/block.json
-#: src/blocks/garden-index/block.json
-#: src/blocks/linked-from/block.json
-#: src/blocks/more-like-this/block.json
-msgctxt "block keyword"
-msgid "garden"
 msgstr ""
 
 #: build/blocks/garden-feed/block.json
