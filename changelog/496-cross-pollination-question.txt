@@ -1,0 +1,1 @@
+Each weekly batch in the Prompt studio holds one cross-pollination question when the Map has a pair to ask about: it quotes one sentence from each of two of your posts in groups that sit apart, and asks what connects them. It is labelled Cross-pollination, with both posts linked.
