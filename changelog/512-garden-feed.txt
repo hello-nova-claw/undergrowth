@@ -1,0 +1,1 @@
+New "Garden feed" block lists every post in your garden, newest tended first, each with a growth-stage icon, your own excerpt, its type and when you last tended it. Readers can narrow it by topic, stage and type through plain links. The "Growth stage" block shows the same icons.

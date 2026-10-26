@@ -473,12 +473,27 @@ msgid "See the change"
 msgstr ""
 
 #. translators: %s: growth stage name, such as Sprout.
+#: src/block-garden-feed.php
 #: src/block-garden-index.php
 #: src/blocks.php
 #: build/editor/index.js
 #: src/editor/stage-panel.js
 #, php-format,js-format
 msgid "Growth stage: %s"
+msgstr ""
+
+#. translators: %s: how long ago, such as 3 weeks.
+#: src/block-garden-feed.php
+#, php-format
+msgid "Tended %s ago"
+msgstr ""
+
+#: src/block-garden-feed.php
+msgid "Nothing in the garden matches."
+msgstr ""
+
+#: src/block-garden-feed.php
+msgid "Garden pages"
 msgstr ""
 
 #: src/block-garden-index.php
@@ -1748,10 +1763,14 @@ msgid "When the user last opened the Prompt studio could not be removed. Try aga
 msgstr ""
 
 #: src/settings.php
+#: build/blocks/garden-feed/index.js
 #: build/blocks/garden-index/index.js
+#: build/blocks/growth-stage/index.js
 #: build/blocks/linked-from/index.js
 #: build/blocks/more-like-this/index.js
+#: src/blocks/garden-feed/edit.js
 #: src/blocks/garden-index/edit.js
+#: src/blocks/growth-stage/edit.js
 #: src/blocks/linked-from/edit.js
 #: src/blocks/more-like-this/edit.js
 msgid "Settings"
@@ -2534,6 +2553,76 @@ msgstr ""
 msgid "That note is no longer shown, so nothing was changed."
 msgstr ""
 
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Garden feed"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Readers see nothing here yet. This lists your published posts, newest tended first, once there are any."
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Post format"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Feature the first post, with its image"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Order"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Last tended first"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Newest first"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Most grown first"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Posts per page"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Type"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Which terms name each post’s type. A post with no format shows none."
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Show the excerpt"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Only an excerpt you wrote yourself."
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Show the type"
+msgstr ""
+
 #: build/blocks/garden-index/index.js
 #: src/blocks/garden-index/edit.js
 msgid "Garden index"
@@ -2572,6 +2661,11 @@ msgstr ""
 #: build/blocks/growth-stage/index.js
 #: src/blocks/growth-stage/edit.js
 msgid "Readers see no growth stage here. Only published posts in the garden show one, and composting posts show none."
+msgstr ""
+
+#: build/blocks/growth-stage/index.js
+#: src/blocks/growth-stage/edit.js
+msgid "Show the stage icon"
 msgstr ""
 
 #: build/blocks/growth-stage/index.js
@@ -2791,6 +2885,48 @@ msgstr ""
 msgid "Stage to pin"
 msgstr ""
 
+#: build/blocks/garden-feed/block.json
+#: src/blocks/garden-feed/block.json
+msgctxt "block title"
+msgid "Garden feed"
+msgstr ""
+
+#: build/blocks/garden-feed/block.json
+#: src/blocks/garden-feed/block.json
+msgctxt "block description"
+msgid "Lists every post readers may see in your garden, newest tended first, each with its growth stage. Readers can narrow it by topic, stage and type."
+msgstr ""
+
+#: build/blocks/garden-feed/block.json
+#: build/blocks/garden-index/block.json
+#: build/blocks/linked-from/block.json
+#: build/blocks/more-like-this/block.json
+#: src/blocks/garden-feed/block.json
+#: src/blocks/garden-index/block.json
+#: src/blocks/linked-from/block.json
+#: src/blocks/more-like-this/block.json
+msgctxt "block keyword"
+msgid "garden"
+msgstr ""
+
+#: build/blocks/garden-feed/block.json
+#: src/blocks/garden-feed/block.json
+msgctxt "block keyword"
+msgid "feed"
+msgstr ""
+
+#: build/blocks/garden-feed/block.json
+#: src/blocks/garden-feed/block.json
+msgctxt "block keyword"
+msgid "stages"
+msgstr ""
+
+#: build/blocks/garden-feed/block.json
+#: src/blocks/garden-feed/block.json
+msgctxt "block keyword"
+msgid "tended"
+msgstr ""
+
 #: build/blocks/garden-index/block.json
 #: src/blocks/garden-index/block.json
 msgctxt "block title"
@@ -2801,16 +2937,6 @@ msgstr ""
 #: src/blocks/garden-index/block.json
 msgctxt "block description"
 msgid "Lists your published posts by the groups on the Map, each with its growth stage, so readers can wander the garden by topic."
-msgstr ""
-
-#: build/blocks/garden-index/block.json
-#: build/blocks/linked-from/block.json
-#: build/blocks/more-like-this/block.json
-#: src/blocks/garden-index/block.json
-#: src/blocks/linked-from/block.json
-#: src/blocks/more-like-this/block.json
-msgctxt "block keyword"
-msgid "garden"
 msgstr ""
 
 #: build/blocks/garden-index/block.json
