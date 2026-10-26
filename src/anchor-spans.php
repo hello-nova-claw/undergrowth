@@ -259,12 +259,15 @@ function undergrowth_anchor_neighbours( array $words, int $index, array $functio
 	// The word describing the next one, after a word that opens a phrase.
 	// It must have an ending a describing word has, as in "my honest
 	// opinion" or "the actual horizon", so a noun is never joined to the
-	// verb after it, as in "the heart bound". Some nouns end that way too,
-	// so a word after it ending in -s, as in "the plant grows", is a verb.
+	// verb after it, as in "the heart bound". Nouns end in -al, -ant, -ent,
+	// -est or -ish too, so after those a word ending in -s, as in "the plant
+	// grows", is read as a verb. After an ending only describing words have,
+	// such as -ous or -ful, it is a plural, as in "the curious habits".
 	$next = $lower( $index + 1 );
 
 	if ( null !== $lower( $index - 1 ) && isset( $openers[ $lower( $index - 1 ) ] ) && $describes( $index )
-		&& $content( $index + 1 ) && ! isset( $weak[ $next ] ) && ! $verb( $index + 1 ) && ! preg_match( '/[^su\'’]s$/u', (string) $next ) ) {
+		&& $content( $index + 1 ) && ! isset( $weak[ $next ] ) && ! $verb( $index + 1 )
+		&& ( ! preg_match( '/[^su\'’]s$/u', (string) $next ) || preg_match( '/(?:ous|ful|ive|able|ible|less|ic|ary|ern)$/u', $words[ $index ]['lower'] ) ) ) {
 		$runs['close'][] = array( $index, $index + 1 );
 	}
 

@@ -307,6 +307,11 @@ class Test_Anchor_Spans extends WP_UnitTestCase {
 		$this->assertSame( 'actual horizon', $this->spans( 'We saw the actual horizon.', array( 'actual' ) )[0] );
 	}
 
+	public function test_a_plural_joins_a_word_only_a_describing_word_ends_like() {
+		$this->assertSame( 'curious habits', $this->spans( 'I noted the curious habits of wrens.', array( 'curious' ) )[0] );
+		$this->assertSame( 'useful tools', $this->spans( 'He kept the useful tools for weeding.', array( 'useful' ) )[0] );
+	}
+
 	public function test_two_things_named_together_make_a_run() {
 		$this->assertSame( 'sounds and sights', $this->spans( 'These sounds and sights I heard anywhere.', array( 'sounds' ) )[0] );
 		$this->assertSame( 'predecessors and our contemporaries', $this->spans( 'Both our predecessors and our contemporaries knew it.', array( 'contemporaries' ) )[0] );
