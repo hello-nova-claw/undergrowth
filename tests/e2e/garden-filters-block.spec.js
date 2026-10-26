@@ -95,14 +95,18 @@ test.describe( 'Garden filters block', () => {
 				page.locator( `${ FILTERS } a[aria-current="true"]` )
 			).toHaveAttribute( 'href', /topic=roots/ );
 
-			// A closed select picks the option whose name is typed, in any
-			// locale; the button sends the form.
+			// Arrow keys pick an option in any locale, where typing a
+			// translated name may not. The types are sorted by their names.
 			const type = page.locator( `${ FILTERS } select[name="type"]` );
-			const aside = await type
-				.locator( 'option[value="aside"]' )
-				.textContent();
 			await type.focus();
-			await page.keyboard.type( aside );
+			for (
+				let tries = 0;
+				tries < 3 && ( await type.inputValue() ) !== 'aside';
+				tries++
+			) {
+				await page.keyboard.press( 'ArrowDown' );
+			}
+			await expect( type ).toHaveValue( 'aside' );
 			await page.locator( `${ FILTERS } button[type="submit"]` ).focus();
 			await page.keyboard.press( 'Enter' );
 

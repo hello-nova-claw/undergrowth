@@ -223,6 +223,41 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'essay', $this->options( $this->render(), 'type' ) );
 	}
 
+	/**
+	 * Skips a synced pattern WordPress would not render.
+	 *
+	 * @dataProvider data_unrendered_synced_patterns
+	 *
+	 * @param array<string, string> $args Fields of the synced pattern.
+	 */
+	public function test_skips_a_synced_pattern_wordpress_would_not_render( array $args ) {
+		$hidden = self::factory()->post->create(
+			$args + array(
+				'post_type'    => 'wp_block',
+				'post_status'  => 'publish',
+				'post_content' => '<!-- wp:undergrowth/garden-feed {"typeSource":"category"} /-->',
+			)
+		);
+		set_post_format( $this->post( 'Oca' ), 'aside' );
+		$this->post( 'Yacon' );
+
+		$this->on_page_with( '<!-- wp:block {"ref":' . $hidden . '} /--><!-- wp:undergrowth/garden-feed /-->' );
+
+		$this->assertArrayHasKey( 'aside', $this->options( $this->render(), 'type' ) );
+	}
+
+	/**
+	 * Synced patterns core's block does not render.
+	 *
+	 * @return array<string, array{0: array<string, string>}>
+	 */
+	public function data_unrendered_synced_patterns(): array {
+		return array(
+			'draft'              => array( array( 'post_status' => 'draft' ) ),
+			'password-protected' => array( array( 'post_password' => 'oca' ) ),
+		);
+	}
+
 	public function test_a_pattern_that_holds_itself_is_read_once() {
 		register_block_pattern(
 			'undergrowth-test/loop',
