@@ -19,6 +19,9 @@ const UNDERGROWTH_PROMPT_MAX_LENGTH  = 300;
 const UNDERGROWTH_PROMPT_MAX_CALLS   = 3;
 const UNDERGROWTH_PROMPT_BATCH       = 5;
 const UNDERGROWTH_PROMPT_BATCH_CALLS = 10;
+const UNDERGROWTH_PROMPT_MORE        = 3;
+const UNDERGROWTH_PROMPT_MORE_CALLS  = 6;
+const UNDERGROWTH_PROMPT_MORE_WAIT   = 10 * MINUTE_IN_SECONDS;
 const UNDERGROWTH_PROMPT_DATA_CHARS  = 1000;
 const UNDERGROWTH_PROMPT_COMMENTS    = 50;
 const UNDERGROWTH_PROMPT_COMPOSTED   = 20;
@@ -619,6 +622,28 @@ function undergrowth_write_prompt( ?callable $accept = null ): bool {
 }
 
 /**
+ * Asks Claude for up to UNDERGROWTH_PROMPT_MORE questions straight away,
+ * when the author chooses More questions.
+ *
+ * Each question is kept as soon as it is written, so one paid for is never
+ * thrown away when a later request fails. As with Replace, only sources the
+ * author may answer about are tried.
+ *
+ * @return array{written: int, error: array<string, mixed>|null} Questions written, and the failure that stopped the run, if one did.
+ */
+function undergrowth_write_more_prompts(): array {
+	$calls   = 0;
+	$failed  = false;
+	$written = undergrowth_write_prompts( UNDERGROWTH_PROMPT_MORE, UNDERGROWTH_PROMPT_MORE_CALLS, 'undergrowth_user_can_answer_prompt', $calls, $failed );
+
+	// The failure that ended this run is the last one recorded.
+	return array(
+		'written' => $written,
+		'error'   => $failed ? undergrowth_last_failure( 'undergrowth_last_prompt_error' ) : null,
+	);
+}
+
+/**
  * Asks Claude for new questions, trying sources in order, and adds each one
  * to the batch as new.
  *
@@ -633,9 +658,13 @@ function undergrowth_write_prompt( ?callable $accept = null ): bool {
  * @param int           $limit  Requests to send at most.
  * @param callable|null $accept Tells whether a source record may be used, or null for any.
  * @param int           $calls  Requests sent, counted up here, so a caller can share one budget across runs.
+ * @param bool|null     $failed Set to true when a failed request ended the run.
+ * @param-out bool       $failed
  * @return int Questions written.
  */
-function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null, int &$calls = 0 ): int {
+function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept = null, int &$calls = 0, ?bool &$failed = null ): int {
+	$failed = false;
+
 	if ( ! undergrowth_prompts_enabled() ) {
 		return 0;
 	}
@@ -661,6 +690,7 @@ function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept =
 		$result = undergrowth_write_prompt_from( $record, $calls );
 
 		if ( 'failed' === $result ) {
+			$failed = true;
 			break;
 		}
 

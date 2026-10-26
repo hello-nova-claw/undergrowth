@@ -550,6 +550,16 @@ switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider'
 				return 'not-a-real-anthropic-key-mnop';
 			}
 		);
+		// Every spec signs in as the same user, so More questions is never
+		// held back by a click from an earlier test.
+		add_filter(
+			'get_user_metadata',
+			static function ( $value, $object_id, $meta_key ) {
+				return 'undergrowth_more_prompts_at' === $meta_key ? array( 0 ) : $value;
+			},
+			10,
+			3
+		);
 		foreach ( array( 'load-index.php', 'load-posts_page_undergrowth-studio' ) as $hook ) {
 			add_action(
 				$hook,

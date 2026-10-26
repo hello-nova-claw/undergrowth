@@ -1,0 +1,1 @@
+When no new question is left, More questions in the Prompt studio asks Claude for up to three more straight away. The button says it uses your own Anthropic key and that each question usually costs one or two cents, and nothing is sent until you choose it.
