@@ -27,6 +27,7 @@ function undergrowth_add_privacy_policy_content(): void {
 		__( 'With an Anthropic key, Anthropic is sent a post’s title and a few sentences quoted from the site’s posts to write the site owner a question. When the question comes from a reader’s approved comment, the text of that comment is sent too, without the commenter’s name, email address or IP address.', 'undergrowth' ),
 		__( 'With Discord set up, each new link suggestion, made of the titles of two posts, a sentence from one of them and links to both, is posted to the Discord channel the site owner chose.', 'undergrowth' ),
 		__( 'A site user who links their Discord account on their profile has their Discord user ID stored with their account, so that clicks in Discord can be matched to them. It is included in personal data exports and removed by personal data erasure.', 'undergrowth' ),
+		__( 'A site user who turns on the monthly email has the time they last opened the Prompt studio stored with their account, so the email only mentions questions they have not seen. It is included in personal data exports and removed by personal data erasure.', 'undergrowth' ),
 	);
 
 	$content = '<p class="privacy-policy-tutorial">' . esc_html__( 'Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads from it, once a day, how often posts were viewed lately, as far as that plugin can tell, and sends that nowhere.', 'undergrowth' ) . '</p>'
@@ -40,7 +41,7 @@ function undergrowth_add_privacy_policy_content(): void {
 }
 
 /**
- * Registers the exporter for a user's linked Discord user ID.
+ * Registers the exporter for what Undergrowth keeps with a user's account.
  *
  * @param array $exporters Exporters, by ID.
  * @return array The exporters, with Undergrowth's.
@@ -58,7 +59,7 @@ function undergrowth_register_personal_data_exporter( array $exporters ): array 
 }
 
 /**
- * Registers the eraser for a user's linked Discord user ID.
+ * Registers the eraser for what Undergrowth keeps with a user's account.
  *
  * @param array $erasers Erasers, by ID.
  * @return array The erasers, with Undergrowth's.
@@ -76,7 +77,9 @@ function undergrowth_register_personal_data_eraser( array $erasers ): array {
 }
 
 /**
- * Exports the Discord user ID linked to the user with this email address.
+ * Exports what Undergrowth keeps with the account that has this email
+ * address: the Discord user ID linked on the profile, and when the user last
+ * opened the Prompt studio.
  *
  * There is at most one item, so every request is the last page.
  *
@@ -84,10 +87,29 @@ function undergrowth_register_personal_data_eraser( array $erasers ): array {
  * @return array{data: array<int, array{group_id: string, group_label: string, group_description: string, item_id: string, data: array<int, array{name: string, value: string}>}>, done: bool} Export.
  */
 function undergrowth_export_personal_data( string $email_address ): array {
-	$user       = get_user_by( 'email', $email_address );
-	$discord_id = $user instanceof WP_User ? (string) get_user_meta( $user->ID, 'undergrowth_discord_user_id', true ) : '';
+	$user = get_user_by( 'email', $email_address );
+	$data = array();
 
-	if ( ! $user instanceof WP_User || '' === $discord_id ) {
+	if ( $user instanceof WP_User ) {
+		$discord_id = (string) get_user_meta( $user->ID, 'undergrowth_discord_user_id', true );
+		$seen       = (int) get_user_meta( $user->ID, 'undergrowth_studio_seen', true );
+
+		if ( '' !== $discord_id ) {
+			$data[] = array(
+				'name'  => __( 'Discord user ID', 'undergrowth' ),
+				'value' => $discord_id,
+			);
+		}
+
+		if ( $seen > 0 ) {
+			$data[] = array(
+				'name'  => __( 'Last opened the Prompt studio', 'undergrowth' ),
+				'value' => (string) wp_date( (string) get_option( 'date_format' ) . ' ' . (string) get_option( 'time_format' ), $seen ),
+			);
+		}
+	}
+
+	if ( ! $user instanceof WP_User || array() === $data ) {
 		return array(
 			'data' => array(),
 			'done' => true,
@@ -99,14 +121,9 @@ function undergrowth_export_personal_data( string $email_address ): array {
 			array(
 				'group_id'          => 'undergrowth',
 				'group_label'       => __( 'Undergrowth', 'undergrowth' ),
-				'group_description' => __( 'The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord.', 'undergrowth' ),
+				'group_description' => __( 'What Undergrowth keeps with your account: any Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and, if you get the monthly email, when you last opened the Prompt studio, so the email only mentions questions you have not seen.', 'undergrowth' ),
 				'item_id'           => 'undergrowth-' . $user->ID,
-				'data'              => array(
-					array(
-						'name'  => __( 'Discord user ID', 'undergrowth' ),
-						'value' => $discord_id,
-					),
-				),
+				'data'              => $data,
 			),
 		),
 		'done' => true,
@@ -114,20 +131,40 @@ function undergrowth_export_personal_data( string $email_address ): array {
 }
 
 /**
- * Removes the Discord user ID linked to the user with this email address.
+ * Removes the Discord user ID linked to the user with this email address,
+ * and when they last opened the Prompt studio.
  *
  * @param string $email_address Email address of the user.
  * @return array{items_removed: bool, items_retained: bool, messages: string[], done: bool} Result.
  */
 function undergrowth_erase_personal_data( string $email_address ): array {
-	$user   = get_user_by( 'email', $email_address );
-	$linked = $user instanceof WP_User && '' !== (string) get_user_meta( $user->ID, 'undergrowth_discord_user_id', true );
-	$erased = $linked && delete_user_meta( $user->ID, 'undergrowth_discord_user_id' );
+	$user     = get_user_by( 'email', $email_address );
+	$removed  = false;
+	$retained = false;
+	$messages = array();
+
+	$failures = array(
+		'undergrowth_discord_user_id' => __( 'The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile.', 'undergrowth' ),
+		'undergrowth_studio_seen'     => __( 'When the user last opened the Prompt studio could not be removed. Try again.', 'undergrowth' ),
+	);
+
+	foreach ( $failures as $key => $failure ) {
+		if ( ! $user instanceof WP_User || '' === (string) get_user_meta( $user->ID, $key, true ) ) {
+			continue;
+		}
+
+		if ( delete_user_meta( $user->ID, $key ) ) {
+			$removed = true;
+		} else {
+			$retained   = true;
+			$messages[] = $failure;
+		}
+	}
 
 	return array(
-		'items_removed'  => $erased,
-		'items_retained' => $linked && ! $erased,
-		'messages'       => $linked && ! $erased ? array( __( 'The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile.', 'undergrowth' ) ) : array(),
+		'items_removed'  => $removed,
+		'items_retained' => $retained,
+		'messages'       => $messages,
 		'done'           => true,
 	);
 }

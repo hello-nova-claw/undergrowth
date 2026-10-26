@@ -28,6 +28,6 @@ test.describe( 'Privacy policy guide', () => {
 		);
 		await expect(
 			panel.locator( 'p:not(.privacy-policy-tutorial)' )
-		).toHaveCount( 5 );
+		).toHaveCount( 6 );
 	} );
 } );

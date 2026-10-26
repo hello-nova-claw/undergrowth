@@ -1018,6 +1018,10 @@ msgid "Accept or veto them on Posts > Undergrowth:"
 msgstr ""
 
 #: src/digest.php
+msgid "New questions are waiting in your Prompt studio:"
+msgstr ""
+
+#: src/digest.php
 msgid "You get this email because you turned it on in your profile. To stop it:"
 msgstr ""
 
@@ -1716,6 +1720,10 @@ msgid "A site user who links their Discord account on their profile has their Di
 msgstr ""
 
 #: src/privacy.php
+msgid "A site user who turns on the monthly email has the time they last opened the Prompt studio stored with their account, so the email only mentions questions they have not seen. It is included in personal data exports and removed by personal data erasure."
+msgstr ""
+
+#: src/privacy.php
 msgid "Undergrowth sets no cookies and records nothing about visitors. What it sends depends on which services are set up on Settings > Undergrowth. When Jetpack Stats, Koko Analytics or Post Views Counter is active, Undergrowth reads from it, once a day, how often posts were viewed lately, as far as that plugin can tell, and sends that nowhere."
 msgstr ""
 
@@ -1724,11 +1732,19 @@ msgid "Suggested text:"
 msgstr ""
 
 #: src/privacy.php
-msgid "The Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord."
+msgid "Last opened the Prompt studio"
+msgstr ""
+
+#: src/privacy.php
+msgid "What Undergrowth keeps with your account: any Discord account linked on your profile, so that link suggestions can be accepted or vetoed from Discord, and, if you get the monthly email, when you last opened the Prompt studio, so the email only mentions questions you have not seen."
 msgstr ""
 
 #: src/privacy.php
 msgid "The linked Discord user ID could not be removed. Try again, or clear it on the user’s profile."
+msgstr ""
+
+#: src/privacy.php
+msgid "When the user last opened the Prompt studio could not be removed. Try again."
 msgstr ""
 
 #: src/settings.php

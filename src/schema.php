@@ -340,6 +340,7 @@ function undergrowth_uninstall_site(): void {
 	delete_metadata( 'user', 0, 'undergrowth_digest', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_digest_key', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_digest_sent', '', true );
+	delete_metadata( 'user', 0, 'undergrowth_studio_seen', '', true );
 	delete_metadata( 'user', 0, 'undergrowth_scan_until', '', true );
 	delete_option( 'undergrowth_last_embed_error' );
 	delete_option( 'undergrowth_embed_retry_at' );
