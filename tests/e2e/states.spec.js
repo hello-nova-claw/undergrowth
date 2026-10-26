@@ -875,6 +875,8 @@ function volatile( page ) {
 		page.locator(
 			'#dashboard_primary, #dashboard_activity, #dashboard_site_health'
 		),
+		// "Tended 4 seconds ago" moves with the time each shot is taken.
+		page.locator( '.wp-block-undergrowth-garden-feed time' ),
 	];
 }
 

@@ -1,5 +1,6 @@
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
+	Disabled,
 	PanelBody,
 	Placeholder,
 	RangeControl,
@@ -124,14 +125,17 @@ export default function Edit( { attributes, setAttributes } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			<ServerSideRender
-				block="undergrowth/garden-feed"
-				attributes={ attributes }
-				// The wrapper above already carries the colour, type and
-				// spacing, so the preview must not apply them twice.
-				skipBlockSupportAttributes
-				EmptyResponsePlaceholder={ NoPosts }
-			/>
+			{ /* The links are for readers, so the preview holds no tab stops. */ }
+			<Disabled>
+				<ServerSideRender
+					block="undergrowth/garden-feed"
+					attributes={ attributes }
+					// The wrapper above already carries the colour, type and
+					// spacing, so the preview must not apply them twice.
+					skipBlockSupportAttributes
+					EmptyResponsePlaceholder={ NoPosts }
+				/>
+			</Disabled>
 		</div>
 	);
 }

@@ -101,6 +101,8 @@ describe( 'Garden feed block', () => {
 		// The wrapper carries the supports, so the preview never doubles them.
 		expect( path ).not.toMatch( /backgroundColor|padding/ );
 		expect( container.querySelector( 'li a' ).textContent ).toBe( 'Oca' );
+		// The links are for readers, so the preview holds no tab stops.
+		expect( container.querySelector( '[inert] li a' ) ).not.toBeNull();
 	} );
 
 	test( 'explains an empty render instead of showing nothing', async () => {
