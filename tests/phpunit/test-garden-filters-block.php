@@ -206,8 +206,8 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'href="/garden/?topic=roots&#038;stage=seedling" aria-current="true"', $html );
-		$this->assertSame( '/garden/?topic=andes&stage=seedling', $this->topics( $html )['Andes'] );
+		$this->assertStringContainsString( 'href="/garden/?stage=seedling&#038;topic=roots" aria-current="true"', $html );
+		$this->assertSame( '/garden/?stage=seedling&topic=andes', $this->topics( $html )['Andes'] );
 		$this->assertSame( '/garden/?stage=seedling', $this->topics( $html )['All topics'] );
 	}
 
