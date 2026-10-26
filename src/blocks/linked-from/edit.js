@@ -111,10 +111,13 @@ export default function Edit( {
 			{ postId ? (
 				// The post ID is passed on so a list inside a Query Loop
 				// renders for its own post, not for the post being edited.
+				// The wrapper already carries colour and spacing, so the
+				// preview leaves them out rather than show them twice.
 				<ServerSideRender
 					block="undergrowth/linked-from"
 					attributes={ attributes }
 					urlQueryArgs={ { post_id: postId } }
+					skipBlockSupportAttributes
 					EmptyResponsePlaceholder={ NoLinks }
 				/>
 			) : (
