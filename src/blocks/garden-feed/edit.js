@@ -1,5 +1,6 @@
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import {
+	Disabled,
 	PanelBody,
 	Placeholder,
 	RangeControl,
@@ -29,7 +30,8 @@ function NoPosts() {
 }
 
 /**
- * Lists the taxonomies that can name each post's type, post format first.
+ * Lists the taxonomies that can name each post's type, post format first:
+ * those that hold a post type Undergrowth indexes, as the server accepts.
  *
  * The core data store is only read when the editor has it, so the block
  * still edits where it is missing.
@@ -37,8 +39,12 @@ function NoPosts() {
  * @return {Array<{value: string, label: string}>} Options.
  */
 function useTypeOptions() {
-	const taxonomies = useSelect(
-		( select ) => select( 'core' )?.getTaxonomies?.( { per_page: -1 } ),
+	const { taxonomies, postTypes } = useSelect(
+		( select ) => ( {
+			taxonomies: select( 'core' )?.getTaxonomies?.( { per_page: -1 } ),
+			postTypes: select( 'core/block-editor' )?.getSettings?.()
+				.undergrowthIndexedPostTypes ?? [ 'post' ],
+		} ),
 		[]
 	);
 
@@ -48,7 +54,9 @@ function useTypeOptions() {
 			.filter(
 				( taxonomy ) =>
 					taxonomy.slug !== 'post_format' &&
-					taxonomy.types?.includes( 'post' ) &&
+					taxonomy.types?.some( ( type ) =>
+						postTypes.includes( type )
+					) &&
 					taxonomy.visibility?.publicly_queryable !== false
 			)
 			.map( ( taxonomy ) => ( {
@@ -153,14 +161,17 @@ export default function Edit( { attributes, setAttributes } ) {
 					/>
 				</PanelBody>
 			</InspectorControls>
-			<ServerSideRender
-				block="undergrowth/garden-feed"
-				attributes={ attributes }
-				// The wrapper above already carries the colour, type and
-				// spacing, so the preview must not apply them twice.
-				skipBlockSupportAttributes
-				EmptyResponsePlaceholder={ NoPosts }
-			/>
+			{ /* The links are for readers, so the preview holds no tab stops. */ }
+			<Disabled>
+				<ServerSideRender
+					block="undergrowth/garden-feed"
+					attributes={ attributes }
+					// The wrapper above already carries the colour, type and
+					// spacing, so the preview must not apply them twice.
+					skipBlockSupportAttributes
+					EmptyResponsePlaceholder={ NoPosts }
+				/>
+			</Disabled>
 		</div>
 	);
 }

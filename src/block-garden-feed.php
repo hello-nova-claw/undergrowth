@@ -13,6 +13,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'init', 'undergrowth_register_garden_feed_block' );
+add_filter( 'block_editor_settings_all', 'undergrowth_garden_feed_editor_settings' );
 
 /**
  * Registers the block from its block.json file.
@@ -40,6 +41,19 @@ function undergrowth_register_garden_feed_block(): void {
 	}
 
 	register_block_type( $folder, $args );
+}
+
+/**
+ * Tells the editor which post types are indexed, so the block settings
+ * offer only the type taxonomies the feed accepts.
+ *
+ * @param array<string, mixed> $settings Block editor settings.
+ * @return array<string, mixed> The settings with the indexed post types.
+ */
+function undergrowth_garden_feed_editor_settings( $settings ): array {
+	$settings['undergrowthIndexedPostTypes'] = undergrowth_indexed_post_types();
+
+	return $settings;
 }
 
 /**
