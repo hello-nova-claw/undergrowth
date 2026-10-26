@@ -678,6 +678,35 @@ const WITH_GARDEN_INDEX = [
 	},
 ];
 
+// Filled in once the feed's page exists, since the shots need its ID.
+const gardenFeedPages = {};
+
+// The garden feed on a page: the featured first post, the rest, and the
+// page links. Then filtered by type through the query args, filtered to a
+// stage no post has reached, and in the editor.
+const WITH_GARDEN_FEED = [
+	{
+		screen: 'block-garden-feed',
+		state: 'front-feed',
+		front: () => `/?page_id=${ gardenFeedPages.feed }`,
+	},
+	{
+		screen: 'block-garden-feed',
+		state: 'front-filtered',
+		front: () => `/?page_id=${ gardenFeedPages.feed }&type=aside`,
+	},
+	{
+		screen: 'block-garden-feed',
+		state: 'front-none-match',
+		front: () => `/?page_id=${ gardenFeedPages.feed }&stage=evergreen`,
+	},
+	{
+		screen: 'block-garden-feed',
+		state: 'editor-feed',
+		edit: () => gardenFeedPages.feed,
+	},
+];
+
 // Filled in once the list's posts exist, since the shots need their IDs.
 const linkedFromPosts = {};
 
@@ -968,7 +997,7 @@ function capture( states ) {
 					// Block previews are rendered by the server after load.
 					await editor.canvas
 						.locator(
-							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder, .wp-block-undergrowth-linked-from ul, .wp-block-undergrowth-linked-from .components-placeholder'
+							'.wp-block-undergrowth-growth-stage p, .wp-block-undergrowth-growth-stage .components-placeholder, .wp-block-undergrowth-garden-index ul, .wp-block-undergrowth-garden-index .components-placeholder, .wp-block-undergrowth-garden-feed ul, .wp-block-undergrowth-garden-feed .components-placeholder, .wp-block-undergrowth-linked-from ul, .wp-block-undergrowth-linked-from .components-placeholder'
 						)
 						.first()
 						.waitFor();
@@ -1513,6 +1542,44 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_GARDEN_INDEX );
+	} );
+
+	test.describe( 'with a garden feed', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await requestUtils.deleteAllPages();
+			await skipWelcomeGuide( requestUtils );
+
+			for ( const [ title, format, excerpt ] of [
+				[ 'Oca', 'standard', 'Small tubers that keep through winter.' ],
+				[ 'Yacon', 'aside', 'Sweet roots, eaten raw.' ],
+				[ 'Mashua', 'standard', '' ],
+				[ 'Ulluco', 'standard', 'Bright, waxy and slow to grow.' ],
+			] ) {
+				await requestUtils.rest( {
+					method: 'POST',
+					path: '/wp/v2/posts',
+					data: {
+						title,
+						excerpt,
+						content: `<p>${ title } grows here.</p>`,
+						status: 'publish',
+						format,
+					},
+				} );
+			}
+
+			gardenFeedPages.feed = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:undergrowth/garden-feed {"postsPerPage":3} /-->',
+					status: 'publish',
+				} )
+			).id;
+		} );
+
+		capture( WITH_GARDEN_FEED );
 	} );
 
 	test.describe( 'with an Evergreen post worth a look', () => {
