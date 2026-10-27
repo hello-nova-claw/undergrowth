@@ -695,6 +695,18 @@ class Test_Pollination extends WP_UnitTestCase {
 		// Both groups use "mass" far more than the rest of the site, but only
 		// the first is known for it.
 		$this->assertSame( array(), undergrowth_find_threads( $groups, array( 'mass' => 10 ) + $rare, 100 ) );
+		// Either group may be the one that is not.
+		$this->assertSame(
+			array(),
+			undergrowth_find_threads(
+				array(
+					5  => $groups[20],
+					10 => $groups[10],
+				),
+				array( 'mass' => 10 ) + $rare,
+				100
+			)
+		);
 
 		unset( $groups[20]['counts']['rare9'], $groups[20]['counts']['rare10'] );
 

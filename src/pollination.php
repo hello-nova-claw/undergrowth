@@ -966,8 +966,8 @@ function undergrowth_render_pollination_view( ?array $map = null ): void {
 
 	printf(
 		'<details class="undergrowth-pollination-more"><summary>%s</summary><ul class="undergrowth-pollination" aria-labelledby="undergrowth-pollination">',
-		/* translators: %s: number of pairs of groups. */
-		esc_html( sprintf( _n( 'Show the %s pair', 'Show all %s pairs', count( $pairs ), 'undergrowth' ), number_format_i18n( count( $pairs ) ) ) )
+		/* translators: %1$s: number of pairs of groups. */
+		esc_html( sprintf( _n( 'Show the %1$s pair', 'Show all %1$s pairs', count( $pairs ), 'undergrowth' ), number_format_i18n( count( $pairs ) ) ) )
 	);
 	array_map( 'undergrowth_render_pollination_pair', $more );
 	echo '</ul></details>';

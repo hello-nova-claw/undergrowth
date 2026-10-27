@@ -1660,11 +1660,11 @@ msgstr ""
 msgid "No pairs at this step yet. A higher step on the surprise scale reaches further."
 msgstr ""
 
-#. translators: %s: number of pairs of groups.
+#. translators: %1$s: number of pairs of groups.
 #: src/pollination.php
 #, php-format
-msgid "Show the %s pair"
-msgid_plural "Show all %s pairs"
+msgid "Show the %1$s pair"
+msgid_plural "Show all %1$s pairs"
 msgstr[0] ""
 msgstr[1] ""
 
