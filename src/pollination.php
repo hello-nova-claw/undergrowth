@@ -54,6 +54,14 @@ const UNDERGROWTH_POLLINATION_KEEP = 3;
 // Most shared words kept for a pair of groups.
 const UNDERGROWTH_THREAD_TERMS = 3;
 
+// How many of each group's own most telling words a shared word must be
+// among. Any two groups share some word by chance; a thread is a word both
+// are known for.
+const UNDERGROWTH_THREAD_DEPTH = 10;
+
+// Pairs the Map shows before folding the rest away.
+const UNDERGROWTH_POLLINATION_SHOWN = 10;
+
 add_action( 'undergrowth_pollination_cycle', 'undergrowth_run_pollination_cycle', 10, 2 );
 add_action( 'undergrowth_pollination_start', 'undergrowth_start_pollination' );
 // After the other sources: a cross-pollination question holds its own place
@@ -541,8 +549,10 @@ function undergrowth_pollination_space( array $identity, array $groups ): array 
  * from the counts the Map's labels are made from.
  *
  * A word or two-word phrase counts when at least two posts in each group use
- * it, and its share of the two groups' posts is at least twice its share of
- * the other posts. A phrase takes the place of its own words, as on the Map.
+ * it, its share of the two groups' posts is at least twice its share of the
+ * other posts, and it is among the UNDERGROWTH_THREAD_DEPTH words that most
+ * set each group apart from the posts outside the pair. A phrase takes the
+ * place of its own words, as on the Map.
  *
  * @param array<int, array{size: int, counts: array<string, int>, spelled: array<string, array<string, int>>}> $groups    Each group's size, the number of its posts using each word, and how they spell it, by leader ID.
  * @param array<string, int>                                                                                   $site      Number of posts on the site using each word.
@@ -562,6 +572,7 @@ function undergrowth_find_threads( array $groups, array $site, int $site_size ):
 	}
 
 	$scores = array();
+	$known  = array();
 
 	foreach ( $by_term as $term => $leaders ) {
 		sort( $leaders );
@@ -577,7 +588,17 @@ function undergrowth_find_threads( array $groups, array $site, int $site_size ):
 					continue;
 				}
 
-				$scores[ undergrowth_pollination_key( $a, $b ) ][ $term ] = $used / $size * log( ( $rest_size + 1 ) / ( $rest + 0.5 ) );
+				$key           = undergrowth_pollination_key( $a, $b );
+				$known[ $key ] = $known[ $key ] ?? array(
+					undergrowth_group_known_terms( $groups[ $a ], $groups[ $b ], $site, $site_size ),
+					undergrowth_group_known_terms( $groups[ $b ], $groups[ $a ], $site, $site_size ),
+				);
+
+				if ( ! isset( $known[ $key ][0][ $term ], $known[ $key ][1][ $term ] ) ) {
+					continue;
+				}
+
+				$scores[ $key ][ $term ] = $used / $size * log( ( $rest_size + 1 ) / ( $rest + 0.5 ) );
 			}
 		}
 	}
@@ -613,6 +634,27 @@ function undergrowth_find_threads( array $groups, array $site, int $site_size ):
 	ksort( $threads );
 
 	return $threads;
+}
+
+/**
+ * Lists the words a group is best known for, set against the posts outside
+ * it and one other group, so two groups that share a word are each judged
+ * without the other.
+ *
+ * @param array{size: int, counts: array<string, int>} $group     The group.
+ * @param array{size: int, counts: array<string, int>} $other     The group it is paired with.
+ * @param array<string, int>                           $site      Number of posts on the site using each word.
+ * @param int                                          $site_size Number of posts on the site.
+ * @return array<string, true> Up to UNDERGROWTH_THREAD_DEPTH words, as keys.
+ */
+function undergrowth_group_known_terms( array $group, array $other, array $site, int $site_size ): array {
+	$without = array();
+
+	foreach ( $group['counts'] as $term => $count ) {
+		$without[ $term ] = max( $count, ( $site[ $term ] ?? $count ) - ( $other['counts'][ $term ] ?? 0 ) );
+	}
+
+	return array_fill_keys( undergrowth_choose_label_terms( $group['counts'], $group['size'], $without, $site_size - $other['size'], UNDERGROWTH_THREAD_DEPTH ), true );
 }
 
 /**
@@ -910,13 +952,25 @@ function undergrowth_render_pollination_view( ?array $map = null ): void {
 		return;
 	}
 
-	echo '<ul class="undergrowth-pollination" aria-labelledby="undergrowth-pollination">';
+	// The strongest pairs come first, and a large garden can have hundreds.
+	$shown = array_slice( $pairs, 0, UNDERGROWTH_POLLINATION_SHOWN );
+	$more  = array_slice( $pairs, UNDERGROWTH_POLLINATION_SHOWN );
 
-	foreach ( $pairs as $pair ) {
-		undergrowth_render_pollination_pair( $pair );
+	echo '<ul class="undergrowth-pollination" aria-labelledby="undergrowth-pollination">';
+	array_map( 'undergrowth_render_pollination_pair', $shown );
+	echo '</ul>';
+
+	if ( array() === $more ) {
+		return;
 	}
 
-	echo '</ul>';
+	printf(
+		'<details class="undergrowth-pollination-more"><summary>%s</summary><ul class="undergrowth-pollination" aria-labelledby="undergrowth-pollination">',
+		/* translators: %1$s: number of pairs of groups. */
+		esc_html( sprintf( _n( 'Show the %1$s pair', 'Show all %1$s pairs', count( $pairs ), 'undergrowth' ), number_format_i18n( count( $pairs ) ) ) )
+	);
+	array_map( 'undergrowth_render_pollination_pair', $more );
+	echo '</ul></details>';
 }
 
 /**
