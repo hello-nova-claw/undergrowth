@@ -1,0 +1,1 @@
+The "More like this" block now shows a heading above its list, "More like this" unless you write your own in the block settings, as "Linked from" does.

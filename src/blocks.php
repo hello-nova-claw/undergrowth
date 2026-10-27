@@ -175,9 +175,21 @@ function undergrowth_render_more_like_this_block( $attributes, $content, $block 
 		$items .= '</li>';
 	}
 
+	$heading = trim( (string) ( $attributes['heading'] ?? '' ) );
+
+	if ( '' === $heading ) {
+		$heading = __( 'More like this', 'undergrowth' );
+	}
+
+	// The heading names the list, so readers who see it and readers who hear
+	// it get the same name. A page may hold more than one list.
+	$id = wp_unique_id( 'undergrowth-more-like-this-' );
+
 	return sprintf(
-		'<nav %1$s><ul class="undergrowth-more-like-this-list">%2$s</ul></nav>',
-		get_block_wrapper_attributes( array( 'aria-label' => __( 'More like this', 'undergrowth' ) ) ),
+		'<nav %1$s><h2 class="wp-block-heading" id="%2$s">%3$s</h2><ul class="undergrowth-more-like-this-list">%4$s</ul></nav>',
+		get_block_wrapper_attributes( array( 'aria-labelledby' => $id ) ),
+		esc_attr( $id ),
+		esc_html( $heading ),
 		$items
 	);
 }

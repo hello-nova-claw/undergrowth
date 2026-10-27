@@ -11,6 +11,10 @@
 	"textdomain": "undergrowth",
 	"usesContext": [ "postId", "postType" ],
 	"attributes": {
+		"heading": {
+			"type": "string",
+			"default": ""
+		},
 		"postsToShow": {
 			"type": "integer",
 			"default": 3,

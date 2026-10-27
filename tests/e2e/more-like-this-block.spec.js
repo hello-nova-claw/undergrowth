@@ -71,7 +71,12 @@ test.describe( 'More like this block', () => {
 
 		const list = page.locator( `nav${ LIST }` );
 		await expect( list ).toBeVisible();
-		await expect( list ).toHaveAttribute( 'aria-label', /.+/ );
+		await expect(
+			page.getByRole( 'navigation', { name: 'More like this' } )
+		).toBeVisible();
+		await expect(
+			list.getByRole( 'heading', { name: 'More like this' } )
+		).toBeVisible();
 		await expect( list.locator( 'li' ) ).toHaveCount( 2 );
 		await expect( linkTo( list, posts.yacon ) ).toBeVisible();
 		await expect( linkTo( list, posts.syrup ) ).toBeVisible();

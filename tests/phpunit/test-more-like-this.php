@@ -424,6 +424,7 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( 3, $type->attributes['postsToShow']['default'] );
 		$this->assertFalse( $type->attributes['showImage']['default'] );
 		$this->assertFalse( $type->attributes['showExcerpt']['default'] );
+		$this->assertSame( '', $type->attributes['heading']['default'] );
 		$this->assertArrayHasKey( 'color', $type->supports );
 		$this->assertArrayHasKey( 'typography', $type->supports );
 		$this->assertFalse( $type->supports['html'] );
@@ -436,7 +437,7 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$html = $this->render( $this->source );
 
 		$this->assertStringStartsWith( '<nav ', $html );
-		$this->assertStringContainsString( 'aria-label="More like this"', $html );
+		$this->assertMatchesRegularExpression( '#<nav [^>]*aria-labelledby="([^"]+)"[^>]*><h2 class="wp-block-heading" id="\\1">More like this</h2><ul #', $html );
 		$this->assertStringContainsString( 'class="wp-block-undergrowth-more-like-this"', $html );
 		$this->assertStringContainsString( '<a class="undergrowth-more-like-this-link" href="' . get_permalink( $yacon ) . '">', $html );
 		$this->assertStringContainsString( 'Yacon &lt;em&gt;roots&lt;/em&gt;', $html );
@@ -496,6 +497,29 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/<a class="undergrowth-more-like-this-link" href="[^"]+"><img [^>]*alt=""/', $html );
 
 		wp_delete_attachment( $attachment, true );
+	}
+
+	public function test_the_heading_is_the_authors_own_text_escaped() {
+		$this->old( 'Yacon', array( 1, 0.1, 0 ) );
+
+		$html = $this->render( $this->source, array( 'heading' => 'Read <em>next</em>' ) );
+
+		$this->assertStringContainsString( '>Read &lt;em&gt;next&lt;/em&gt;</h2>', $html );
+	}
+
+	public function test_an_empty_heading_falls_back_to_the_default() {
+		$this->old( 'Yacon', array( 1, 0.1, 0 ) );
+
+		$this->assertStringContainsString( '>More like this</h2>', $this->render( $this->source, array( 'heading' => '   ' ) ) );
+	}
+
+	public function test_two_lists_on_one_page_label_themselves_apart() {
+		$this->old( 'Yacon', array( 1, 0.1, 0 ) );
+
+		preg_match( '/aria-labelledby="([^"]+)"/', $this->render( $this->source ), $first );
+		preg_match( '/aria-labelledby="([^"]+)"/', $this->render( $this->source ), $second );
+
+		$this->assertNotSame( $first[1], $second[1] );
 	}
 
 	public function test_renders_nothing_without_posts_to_show() {
