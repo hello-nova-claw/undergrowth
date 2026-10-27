@@ -569,7 +569,7 @@ class Test_Settings extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'Monthly email', $html );
-		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'profile.php#undergrowth_digest' ) ) . '"', $html );
+		$this->assertStringContainsString( 'id="undergrowth-digest-profile" href="' . esc_url( admin_url( 'profile.php#undergrowth_digest' ) ) . '"', $html );
 		$this->assertStringContainsString( 'It is off for you.', $html );
 
 		update_user_meta( get_current_user_id(), 'undergrowth_digest', '1' );

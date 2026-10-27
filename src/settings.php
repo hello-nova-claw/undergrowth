@@ -751,7 +751,7 @@ function undergrowth_render_monthly_email_field(): void {
 				: __( 'Each editor and administrator turns the monthly email of new link suggestions on or off in their own Profile. It is off for you.', 'undergrowth' )
 		);
 		?>
-		<a href="<?php echo esc_url( admin_url( 'profile.php#undergrowth_digest' ) ); ?>"><?php esc_html_e( 'Change it in your Profile', 'undergrowth' ); ?></a>
+		<a id="undergrowth-digest-profile" href="<?php echo esc_url( admin_url( 'profile.php#undergrowth_digest' ) ); ?>"><?php esc_html_e( 'Change it in your Profile', 'undergrowth' ); ?></a>
 	</p>
 	<?php
 }
