@@ -747,8 +747,8 @@ function undergrowth_render_monthly_email_field(): void {
 		<?php
 		echo esc_html(
 			undergrowth_digest_is_on( get_current_user_id() )
-				? __( 'Each person who edits posts turns the monthly email of new link suggestions on or off in their own Profile. It is on for you.', 'undergrowth' )
-				: __( 'Each person who edits posts turns the monthly email of new link suggestions on or off in their own Profile. It is off for you.', 'undergrowth' )
+				? __( 'Each editor and administrator turns the monthly email of new link suggestions on or off in their own Profile. It is on for you.', 'undergrowth' )
+				: __( 'Each editor and administrator turns the monthly email of new link suggestions on or off in their own Profile. It is off for you.', 'undergrowth' )
 		);
 		?>
 		<a href="<?php echo esc_url( admin_url( 'profile.php#undergrowth_digest' ) ); ?>"><?php esc_html_e( 'Change it in your Profile', 'undergrowth' ); ?></a>
