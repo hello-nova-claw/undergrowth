@@ -300,4 +300,23 @@ class Test_Prompt_Lock extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_dismiss_prompt( 'comment:1' ) );
 		$this->assertSame( array(), undergrowth_prompt_log( $this->post_id ) );
 	}
+
+	public function test_a_move_from_the_old_options_never_overwrites_a_stored_list() {
+		update_option(
+			'undergrowth_prompt',
+			array(
+				'key'      => 'comment:9',
+				'source'   => 'comment',
+				'post_id'  => $this->post_id,
+				'question' => 'What do you do with comment:9?',
+			),
+			false
+		);
+
+		// This request found no list and began the move, but another
+		// request stored one first.
+		$this->assertSame( array( 'comment:1', 'comment:2' ), array_column( undergrowth_migrate_prompts(), 'key' ) );
+		$this->assertSame( array( 'comment:1', 'comment:2' ), array_keys( $this->statuses() ) );
+		$this->assertFalse( get_option( 'undergrowth_prompt' ) );
+	}
 }

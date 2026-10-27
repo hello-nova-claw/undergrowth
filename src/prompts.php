@@ -239,9 +239,14 @@ function undergrowth_clean_stored_prompt( $prompt, string $status = 'new' ): ?ar
  * there is no snooze any more, and the question dismissed last stays for its
  * Undo. Nothing is written for a site that never had a question.
  *
- * @return array<int, array<string, mixed>> The moved questions.
+ * The list is only added when none is stored yet, so a move that started
+ * before another request stored the list never overwrites it.
+ *
+ * @return array<int, array<string, mixed>> The stored questions.
  */
 function undergrowth_migrate_prompts(): array {
+	global $wpdb;
+
 	$legacy = array(
 		'undergrowth_prompt'           => 'new',
 		'undergrowth_snoozed_prompts'  => 'new',
@@ -273,11 +278,17 @@ function undergrowth_migrate_prompts(): array {
 	}
 
 	if ( $found ) {
-		update_option( 'undergrowth_prompts', $moved, false );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row, once per site; add_option() cannot refuse a second writer, and the cache is dropped next.
+		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, 'undergrowth_prompts', maybe_serialize( $moved ), 'off' ) );
+		undergrowth_forget_cached_prompts();
 
 		foreach ( array_keys( $legacy ) as $option ) {
 			delete_option( $option );
 		}
+
+		$stored = get_option( 'undergrowth_prompts' );
+
+		return is_array( $stored ) ? $stored : $moved;
 	}
 
 	return $moved;
@@ -314,14 +325,7 @@ function undergrowth_change_prompts( callable $change ): bool {
 
 	try {
 		// The list this request read before it had the lock may be stale.
-		$notoptions = wp_cache_get( 'notoptions', 'options' );
-
-		if ( is_array( $notoptions ) && isset( $notoptions['undergrowth_prompts'] ) ) {
-			unset( $notoptions['undergrowth_prompts'] );
-			wp_cache_set( 'notoptions', $notoptions, 'options' );
-		}
-
-		wp_cache_delete( 'undergrowth_prompts', 'options' );
+		undergrowth_forget_cached_prompts();
 
 		$prompts = $change( undergrowth_stored_prompts() );
 
@@ -333,6 +337,21 @@ function undergrowth_change_prompts( callable $change ): bool {
 	}
 
 	return $stored;
+}
+
+/**
+ * Drops this request's cached copy of the stored questions, so the next read
+ * sees the list as another request may have stored it.
+ */
+function undergrowth_forget_cached_prompts(): void {
+	$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+	if ( is_array( $notoptions ) && isset( $notoptions['undergrowth_prompts'] ) ) {
+		unset( $notoptions['undergrowth_prompts'] );
+		wp_cache_set( 'notoptions', $notoptions, 'options' );
+	}
+
+	wp_cache_delete( 'undergrowth_prompts', 'options' );
 }
 
 /**
