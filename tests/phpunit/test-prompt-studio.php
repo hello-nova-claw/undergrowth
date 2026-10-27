@@ -379,9 +379,10 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 		$this->assertStringContainsString( self::QUESTION, $html );
 		$this->assertStringContainsString( 'Idea bank (1)', $html );
 		$this->assertMatchesRegularExpression( '/aria-current="page">Idea bank/', $html );
-		$this->assertStringContainsString( 'From a gap among your posts: <a href=', $html );
-		$this->assertStringContainsString( '<bdi>Growing oca</bdi></a>, <a ', $html );
-		$this->assertStringContainsString( '<bdi>Yacon</bdi></a>.', $html );
+		// Each title is quoted, so a title holding a comma never runs into the next.
+		$this->assertStringContainsString( 'From a gap among your posts: “<a href=', $html );
+		$this->assertStringContainsString( '<bdi>Growing oca</bdi></a>” and “<a ', $html );
+		$this->assertStringContainsString( '<bdi>Yacon</bdi></a>”.', $html );
 		$this->assertStringContainsString( 'value="remove"', $html );
 		$this->assertStringNotContainsString( 'value="dismiss"', $html );
 		$this->assertStringNotContainsString( self::QUESTION, $this->studio() );
@@ -475,7 +476,7 @@ class Test_Prompt_Studio extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertStringContainsString( 'From your posts: <a ', $this->studio() );
+		$this->assertStringContainsString( 'From your posts: “<a ', $this->studio() );
 	}
 
 	public function test_dismiss_removes_the_question_and_says_so() {

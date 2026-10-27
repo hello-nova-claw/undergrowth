@@ -1127,6 +1127,7 @@ msgid "Both posts use the words “%s”."
 msgstr ""
 
 #: src/digest.php
+#: src/settings.php
 msgid "Monthly email"
 msgstr ""
 
@@ -1891,11 +1892,11 @@ msgid "Choose at least one post type for Undergrowth to read. The ones chosen be
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth suggests links between your own posts, and asks you an occasional question about your writing with an Anthropic key."
+msgid "Undergrowth suggests links between your own posts, and with an Anthropic key asks you questions about your writing in your Prompt studio."
 msgstr ""
 
 #: src/settings.php
-msgid "Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key."
+msgid "Undergrowth suggests links between your own posts with an OpenAI key, and with an Anthropic key asks you questions about your writing in your Prompt studio."
 msgstr ""
 
 #: src/settings.php
@@ -2085,6 +2086,18 @@ msgid "The rest are read in the background, a few at a time."
 msgstr ""
 
 #: src/settings.php
+msgid "Each person who edits posts turns the monthly email of new link suggestions on or off in their own Profile. It is on for you."
+msgstr ""
+
+#: src/settings.php
+msgid "Each person who edits posts turns the monthly email of new link suggestions on or off in their own Profile. It is off for you."
+msgstr ""
+
+#: src/settings.php
+msgid "Change it in your Profile"
+msgstr ""
+
+#: src/settings.php
 msgid "No stats plugin found to read recent views from. “More like this” can read Jetpack Stats, Koko Analytics or Post Views Counter."
 msgstr ""
 
@@ -2199,7 +2212,7 @@ msgid "Questions"
 msgstr ""
 
 #: src/settings.php
-msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead, and one about a cross-pollination pair one sentence from each of its two posts. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers."
+msgid "With a key, Undergrowth asks Claude, through the Anthropic API, to write you questions about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead, and one about a cross-pollination pair one sentence from each of its two posts. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers."
 msgstr ""
 
 #: src/settings.php
@@ -2487,31 +2500,37 @@ msgstr ""
 msgid "Remove from idea bank"
 msgstr ""
 
-#. translators: %1$s: title of the post, linked to its editor.
+#. translators: %s: title of a post, linked to its editor.
+#: src/studio.php
+#, php-format
+msgid "“%s”"
+msgstr ""
+
+#. translators: %1$s: title of the post, in quotation marks and linked to its editor.
 #: src/studio.php
 #, php-format
 msgid "From a reader’s comment on %1$s, and your own words there."
 msgstr ""
 
-#. translators: %1$s: title of the post, linked to its editor.
+#. translators: %1$s: title of the post, in quotation marks and linked to its editor.
 #: src/studio.php
 #, php-format
 msgid "From %1$s, a post you moved to compost."
 msgstr ""
 
-#. translators: %1$s: titles of the posts, each linked to its editor, separated by commas.
+#. translators: %1$s: titles of the posts, each in quotation marks and linked to its editor, as a list.
 #: src/studio.php
 #, php-format
 msgid "From a gap among your posts: %1$s."
 msgstr ""
 
-#. translators: %1$s: titles of the two posts, each linked to its editor, separated by commas.
+#. translators: %1$s: titles of the two posts, each in quotation marks and linked to its editor, joined by “and”.
 #: src/studio.php
 #, php-format
 msgid "Cross-pollination: from %1$s, in groups of your writing that sit apart."
 msgstr ""
 
-#. translators: %1$s: titles of the posts, each linked to its editor, separated by commas.
+#. translators: %1$s: titles of the posts, each in quotation marks and linked to its editor, as a list.
 #: src/studio.php
 #, php-format
 msgid "From your posts: %1$s."
@@ -2805,6 +2824,7 @@ msgid "Readers see nothing here yet. This lists your published posts that link t
 msgstr ""
 
 #: build/blocks/linked-from/index.js
+#: build/blocks/more-like-this/index.js
 #: src/blocks/linked-from/edit.js
 msgid "Heading"
 msgstr ""
@@ -2868,6 +2888,10 @@ msgstr ""
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
 msgid "Show again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+msgid "Leave empty to use “More like this”."
 msgstr ""
 
 #: build/blocks/more-like-this/index.js

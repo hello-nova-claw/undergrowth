@@ -342,7 +342,8 @@ class Test_Prompts_Cross extends WP_UnitTestCase {
 		undergrowth_render_new_prompts( undergrowth_prompts( 'new' ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Cross-pollination: from', $html );
+		$this->assertStringContainsString( 'Cross-pollination: from “<a ', $html );
+		$this->assertStringContainsString( '</a>” and “<a ', $html );
 		$this->assertMatchesRegularExpression( '#post=' . $a[0] . '&(?:amp|\#038);action=edit#', $html );
 		$this->assertMatchesRegularExpression( '#post=' . $b[2] . '&(?:amp|\#038);action=edit#', $html );
 	}

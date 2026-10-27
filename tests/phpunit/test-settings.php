@@ -560,8 +560,21 @@ class Test_Settings extends WP_UnitTestCase {
 	public function test_page_opens_with_one_sentence_on_what_undergrowth_does() {
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#</h1>\s*<p id="undergrowth-intro">[^<]*OpenAI[^<]*Anthropic[^<]*</p>#', $html );
+		$this->assertMatchesRegularExpression( '#</h1>\s*<p id="undergrowth-intro">[^<]*OpenAI[^<]*Anthropic[^<]*Prompt studio[^<]*</p>#', $html );
+		$this->assertStringNotContainsString( 'occasional', $html );
 		$this->assertSame( 1, preg_match_all( '/[.!?](\s|$)/', wp_strip_all_tags( (string) preg_replace( '#.*<p id="undergrowth-intro">(.*?)</p>.*#s', '$1', $html ) ) ) );
+	}
+
+	public function test_page_says_where_each_user_turns_the_monthly_email_on() {
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'Monthly email', $html );
+		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'profile.php#undergrowth_digest' ) ) . '"', $html );
+		$this->assertStringContainsString( 'It is off for you.', $html );
+
+		update_user_meta( get_current_user_id(), 'undergrowth_digest', '1' );
+
+		$this->assertStringContainsString( 'It is on for you.', $this->render() );
 	}
 
 	public function test_each_key_field_links_to_the_providers_key_page() {
