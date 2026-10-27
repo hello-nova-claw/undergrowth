@@ -282,13 +282,19 @@ function undergrowth_migrate_prompts(): array {
 		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, 'undergrowth_prompts', maybe_serialize( $moved ), 'off' ) );
 		undergrowth_forget_cached_prompts();
 
+		$stored = get_option( 'undergrowth_prompts' );
+
+		// The old options go only once a list is stored, so a failed write
+		// leaves them for the next request to move.
+		if ( ! is_array( $stored ) ) {
+			return $moved;
+		}
+
 		foreach ( array_keys( $legacy ) as $option ) {
 			delete_option( $option );
 		}
 
-		$stored = get_option( 'undergrowth_prompts' );
-
-		return is_array( $stored ) ? $stored : $moved;
+		return $stored;
 	}
 
 	return $moved;

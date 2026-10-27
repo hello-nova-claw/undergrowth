@@ -319,4 +319,32 @@ class Test_Prompt_Lock extends WP_UnitTestCase {
 		$this->assertSame( array( 'comment:1', 'comment:2' ), array_keys( $this->statuses() ) );
 		$this->assertFalse( get_option( 'undergrowth_prompt' ) );
 	}
+
+	public function test_the_old_options_stay_when_the_moved_list_cannot_be_stored() {
+		delete_option( 'undergrowth_prompts' );
+		update_option(
+			'undergrowth_prompt',
+			array(
+				'key'      => 'comment:9',
+				'source'   => 'comment',
+				'post_id'  => $this->post_id,
+				'question' => 'What do you do with comment:9?',
+			),
+			false
+		);
+		$fail = static function ( $query ) {
+			return false !== strpos( $query, 'INSERT IGNORE' ) && false !== strpos( $query, 'undergrowth_prompts' ) ? '' : $query;
+		};
+		add_filter( 'query', $fail );
+
+		$this->assertSame( array( 'comment:9' ), array_column( undergrowth_migrate_prompts(), 'key' ) );
+		$this->assertFalse( get_option( 'undergrowth_prompts' ) );
+		$this->assertIsArray( get_option( 'undergrowth_prompt' ) );
+
+		// The next request, with the database writing again, moves them.
+		remove_filter( 'query', $fail );
+
+		$this->assertSame( array( 'comment:9' ), array_column( undergrowth_stored_prompts(), 'key' ) );
+		$this->assertFalse( get_option( 'undergrowth_prompt' ) );
+	}
 }
