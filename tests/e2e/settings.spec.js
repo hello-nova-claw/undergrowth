@@ -139,6 +139,12 @@ test.describe( 'Settings page', () => {
 		await page.keyboard.press( 'Tab' );
 		await expect( page.locator( '#undergrowth_surprise_2' ) ).toBeFocused();
 
+		// Then the link to the monthly email on the Profile.
+		await page.keyboard.press( 'Tab' );
+		await expect(
+			page.locator( '#undergrowth-digest-profile' )
+		).toBeFocused();
+
 		// The test site's provider is code, so there is no OpenAI key field.
 		// Each key field is followed by the link to the provider's key page.
 		for ( const id of [

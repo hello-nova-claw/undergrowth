@@ -164,6 +164,7 @@ function undergrowth_register_settings(): void {
 	add_settings_field( 'undergrowth_memory_folder', __( 'Per-post files', 'undergrowth' ), 'undergrowth_render_memory_folder_field', 'undergrowth', 'undergrowth_links' );
 	add_settings_field( 'undergrowth_popularity', __( 'Popularity', 'undergrowth' ), 'undergrowth_render_popularity_field', 'undergrowth', 'undergrowth_links' );
 	add_settings_field( 'undergrowth_surprise', __( 'Surprise scale', 'undergrowth' ), 'undergrowth_render_surprise_field', 'undergrowth', 'undergrowth_links' );
+	add_settings_field( 'undergrowth_monthly_email', __( 'Monthly email', 'undergrowth' ), 'undergrowth_render_monthly_email_field', 'undergrowth', 'undergrowth_links' );
 
 	add_settings_section( 'undergrowth_prompts', __( 'Questions in your Prompt studio', 'undergrowth' ), 'undergrowth_render_prompts_section', 'undergrowth' );
 
@@ -340,9 +341,9 @@ function undergrowth_render_settings_page(): void {
 		<p id="undergrowth-intro">
 			<?php
 			if ( undergrowth_embed_provider_set_by_code() ) {
-				esc_html_e( 'Undergrowth suggests links between your own posts, and asks you an occasional question about your writing with an Anthropic key.', 'undergrowth' );
+				esc_html_e( 'Undergrowth suggests links between your own posts, and with an Anthropic key asks you questions about your writing in your Prompt studio.', 'undergrowth' );
 			} else {
-				esc_html_e( 'Undergrowth suggests links between your own posts with an OpenAI key, and asks you an occasional question about your writing with an Anthropic key.', 'undergrowth' );
+				esc_html_e( 'Undergrowth suggests links between your own posts with an OpenAI key, and with an Anthropic key asks you questions about your writing in your Prompt studio.', 'undergrowth' );
 			}
 			?>
 		</p>
@@ -737,6 +738,25 @@ function undergrowth_render_posts_read_field(): void {
 }
 
 /**
+ * Says where each user turns the monthly email on, and whether it is on for
+ * the user looking.
+ */
+function undergrowth_render_monthly_email_field(): void {
+	?>
+	<p>
+		<?php
+		echo esc_html(
+			undergrowth_digest_is_on( get_current_user_id() )
+				? __( 'Each editor and administrator turns the monthly email of new link suggestions on or off in their own Profile. It is on for you.', 'undergrowth' )
+				: __( 'Each editor and administrator turns the monthly email of new link suggestions on or off in their own Profile. It is off for you.', 'undergrowth' )
+		);
+		?>
+		<a id="undergrowth-digest-profile" href="<?php echo esc_url( admin_url( 'profile.php#undergrowth_digest' ) ); ?>"><?php esc_html_e( 'Change it in your Profile', 'undergrowth' ); ?></a>
+	</p>
+	<?php
+}
+
+/**
  * Says which stats plugin "More like this" reads recent views from, or that
  * none is active.
  */
@@ -975,7 +995,7 @@ function undergrowth_add_settings_help(): void {
 		'undergrowth-prompts' => array(
 			__( 'Questions', 'undergrowth' ),
 			array(
-				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you an occasional question about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead, and one about a cross-pollination pair one sentence from each of its two posts. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers.', 'undergrowth' ),
+				__( 'With a key, Undergrowth asks Claude, through the Anthropic API, to write you questions about your own writing. Each request sends one post’s title, a few sentences quoted from that post and, when the question comes from a reader’s comment, the text of that comment. A question about a gap between your posts quotes one sentence from each of up to three of them instead, and one about a cross-pollination pair one sentence from each of its two posts. Whole posts are never sent. A question about a post you moved to compost is sent back once more, on its own, to check it. Nothing is sent while there is no key. Requests are sent from WP-Cron, and straight away when you choose Replace or More questions in the Prompt studio. The questions appear only in your Prompt studio, never to your readers.', 'undergrowth' ),
 			),
 		),
 		'undergrowth-files'   => array(

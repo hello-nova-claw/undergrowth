@@ -260,8 +260,17 @@ function undergrowth_render_idea_bank( array $prompts ): void {
  * @param array<string, string>                                                                                       $choices Button labels keyed by choice.
  */
 function undergrowth_render_studio_prompt( array $prompt, array $choices ): void {
+	// Quoted, because a title holding a comma would run into the next.
+	$titles = array_map(
+		static function ( $post_id ) {
+			/* translators: %s: title of a post, linked to its editor. */
+			return sprintf( __( '“%s”', 'undergrowth' ), undergrowth_post_link( $post_id ) );
+		},
+		$prompt['posts']
+	);
+
 	$id      = 'undergrowth-question-' . substr( md5( $prompt['key'] ), 0, 12 );
-	$links   = implode( wp_get_list_item_separator(), array_map( 'undergrowth_post_link', $prompt['posts'] ) );
+	$links   = wp_sprintf_l( '%l', $titles );
 	$allowed = array(
 		'a'   => array( 'href' => array() ),
 		'bdi' => array(),
@@ -292,26 +301,26 @@ function undergrowth_render_studio_prompt( array $prompt, array $choices ): void
  */
 function undergrowth_prompt_source_text( string $source ): string {
 	if ( 'comment' === $source ) {
-		/* translators: %1$s: title of the post, linked to its editor. */
+		/* translators: %1$s: title of the post, in quotation marks and linked to its editor. */
 		return __( 'From a reader’s comment on %1$s, and your own words there.', 'undergrowth' );
 	}
 
 	if ( 'compost' === $source ) {
-		/* translators: %1$s: title of the post, linked to its editor. */
+		/* translators: %1$s: title of the post, in quotation marks and linked to its editor. */
 		return __( 'From %1$s, a post you moved to compost.', 'undergrowth' );
 	}
 
 	if ( 'gap' === $source ) {
-		/* translators: %1$s: titles of the posts, each linked to its editor, separated by commas. */
+		/* translators: %1$s: titles of the posts, each in quotation marks and linked to its editor, as a list. */
 		return __( 'From a gap among your posts: %1$s.', 'undergrowth' );
 	}
 
 	if ( 'cross' === $source ) {
-		/* translators: %1$s: titles of the two posts, each linked to its editor, separated by commas. */
+		/* translators: %1$s: titles of the two posts, each in quotation marks and linked to its editor, joined by “and”. */
 		return __( 'Cross-pollination: from %1$s, in groups of your writing that sit apart.', 'undergrowth' );
 	}
 
-	/* translators: %1$s: titles of the posts, each linked to its editor, separated by commas. */
+	/* translators: %1$s: titles of the posts, each in quotation marks and linked to its editor, as a list. */
 	return __( 'From your posts: %1$s.', 'undergrowth' );
 }
 

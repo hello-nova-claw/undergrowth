@@ -1,0 +1,1 @@
+In the Prompt studio, the posts a question came from are now quoted, so titles with commas no longer run together. Settings › Undergrowth says the Prompt studio asks you questions, not "an occasional question", and has a Monthly email line that says whether the email is on for you, with a link to turn it on or off in your Profile.
