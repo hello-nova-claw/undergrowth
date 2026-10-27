@@ -48,6 +48,12 @@ const UNDERGROWTH_PROMPT_STATUSES = array( 'new', 'saved', 'dismissed' );
 // dismissed question never comes back once it is dropped.
 const UNDERGROWTH_PROMPT_KEEP_DISMISSED = 10;
 
+// Every write to the stored questions takes one short lock. A lock left by a
+// stopped request is taken over after this many seconds, and a writer that
+// finds the lock taken tries this many times, a twentieth of a second apart.
+const UNDERGROWTH_PROMPT_LOCK_TIMEOUT = 10;
+const UNDERGROWTH_PROMPT_LOCK_TRIES   = 20;
+
 add_action( 'init', 'undergrowth_schedule_prompt_batch' );
 add_action( 'init', 'undergrowth_queue_config_first_prompt', 20 );
 add_action( 'undergrowth_prompt_batch', 'undergrowth_run_prompt_batch' );
@@ -233,9 +239,14 @@ function undergrowth_clean_stored_prompt( $prompt, string $status = 'new' ): ?ar
  * there is no snooze any more, and the question dismissed last stays for its
  * Undo. Nothing is written for a site that never had a question.
  *
- * @return array<int, array<string, mixed>> The moved questions.
+ * The list is only added when none is stored yet, so a move that started
+ * before another request stored the list never overwrites it.
+ *
+ * @return array<int, array<string, mixed>> The stored questions.
  */
 function undergrowth_migrate_prompts(): array {
+	global $wpdb;
+
 	$legacy = array(
 		'undergrowth_prompt'           => 'new',
 		'undergrowth_snoozed_prompts'  => 'new',
@@ -267,22 +278,97 @@ function undergrowth_migrate_prompts(): array {
 	}
 
 	if ( $found ) {
-		update_option( 'undergrowth_prompts', $moved, false );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row, once per site; add_option() cannot refuse a second writer, and the cache is dropped next.
+		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (option_name, option_value, autoload) VALUES (%s, %s, %s)', $wpdb->options, 'undergrowth_prompts', maybe_serialize( $moved ), 'off' ) );
+		undergrowth_forget_cached_prompts();
+
+		$stored = get_option( 'undergrowth_prompts' );
+
+		// The old options go only once a list is stored, so a failed write
+		// leaves them for the next request to move.
+		if ( ! is_array( $stored ) ) {
+			return $moved;
+		}
 
 		foreach ( array_keys( $legacy ) as $option ) {
 			delete_option( $option );
 		}
+
+		return $stored;
 	}
 
 	return $moved;
 }
 
 /**
+ * Changes the stored questions as one step.
+ *
+ * Every write to the list goes through here. The weekly batch, More
+ * questions and the author's own choices each read the list, change it and
+ * store it, so a short lock makes those three one step: two writers that land
+ * at once both keep their change. A writer that finds the lock taken tries
+ * again for about a second, then gives up and says so.
+ *
+ * No request to Anthropic is sent while the lock is held.
+ *
+ * @param callable $change Takes the stored questions, oldest first, and returns the new list, or null to change nothing.
+ * @return bool True when the change was stored.
+ */
+function undergrowth_change_prompts( callable $change ): bool {
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	$tries = 1;
+
+	while ( ! WP_Upgrader::create_lock( 'undergrowth_prompts', UNDERGROWTH_PROMPT_LOCK_TIMEOUT ) ) {
+		if ( ++$tries > UNDERGROWTH_PROMPT_LOCK_TRIES ) {
+			return false;
+		}
+
+		usleep( 50000 );
+	}
+
+	$stored = false;
+
+	try {
+		// The list this request read before it had the lock may be stale.
+		undergrowth_forget_cached_prompts();
+
+		$prompts = $change( undergrowth_stored_prompts() );
+
+		if ( null !== $prompts ) {
+			$stored = undergrowth_store_prompts( $prompts );
+		}
+	} finally {
+		WP_Upgrader::release_lock( 'undergrowth_prompts' );
+	}
+
+	return $stored;
+}
+
+/**
+ * Drops this request's cached copy of the stored questions, so the next read
+ * sees the list as another request may have stored it.
+ */
+function undergrowth_forget_cached_prompts(): void {
+	$notoptions = wp_cache_get( 'notoptions', 'options' );
+
+	if ( is_array( $notoptions ) && isset( $notoptions['undergrowth_prompts'] ) ) {
+		unset( $notoptions['undergrowth_prompts'] );
+		wp_cache_set( 'notoptions', $notoptions, 'options' );
+	}
+
+	wp_cache_delete( 'undergrowth_prompts', 'options' );
+}
+
+/**
  * Stores the list of questions, keeping only the latest dismissed ones.
  *
+ * Only undergrowth_change_prompts() calls this, with the lock held.
+ *
  * @param array<int, array<string, mixed>> $prompts Questions, oldest first.
+ * @return bool True when WordPress stored the list.
  */
-function undergrowth_store_prompts( array $prompts ): void {
+function undergrowth_store_prompts( array $prompts ): bool {
 	$dismissed = 0;
 
 	for ( $i = count( $prompts ) - 1; $i >= 0; $i-- ) {
@@ -291,7 +377,7 @@ function undergrowth_store_prompts( array $prompts ): void {
 		}
 	}
 
-	update_option( 'undergrowth_prompts', array_values( $prompts ), false );
+	return update_option( 'undergrowth_prompts', array_values( $prompts ), false );
 }
 
 /**
@@ -352,7 +438,7 @@ function undergrowth_find_prompt( string $key ): ?array {
  * @param string      $from  Status it must have now.
  * @param string|null $to    New status, or null to forget it.
  * @param string      $event Event for the post's log.
- * @return bool True when the question had that status and was moved.
+ * @return bool True when the question had that status and was moved, or false when it did not or the list was busy.
  */
 function undergrowth_move_prompt( string $key, string $from, ?string $to, string $event ): bool {
 	$prompt = undergrowth_find_prompt( $key );
@@ -361,24 +447,45 @@ function undergrowth_move_prompt( string $key, string $from, ?string $to, string
 		return false;
 	}
 
-	$prompts = array();
-	$moved   = null;
+	$changed = undergrowth_change_prompts(
+		static function ( array $stored ) use ( $key, $from, $to ): ?array {
+			$prompts = array();
+			$moved   = null;
+			$found   = false;
 
-	foreach ( undergrowth_stored_prompts() as $stored ) {
-		if ( $key !== $stored['key'] ) {
-			$prompts[] = $stored;
-		} elseif ( null !== $to ) {
-			// A question moved to the end, so the latest dismissed are kept
-			// and the idea bank lists questions in the order they were saved.
-			$moved = array_merge( $stored, array( 'status' => $to ) );
+			foreach ( $stored as $prompt ) {
+				if ( $key !== $prompt['key'] ) {
+					$prompts[] = $prompt;
+					continue;
+				}
+
+				// Another writer may have moved it since it was read above.
+				if ( $from !== $prompt['status'] ) {
+					return null;
+				}
+
+				$found = true;
+
+				if ( null !== $to ) {
+					// A question moved to the end, so the latest dismissed are
+					// kept and the idea bank lists questions in the order they
+					// were saved.
+					$moved = array_merge( $prompt, array( 'status' => $to ) );
+				}
+			}
+
+			if ( null !== $moved ) {
+				$prompts[] = $moved;
+			}
+
+			return $found ? $prompts : null;
 		}
+	);
+
+	if ( ! $changed ) {
+		return false;
 	}
 
-	if ( null !== $moved ) {
-		$prompts[] = $moved;
-	}
-
-	undergrowth_store_prompts( $prompts );
 	undergrowth_log_prompt( $prompt['post_id'], $event, $prompt );
 
 	return true;
@@ -710,7 +817,7 @@ function undergrowth_write_prompts( int $wanted, int $limit, ?callable $accept =
  *
  * @param array{source: string, key: string, post_id: int, posts: int[], title: string, quotes: string[], data: string, exact?: bool, rest?: bool} $record Source record.
  * @param int                                                                                                                                      $calls  Requests made so far this run, counted up here.
- * @return string 'written', 'skipped' when this source gave no prompt, or 'failed' when a request failed.
+ * @return string 'written', 'skipped' when this source gave no prompt, or 'failed' when a request failed or the question could not be stored.
  */
 function undergrowth_write_prompt_from( array $record, int &$calls ): string {
 	++$calls;
@@ -735,13 +842,13 @@ function undergrowth_write_prompt_from( array $record, int &$calls ): string {
 		$question = $rests ? $question : null;
 	}
 
-	add_post_meta( $record['post_id'], 'undergrowth_prompt_keys', $record['key'] );
-
 	if ( null === $question ) {
+		add_post_meta( $record['post_id'], 'undergrowth_prompt_keys', $record['key'] );
+
 		return 'skipped';
 	}
 
-	$prompt    = array(
+	$prompt = array(
 		'key'      => $record['key'],
 		'source'   => $record['source'],
 		'post_id'  => $record['post_id'],
@@ -750,10 +857,22 @@ function undergrowth_write_prompt_from( array $record, int &$calls ): string {
 		'time'     => time(),
 		'status'   => 'new',
 	);
-	$prompts   = undergrowth_stored_prompts();
-	$prompts[] = $prompt;
 
-	undergrowth_store_prompts( $prompts );
+	// A question that cannot be stored fails the run like a failed request.
+	// Its source is not recorded as sent, so it is written again next time.
+	$stored = undergrowth_change_prompts(
+		static function ( array $prompts ) use ( $prompt ): array {
+			$prompts[] = $prompt;
+
+			return $prompts;
+		}
+	);
+
+	if ( ! $stored ) {
+		return 'failed';
+	}
+
+	add_post_meta( $record['post_id'], 'undergrowth_prompt_keys', $record['key'] );
 
 	/**
 	 * Fires after a prompt is written and waiting for the author.
