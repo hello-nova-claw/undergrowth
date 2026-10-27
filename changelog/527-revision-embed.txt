@@ -1,0 +1,1 @@
+Accepting a suggestion no longer takes posts out of their group on the Map in WordPress Playground previews, which read every revision as it was saved. Undergrowth now never reads a revision, whoever asks it to.

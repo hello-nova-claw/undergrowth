@@ -199,7 +199,10 @@ function undergrowth_queue_embed( int $post_id, WP_Post $post ): void {
 function undergrowth_embed_post( int $post_id ): void {
 	$post = get_post( $post_id );
 
-	if ( ! $post instanceof WP_Post ) {
+	// A revision is never read. Treating it as a post that left the index
+	// would wipe its parent's cluster and resurfacing meta, as in
+	// undergrowth_queue_embed().
+	if ( ! $post instanceof WP_Post || wp_is_post_revision( $post ) ) {
 		return;
 	}
 
