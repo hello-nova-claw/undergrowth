@@ -105,7 +105,7 @@ add_filter(
 add_action(
 	'wp_after_insert_post',
 	static function ( $post_id ) {
-		if ( function_exists( 'undergrowth_embed_post' ) && 'importing' !== get_option( 'undergrowth_e2e_demo' ) ) {
+		if ( function_exists( 'undergrowth_embed_post' ) && 'importing' !== get_option( 'undergrowth_e2e_demo' ) && ! wp_is_post_revision( (int) $post_id ) ) {
 			undergrowth_embed_post( (int) $post_id );
 		}
 	},
