@@ -310,6 +310,8 @@ function undergrowth_change_prompts( callable $change ): bool {
 		usleep( 50000 );
 	}
 
+	$stored = false;
+
 	try {
 		// The list this request read before it had the lock may be stale.
 		$notoptions = wp_cache_get( 'notoptions', 'options' );
@@ -324,13 +326,13 @@ function undergrowth_change_prompts( callable $change ): bool {
 		$prompts = $change( undergrowth_stored_prompts() );
 
 		if ( null !== $prompts ) {
-			undergrowth_store_prompts( $prompts );
+			$stored = undergrowth_store_prompts( $prompts );
 		}
 	} finally {
 		WP_Upgrader::release_lock( 'undergrowth_prompts' );
 	}
 
-	return null !== $prompts;
+	return $stored;
 }
 
 /**
@@ -339,8 +341,9 @@ function undergrowth_change_prompts( callable $change ): bool {
  * Only undergrowth_change_prompts() calls this, with the lock held.
  *
  * @param array<int, array<string, mixed>> $prompts Questions, oldest first.
+ * @return bool True when WordPress stored the list.
  */
-function undergrowth_store_prompts( array $prompts ): void {
+function undergrowth_store_prompts( array $prompts ): bool {
 	$dismissed = 0;
 
 	for ( $i = count( $prompts ) - 1; $i >= 0; $i-- ) {
@@ -349,7 +352,7 @@ function undergrowth_store_prompts( array $prompts ): void {
 		}
 	}
 
-	update_option( 'undergrowth_prompts', array_values( $prompts ), false );
+	return update_option( 'undergrowth_prompts', array_values( $prompts ), false );
 }
 
 /**

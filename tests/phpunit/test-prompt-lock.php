@@ -282,4 +282,22 @@ class Test_Prompt_Lock extends WP_UnitTestCase {
 		// The source was not recorded as sent, so the next run tries it again.
 		$this->assertArrayNotHasKey( 'gap:' . $this->post_id, undergrowth_sent_prompt_keys() );
 	}
+
+	public function test_a_question_the_database_did_not_store_is_reported_and_its_source_kept() {
+		add_filter( 'pre_http_request', array( $this, 'fake_http' ) );
+		add_filter(
+			'pre_update_option_undergrowth_prompts',
+			static function ( $value, $old ) {
+				return $old;
+			},
+			10,
+			2
+		);
+		$calls = 0;
+
+		$this->assertSame( 'failed', undergrowth_write_prompt_from( $this->record(), $calls ) );
+		$this->assertArrayNotHasKey( 'gap:' . $this->post_id, undergrowth_sent_prompt_keys() );
+		$this->assertFalse( undergrowth_dismiss_prompt( 'comment:1' ) );
+		$this->assertSame( array(), undergrowth_prompt_log( $this->post_id ) );
+	}
 }
