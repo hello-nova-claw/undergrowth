@@ -669,6 +669,38 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertSame( array( '10-20' => array( 'frost', 'raised bed' ) ), undergrowth_find_threads( $groups, $site, 20 ) );
 	}
 
+	public function test_threads_are_only_words_each_group_is_known_for() {
+		$rare   = array();
+		$counts = array( 'mass' => 2 );
+
+		// Eleven words the second group is better known for than "mass".
+		for ( $i = 0; $i < 11; $i++ ) {
+			$rare[ 'rare' . $i ]   = 3;
+			$counts[ 'rare' . $i ] = 3;
+		}
+
+		$groups = array(
+			10 => array(
+				'size'    => 3,
+				'counts'  => array( 'mass' => 2 ),
+				'spelled' => array( 'mass' => array( 'mass' => 2 ) ),
+			),
+			20 => array(
+				'size'    => 3,
+				'counts'  => $counts,
+				'spelled' => array( 'mass' => array( 'mass' => 2 ) ),
+			),
+		);
+
+		// Both groups use "mass" far more than the rest of the site, but only
+		// the first is known for it.
+		$this->assertSame( array(), undergrowth_find_threads( $groups, array( 'mass' => 10 ) + $rare, 100 ) );
+
+		unset( $groups[20]['counts']['rare9'], $groups[20]['counts']['rare10'] );
+
+		$this->assertSame( array( '10-20' => array( 'mass' ) ), undergrowth_find_threads( $groups, array( 'mass' => 10 ) + $rare, 100 ) );
+	}
+
 	public function test_labelling_stores_threads_from_the_authors_words() {
 		$a = $this->group(
 			array(
@@ -746,6 +778,48 @@ class Test_Pollination extends WP_UnitTestCase {
 		// Many forms on one screen never repeat core's nonce id.
 		$this->assertStringNotContainsString( 'id="_wpnonce" name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_dismiss_pollination_' . $a[0] . '_' . $b[0] ), $html );
 		$this->assertStringContainsString( 'name="_wpnonce" value="' . wp_create_nonce( 'undergrowth_dismiss_pollination_' . $a[0] . '_' . $b[0] ) . '"', $html );
+	}
+
+	public function test_map_view_folds_the_pairs_after_the_tenth() {
+		$leaders = array();
+		$threads = array();
+
+		for ( $i = 0; $i < 6; $i++ ) {
+			$vector       = array( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
+			$vector[ $i ] = 1.0;
+			$leaders[]    = $this->group(
+				array(
+					'First ' . $i  => $vector,
+					'Second ' . $i => $vector,
+					'Third ' . $i  => $vector,
+				)
+			)[0];
+		}
+
+		foreach ( $leaders as $i => $a ) {
+			foreach ( array_slice( $leaders, $i + 1 ) as $b ) {
+				$threads[ undergrowth_pollination_key( $a, $b ) ] = array( 'moonlight' );
+			}
+		}
+
+		update_option(
+			'undergrowth_cluster_labels',
+			array(
+				'made'    => current_time( 'mysql', true ),
+				'terms'   => array(),
+				'threads' => $threads,
+			)
+		);
+
+		ob_start();
+		undergrowth_render_pollination_view();
+		$html = (string) ob_get_clean();
+
+		list( $shown, $folded ) = explode( '<details', $html ) + array( '', '' );
+
+		$this->assertSame( 10, substr_count( $shown, 'class="undergrowth-pollination-pair"' ) );
+		$this->assertSame( 5, substr_count( $folded, 'class="undergrowth-pollination-pair"' ) );
+		$this->assertStringContainsString( '<summary>Show all 15 pairs</summary>', $folded );
 	}
 
 	public function test_map_view_says_so_when_no_pair_is_found() {
