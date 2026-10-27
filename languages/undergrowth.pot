@@ -2832,7 +2832,9 @@ msgid "Readers see nothing here yet. This lists your published posts that link t
 msgstr ""
 
 #: build/blocks/linked-from/index.js
+#: build/blocks/more-like-this/index.js
 #: src/blocks/linked-from/edit.js
+#: src/blocks/more-like-this/edit.js
 msgid "Heading"
 msgstr ""
 
@@ -2895,6 +2897,11 @@ msgstr ""
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
 msgid "Show again"
+msgstr ""
+
+#: build/blocks/more-like-this/index.js
+#: src/blocks/more-like-this/edit.js
+msgid "Leave empty to use “More like this”."
 msgstr ""
 
 #: build/blocks/more-like-this/index.js

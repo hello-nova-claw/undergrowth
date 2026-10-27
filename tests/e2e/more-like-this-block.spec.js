@@ -71,7 +71,13 @@ test.describe( 'More like this block', () => {
 
 		const list = page.locator( `nav${ LIST }` );
 		await expect( list ).toBeVisible();
-		await expect( list ).toHaveAttribute( 'aria-label', /.+/ );
+		// The list is named by its own visible heading, in any language.
+		const heading = list.getByRole( 'heading' );
+		await expect( heading ).toBeVisible();
+		await expect( list ).toHaveAttribute(
+			'aria-labelledby',
+			( await heading.getAttribute( 'id' ) ) ?? ''
+		);
 		await expect( list.locator( 'li' ) ).toHaveCount( 2 );
 		await expect( linkTo( list, posts.yacon ) ).toBeVisible();
 		await expect( linkTo( list, posts.syrup ) ).toBeVisible();

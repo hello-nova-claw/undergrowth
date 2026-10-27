@@ -8,6 +8,7 @@ import {
 	Placeholder,
 	RangeControl,
 	Spinner,
+	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
@@ -212,11 +213,24 @@ export default function Edit( {
 } ) {
 	const blockProps = useBlockProps();
 	const [ changed, setChanged ] = useState( 0 );
-	const { postsToShow, showImage, showExcerpt } = attributes;
+	const { heading, postsToShow, showImage, showExcerpt } = attributes;
 
 	const settings = (
 		<InspectorControls>
 			<PanelBody title={ __( 'Settings', 'undergrowth' ) }>
+				<TextControl
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+					label={ __( 'Heading', 'undergrowth' ) }
+					help={ __(
+						'Leave empty to use “More like this”.',
+						'undergrowth'
+					) }
+					value={ heading }
+					onChange={ ( value ) =>
+						setAttributes( { heading: value } )
+					}
+				/>
 				<RangeControl
 					__next40pxDefaultSize
 					__nextHasNoMarginBottom
