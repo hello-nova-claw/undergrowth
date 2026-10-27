@@ -1,0 +1,1 @@
+When the weekly questions and a click in the Prompt studio land at the same moment, both changes are kept. A question that cannot be stored is written again next time instead of being lost.
