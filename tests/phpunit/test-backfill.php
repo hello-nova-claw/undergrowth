@@ -874,6 +874,42 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertSame( 'proposed', $this->stored_link( $oca, $yacon )['state'] );
 	}
 
+	public function test_pass_cut_off_after_reading_a_post_still_refreshes_it_once_resumed() {
+		list( $oca, $yacon, $mashua ) = $this->garden();
+		$this->failing[]              = undergrowth_post_text( get_post( $mashua ) );
+		$dies                         = undergrowth_post_text( get_post( $yacon ) );
+
+		// The run dies while Yacon is sent, after Oca was read.
+		$cut_off = static function ( $vector, $text ) use ( $dies ) {
+			if ( $text === $dies ) {
+				throw new RuntimeException( 'The request was stopped.' );
+			}
+
+			return $vector;
+		};
+		add_filter( 'undergrowth_embed_provider', $cut_off, 20, 2 );
+
+		undergrowth_start_backfill();
+		wp_unschedule_hook( 'undergrowth_backfill' );
+
+		try {
+			do_action( 'undergrowth_backfill' );
+		} catch ( RuntimeException $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'undergrowth_embed_provider', $cut_off, 20 );
+		delete_option( 'undergrowth_backfill.lock' );
+		$this->failing[] = $dies;
+
+		// The hourly check resumes the pass, and Yacon fails like Mashua.
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( array( 1 ), $this->run_index_refresh() );
+		$this->assertNotNull( undergrowth_get_vector( $oca ) );
+	}
+
 	public function test_pass_that_reads_no_post_queues_no_refresh() {
 		list( , , $mashua ) = $this->garden();
 		$this->failing[]    = undergrowth_post_text( get_post( $mashua ) );
