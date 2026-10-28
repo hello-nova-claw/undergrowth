@@ -1,0 +1,1 @@
+A blog's first read, or a read again after changing the model, no longer refreshes suggestions after each post. They all come from the one refresh at the end, so a large archive is read many times faster and each run stays within its time.

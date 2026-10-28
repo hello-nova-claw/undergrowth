@@ -24,6 +24,10 @@ function undergrowth_render_map_tab(): void {
 	$map    = undergrowth_cluster_map();
 	$counts = undergrowth_map_accounting( $map );
 
+	// Every grouped post is listed with its title, stage and edit link, so
+	// they are read in one query with their meta, not one at a time.
+	_prime_post_caches( array_merge( array(), ...array_column( $map, 'members' ) ), false, true );
+
 	undergrowth_render_map_counts( count( $map ), $counts );
 
 	foreach ( $map as $cluster ) {
