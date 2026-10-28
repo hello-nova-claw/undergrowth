@@ -306,4 +306,183 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		$this->assertStringStartsWith( '<div class="wp-block-undergrowth-garden-index has-small-font-size"', $html );
 		$this->assertStringNotContainsString( 'style=', $html );
 	}
+
+	/**
+	 * Makes a group of a given size around Oca, its members stored nearest
+	 * the centre first, as the cluster cycle stores them.
+	 *
+	 * @param int $size Posts in the group.
+	 * @return int[] Post IDs, nearest the centre first.
+	 */
+	private function large_group( int $size ): array {
+		$leader  = $this->member( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$members = array( $leader );
+
+		for ( $i = 1; $i < $size; $i++ ) {
+			$members[] = $this->member( "Oca {$i}", array( 1.0, 0.01 * $i, 0.0 ), $leader );
+		}
+
+		update_option(
+			'undergrowth_garden_index',
+			array(
+				'groups' => array(
+					array(
+						'leader'  => $leader,
+						'members' => $members,
+					),
+				),
+			),
+			false
+		);
+
+		return $members;
+	}
+
+	/**
+	 * Publishes a page holding the Garden feed.
+	 *
+	 * @return int Page ID.
+	 */
+	private function feed_page(): int {
+		return self::factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'publish',
+				'post_title'   => 'Garden',
+				'post_content' => '<!-- wp:undergrowth/garden-feed /-->',
+			)
+		);
+	}
+
+	public function test_a_large_group_shows_the_twenty_nearest_its_centre_and_links_to_the_rest() {
+		$members = $this->large_group( 23 );
+		$page    = $this->feed_page();
+
+		$html  = $this->render();
+		$shown = $this->groups( $html )['Oca'];
+
+		$this->assertSame( array_merge( array( 'Oca' ), array_map( static fn( $i ) => "Oca {$i}", range( 1, 19 ) ) ), $shown );
+		$this->assertStringContainsString( 'href="' . esc_url( add_query_arg( 'group', $members[0], get_permalink( $page ) ) ) . '"', $html );
+		$this->assertStringContainsString( 'See all 23 posts in this group', $html );
+	}
+
+	public function test_a_group_of_twenty_needs_no_link() {
+		$this->large_group( 20 );
+		$this->feed_page();
+
+		$html = $this->render();
+
+		$this->assertCount( 20, $this->groups( $html )['Oca'] );
+		$this->assertStringNotContainsString( 'See all', $html );
+	}
+
+	public function test_without_a_feed_page_the_rest_are_counted_without_a_link() {
+		$this->large_group( 23 );
+
+		$html = $this->render();
+
+		$this->assertCount( 20, $this->groups( $html )['Oca'] );
+		$this->assertStringContainsString( 'And 3 more posts in this group.', $html );
+		$this->assertStringNotContainsString( 'group=', $html );
+	}
+
+	public function test_other_posts_show_the_twenty_newest_and_link_to_the_rest() {
+		for ( $i = 1; $i <= 22; $i++ ) {
+			$this->member( "Loose {$i}", array( 0.0, 1.0, 0.0 ), -1, array( 'post_date' => sprintf( '2026-01-%02d 00:00:00', $i ) ) );
+		}
+		$page = $this->feed_page();
+
+		$html = $this->render();
+
+		$this->assertSame( array_map( static fn( $i ) => "Loose {$i}", range( 22, 3 ) ), $this->groups( $html )['Other posts'] );
+		$this->assertStringContainsString( 'href="' . esc_url( add_query_arg( 'group', 'other', get_permalink( $page ) ) ) . '"', $html );
+	}
+
+	public function test_a_stage_filter_counts_and_caps_only_that_stage() {
+		$members = $this->large_group( 25 );
+
+		foreach ( array_slice( $members, 0, 22 ) as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_stage', 'sprout' );
+		}
+
+		$html = $this->render( array( 'stage' => 'sprout' ) );
+
+		$this->assertCount( 20, $this->groups( $html )['Oca'] );
+		$this->assertStringContainsString( 'And 2 more posts in this group.', $html );
+	}
+
+	public function test_a_stage_filter_carries_into_the_see_all_link() {
+		$members = $this->large_group( 25 );
+		$page    = $this->feed_page();
+
+		foreach ( array_slice( $members, 0, 22 ) as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_stage', 'sprout' );
+		}
+
+		$html = $this->render( array( 'stage' => 'sprout' ) );
+
+		$this->assertStringContainsString(
+			'href="' . esc_url(
+				add_query_arg(
+					array(
+						'group' => $members[0],
+						'stage' => 'sprout',
+					),
+					get_permalink( $page )
+				)
+			) . '"',
+			$html
+		);
+		$this->assertStringContainsString( 'See all 22 posts in this group', $html );
+	}
+
+	public function test_renders_without_loading_the_posts_it_lists() {
+		$members = $this->large_group( 23 );
+		wp_cache_flush();
+
+		$this->render();
+
+		foreach ( $members as $post_id ) {
+			$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
+		}
+	}
+
+	public function test_a_larger_group_takes_no_more_queries() {
+		global $wpdb;
+
+		// The feed's page is looked up once and remembered, so both renders
+		// below read the same option.
+		undergrowth_garden_feed_url();
+		$this->large_group( 25 );
+		wp_cache_flush();
+		$before = $wpdb->num_queries;
+		$this->render();
+		$small = $wpdb->num_queries - $before;
+
+		foreach ( get_option( 'undergrowth_garden_index' )['groups'][0]['members'] as $post_id ) {
+			wp_delete_post( $post_id, true );
+		}
+
+		$this->large_group( 30 );
+		wp_cache_flush();
+		$before = $wpdb->num_queries;
+		$this->render();
+
+		$this->assertLessThanOrEqual( $small, $wpdb->num_queries - $before );
+	}
+
+	public function test_the_link_follows_the_feed_to_another_page() {
+		$this->large_group( 23 );
+		$first = $this->feed_page();
+		$this->assertStringContainsString( esc_url( add_query_arg( 'group', '', get_permalink( $first ) ) ), $this->render() );
+
+		wp_trash_post( $first );
+		$second = $this->feed_page();
+
+		$this->assertStringContainsString( esc_url( get_permalink( $second ) ), $this->render() );
+
+		wp_delete_post( $second, true );
+
+		$this->assertStringContainsString( 'And 3 more posts in this group.', $this->render() );
+	}
 }

@@ -1,0 +1,1 @@
+On large blogs using SQLite, refreshing suggestions after a save no longer spends about three seconds working out which groups are already linked.

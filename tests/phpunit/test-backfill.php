@@ -836,6 +836,143 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
 	}
 
+	public function test_first_read_leaves_suggestions_to_the_refresh_that_follows_it() {
+		$this->garden();
+
+		undergrowth_start_backfill();
+		$before = did_action( 'undergrowth_proposals_refreshed' );
+		$this->run_cron();
+
+		$this->assertSame( $before, did_action( 'undergrowth_proposals_refreshed' ) );
+		$this->assertSame( array( 3 ), $this->run_index_refresh() );
+	}
+
+	public function test_read_after_a_model_change_leaves_suggestions_to_the_refresh_that_follows_it() {
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		$this->model = 'test-model-v2';
+		undergrowth_start_backfill();
+		$before = did_action( 'undergrowth_proposals_refreshed' );
+		$this->run_cron();
+
+		$this->assertSame( $before, did_action( 'undergrowth_proposals_refreshed' ) );
+		$this->assertSame( array( 3 ), $this->run_index_refresh() );
+	}
+
+	public function test_pass_where_some_embeds_failed_still_refreshes_the_posts_it_read() {
+		list( $oca, $yacon, $mashua ) = $this->garden();
+		$this->failing[]              = undergrowth_post_text( get_post( $mashua ) );
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array( 2 ), $this->run_index_refresh() );
+		$this->assertSame( 'proposed', $this->stored_link( $oca, $yacon )['state'] );
+	}
+
+	public function test_pass_cut_off_after_reading_a_post_still_refreshes_it_once_resumed() {
+		list( $oca, $yacon, $mashua ) = $this->garden();
+		$this->failing[]              = undergrowth_post_text( get_post( $mashua ) );
+		$dies                         = undergrowth_post_text( get_post( $yacon ) );
+
+		// The run dies while Yacon is sent, after Oca was read.
+		$cut_off = static function ( $vector, $text ) use ( $dies ) {
+			if ( $text === $dies ) {
+				throw new RuntimeException( 'The request was stopped.' );
+			}
+
+			return $vector;
+		};
+		add_filter( 'undergrowth_embed_provider', $cut_off, 20, 2 );
+
+		undergrowth_start_backfill();
+		wp_unschedule_hook( 'undergrowth_backfill' );
+
+		try {
+			do_action( 'undergrowth_backfill' );
+		} catch ( RuntimeException $e ) {
+			unset( $e );
+		}
+
+		remove_filter( 'undergrowth_embed_provider', $cut_off, 20 );
+		delete_option( 'undergrowth_backfill.lock' );
+		$this->failing[] = $dies;
+
+		// The hourly check resumes the pass, and Yacon fails like Mashua.
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( array( 1 ), $this->run_index_refresh() );
+		$this->assertNotNull( undergrowth_get_vector( $oca ) );
+	}
+
+	public function test_pass_that_reads_no_post_queues_no_refresh() {
+		list( , , $mashua ) = $this->garden();
+		$this->failing[]    = undergrowth_post_text( get_post( $mashua ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		// The hourly check tries the post that failed again, and it fails again.
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( array(), $this->run_index_refresh() );
+	}
+
+	public function test_refresh_after_a_pass_with_failures_stops_once_the_model_changes() {
+		list( , , $mashua ) = $this->garden();
+		$this->failing[]    = undergrowth_post_text( get_post( $mashua ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->model = 'test-model-v2';
+
+		$this->assertSame( array( 0 ), $this->run_index_refresh() );
+	}
+
+	public function test_post_read_once_the_index_is_recorded_still_gets_suggestions() {
+		list( $oca ) = $this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		// Published while the plugin was off: no index refresh follows it.
+		$ulluco = $this->archive(
+			1,
+			array(
+				'post_title'   => 'Ulluco',
+				'post_content' => '<p>Ulluco is a tuber. It grows beside oca and yacon in the bed.</p>',
+			)
+		)[0];
+
+		$refreshed = array();
+		add_action(
+			'undergrowth_proposals_refreshed',
+			static function ( $post_id ) use ( &$refreshed ) {
+				$refreshed[] = $post_id;
+			}
+		);
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertContains( $ulluco, $refreshed );
+		$this->assertContains( $oca, $refreshed );
+	}
+
+	public function test_first_read_puts_back_the_refresh_after_a_post() {
+		$this->garden();
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertSame( 10, has_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' ) );
+	}
+
 	public function test_refresh_rewrites_a_proposal_made_before_the_site_was_read() {
 		list( $oca, $yacon ) = $this->garden();
 

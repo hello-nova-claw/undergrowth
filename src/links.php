@@ -28,7 +28,7 @@ add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
-add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index' );
+add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index', 10, 2 );
 
 /**
  * Splits a list into chunks, building each one only when it is asked for.
@@ -463,15 +463,29 @@ function undergrowth_open_target_ids( array $post_ids ): array {
 	}
 
 	// One query for the stage key alone. Priming every meta key would hold
-	// unrelated, possibly large, meta for the rest of the refresh.
+	// unrelated, possibly large, meta for the rest of the refresh. Like
+	// undergrowth_get_stage(), only a post's first stage row counts, and
+	// only an exact "composting".
 	$placeholders = implode( ', ', array_fill( 0, count( $indexable ), '%d' ) );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Priming every meta key is what this avoids; there is one placeholder for each ID.
-	$composting = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s AND post_id IN (' . $placeholders . ')', $wpdb->postmeta, 'undergrowth_stage', 'composting', ...$indexable ) );
+	$stages = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, meta_key, meta_value FROM %i WHERE meta_key = %s AND post_id IN (' . $placeholders . ') ORDER BY meta_id ASC', $wpdb->postmeta, 'undergrowth_stage', ...$indexable ) );
 	$wpdb->flush();
 
-	foreach ( array_map( 'intval', $composting ) as $id ) {
-		unset( $open[ $id ] );
+	$first = array();
+
+	foreach ( $stages as $row ) {
+		// A case-insensitive collation also matches other spellings of the
+		// key, which core's meta cache keeps apart.
+		if ( 'undergrowth_stage' === $row->meta_key ) {
+			$first[ (int) $row->post_id ] = $first[ (int) $row->post_id ] ?? (string) $row->meta_value;
+		}
+	}
+
+	foreach ( $first as $id => $stage ) {
+		if ( 'composting' === $stage ) {
+			unset( $open[ $id ] );
+		}
 	}
 
 	return $open;
@@ -1091,14 +1105,20 @@ function undergrowth_one_word_anchor_counts(): array {
  * that can carry the link. Each run takes the backfill's batch size and
  * time budget, then queues the next after the last post it reached.
  *
- * @param int $after Refresh posts with a higher ID than this.
+ * A pass that could not read every post records no identity, so it names
+ * the identity it read with instead.
+ *
+ * @param int        $after Refresh posts with a higher ID than this.
+ * @param array|null $read  Identity of a pass that could not read every post, or null for the recorded index.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string}|null $read
  */
-function undergrowth_refresh_index( $after = 0 ): void {
+function undergrowth_refresh_index( $after = 0, $read = null ): void {
 	$identity = undergrowth_index_target();
 
 	// A switch of model or language since starts another backfill, which
 	// queues its own refresh once it has read the site.
-	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+	if ( ( is_array( $read ) ? $read : get_option( 'undergrowth_index_identity' ) ) !== $identity ) {
 		return;
 	}
 
@@ -1107,7 +1127,7 @@ function undergrowth_refresh_index( $after = 0 ): void {
 	$reached  = undergrowth_refresh_posts( $post_ids, undergrowth_backfill_time_budget() );
 
 	if ( array() !== $reached && ( count( $post_ids ) === $size || count( $reached ) < count( $post_ids ) ) ) {
-		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( end( $reached ) ) );
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', is_array( $read ) ? array( end( $reached ), $read ) : array( end( $reached ) ) );
 	}
 }
 

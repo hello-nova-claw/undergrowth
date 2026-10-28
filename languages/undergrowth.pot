@@ -533,6 +533,20 @@ msgstr ""
 msgid "Garden pages"
 msgstr ""
 
+#: src/block-garden-feed.php
+msgid "Posts not in a group"
+msgstr ""
+
+#. translators: %s: title of the post the group is named after.
+#: src/block-garden-feed.php
+#, php-format
+msgid "In the group around “%s”"
+msgstr ""
+
+#: src/block-garden-feed.php
+msgid "Show the whole garden"
+msgstr ""
+
 #: src/block-garden-filters.php
 msgid "All topics"
 msgstr ""
@@ -578,6 +592,22 @@ msgstr ""
 #, php-format
 msgid "%s post"
 msgid_plural "%s posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts not shown.
+#: src/block-garden-index.php
+#, php-format
+msgid "And %s more post in this group."
+msgid_plural "And %s more posts in this group."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts in the group.
+#: src/block-garden-index.php
+#, php-format
+msgid "See all %s post in this group"
+msgid_plural "See all %s posts in this group"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1488,6 +1518,10 @@ msgstr ""
 msgid "Return to garden brings it back, and its stage is measured again from the links you have accepted."
 msgstr ""
 
+#: src/indexer.php
+msgid "The alias must be empty or a table name followed by a dot."
+msgstr ""
+
 #: src/links.php
 msgid "Linked. The highlighted words in your sentence now link to the suggested post."
 msgstr ""
@@ -1624,6 +1658,10 @@ msgstr ""
 
 #: src/meter.php
 msgid "Page views meter"
+msgstr ""
+
+#: src/orphans.php
+msgid "Only p.ID or COUNT(*) can be selected."
 msgstr ""
 
 #: src/pollination-view.php

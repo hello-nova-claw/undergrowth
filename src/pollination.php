@@ -657,16 +657,20 @@ function undergrowth_group_known_terms( array $group, array $other, array $site,
 function undergrowth_linked_group_pairs(): array {
 	global $wpdb;
 
+	// CROSS JOIN keeps the order written, so SQLite reads the accepted links
+	// first and looks up each end's group. With inner joins it paired every
+	// grouped post with every other before looking for a link, 3 seconds at
+	// 5,000 posts. MySQL plans both the same.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table joined with the groups; links change on every accept.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT DISTINCT a.meta_value AS a, b.meta_value AS b FROM %i l INNER JOIN %i a ON a.post_id = l.source_id AND a.meta_key = %s INNER JOIN %i b ON b.post_id = l.target_id AND b.meta_key = %s WHERE l.state = %s',
+			'SELECT DISTINCT a.meta_value AS a, b.meta_value AS b FROM %i l CROSS JOIN %i a CROSS JOIN %i b WHERE l.state = %s AND a.post_id = l.source_id AND a.meta_key = %s AND b.post_id = l.target_id AND b.meta_key = %s',
 			undergrowth_links_table(),
 			$wpdb->postmeta,
-			'undergrowth_cluster',
 			$wpdb->postmeta,
+			'accepted',
 			'undergrowth_cluster',
-			'accepted'
+			'undergrowth_cluster'
 		),
 		ARRAY_A
 	);
