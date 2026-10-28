@@ -98,7 +98,7 @@ These might be bugs, depending on what the rule should be. Each is an issue for 
 | D1 | The first real pass after install compares with an empty pass, so every cluster is new and every composting post near one resurfaces. The comment says no cluster is new on the first pass. | #240 |
 | D2 | Changing the site language splits the index: old vectors keep the old locale and are never compared with new posts. Should a locale change re-embed, as a model change does? | #239 |
 | D3 | The backfill fills only posts with no vector. A post whose embed event was lost keeps a vector for its old text until it is saved again. | #238 |
-| D4 | Importing a per-post file (`undergrowth_import_memory()`, about 200 lines) is reachable only from tests. It also writes the stage meta directly, so `undergrowth_stage_changed` never fires. Should it be wired up or removed? | #241 |
+| D4 | Importing a per-post file (`undergrowth_import_memory()`, about 200 lines) is reachable only from tests. It also writes the stage meta directly, so `undergrowth_stage_changed` never fires. Should it be wired up or removed? Removed, as Anna decided. | #241 |
 
 ## Duplicated helpers
 
