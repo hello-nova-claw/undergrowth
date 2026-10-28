@@ -288,6 +288,27 @@ class Test_Admin_Map extends WP_UnitTestCase {
 		$this->assertLessThan( 5, $many - $few );
 	}
 
+	public function test_posts_in_a_group_are_read_in_one_query_however_many() {
+		global $wpdb;
+
+		$posts  = $this->plant_clusters();
+		$counts = array();
+
+		foreach ( array( 0, 9 ) as $extra ) {
+			for ( $i = 0; $i < $extra; $i++ ) {
+				$this->member( "Yacon {$i}", array( 0.0, 0.05, 0.99 ), $posts['Yacon'] );
+			}
+
+			wp_cache_flush();
+			$before   = $wpdb->num_queries;
+			$html     = $this->render();
+			$counts[] = $wpdb->num_queries - $before;
+		}
+
+		$this->assertStringContainsString( 'Yacon 8', $html );
+		$this->assertLessThan( 5, $counts[1] - $counts[0] );
+	}
+
 	/**
 	 * Adds posts outside any group, empties the caches, and counts the
 	 * queries the Map makes.
