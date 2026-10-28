@@ -338,6 +338,13 @@ class Test_Pollination extends WP_UnitTestCase {
 
 		list( $a, $b ) = $this->two_groups( 0.46 );
 		$apart         = $this->seed( 'Roots and ledgers', array( 1.0, 1.0, 0.0, 0.0 ) );
+		$c             = $this->group(
+			array(
+				'Bread'     => array( 0.0, 0.0, 1.0, 0.0 ),
+				'Sourdough' => array( 0.0, 0.0, 1.0, 0.0 ),
+				'Starter'   => array( 0.0, 0.0, 1.0, 0.0 ),
+			)
+		);
 
 		$this->link( $a[1], $b[0] );
 		$this->link( $b[2], $a[0] );
@@ -347,7 +354,7 @@ class Test_Pollination extends WP_UnitTestCase {
 			undergrowth_links_table(),
 			array(
 				'source_id'  => $a[2],
-				'target_id'  => $b[2],
+				'target_id'  => $c[1],
 				'state'      => 'proposed',
 				'score'      => 0.5,
 				'sentence'   => '',
