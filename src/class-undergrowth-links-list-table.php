@@ -145,8 +145,10 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 * Loads the proposals for the current page.
 	 *
 	 * Rows are filtered by permission before paging, so every page is full
-	 * and the count matches what the user can act on. Composting removes a
-	 * post's proposals, but any left from before are not listed either.
+	 * and the count matches what the user can act on. When every row passes
+	 * that check, the count and the page come straight from SQL. Composting
+	 * removes a post's proposals, but any left from before are not listed
+	 * either.
 	 *
 	 * @return void
 	 */
@@ -178,8 +180,10 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			'composting'
 		);
 		$columns = 'l.source_id, l.target_id, l.sentence, l.anchor, l.anchor_offset, l.kind';
-		$order   = 'ORDER BY l.updated_at DESC, l.source_id ASC, l.score DESC';
-		$offset  = ( $this->get_pagenum() - 1 ) * self::PER_PAGE;
+		// The target last, so rows tied on the rest keep their place from one
+		// page's query to the next.
+		$order  = 'ORDER BY l.updated_at DESC, l.source_id ASC, l.score DESC, l.target_id ASC';
+		$offset = ( $this->get_pagenum() - 1 ) * self::PER_PAGE;
 
 		if ( $this->can_edit_every_source( $from ) ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared above; the plugin's own table, whose rows change on every refresh.
@@ -188,8 +192,6 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 			// phpcs:enable
 
 			$this->prime( $rows );
-			// A plugin may still refuse one post, so each row is checked.
-			$rows = array_values( array_filter( $rows, array( $this, 'can_edit_source' ) ) );
 		} else {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared above; the plugin's own table, whose rows change on every refresh.
 			$rows = (array) $wpdb->get_results( "SELECT {$columns} {$from} {$order}", ARRAY_A );
@@ -231,13 +233,28 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 	 *
 	 * Someone who may edit others' published posts of each type the sources
 	 * have passes every row's check, so the page can be counted and read in
-	 * SQL. Anyone else has each row checked.
+	 * SQL. Anyone else has each row checked, and so does everyone while a
+	 * plugin filters capabilities, since it may refuse one post alone.
 	 *
 	 * @param string $from Prepared FROM and WHERE clauses of the listed rows.
 	 * @return bool
 	 */
 	private function can_edit_every_source( string $from ): bool {
-		global $wpdb;
+		global $wpdb, $wp_filter;
+
+		// Core's own user_has_cap filters only grant capabilities of their own.
+		$core    = array( 'wp_maybe_grant_install_languages_cap', 'wp_maybe_grant_resume_extensions_caps', 'wp_maybe_grant_site_health_caps' );
+		$filters = array();
+
+		foreach ( isset( $wp_filter['user_has_cap'] ) ? $wp_filter['user_has_cap']->callbacks : array() as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				$filters[] = is_string( $callback['function'] ) ? $callback['function'] : '';
+			}
+		}
+
+		if ( has_filter( 'map_meta_cap' ) || array() !== array_diff( $filters, $core ) ) {
+			return false;
+		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared by the caller.
 		$kinds = (array) $wpdb->get_results( "SELECT DISTINCT p.post_type, p.post_status {$from}", ARRAY_A );
