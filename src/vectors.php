@@ -1,11 +1,13 @@
 <?php
 /**
- * Reading and writing rows in the vectors table.
+ * Reading and writing rows in the vectors table, and comparing vectors.
  *
  * @package Undergrowth
  */
 
 defined( 'ABSPATH' ) || exit;
+
+const UNDERGROWTH_VECTOR_CHUNK = 100;
 
 /**
  * Stores the vector for a post, replacing any earlier one.
@@ -159,4 +161,203 @@ function undergrowth_decode_embedding( string $json ): array {
  */
 function undergrowth_vector_space( array $row ): string {
 	return $row['provider'] . "\n" . $row['model'] . "\n" . $row['language'];
+}
+
+/**
+ * Tells whether two vectors can be compared at all.
+ *
+ * Vectors of different lengths, or with no magnitude, have no meaningful
+ * similarity. Checking this apart from the score keeps them out even when
+ * the minimum similarity is set at or below zero.
+ *
+ * @param float[] $a First vector.
+ * @param float[] $b Second vector.
+ * @return bool True when both have the same length and some magnitude.
+ */
+function undergrowth_vectors_comparable( array $a, array $b ): bool {
+	if ( array() === $a || count( $a ) !== count( $b ) ) {
+		return false;
+	}
+
+	return array_filter( $a ) !== array() && array_filter( $b ) !== array();
+}
+
+/**
+ * Measures how alike two vectors are.
+ *
+ * @param float[] $a First vector.
+ * @param float[] $b Second vector.
+ * @return float Cosine similarity, or 0 when the vectors cannot be compared.
+ */
+function undergrowth_cosine( array $a, array $b ): float {
+	$count = count( $a );
+
+	if ( 0 === $count || count( $b ) !== $count ) {
+		return 0.0;
+	}
+
+	$dot    = 0.0;
+	$norm_a = 0.0;
+	$norm_b = 0.0;
+
+	for ( $i = 0; $i < $count; $i++ ) {
+		$dot    += $a[ $i ] * $b[ $i ];
+		$norm_a += $a[ $i ] * $a[ $i ];
+		$norm_b += $b[ $i ] * $b[ $i ];
+	}
+
+	if ( 0.0 === $norm_a || 0.0 === $norm_b ) {
+		return 0.0;
+	}
+
+	return $dot / sqrt( $norm_a * $norm_b );
+}
+
+/**
+ * Packs a vector into four bytes a dimension.
+ *
+ * Embedding models produce single-precision floats, so packing keeps what
+ * they sent in about a tenth of the memory a PHP array of floats takes. A
+ * provider sending doubles loses precision beyond about seven digits, which
+ * moves a score by around 1e-7 at most. Two targets closer than that may
+ * swap places. Packing doubles instead would take twice the memory.
+ *
+ * @param float[] $vector The vector.
+ * @return string Packed floats, or an empty string when a value is too large
+ *                for single precision and would turn into infinity.
+ */
+function undergrowth_pack_vector( array $vector ): string {
+	foreach ( $vector as $value ) {
+		if ( abs( $value ) > 3.4028234663852886E+38 ) {
+			return '';
+		}
+	}
+
+	return pack( 'g*', ...$vector );
+}
+
+/**
+ * Unpacks a vector packed by undergrowth_pack_vector().
+ *
+ * @param string $packed Packed floats.
+ * @return float[] The vector.
+ */
+function undergrowth_unpack_vector( string $packed ): array {
+	$vector = '' === $packed ? false : unpack( 'g*', $packed );
+
+	return is_array( $vector ) ? array_values( $vector ) : array();
+}
+
+/**
+ * Returns how many vectors are read in one query.
+ *
+ * @return int Vectors per chunk, at least one.
+ */
+function undergrowth_vector_chunk_size(): int {
+	/**
+	 * Filters how many stored vectors are read in one query.
+	 *
+	 * A smaller chunk holds less in memory at once and sends more queries.
+	 *
+	 * @param int $size Vectors per chunk. Default 100.
+	 */
+	return max( 1, (int) apply_filters( 'undergrowth_vector_chunk_size', UNDERGROWTH_VECTOR_CHUNK ) );
+}
+
+/**
+ * Loads every stored vector that can be compared with a post's vector.
+ *
+ * Only vectors from the same provider, model and language qualify, because
+ * scores across models or languages mean nothing.
+ *
+ * @param int $post_id Post whose vector sets the provider, model and language.
+ * @return array<int, string> Packed vectors keyed by post ID, including the post's own.
+ */
+function undergrowth_comparable_vectors( int $post_id ): array {
+	$source = undergrowth_get_vector( $post_id );
+
+	return null === $source ? array() : undergrowth_vectors_in_space( $source['provider'], $source['model'], $source['language'] );
+}
+
+/**
+ * Loads every stored vector from one provider, model and language.
+ *
+ * Rows are read a chunk at a time and kept packed, so a large archive never
+ * sits in memory as JSON or as PHP arrays of floats.
+ *
+ * @param string $provider Provider name.
+ * @param string $model    Model name.
+ * @param string $language Locale, such as en_US.
+ * @return array<int, string> Packed vectors keyed by post ID.
+ */
+function undergrowth_vectors_in_space( string $provider, string $model, string $language ): array {
+	global $wpdb;
+
+	$vectors = array();
+	$after   = 0;
+	$size    = undergrowth_vector_chunk_size();
+
+	do {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+		$rows = (array) $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id > %d ORDER BY post_id LIMIT %d',
+				undergrowth_vectors_table(),
+				$provider,
+				$model,
+				$language,
+				$after,
+				$size
+			),
+			ARRAY_A
+		);
+
+		$fetched = count( $rows );
+
+		foreach ( $rows as $row ) {
+			$after  = (int) $row['post_id'];
+			$packed = undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+
+			if ( '' !== $packed ) {
+				$vectors[ $after ] = $packed;
+			}
+		}
+
+		// wpdb keeps the last result set until the next query, which would
+		// leave a chunk of JSON behind for the whole refresh.
+		unset( $rows );
+		$wpdb->flush();
+	} while ( $size === $fetched );
+
+	return $vectors;
+}
+
+/**
+ * Lists the posts whose vectors can be compared with a post's vector,
+ * without reading the vectors.
+ *
+ * @param int $post_id Post whose vector sets the provider, model and language.
+ * @return int[] Post IDs, in order, including the post's own.
+ */
+function undergrowth_comparable_post_ids( int $post_id ): array {
+	global $wpdb;
+
+	$source = undergrowth_get_vector_space( $post_id );
+
+	if ( null === $source ) {
+		return array();
+	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
+	$ids = $wpdb->get_col(
+		$wpdb->prepare(
+			'SELECT post_id FROM %i WHERE provider = %s AND model = %s AND language = %s ORDER BY post_id',
+			undergrowth_vectors_table(),
+			$source['provider'],
+			$source['model'],
+			$source['language']
+		)
+	);
+
+	return array_map( 'intval', (array) $ids );
 }
