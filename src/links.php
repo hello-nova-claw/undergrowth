@@ -469,13 +469,17 @@ function undergrowth_open_target_ids( array $post_ids ): array {
 	$placeholders = implode( ', ', array_fill( 0, count( $indexable ), '%d' ) );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Priming every meta key is what this avoids; there is one placeholder for each ID.
-	$stages = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, meta_value FROM %i WHERE meta_key = %s AND post_id IN (' . $placeholders . ') ORDER BY meta_id ASC', $wpdb->postmeta, 'undergrowth_stage', ...$indexable ) );
+	$stages = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, meta_key, meta_value FROM %i WHERE meta_key = %s AND post_id IN (' . $placeholders . ') ORDER BY meta_id ASC', $wpdb->postmeta, 'undergrowth_stage', ...$indexable ) );
 	$wpdb->flush();
 
 	$first = array();
 
 	foreach ( $stages as $row ) {
-		$first[ (int) $row->post_id ] = $first[ (int) $row->post_id ] ?? (string) $row->meta_value;
+		// A case-insensitive collation also matches other spellings of the
+		// key, which core's meta cache keeps apart.
+		if ( 'undergrowth_stage' === $row->meta_key ) {
+			$first[ (int) $row->post_id ] = $first[ (int) $row->post_id ] ?? (string) $row->meta_value;
+		}
 	}
 
 	foreach ( $first as $id => $stage ) {
