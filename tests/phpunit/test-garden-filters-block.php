@@ -119,6 +119,16 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertSame( '', $this->render() );
 	}
 
+	public function test_lists_its_choices_without_loading_the_posts() {
+		$post_ids = array( $this->post( 'Oca' ), $this->post( 'Yacon' ) );
+		update_post_meta( $post_ids[0], 'undergrowth_stage', 'sprout' );
+		wp_cache_flush();
+
+		$this->assertStringContainsString( 'Sprout', $this->render() );
+		$this->assertFalse( wp_cache_get( $post_ids[0], 'posts' ) );
+		$this->assertFalse( wp_cache_get( $post_ids[1], 'posts' ) );
+	}
+
 	public function test_lists_only_the_stages_the_visible_garden_holds() {
 		update_post_meta( $this->post( 'Oca' ), 'undergrowth_stage', 'sprout' );
 		$this->post( 'Yacon' );

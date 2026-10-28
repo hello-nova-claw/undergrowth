@@ -1,0 +1,1 @@
+The Garden count, filters and feed blocks no longer load every post's text to decide which posts readers may see, so a garden page on a large blog takes about half the memory.

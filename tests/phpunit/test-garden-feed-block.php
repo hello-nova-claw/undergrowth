@@ -375,6 +375,32 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( array( 'Mashua' ), $this->titles( $this->render( array( 'postsPerPage' => 2 ) ) ) );
 	}
 
+	public function test_loads_only_the_posts_on_the_page_it_shows() {
+		$post_ids = array();
+
+		foreach ( array( 'Oca', 'Yacon', 'Mashua', 'Ulluco', 'Achira' ) as $days => $title ) {
+			$post_ids[] = $this->post( $title, $days + 1 );
+		}
+
+		wp_cache_flush();
+		$before = get_num_queries();
+		$html   = $this->render( array( 'postsPerPage' => 2 ) );
+
+		$this->assertSame( array( 'Oca', 'Yacon' ), $this->titles( $html ) );
+		$this->assertSame(
+			array_slice( $post_ids, 0, 2 ),
+			array_values(
+				array_filter(
+					$post_ids,
+					static function ( int $post_id ): bool {
+						return false !== wp_cache_get( $post_id, 'posts' );
+					}
+				)
+			)
+		);
+		$this->assertLessThanOrEqual( 15, get_num_queries() - $before );
+	}
+
 	public function test_one_page_needs_no_page_links() {
 		$this->post( 'Oca' );
 
