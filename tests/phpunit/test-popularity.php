@@ -609,20 +609,19 @@ class Test_Popularity extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'nothing leaves your site', $pvc );
 	}
 
-	public function test_each_daily_read_measures_the_lists_again() {
+	public function test_a_daily_read_leaves_the_kept_lists_alone() {
 		$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
 
-		undergrowth_read_popularity();
-		$this->assertSame( $generation, (int) get_option( 'undergrowth_similar_generation', 0 ), 'Nothing was kept, so nothing changed.' );
-
+		// Each view weighs the kept list with the day's views, so no list
+		// needs measuring again.
 		$this->jetpack_on();
 		WPCOM_Stats::$top_posts = array( 'days' => array() );
 		undergrowth_read_popularity();
-		$this->assertSame( $generation + 1, (int) get_option( 'undergrowth_similar_generation', 0 ) );
 
 		Manager::$connected = false;
 		undergrowth_read_popularity();
-		$this->assertSame( $generation + 2, (int) get_option( 'undergrowth_similar_generation', 0 ) );
+
+		$this->assertSame( $generation, (int) get_option( 'undergrowth_similar_generation', 0 ) );
 	}
 
 	public function test_the_daily_read_is_scheduled() {
