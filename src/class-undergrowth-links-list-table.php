@@ -262,7 +262,9 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 		foreach ( $kinds as $kind ) {
 			$type = get_post_type_object( (string) $kind['post_type'] );
 
-			if ( 'publish' !== $kind['post_status'] || null === $type
+			// A type that does not map its capabilities checks edit_post as a
+			// capability of its own, which only the row's check can see.
+			if ( 'publish' !== $kind['post_status'] || null === $type || ! $type->map_meta_cap
 				|| ! current_user_can( $type->cap->edit_others_posts )
 				|| ! current_user_can( $type->cap->edit_published_posts ) ) {
 				return false;
