@@ -569,6 +569,34 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'undergrowth_pollination_work' ) );
 	}
 
+	public function test_a_batch_whose_time_is_spent_compares_one_post_and_queues_the_next() {
+		list( $a ) = $this->two_groups( 0.46 );
+		add_filter( 'undergrowth_backfill_time_budget', '__return_zero' );
+
+		undergrowth_start_cluster_labels();
+		undergrowth_start_pollination();
+		$this->run_batches( 1 );
+
+		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
+
+		$record = get_option( 'undergrowth_pollination_cycle_pass' );
+		$this->assertSame( $a[0], $record['after'] );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_cycle', undergrowth_pass_args( $a[0], $record['pass'] ) ) );
+	}
+
+	public function test_a_pass_cut_short_by_time_finds_the_same_pairs() {
+		$this->two_groups( 0.46 );
+		$this->seed( 'Roots and ledgers', array( 1.0, 1.0, 0.0, 0.0 ) );
+		$this->find();
+		$whole = get_option( 'undergrowth_pollination' )['pairs'];
+
+		delete_option( 'undergrowth_pollination' );
+		add_filter( 'undergrowth_backfill_time_budget', '__return_zero' );
+		$this->find();
+
+		$this->assertSame( $whole, get_option( 'undergrowth_pollination' )['pairs'] );
+	}
+
 	public function test_pairs_with_more_signals_come_first_and_limit_applies() {
 		list( $a ) = $this->two_groups( 0.46 );
 		$c         = $this->group(
