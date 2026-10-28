@@ -137,6 +137,39 @@ class Test_Orphans extends WP_UnitTestCase {
 		$this->assertSame( array( $oca ), undergrowth_orphan_post_ids( 20 ) );
 	}
 
+	public function test_the_count_agrees_with_the_list_when_links_are_accepted_from_posts_in_and_out_of_the_index() {
+		$oca    = $this->seed( 'Oca', array( 1.0, 0.0 ) );
+		$yacon  = $this->seed( 'Yacon', array( 0.9, 0.1 ) );
+		$mashua = $this->seed( 'Mashua', array( 0.8, 0.2 ) );
+
+		$this->link( $yacon, $oca, 'accepted' );
+		$this->link( $mashua, $yacon, 'accepted' );
+		wp_update_post(
+			array(
+				'ID'          => $mashua,
+				'post_status' => 'draft',
+			)
+		);
+
+		$this->assertSame( array( $yacon ), undergrowth_orphan_post_ids( 20 ) );
+		$this->assertSame( 1, undergrowth_count_orphans() );
+	}
+
+	public function test_the_accepted_link_check_starts_from_the_link_not_from_every_post() {
+		$sql = undergrowth_orphans_sql( 'COUNT(*)' )[0];
+
+		// Joining every published post inside the check made SQLite compare
+		// each post with every other, which took 20 seconds at 5,000 posts.
+		$this->assertStringNotContainsString( 'INNER JOIN %i s', $sql );
+
+		$link   = strpos( $sql, 'FROM %i l WHERE l.target_id = p.ID' );
+		$source = strpos( $sql, 'WHERE s.ID = l.source_id' );
+
+		$this->assertNotFalse( $link );
+		$this->assertNotFalse( $source );
+		$this->assertLessThan( $source, $link );
+	}
+
 	public function test_composting_posts_never_appear() {
 		$oca = $this->seed( 'Oca', array( 1.0, 0.0 ) );
 		update_post_meta( $oca, 'undergrowth_stage', 'composting' );
