@@ -913,6 +913,18 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$tried    = array();
 	$retry    = undergrowth_backfill_retry_time( $identity );
 
+	// Until the index is recorded, the pass ends by refreshing every post's
+	// suggestions with the whole site's word counts. Refreshing the posts
+	// around each one as it is read would be thrown away, and it compares
+	// each post with the whole index, which made a read of 5,000 posts take
+	// hours of cron. A post read once the index is recorded has no such
+	// refresh to follow it, so it still refreshes the posts around it.
+	$deferred = get_option( 'undergrowth_index_identity' ) !== $identity ? has_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' ) : false;
+
+	if ( false !== $deferred ) {
+		remove_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around', $deferred );
+	}
+
 	undergrowth_openai_deadline( $started + $budget );
 
 	try {
@@ -931,6 +943,10 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 		}
 	} finally {
 		undergrowth_openai_deadline( INF );
+
+		if ( false !== $deferred ) {
+			add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around', $deferred );
+		}
 	}
 
 	if ( 0 !== $retry ) {
