@@ -421,7 +421,18 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 
 		$html = $this->render( array( 'stage' => 'sprout' ) );
 
-		$this->assertStringContainsString( 'href="' . esc_url( add_query_arg( array( 'group' => $members[0], 'stage' => 'sprout' ), get_permalink( $page ) ) ) . '"', $html );
+		$this->assertStringContainsString(
+			'href="' . esc_url(
+				add_query_arg(
+					array(
+						'group' => $members[0],
+						'stage' => 'sprout',
+					),
+					get_permalink( $page )
+				)
+			) . '"',
+			$html
+		);
 		$this->assertStringContainsString( 'See all 22 posts in this group', $html );
 	}
 

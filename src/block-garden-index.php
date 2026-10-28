@@ -384,7 +384,18 @@ function undergrowth_render_garden_index_block( $attributes ): string {
 				)
 				: sprintf(
 					'<a href="%1$s">%2$s</a>',
-					esc_url( add_query_arg( 'group', $group['group'], $feed ) ),
+					// With the block's stage, so the feed lists the posts counted.
+					esc_url(
+						add_query_arg(
+							array_filter(
+								array(
+									'group' => $group['group'],
+									'stage' => (string) $attributes['stage'],
+								)
+							),
+							$feed
+						)
+					),
 					esc_html(
 						sprintf(
 							/* translators: %s: number of posts in the group. */
