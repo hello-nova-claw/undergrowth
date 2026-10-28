@@ -905,7 +905,9 @@ function undergrowth_backfill_moved( array $counts ): bool {
  */
 function undergrowth_run_backfill_batch( array $identity ): void {
 	$pass     = get_option( 'undergrowth_backfill' );
-	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] && ( $pass['language'] ?? '' ) === $identity['language'] ? (int) ( $pass['after'] ?? 0 ) : 0;
+	$same     = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] && ( $pass['language'] ?? '' ) === $identity['language'];
+	$after    = $same ? (int) ( $pass['after'] ?? 0 ) : 0;
+	$read     = $same && ! empty( $pass['read'] );
 	$size     = undergrowth_backfill_batch_size();
 	$budget   = undergrowth_backfill_time_budget();
 	$started  = microtime( true );
@@ -926,6 +928,7 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	}
 
 	undergrowth_openai_deadline( $started + $budget );
+	$embedded = did_action( 'undergrowth_post_embedded' );
 
 	try {
 		foreach ( $post_ids as $post_id ) {
@@ -949,19 +952,49 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 		}
 	}
 
+	$read = $read || did_action( 'undergrowth_post_embedded' ) > $embedded;
+
 	if ( 0 !== $retry ) {
-		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => array() !== $tried ? end( $tried ) : $after ) ), false );
+		update_option(
+			'undergrowth_backfill',
+			array_merge(
+				$identity,
+				array(
+					'after' => array() !== $tried ? end( $tried ) : $after,
+					'read'  => $read,
+				)
+			),
+			false
+		);
 		wp_schedule_single_event( $retry, 'undergrowth_backfill' );
 		return;
 	}
 
 	// A batch cut short by the budget left posts behind, like a full batch may.
 	if ( count( $post_ids ) === $size || count( $tried ) < count( $post_ids ) ) {
-		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => end( $tried ) ) ), false );
+		update_option(
+			'undergrowth_backfill',
+			array_merge(
+				$identity,
+				array(
+					'after' => end( $tried ),
+					'read'  => $read,
+				)
+			),
+			false
+		);
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		return;
 	}
 
 	delete_option( 'undergrowth_backfill' );
 	undergrowth_record_index_identity( $identity );
+
+	// A post that could not be read leaves the index unrecorded, so no
+	// refresh follows the pass. The posts it did read still get their
+	// suggestions, named by the identity they were read with. A pass that
+	// only tried failed posts again read nothing new and refreshes nothing.
+	if ( $read && get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0, $identity ) );
+	}
 }

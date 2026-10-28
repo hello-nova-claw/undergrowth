@@ -28,7 +28,7 @@ add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
 add_action( 'undergrowth_refresh_sources', 'undergrowth_refresh_sources' );
-add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index' );
+add_action( 'undergrowth_refresh_index', 'undergrowth_refresh_index', 10, 2 );
 
 /**
  * Splits a list into chunks, building each one only when it is asked for.
@@ -1082,14 +1082,20 @@ function undergrowth_one_word_anchor_counts(): array {
  * that can carry the link. Each run takes the backfill's batch size and
  * time budget, then queues the next after the last post it reached.
  *
- * @param int $after Refresh posts with a higher ID than this.
+ * A pass that could not read every post records no identity, so it names
+ * the identity it read with instead.
+ *
+ * @param int        $after Refresh posts with a higher ID than this.
+ * @param array|null $read  Identity of a pass that could not read every post, or null for the recorded index.
+ *
+ * @phpstan-param array{provider: string, model: string, language: string}|null $read
  */
-function undergrowth_refresh_index( $after = 0 ): void {
+function undergrowth_refresh_index( $after = 0, $read = null ): void {
 	$identity = undergrowth_index_target();
 
 	// A switch of model or language since starts another backfill, which
 	// queues its own refresh once it has read the site.
-	if ( get_option( 'undergrowth_index_identity' ) !== $identity ) {
+	if ( ( is_array( $read ) ? $read : get_option( 'undergrowth_index_identity' ) ) !== $identity ) {
 		return;
 	}
 
@@ -1098,7 +1104,7 @@ function undergrowth_refresh_index( $after = 0 ): void {
 	$reached  = undergrowth_refresh_posts( $post_ids, undergrowth_backfill_time_budget() );
 
 	if ( array() !== $reached && ( count( $post_ids ) === $size || count( $reached ) < count( $post_ids ) ) ) {
-		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( end( $reached ) ) );
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', is_array( $read ) ? array( end( $reached ), $read ) : array( end( $reached ) ) );
 	}
 }
 
