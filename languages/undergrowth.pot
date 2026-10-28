@@ -1606,14 +1606,6 @@ msgstr ""
 msgid "Visitors can open the per-post files, because this server ignores the .htaccess and web.config files that refuse them. Add the deny rule for nginx or Caddy to the server’s settings. Until the files are refused, the questions Claude wrote are left out of them."
 msgstr ""
 
-#: src/memory-import.php
-msgid "The file does not name a growth stage, so nothing was imported."
-msgstr ""
-
-#: src/memory-import.php
-msgid "The stage was imported, but some of its history could not be saved."
-msgstr ""
-
 #: src/meter.php
 msgid "Jetpack Stats did not answer, so there is no count today. Undergrowth will ask again tomorrow."
 msgstr ""

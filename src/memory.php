@@ -1,7 +1,6 @@
 <?php
 /**
- * The readable per-post file: a plain-text record the owner can read and
- * carry to another site.
+ * The readable per-post file: a plain-text record the owner can read.
  *
  * The links table is the record; each file is written from it.
  *

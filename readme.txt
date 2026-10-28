@@ -105,7 +105,7 @@ The settings page then says the key is in `wp-config.php` and never shows it.
 
 = Where does Undergrowth keep its notes about each post? =
 
-In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so the plugin can read them back. `.htaccess` and `web.config` files refuse web access on Apache and IIS. Undergrowth checks every hour. If the files can be opened, Site Health and Settings say so and Claude's questions are left out of them; add the nginx or Caddy rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
+In a plain-text file for each post, in `wp-content/uploads/undergrowth-<random>/posts/`. Settings > Undergrowth shows the exact folder. A file holds the post's title, address, words and sentences from your own post, the addresses of other posts, and the questions you were asked. Their headings are in English and their dates in UTC, whatever the site's language and time zone, so other tools can read them. `.htaccess` and `web.config` files refuse web access on Apache and IIS. Undergrowth checks every hour. If the files can be opened, Site Health and Settings say so and Claude's questions are left out of them; add the nginx or Caddy rule from [the per-post files page](https://github.com/hello-nova-claw/undergrowth/blob/main/docs/per-post-files.md), which also shows an example file.
 
 = What does deleting the plugin remove? =
 

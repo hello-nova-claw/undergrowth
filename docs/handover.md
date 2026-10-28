@@ -164,7 +164,7 @@ Follow-ups, all `v2`: embeddings through `wp_ai_client_embedding()`, blocked on 
 
 ### Storage
 - Custom table for vectors.
-- Readable plain-text file per post (has, lacks, scent, stage, every veto). Portable between sites. Owner can read and edit it. This is the "plain-text memory" pattern from OpenClaw/Hermes.
+- Readable plain-text file per post (has, lacks, scent, stage, every veto). Portable between sites: the owner can read it and take it anywhere. Undergrowth writes it and never reads it back, so edits to it are not kept. This is the "plain-text memory" pattern from OpenClaw/Hermes.
 
 ### Map rendering
 - v1: list. Clusters as headings, posts under each, gaps flagged. No JS graph library.
