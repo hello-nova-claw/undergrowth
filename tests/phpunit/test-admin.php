@@ -499,6 +499,153 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertSame( 'Oca', get_the_title( $table->items[0]['source_id'] ) );
 	}
 
+	/**
+	 * Stores proposals straight in the links table, newest first by ID.
+	 *
+	 * @param array<int, int[]> $pairs Source and target ID of each proposal.
+	 */
+	private function propose_rows( array $pairs ): void {
+		global $wpdb;
+
+		foreach ( $pairs as $i => $pair ) {
+			$time = gmdate( 'Y-m-d H:i:s', 1700000000 + $i );
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Fixtures in the plugin's own table.
+			$wpdb->insert(
+				undergrowth_links_table(),
+				array(
+					'source_id'  => $pair[0],
+					'target_id'  => $pair[1],
+					'state'      => 'proposed',
+					'score'      => 0.5,
+					'sentence'   => 'A sentence from post ' . $pair[0] . '.',
+					'created_at' => $time,
+					'updated_at' => $time,
+				)
+			);
+		}
+	}
+
+	/**
+	 * Prepares the suggestions table on one page.
+	 *
+	 * @param int $page Page number.
+	 * @param int $to   Post the listed suggestions would link to, or 0.
+	 * @return Undergrowth_Links_List_Table
+	 */
+	private function suggestions_table( int $page = 1, int $to = 0 ): Undergrowth_Links_List_Table {
+		set_current_screen( 'posts_page_undergrowth-links' );
+		undergrowth_load_list_table();
+		$_REQUEST['paged'] = (string) $page;
+		$table             = new Undergrowth_Links_List_Table( $to );
+		$table->prepare_items();
+		unset( $_REQUEST['paged'] );
+
+		return $table;
+	}
+
+	public function test_an_editor_s_page_loads_only_the_posts_it_shows() {
+		$posts = self::factory()->post->create_many( 30 );
+		$pairs = array();
+
+		foreach ( $posts as $i => $post ) {
+			$pairs[] = array( $post, $posts[ ( $i + 1 ) % 30 ] );
+		}
+
+		$this->propose_rows( $pairs );
+		wp_cache_flush();
+
+		$table = $this->suggestions_table();
+		$shown = array_unique( array_merge( array_column( $table->items, 'source_id' ), array_column( $table->items, 'target_id' ) ) );
+
+		$this->assertCount( Undergrowth_Links_List_Table::PER_PAGE, $table->items );
+		$this->assertSame( 30, $table->get_pagination_arg( 'total_items' ) );
+
+		foreach ( $posts as $post ) {
+			$this->assertSame( in_array( $post, $shown, true ), false !== wp_cache_get( $post, 'posts' ), (string) $post );
+		}
+	}
+
+	public function test_pages_keep_the_newest_first_order_and_the_count() {
+		$posts = self::factory()->post->create_many( 25 );
+		$pairs = array();
+
+		foreach ( $posts as $i => $post ) {
+			$pairs[] = array( $post, $posts[ ( $i + 1 ) % 25 ] );
+		}
+
+		$this->propose_rows( $pairs );
+		$sources = array_reverse( $posts );
+
+		$first  = $this->suggestions_table( 1 );
+		$second = $this->suggestions_table( 2 );
+
+		$this->assertSame( array_slice( $sources, 0, 20 ), array_column( $first->items, 'source_id' ) );
+		$this->assertSame( array_slice( $sources, 20 ), array_column( $second->items, 'source_id' ) );
+		$this->assertSame( 25, $second->get_pagination_arg( 'total_items' ) );
+	}
+
+	public function test_composting_posts_and_other_targets_are_left_out_of_the_count() {
+		list( $oca, $yacon, $mashua, $ulluco ) = self::factory()->post->create_many( 4 );
+		$this->propose_rows(
+			array(
+				array( $oca, $yacon ),
+				array( $yacon, $oca ),
+				array( $mashua, $oca ),
+				array( $ulluco, $oca ),
+				array( $oca, $ulluco ),
+			)
+		);
+		update_post_meta( $mashua, 'undergrowth_stage', 'composting' );
+		update_post_meta( $ulluco, 'undergrowth_stage', 'evergreen' );
+
+		$every = $this->suggestions_table();
+		$to    = $this->suggestions_table( 1, $oca );
+
+		$this->assertSame( 4, $every->get_pagination_arg( 'total_items' ) );
+		$this->assertSame( array( $oca, $ulluco, $yacon, $oca ), array_column( $every->items, 'source_id' ) );
+		$this->assertSame( 2, $to->get_pagination_arg( 'total_items' ) );
+		$this->assertSame( array( $ulluco, $yacon ), array_column( $to->items, 'source_id' ) );
+	}
+
+	public function test_an_author_s_count_covers_only_their_own_posts() {
+		$author = self::factory()->user->create( array( 'role' => 'author' ) );
+		$mine   = self::factory()->post->create_many( 22, array( 'post_author' => $author ) );
+		$others = self::factory()->post->create_many( 5 );
+		$pairs  = array();
+
+		foreach ( $mine as $i => $post ) {
+			$pairs[] = array( $post, $others[ $i % 5 ] );
+		}
+
+		foreach ( $others as $post ) {
+			$pairs[] = array( $post, $mine[0] );
+		}
+
+		$this->propose_rows( $pairs );
+		wp_set_current_user( $author );
+
+		$first  = $this->suggestions_table( 1 );
+		$second = $this->suggestions_table( 2 );
+
+		$this->assertSame( 22, $first->get_pagination_arg( 'total_items' ) );
+		$this->assertSame( array_reverse( $mine ), array_merge( array_column( $first->items, 'source_id' ), array_column( $second->items, 'source_id' ) ) );
+	}
+
+	public function test_a_source_an_editor_cannot_edit_is_still_left_out() {
+		list( $oca, $yacon ) = self::factory()->post->create_many( 2 );
+		$this->propose_rows( array( array( $oca, $yacon ), array( $yacon, $oca ) ) );
+		$refuse = static function ( $caps, $cap, $user_id, $args ) use ( $oca ) {
+			return 'edit_post' === $cap && isset( $args[0] ) && $oca === (int) $args[0] ? array( 'do_not_allow' ) : $caps;
+		};
+		add_filter( 'map_meta_cap', $refuse, 10, 4 );
+
+		$table = $this->suggestions_table();
+
+		remove_filter( 'map_meta_cap', $refuse, 10 );
+		$this->assertSame( array( $yacon ), array_column( $table->items, 'source_id' ) );
+	}
+
 	public function test_screen_explains_when_no_provider_is_set() {
 		remove_filter( 'undergrowth_embed_identity', array( $this, 'identity' ) );
 
