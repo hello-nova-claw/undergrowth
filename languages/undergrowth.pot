@@ -15,7 +15,7 @@ msgstr ""
 
 #. Plugin Name of the plugin
 #: undergrowth.php
-#: src/abilities.php
+#: src/ability-registration.php
 #: src/admin.php
 #: src/block-garden-count.php
 #: src/dashboard.php
@@ -49,111 +49,252 @@ msgid "https://github.com/hello-nova-claw"
 msgstr ""
 
 #: src/abilities.php
-msgid "Read what Undergrowth knows about a post, a cluster or the whole site, and accept or veto the links it suggests."
-msgstr ""
-
-#: src/abilities.php
-msgid "What a post, cluster or site has"
-msgstr ""
-
-#: src/abilities.php
-msgid "Lists the words that most set the posts apart from the rest of the site, taken from their own text, and the published posts they already link to."
-msgstr ""
-
-#: src/abilities.php
-msgid "Words from the posts, most distinctive first."
-msgstr ""
-
-#: src/abilities.php
-msgid "Published posts the posts link to."
-msgstr ""
-
-#: src/abilities.php
-msgid "What a post, cluster or site lacks"
-msgstr ""
-
-#: src/abilities.php
-msgid "Lists the links suggested for the posts that the author has not yet accepted or vetoed, best first, each with the post it would sit in and the sentence from that post where it fits."
-msgstr ""
-
-#: src/abilities.php
-msgid "Suggested links, best first."
-msgstr ""
-
-#: src/abilities.php
-msgid "ID of the post the link would sit in."
-msgstr ""
-
-#: src/abilities.php
-msgid "The sentence from the post where the link fits, quoted with formatting removed."
-msgstr ""
-
-#: src/abilities.php
-msgid "The scent of a post, cluster or site"
-msgstr ""
-
-#: src/abilities.php
-msgid "Reports how readers move through the posts. Undergrowth reads no reader data until reader mode, so for now the value is always empty."
-msgstr ""
-
-#: src/abilities.php
-msgid "Growth stages of a post, cluster or site"
-msgstr ""
-
-#: src/abilities.php
-msgid "Counts the posts at each growth stage, with composting posts counted apart. For one post it also reports its stage, whether the author pinned it, and every recorded change to it, oldest first."
-msgstr ""
-
-#: src/abilities.php
-msgid "Number of posts at each stage. Composting posts are counted apart and are in no other stage."
-msgstr ""
-
-#: src/abilities.php
-msgid "Accept a link"
-msgstr ""
-
-#: src/abilities.php
-msgid "Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely."
-msgstr ""
-
-#: src/abilities.php
-msgid "Veto a link"
-msgstr ""
-
-#: src/abilities.php
-msgid "Vetoes a link between two posts, so it is never suggested again. An accepted link is left as it is."
-msgstr ""
-
-#: src/abilities.php
-msgid "ID of the post the link sits in."
-msgstr ""
-
-#: src/abilities.php
-msgid "ID of the post the link points to."
-msgstr ""
-
-#: src/abilities.php
-msgid "ID of a published post. Leave out, with cluster, to ask about the whole site."
-msgstr ""
-
-#: src/abilities.php
-msgid "ID of a cluster from the monthly clustering, which is the ID of the post that leads it. Leave out, with post_id, to ask about the whole site."
-msgstr ""
-
-#: src/abilities.php
-msgid "The post, at post scale."
-msgstr ""
-
-#: src/abilities.php
-msgid "The cluster, at cluster scale."
-msgstr ""
-
-#: src/abilities.php
 msgid "Undergrowth does not read that post, so it knows nothing about it. Only published posts without a password are read."
 msgstr ""
 
 #: src/abilities.php
 msgid "There is no such cluster among the posts you can edit. Clusters are made once a month."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Read what Undergrowth knows about a post, a cluster or the whole site, and accept or veto the links it suggests."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "What a post, cluster or site has"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Lists the words that most set the posts apart from the rest of the site, taken from their own text, and the published posts they already link to."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Words from the posts, most distinctive first."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Published posts the posts link to."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "What a post, cluster or site lacks"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Lists the links suggested for the posts that the author has not yet accepted or vetoed, best first, each with the post it would sit in and the sentence from that post where it fits."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Suggested links, best first."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "ID of the post the link would sit in."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "The sentence from the post where the link fits, quoted with formatting removed."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "The scent of a post, cluster or site"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Reports how readers move through the posts. Undergrowth reads no reader data until reader mode, so for now the value is always empty."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Growth stages of a post, cluster or site"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Counts the posts at each growth stage, with composting posts counted apart. For one post it also reports its stage, whether the author pinned it, and every recorded change to it, oldest first."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Number of posts at each stage. Composting posts are counted apart and are in no other stage."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Accept a link"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Accepts a suggested link by linking a few of the author’s own words in the suggested sentence to the suggested post, exactly as the Accept button does. Nothing changes when the words cannot be linked safely."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Veto a link"
+msgstr ""
+
+#: src/ability-registration.php
+msgid "Vetoes a link between two posts, so it is never suggested again. An accepted link is left as it is."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "ID of the post the link sits in."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "ID of the post the link points to."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "ID of a published post. Leave out, with cluster, to ask about the whole site."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "ID of a cluster from the monthly clustering, which is the ID of the post that leads it. Leave out, with post_id, to ask about the whole site."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "The post, at post scale."
+msgstr ""
+
+#: src/ability-registration.php
+msgid "The cluster, at cluster scale."
+msgstr ""
+
+#: src/admin-helpers.php
+#: src/block-linked-from.php
+msgid "(no title)"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first."
+msgstr ""
+
+#. translators: %1$s: title of the post nearest the middle of the group.
+#: src/admin-map.php
+#, php-format
+msgid "Around “%1$s”, with a gap"
+msgstr ""
+
+#. translators: %1$s: title of the post nearest the middle of the group.
+#: src/admin-map.php
+#, php-format
+msgid "Around “%1$s”"
+msgstr ""
+
+#: src/admin-map.php
+msgid "No post sits at the middle of this group. These posts circle something none of them is about yet."
+msgstr ""
+
+#. translators: %1$s: number of posts in the group.
+#: src/admin-map.php
+#, php-format
+msgid "%1$s post."
+msgid_plural "%1$s posts."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost".
+#: src/admin-map.php
+#, php-format
+msgid "Words that set this group apart: %1$s."
+msgstr ""
+
+#. translators: %1$s: title of the hub page, linked to its editor.
+#: src/admin-map.php
+#, php-format
+msgid "This group has a hub: %1$s."
+msgstr ""
+
+#: src/admin-map.php
+msgid "This group has a hub draft. It stays a draft until you publish it."
+msgstr ""
+
+#: src/admin-map.php
+#: src/admin.php
+msgid "Edit the draft"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it."
+msgstr ""
+
+#: src/admin-map.php
+msgid "Start a hub draft"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Not for this group"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Export the Map as"
+msgstr ""
+
+#: src/admin-map.php
+msgid "CSV, for a spreadsheet"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Markdown, for notes"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Export"
+msgstr ""
+
+#. translators: 1: number of posts, 2: number of groups, such as "4 groups".
+#: src/admin-map.php
+#, php-format
+msgid "%1$s post is in %2$s."
+msgid_plural "%1$s posts are in %2$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of groups.
+#: src/admin-map.php
+#, php-format
+msgid "%1$s group"
+msgid_plural "%1$s groups"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %1$s: number of posts.
+#: src/admin-map.php
+#, php-format
+msgid "%1$s post is not in a group yet."
+msgid_plural "%1$s posts are not in a group yet."
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/admin-map.php
+msgid "Not read yet"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Read since the groups were last found"
+msgstr ""
+
+#: src/admin-map.php
+msgid "Not close enough to other posts yet"
+msgstr ""
+
+#: src/admin-map.php
+#: src/map.php
+msgid "Not in a group yet"
+msgstr ""
+
+#: src/admin-map.php
+msgid "A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month."
+msgstr ""
+
+#. translators: %1$s: number of posts.
+#: src/admin-map.php
+#, php-format
+msgid "Show the %1$s post"
+msgid_plural "Show all %1$s posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group.
+#: src/admin-map.php
+#, php-format
+msgid "%1$s (%2$s)"
 msgstr ""
 
 #: src/admin.php
@@ -224,141 +365,6 @@ msgstr ""
 msgid "Composting posts rest outside the garden, so they are not listed here. They are marked on the Posts screen, where you compost a post or return it to the garden."
 msgstr ""
 
-#: src/admin.php
-msgid "Each group below is a set of your posts that are close in meaning, found once a month. A group is named after the post nearest its middle, and posts nearest the middle come first."
-msgstr ""
-
-#. translators: %1$s: title of the post nearest the middle of the group.
-#: src/admin.php
-#, php-format
-msgid "Around “%1$s”, with a gap"
-msgstr ""
-
-#. translators: %1$s: title of the post nearest the middle of the group.
-#: src/admin.php
-#, php-format
-msgid "Around “%1$s”"
-msgstr ""
-
-#: src/admin.php
-msgid "No post sits at the middle of this group. These posts circle something none of them is about yet."
-msgstr ""
-
-#. translators: %1$s: number of posts in the group.
-#: src/admin.php
-#, php-format
-msgid "%1$s post."
-msgid_plural "%1$s posts."
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: %1$s: a list of words from the group's posts, such as "oca, raised bed, and frost".
-#: src/admin.php
-#, php-format
-msgid "Words that set this group apart: %1$s."
-msgstr ""
-
-#. translators: %1$s: title of the hub page, linked to its editor.
-#: src/admin.php
-#, php-format
-msgid "This group has a hub: %1$s."
-msgstr ""
-
-#: src/admin.php
-msgid "This group has a hub draft. It stays a draft until you publish it."
-msgstr ""
-
-#: src/admin.php
-msgid "Edit the draft"
-msgstr ""
-
-#: src/admin.php
-msgid "Many of these posts already link to each other. A hub page that ties them together could help readers find their way. You write it. Undergrowth can start a draft page holding only these posts’ titles, each linked to its post, and never publishes it."
-msgstr ""
-
-#: src/admin.php
-msgid "Start a hub draft"
-msgstr ""
-
-#: src/admin.php
-msgid "Not for this group"
-msgstr ""
-
-#: src/admin.php
-msgid "Export the Map as"
-msgstr ""
-
-#: src/admin.php
-msgid "CSV, for a spreadsheet"
-msgstr ""
-
-#: src/admin.php
-msgid "Markdown, for notes"
-msgstr ""
-
-#: src/admin.php
-msgid "Export"
-msgstr ""
-
-#. translators: 1: number of posts, 2: number of groups, such as "4 groups".
-#: src/admin.php
-#, php-format
-msgid "%1$s post is in %2$s."
-msgid_plural "%1$s posts are in %2$s."
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: %1$s: number of groups.
-#: src/admin.php
-#, php-format
-msgid "%1$s group"
-msgid_plural "%1$s groups"
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: %1$s: number of posts.
-#: src/admin.php
-#, php-format
-msgid "%1$s post is not in a group yet."
-msgid_plural "%1$s posts are not in a group yet."
-msgstr[0] ""
-msgstr[1] ""
-
-#: src/admin.php
-msgid "Not read yet"
-msgstr ""
-
-#: src/admin.php
-msgid "Read since the groups were last found"
-msgstr ""
-
-#: src/admin.php
-msgid "Not close enough to other posts yet"
-msgstr ""
-
-#: src/admin.php
-#: src/map.php
-msgid "Not in a group yet"
-msgstr ""
-
-#: src/admin.php
-msgid "A post joins a group once it has been read and is close in meaning to at least two others. Groups are found again once a month."
-msgstr ""
-
-#. translators: %1$s: number of posts.
-#: src/admin.php
-#, php-format
-msgid "Show the %1$s post"
-msgid_plural "Show all %1$s posts"
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: 1: post title, linked to its editor when you can edit it, 2: growth stage, or why the post is not in a group.
-#: src/admin.php
-#, php-format
-msgid "%1$s (%2$s)"
-msgstr ""
-
 #. translators: 1: title of the composting post, 2: title of the newest post in the group it is close to.
 #: src/admin.php
 #, php-format
@@ -373,14 +379,9 @@ msgid "Return to garden"
 msgstr ""
 
 #: src/admin.php
-#: src/pollination.php
+#: src/pollination-view.php
 #: src/studio.php
 msgid "Dismiss"
-msgstr ""
-
-#: src/admin.php
-#: src/block-linked-from.php
-msgid "(no title)"
 msgstr ""
 
 #. translators: %1$s: address of the Undergrowth settings page.
@@ -839,6 +840,20 @@ msgstr ""
 
 #: src/class-undergrowth-stages-list-table.php
 msgid "Pin"
+msgstr ""
+
+#: src/cross-links.php
+msgid "These posts are in groups that sit apart, but they are not far apart themselves."
+msgstr ""
+
+#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
+#: src/cross-links.php
+#, php-format
+msgid "These posts are in groups that sit apart, and both groups use %1$s."
+msgstr ""
+
+#: src/cross-links.php
+msgid "Cross-pollination."
 msgstr ""
 
 #: src/dashboard.php
@@ -1553,15 +1568,15 @@ msgstr ""
 msgid "No"
 msgstr ""
 
-#: src/memory.php
+#: src/memory-folder.php
 msgid "Visitors can open the per-post files, because this server ignores the .htaccess and web.config files that refuse them. Add the deny rule for nginx or Caddy to the server’s settings. Until the files are refused, the questions Claude wrote are left out of them."
 msgstr ""
 
-#: src/memory.php
+#: src/memory-import.php
 msgid "The file does not name a growth stage, so nothing was imported."
 msgstr ""
 
-#: src/memory.php
+#: src/memory-import.php
 msgid "The stage was imported, but some of its history could not be saved."
 msgstr ""
 
@@ -1611,6 +1626,72 @@ msgstr ""
 msgid "Page views meter"
 msgstr ""
 
+#: src/pollination-view.php
+msgid "You cannot change the Map."
+msgstr ""
+
+#: src/pollination-view.php
+msgid "Dismissed. This pair will not be shown again."
+msgstr ""
+
+#: src/pollination-view.php
+msgid "That pair is no longer shown, so nothing was changed."
+msgstr ""
+
+#: src/pollination-view.php
+msgid "Cross-pollination"
+msgstr ""
+
+#: src/pollination-view.php
+msgid "Pairs of groups that sit apart but could spark something together, found from your own posts once a month."
+msgstr ""
+
+#. translators: 1: name of the step on the surprise scale, such as "Cautious", 2: address of Settings > Undergrowth.
+#: src/pollination-view.php
+#, php-format
+msgid "The surprise scale is at %1$s. <a href=\"%2$s\">Change it on Settings › Undergrowth</a>."
+msgstr ""
+
+#: src/pollination-view.php
+msgid "No pairs at this step yet. A higher step on the surprise scale reaches further."
+msgstr ""
+
+#. translators: %1$s: number of pairs of groups.
+#: src/pollination-view.php
+#, php-format
+msgid "Show the %1$s pair"
+msgid_plural "Show all %1$s pairs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: title of a post in one group, 2: title of a post in the other.
+#: src/pollination-view.php
+#, php-format
+msgid "%1$s and %2$s are about different things, but not far apart."
+msgstr ""
+
+#. translators: %1$s: title of a post.
+#: src/pollination-view.php
+#, php-format
+msgid "%1$s sits near both groups."
+msgstr ""
+
+#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
+#: src/pollination-view.php
+#, php-format
+msgid "Both groups use words the rest of your site rarely does: %1$s."
+msgstr ""
+
+#: src/pollination-view.php
+msgid "A post connecting these two groups would link both halves of your garden."
+msgstr ""
+
+#. translators: 1: title the first group is named after, 2: title the second group is named after.
+#: src/pollination-view.php
+#, php-format
+msgid "Around “%1$s”, and around “%2$s”"
+msgstr ""
+
 #: src/pollination.php
 msgid "Close cousins"
 msgstr ""
@@ -1629,86 +1710,6 @@ msgstr ""
 
 #: src/pollination.php
 msgid "Wild"
-msgstr ""
-
-#: src/pollination.php
-msgid "You cannot change the Map."
-msgstr ""
-
-#: src/pollination.php
-msgid "Dismissed. This pair will not be shown again."
-msgstr ""
-
-#: src/pollination.php
-msgid "That pair is no longer shown, so nothing was changed."
-msgstr ""
-
-#: src/pollination.php
-msgid "Cross-pollination"
-msgstr ""
-
-#: src/pollination.php
-msgid "Pairs of groups that sit apart but could spark something together, found from your own posts once a month."
-msgstr ""
-
-#. translators: 1: name of the step on the surprise scale, such as "Cautious", 2: address of Settings > Undergrowth.
-#: src/pollination.php
-#, php-format
-msgid "The surprise scale is at %1$s. <a href=\"%2$s\">Change it on Settings › Undergrowth</a>."
-msgstr ""
-
-#: src/pollination.php
-msgid "No pairs at this step yet. A higher step on the surprise scale reaches further."
-msgstr ""
-
-#. translators: %1$s: number of pairs of groups.
-#: src/pollination.php
-#, php-format
-msgid "Show the %1$s pair"
-msgid_plural "Show all %1$s pairs"
-msgstr[0] ""
-msgstr[1] ""
-
-#. translators: 1: title of a post in one group, 2: title of a post in the other.
-#: src/pollination.php
-#, php-format
-msgid "%1$s and %2$s are about different things, but not far apart."
-msgstr ""
-
-#. translators: %1$s: title of a post.
-#: src/pollination.php
-#, php-format
-msgid "%1$s sits near both groups."
-msgstr ""
-
-#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
-#: src/pollination.php
-#, php-format
-msgid "Both groups use words the rest of your site rarely does: %1$s."
-msgstr ""
-
-#: src/pollination.php
-msgid "A post connecting these two groups would link both halves of your garden."
-msgstr ""
-
-#. translators: 1: title the first group is named after, 2: title the second group is named after.
-#: src/pollination.php
-#, php-format
-msgid "Around “%1$s”, and around “%2$s”"
-msgstr ""
-
-#: src/pollination.php
-msgid "These posts are in groups that sit apart, but they are not far apart themselves."
-msgstr ""
-
-#. translators: %1$s: a list of words from the posts, such as "oca, frost, and ledger".
-#: src/pollination.php
-#, php-format
-msgid "These posts are in groups that sit apart, and both groups use %1$s."
-msgstr ""
-
-#: src/pollination.php
-msgid "Cross-pollination."
 msgstr ""
 
 #: src/popularity.php
@@ -2305,6 +2306,74 @@ msgstr ""
 msgid "Undergrowth’s per-post files can be read from the web"
 msgstr ""
 
+#: src/stage-actions.php
+msgid "Only published posts in the garden have a growth stage."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "You cannot change the growth stage of this post."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "Stage pinned. The monthly cycle will leave it as it is."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "Stage unpinned and measured again from the links you have accepted."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "That stage cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "A composting post cannot be pinned, so nothing was changed."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "That stage was not pinned, so nothing was changed."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "That stage cannot be pinned."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "A composting post cannot be pinned."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "This post's stage is not pinned."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "This post is already composting."
+msgstr ""
+
+#: src/stage-actions.php
+msgid "This post is not composting."
+msgstr ""
+
 #: src/stages.php
 msgid "Growth stage, measured from the links between posts or chosen by the author."
 msgstr ""
@@ -2380,74 +2449,6 @@ msgstr[1] ""
 
 #: src/stages.php
 msgid "Once a month"
-msgstr ""
-
-#: src/stages.php
-msgid "Only published posts in the garden have a growth stage."
-msgstr ""
-
-#: src/stages.php
-msgid "You cannot change the growth stage of this post."
-msgstr ""
-
-#: src/stages.php
-msgid "Stage pinned. The monthly cycle will leave it as it is."
-msgstr ""
-
-#: src/stages.php
-msgid "Stage unpinned and measured again from the links you have accepted."
-msgstr ""
-
-#: src/stages.php
-msgid "Moved to compost. The post stays published, and no links are suggested to or from it."
-msgstr ""
-
-#: src/stages.php
-msgid "Returned to the garden. Its stage was measured again from the links you have accepted."
-msgstr ""
-
-#: src/stages.php
-msgid "That stage cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "A composting post cannot be pinned, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "That stage was not pinned, so nothing was changed."
-msgstr ""
-
-#: src/stages.php
-msgid "The stage could not be saved, so nothing was changed. Try again in a moment."
-msgstr ""
-
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be removed. Unpin the post to clear it."
-msgstr ""
-
-#: src/stages.php
-msgid "The stage could not be saved, and the pin marker could not be put back. Pin the stage again to keep it."
-msgstr ""
-
-#: src/stages.php
-msgid "That stage cannot be pinned."
-msgstr ""
-
-#: src/stages.php
-msgid "A composting post cannot be pinned."
-msgstr ""
-
-#: src/stages.php
-msgid "This post's stage is not pinned."
-msgstr ""
-
-#: src/stages.php
-msgid "This post is already composting."
-msgstr ""
-
-#: src/stages.php
-msgid "This post is not composting."
 msgstr ""
 
 #. translators: %1$s: number of new questions.
