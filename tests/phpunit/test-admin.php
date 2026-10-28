@@ -675,6 +675,28 @@ class Test_Admin extends WP_UnitTestCase {
 		$this->assertSame( array_slice( array_reverse( $posts ), 20, 4 ), array_column( $second->items, 'source_id' ) );
 	}
 
+	public function test_a_type_without_mapped_capabilities_is_checked_row_by_row() {
+		register_post_type(
+			'undergrowth_plain',
+			array(
+				'public'          => true,
+				'capability_type' => 'post',
+				'map_meta_cap'    => false,
+			)
+		);
+		list( $oca, $yacon ) = self::factory()->post->create_many( 2 );
+		$plain               = self::factory()->post->create( array( 'post_type' => 'undergrowth_plain' ) );
+		$this->propose_rows( array( array( $oca, $yacon ), array( $plain, $oca ) ) );
+
+		// Without mapping, edit_post is a capability of its own, which an
+		// editor does not have, though they may edit others' posts.
+		$table = $this->suggestions_table();
+
+		unregister_post_type( 'undergrowth_plain' );
+		$this->assertSame( array( $oca ), array_column( $table->items, 'source_id' ) );
+		$this->assertSame( 1, $table->get_pagination_arg( 'total_items' ) );
+	}
+
 	public function test_suggestions_tied_on_time_source_and_score_page_in_target_order() {
 		list( $oca, $yacon, $mashua ) = self::factory()->post->create_many( 3 );
 		$this->propose_rows( array( array( $oca, $mashua ), array( $oca, $yacon ) ) );
