@@ -347,6 +347,12 @@ function undergrowth_run_pollination_cycle( $after_id = 0, $pass = '' ): void {
 function undergrowth_run_pollination_batch( int $after_id, string $pass ): void {
 	global $wpdb;
 
+	// Each post is compared with every grouped post after it, so a batch
+	// takes longer as the site grows. Like the backfill, it starts no post
+	// once its time is spent, counting from here, since reading the groups
+	// and every vector takes a share of it. The next batch carries on.
+	$started = microtime( true );
+
 	// Another request may have started a pass since this one read them.
 	wp_cache_delete( 'undergrowth_pollination_work', 'options' );
 	wp_cache_delete( 'undergrowth_cluster_labels', 'options' );
@@ -382,11 +388,7 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 
 	list( $low, $high, $weakest ) = undergrowth_pollination_reach();
 
-	// Each post is compared with every grouped post after it, so a batch
-	// takes longer as the site grows. Like the backfill, it starts no post
-	// once its time is spent, and the next batch carries on from there.
-	$started = microtime( true );
-	$budget  = undergrowth_backfill_time_budget();
+	$budget = undergrowth_backfill_time_budget();
 
 	while ( array() !== $rows ) {
 		if ( $last_id !== $after_id && microtime( true ) - $started >= $budget ) {
