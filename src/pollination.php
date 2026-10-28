@@ -382,7 +382,17 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 
 	list( $low, $high, $weakest ) = undergrowth_pollination_reach();
 
+	// Each post is compared with every grouped post after it, so a batch
+	// takes longer as the site grows. Like the backfill, it starts no post
+	// once its time is spent, and the next batch carries on from there.
+	$started = microtime( true );
+	$budget  = undergrowth_backfill_time_budget();
+
 	while ( array() !== $rows ) {
+		if ( $last_id !== $after_id && microtime( true ) - $started >= $budget ) {
+			break;
+		}
+
 		$row     = array_shift( $rows );
 		$last_id = (int) $row['post_id'];
 		$post    = get_post( $last_id );
@@ -460,7 +470,7 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 		return;
 	}
 
-	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched ) {
+	if ( UNDERGROWTH_CLUSTER_BATCH === $fetched || array() !== $rows ) {
 		$work['pairs'] = $pairs;
 		update_option( 'undergrowth_pollination_work', $work, false );
 		undergrowth_queue_pass_batch( 'undergrowth_pollination_cycle', $last_id, $pass );
