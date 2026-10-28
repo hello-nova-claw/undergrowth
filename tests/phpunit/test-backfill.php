@@ -836,6 +836,71 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
 	}
 
+	public function test_first_read_leaves_suggestions_to_the_refresh_that_follows_it() {
+		$this->garden();
+
+		undergrowth_start_backfill();
+		$before = did_action( 'undergrowth_proposals_refreshed' );
+		$this->run_cron();
+
+		$this->assertSame( $before, did_action( 'undergrowth_proposals_refreshed' ) );
+		$this->assertSame( array( 3 ), $this->run_index_refresh() );
+	}
+
+	public function test_read_after_a_model_change_leaves_suggestions_to_the_refresh_that_follows_it() {
+		$this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		$this->model = 'test-model-v2';
+		undergrowth_start_backfill();
+		$before = did_action( 'undergrowth_proposals_refreshed' );
+		$this->run_cron();
+
+		$this->assertSame( $before, did_action( 'undergrowth_proposals_refreshed' ) );
+		$this->assertSame( array( 3 ), $this->run_index_refresh() );
+	}
+
+	public function test_post_read_once_the_index_is_recorded_still_gets_suggestions() {
+		list( $oca ) = $this->garden();
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		// Published while the plugin was off: no index refresh follows it.
+		$ulluco = $this->archive(
+			1,
+			array(
+				'post_title'   => 'Ulluco',
+				'post_content' => '<p>Ulluco is a tuber. It grows beside oca and yacon in the bed.</p>',
+			)
+		)[0];
+
+		$refreshed = array();
+		add_action(
+			'undergrowth_proposals_refreshed',
+			static function ( $post_id ) use ( &$refreshed ) {
+				$refreshed[] = $post_id;
+			}
+		);
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertContains( $ulluco, $refreshed );
+		$this->assertContains( $oca, $refreshed );
+	}
+
+	public function test_first_read_puts_back_the_refresh_after_a_post() {
+		$this->garden();
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertSame( 10, has_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' ) );
+	}
+
 	public function test_refresh_rewrites_a_proposal_made_before_the_site_was_read() {
 		list( $oca, $yacon ) = $this->garden();
 
