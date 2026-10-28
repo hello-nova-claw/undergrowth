@@ -21,8 +21,11 @@ import { PNG } from 'pngjs';
 
 const MARKER = '<!-- undergrowth-screenshots -->';
 
-// GitHub refuses comments over 65,536 characters.
+// GitHub refuses comments over 65,536 characters. The table of changed shots
+// stays well under it, and a collapsed list that would push the comment over
+// becomes a link to the folder instead.
 const MAX_ROWS = 60;
+const MAX_LENGTH = 60000;
 
 /**
  * Lists the PNG files in a folder, or none when it is missing.
@@ -178,45 +181,77 @@ function comment( result, base ) {
 		lines.push( 'No changed or new shots.', '' );
 	}
 
+	const tree = ( side ) =>
+		`${ base.replace( '/blob/', '/tree/' ) }/${ side }`;
+	const sections = [];
+
 	if ( result.removed.length > 0 ) {
-		lines.push(
-			'<details><summary>Removed</summary>',
-			'',
-			...result.removed.map(
-				( name ) => `- ${ link( 'before', name ) }`
-			),
-			'',
-			'</details>',
-			''
-		);
+		sections.push( {
+			lines: [
+				'<details><summary>Removed</summary>',
+				'',
+				...result.removed.map(
+					( name ) => `- ${ link( 'before', name ) }`
+				),
+				'',
+				'</details>',
+				'',
+			],
+			short: `${ result.removed.length } removed shots are in [before/](${ tree(
+				'before'
+			) }).`,
+		} );
 	}
 
 	if ( result.skipped.length > 0 ) {
-		lines.push(
-			'<details><summary>Not in this build</summary>',
-			'',
-			'These states are in the catalogue, but this build does not have them, so they were skipped.',
-			'',
-			...result.skipped.map( ( name ) => `- \`${ name }\`` ),
-			'',
-			'</details>',
-			''
-		);
+		sections.push( {
+			lines: [
+				'<details><summary>Not in this build</summary>',
+				'',
+				'These states are in the catalogue, but this build does not have them, so they were skipped.',
+				'',
+				...result.skipped.map( ( name ) => `- \`${ name }\`` ),
+				'',
+				'</details>',
+				'',
+			],
+			short: `${ result.skipped.length } states are in the catalogue but not in this build, so they were skipped. The workflow artifact has their markers.`,
+		} );
 	}
 
 	if ( result.unchanged.length > 0 ) {
-		lines.push(
-			'<details><summary>Unchanged</summary>',
-			'',
-			'| Shot | Before and after (identical) |',
-			'| --- | --- |',
-			...result.unchanged.map(
-				( name ) =>
-					`| ${ link( 'after', name ) } | <img src="${ base }/after/${ name }?raw=true" width="200" alt="${ name }"> |`
-			),
-			'',
-			'</details>'
-		);
+		sections.push( {
+			lines: [
+				'<details><summary>Unchanged</summary>',
+				'',
+				'| Shot | Before and after (identical) |',
+				'| --- | --- |',
+				...result.unchanged.map(
+					( name ) =>
+						`| ${ link( 'after', name ) } | <img src="${ base }/after/${ name }?raw=true" width="200" alt="${ name }"> |`
+				),
+				'',
+				'</details>',
+			],
+			short: `${ result.unchanged.length } unchanged shots are in [after/](${ tree(
+				'after'
+			) }).`,
+		} );
+	}
+
+	// The workflow adds a few lines after the body, so the budget leaves room.
+	let length = lines.join( '\n' ).length;
+
+	for ( const section of sections ) {
+		const full = section.lines.join( '\n' ).length + 1;
+
+		if ( length + full <= MAX_LENGTH ) {
+			lines.push( ...section.lines );
+			length += full;
+		} else {
+			lines.push( section.short, '' );
+			length += section.short.length + 2;
+		}
 	}
 
 	return lines.join( '\n' );
