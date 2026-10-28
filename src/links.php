@@ -17,8 +17,9 @@ const UNDERGROWTH_REFRESH_BATCH        = 20;
 const UNDERGROWTH_ANCHOR_SENTENCES = 10;
 
 // Raised whenever the rules for choosing a link's words change, so stored
-// suggestions are chosen again. 2: two words or more (#511).
-const UNDERGROWTH_ANCHOR_RULES = 2;
+// suggestions are chosen again. 2: two words or more (#511). 3: never two
+// suggestions on overlapping words of one sentence (#522).
+const UNDERGROWTH_ANCHOR_RULES = 3;
 
 // On init, once every plugin has added its filters for a post's language.
 add_action( 'init', 'undergrowth_maybe_refresh_anchors' );
@@ -505,16 +506,18 @@ function undergrowth_open_targets( array $scores ): Generator {
  * @param int    $target_id Post the link would point to.
  * @param string $sentence  Sentence chosen for the link.
  * @param array  $corpus    Word counts across the pool.
+ * @param array  $avoid     Runs of words in the sentence that the post's other proposals hold.
  * @return array{anchor: string, offset: int} The words as the sentence shows
  *         them and their character offset in it; empty and -1 when no words
  *         can be linked safely.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ * @phpstan-param list<array{0: int, 1: int}> $avoid
  */
-function undergrowth_proposal_anchor( int $source_id, int $target_id, string $sentence, array $corpus ): array {
+function undergrowth_proposal_anchor( int $source_id, int $target_id, string $sentence, array $corpus, array $avoid = array() ): array {
 	$source = get_post( $source_id );
 	$target = get_post( $target_id );
-	$choice = $source instanceof WP_Post && $target instanceof WP_Post ? undergrowth_choose_link_span( $source, $target, $sentence, $corpus ) : null;
+	$choice = $source instanceof WP_Post && $target instanceof WP_Post ? undergrowth_choose_link_span( $source, $target, $sentence, $corpus, $avoid ) : null;
 
 	return null === $choice ? array(
 		'anchor' => '',
@@ -536,17 +539,23 @@ function undergrowth_proposal_anchor( int $source_id, int $target_id, string $se
  * without spaces, a run of characters counts as long enough. A sentence
  * the author chose words in is kept while it still fits.
  *
+ * Two proposals never sit on overlapping words in one sentence. A sentence
+ * that holds another proposal's words is used only with other words, and
+ * skipped when it has none, even if the post gets fewer suggestions.
+ *
  * @param int      $post_id   Post the link would sit in.
  * @param int      $target_id Post the link would point to.
  * @param array    $corpus    Word counts across the pool.
  * @param string[] $taken     Sentences already holding another of the post's proposals.
+ * @param array    $claimed   Runs of words the post's other proposals hold, by sentence.
  * @return array{text: string, anchor: string, offset: int}|null The sentence
  *         and the words as undergrowth_proposal_anchor() gives them, or null
  *         when no sentence fits.
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>} $corpus
+ * @phpstan-param array<string, list<array{0: int, 1: int}>> $claimed
  */
-function undergrowth_choose_proposal( int $post_id, int $target_id, array $corpus, array $taken = array() ): ?array {
+function undergrowth_choose_proposal( int $post_id, int $target_id, array $corpus, array $taken = array(), array $claimed = array() ): ?array {
 	global $wpdb;
 
 	$source = get_post( $post_id );
@@ -558,15 +567,33 @@ function undergrowth_choose_proposal( int $post_id, int $target_id, array $corpu
 	$own = $wpdb->get_row( $wpdb->prepare( 'SELECT sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND target_id = %d AND state = %s AND anchor_chosen = 1', undergrowth_links_table(), $post_id, $target_id, 'proposed' ), ARRAY_A );
 
 	if ( is_array( $own ) && in_array( $own['sentence'], $ranked, true ) ) {
-		return array(
-			'text'   => (string) $own['sentence'],
-			'anchor' => (string) $own['anchor'],
-			'offset' => (int) $own['anchor_offset'],
+		$mine = array(
+			'word'     => (string) $own['anchor'],
+			'offset'   => (int) $own['anchor_offset'],
+			'position' => 0,
 		);
+
+		// Another proposal now holds those words, so the sentence is left
+		// to it rather than suggested again with words the author did not
+		// choose.
+		if ( undergrowth_span_overlaps( $mine, $claimed[ $own['sentence'] ] ?? array() ) ) {
+			$ranked = array_values( array_diff( $ranked, array( $own['sentence'] ) ) );
+		} else {
+			return array(
+				'text'   => (string) $own['sentence'],
+				'anchor' => (string) $own['anchor'],
+				'offset' => (int) $own['anchor_offset'],
+			);
+		}
 	}
 
 	foreach ( array_slice( $ranked, 0, UNDERGROWTH_ANCHOR_SENTENCES ) as $sentence ) {
-		$anchor = undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus );
+		$anchor = undergrowth_proposal_anchor( $post_id, $target_id, $sentence, $corpus, $claimed[ $sentence ] ?? array() );
+
+		if ( '' === $anchor['anchor'] && isset( $claimed[ $sentence ] ) ) {
+			continue;
+		}
+
 		$choice = array(
 			'text'   => $sentence,
 			'anchor' => $anchor['anchor'],
@@ -696,10 +723,11 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$table   = undergrowth_links_table();
 	$targets = array();
 	$taken   = array();
+	$claimed = array();
 
 	// Nearest targets choose first, so the strongest link gets its best sentence.
 	foreach ( undergrowth_open_targets( undergrowth_score_targets( $post_id, $pool ) ) as $target_id => $score ) {
-		$sentence = undergrowth_choose_proposal( $post_id, $target_id, $corpus, $taken );
+		$sentence = undergrowth_choose_proposal( $post_id, $target_id, $corpus, $taken, $claimed );
 
 		if ( null === $sentence ) {
 			continue;
@@ -707,6 +735,10 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 
 		$targets[ $target_id ] = $score;
 		$taken[]               = $sentence['text'];
+
+		if ( '' !== $sentence['anchor'] ) {
+			$claimed[ $sentence['text'] ][] = array( $sentence['offset'], mb_strlen( $sentence['anchor'] ) );
+		}
 
 		undergrowth_store_proposal( $post_id, $target_id, $score, $sentence['text'], $corpus, '', $sentence );
 
@@ -722,7 +754,7 @@ function undergrowth_refresh_proposals( int $post_id, ?array $pool = null, ?arra
 	$cross = isset( $pool[ $post_id ] ) ? undergrowth_cross_link_target( $post_id, array_keys( $targets ), array_keys( $pool ) ) : null;
 
 	if ( null !== $cross ) {
-		$sentence = undergrowth_choose_proposal( $post_id, $cross[0], $corpus, $taken );
+		$sentence = undergrowth_choose_proposal( $post_id, $cross[0], $corpus, $taken, $claimed );
 
 		if ( null !== $sentence ) {
 			$targets[ $cross[0] ] = $cross[1];

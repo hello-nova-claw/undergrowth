@@ -202,15 +202,20 @@ function undergrowth_link_word_choice( int $source_id, int $target_id, string $s
  * make the top few shifts as posts are added, most of all while a new site
  * is still being indexed, so every shared word is tried.
  *
+ * Words that overlap another proposal's words in the same sentence are
+ * passed over, so two suggestions never sit on the same words.
+ *
  * @param WP_Post    $source   Post the link would sit in.
  * @param WP_Post    $target   Post the link would point to.
  * @param string     $sentence Sentence the link belongs in, as stored.
  * @param array|null $corpus   Word counts to rank the target's words against, when already built.
+ * @param int[][]    $avoid    Character offset and length of each run of words in the sentence that another proposal holds.
  * @return array{word: string, offset: int, position: int}|null
  *
  * @phpstan-param array{documents: int, frequency: array<string, int>, posts: array<int, true>}|null $corpus
+ * @phpstan-param list<array{0: int, 1: int}> $avoid
  */
-function undergrowth_choose_link_span( WP_Post $source, WP_Post $target, string $sentence, ?array $corpus = null ): ?array {
+function undergrowth_choose_link_span( WP_Post $source, WP_Post $target, string $sentence, ?array $corpus = null, array $avoid = array() ): ?array {
 	$corpus = $corpus ?? undergrowth_reusable_corpus( array_merge( undergrowth_comparable_post_ids( $source->ID ), array( $source->ID, $target->ID ) ) );
 	$terms  = undergrowth_anchor_terms( $target->ID, $sentence, $corpus, 0 );
 
@@ -220,7 +225,7 @@ function undergrowth_choose_link_span( WP_Post $source, WP_Post $target, string 
 		foreach ( array_keys( $terms ) as $term ) {
 			$found = undergrowth_find_link_word( $source->post_content, $sentence, (string) $term );
 
-			if ( null !== $found ) {
+			if ( null !== $found && ! undergrowth_span_overlaps( $found, $avoid ) ) {
 				return $found;
 			}
 		}
@@ -231,12 +236,34 @@ function undergrowth_choose_link_span( WP_Post $source, WP_Post $target, string 
 	foreach ( undergrowth_anchor_spans( $sentence, $terms, $target->post_title, undergrowth_post_language( $target ) ) as $span ) {
 		$found = undergrowth_find_link_span( $source->post_content, $sentence, $span['offset'], $span['length'] );
 
-		if ( null !== $found ) {
+		if ( null !== $found && ! undergrowth_span_overlaps( $found, $avoid ) ) {
 			return $found;
 		}
 	}
 
 	return null;
+}
+
+/**
+ * Tells whether chosen words overlap any of the runs given.
+ *
+ * @param array   $found Result of undergrowth_find_link_word() or undergrowth_find_link_span().
+ * @param int[][] $runs  Character offset and length of each run in the same sentence.
+ * @return bool
+ *
+ * @phpstan-param array{word: string, offset: int, position: int} $found
+ * @phpstan-param list<array{0: int, 1: int}> $runs
+ */
+function undergrowth_span_overlaps( array $found, array $runs ): bool {
+	$end = $found['offset'] + mb_strlen( undergrowth_collapse_spaces( $found['word'] ) );
+
+	foreach ( $runs as $run ) {
+		if ( $found['offset'] < $run[0] + $run[1] && $run[0] < $end ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**

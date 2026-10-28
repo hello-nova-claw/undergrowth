@@ -61,6 +61,21 @@ trait Plants_Posts {
 	}
 
 	/**
+	 * Content for a planted post.
+	 *
+	 * Every planted post shares each sentence's opening word with every
+	 * other, and each sentence opens differently, so a post's suggestions
+	 * can sit on words of their own: two never share the same words of one
+	 * sentence.
+	 *
+	 * @param string $title Post title.
+	 * @return string
+	 */
+	private static function plant_content( string $title ): string {
+		return 'Notes about ' . $title . '. Seedlings near ' . $title . '. Baskets beside ' . $title . '. Mulch around ' . $title . '.';
+	}
+
+	/**
 	 * Publishes a post with a known vector and embeds it.
 	 *
 	 * @param string               $title  Post title, also the vector's key.
@@ -75,7 +90,7 @@ trait Plants_Posts {
 			array_merge(
 				array(
 					'post_title'   => $title,
-					'post_content' => 'Notes about ' . $title . '.',
+					'post_content' => self::plant_content( $title ),
 					'post_status'  => 'publish',
 				),
 				$args
@@ -102,7 +117,7 @@ trait Plants_Posts {
 	 */
 	private function seed( string $title, array $vector, array $args = array(), array $meta = array() ): int {
 		$fields = array(
-			'post_content' => 'Notes about ' . ( '' === $title ? 'a post' : $title ) . '.',
+			'post_content' => self::plant_content( '' === $title ? 'a post' : $title ),
 			'post_status'  => 'publish',
 		);
 

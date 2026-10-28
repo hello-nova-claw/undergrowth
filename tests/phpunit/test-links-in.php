@@ -33,7 +33,8 @@ class Test_Links_In extends WP_UnitTestCase {
 
 	/**
 	 * Plants oca and three posts that each mention it, so each of the three
-	 * has a suggestion to oca.
+	 * has a suggestion to oca. Each of the three is nearer oca than the
+	 * others, so oca, not another of them, takes its words about oca.
 	 *
 	 * @return int[] Oca, then the three posts that could link to it.
 	 */
@@ -42,9 +43,9 @@ class Test_Links_In extends WP_UnitTestCase {
 
 		return array(
 			$oca,
-			$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ), array( 'post_content' => '<p>Yacon is sweet. I grow oca beside it.</p>' ) ),
-			$this->plant( 'Ulluco', array( 0.88, 0.0, 0.12 ), array( 'post_content' => '<p>Ulluco is bright. Oca shares its bed.</p>' ) ),
-			$this->plant( 'Mashua', array( 0.86, 0.07, 0.07 ), array( 'post_content' => '<p>Mashua is peppery. Oca is milder.</p>' ) ),
+			$this->plant( 'Yacon', array( 1.0, 0.3, 0.0 ), array( 'post_content' => '<p>Yacon is sweet. I grow oca beside it.</p>' ) ),
+			$this->plant( 'Ulluco', array( 1.0, 0.0, 0.3 ), array( 'post_content' => '<p>Ulluco is bright. Oca shares its bed.</p>' ) ),
+			$this->plant( 'Mashua', array( 1.0, -0.3, 0.0 ), array( 'post_content' => '<p>Mashua is peppery. Oca is milder.</p>' ) ),
 		);
 	}
 
