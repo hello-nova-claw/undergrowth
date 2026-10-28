@@ -39,7 +39,7 @@ function undergrowth_register_garden_count_block(): void {
  * @return string Count markup, or an empty string when the garden is empty.
  */
 function undergrowth_render_garden_count_block( $attributes ): string {
-	$count = count( undergrowth_garden_feed_posts( 'tended', 'post_format', array_fill_keys( array( 'stage', 'type', 'topic' ), '' ) ) );
+	$count = count( undergrowth_garden_feed_posts( 'tended', 'post_format', array_fill_keys( array( 'stage', 'type', 'topic', 'group' ), '' ) ) );
 
 	if ( 0 === $count ) {
 		return '';

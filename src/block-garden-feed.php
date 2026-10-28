@@ -63,7 +63,7 @@ function undergrowth_garden_feed_editor_settings( $settings ): array {
  * matched against known stages and term slugs. Composting is never a
  * filter, since readers are never shown it.
  *
- * @return array{stage: string, type: string, topic: string} Each filter, or an empty string for none.
+ * @return array{stage: string, type: string, topic: string, group: string} Each filter, or an empty string for none.
  */
 function undergrowth_garden_feed_filters(): array {
 	$read = static function ( string $name ): string {
@@ -81,6 +81,9 @@ function undergrowth_garden_feed_filters(): array {
 		'stage' => in_array( $stage, UNDERGROWTH_STAGES, true ) && 'composting' !== $stage ? $stage : '',
 		'type'  => $read( 'type' ),
 		'topic' => $read( 'topic' ),
+		// A Map group, by its leader's ID, or "other" for the posts in none,
+		// as the garden index links to them.
+		'group' => $read( 'group' ),
 	);
 }
 
@@ -109,9 +112,9 @@ function undergrowth_garden_feed_type_taxonomy( string $source ): string {
  * visibility rule decides what is listed and the count and pages agree
  * with it.
  *
- * @param string                                            $order    One of tended, newest or stage.
- * @param string                                            $taxonomy Taxonomy that names each post's type.
- * @param array{stage: string, type: string, topic: string} $filters  From undergrowth_garden_feed_filters().
+ * @param string                                                           $order    One of tended, newest or stage.
+ * @param string                                                           $taxonomy Taxonomy that names each post's type.
+ * @param array{stage: string, type: string, topic: string, group: string} $filters  From undergrowth_garden_feed_filters().
  * @return int[] Post IDs.
  */
 function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $filters ): array {
@@ -178,6 +181,18 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 
 	// Only the page a feed shows is loaded, by the feed itself.
 	$post_ids = undergrowth_filter_garden_visible( array_map( 'intval', $post_ids ), false );
+
+	if ( '' !== $filters['group'] ) {
+		$in       = undergrowth_garden_group_posts( $filters['group'] );
+		$post_ids = array_values(
+			array_filter(
+				$post_ids,
+				static function ( int $post_id ) use ( $in ): bool {
+					return isset( $in[ $post_id ] );
+				}
+			)
+		);
+	}
 
 	if ( '' !== $filters['stage'] ) {
 		$post_ids = array_values(
@@ -358,6 +373,8 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 		$items .= undergrowth_garden_feed_item( $post_id, ! empty( $attributes['showFeatured'] ) && 1 === $current && 0 === $index, $taxonomy, $attributes );
 	}
 
+	$group = '' === $filters['group'] ? '' : undergrowth_garden_feed_group_note( $filters['group'] );
+
 	$nav = '';
 
 	if ( $pages > 1 ) {
@@ -387,9 +404,36 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 	}
 
 	return sprintf(
-		'<div %1$s><ul class="wp-block-undergrowth-garden-feed-list">%2$s</ul>%3$s</div>',
+		'<div %1$s>%2$s<ul class="wp-block-undergrowth-garden-feed-list">%3$s</ul>%4$s</div>',
 		undergrowth_garden_feed_wrapper_attributes(),
+		$group,
 		$items,
 		$nav
+	);
+}
+
+/**
+ * Says which group the feed shows, as the garden index names it, with a
+ * link back to the whole garden.
+ *
+ * @param string $group A leader's ID, or "other".
+ * @return string Markup.
+ */
+function undergrowth_garden_feed_group_note( string $group ): string {
+	$name = 'other' === $group
+		? esc_html__( 'Posts not in a group', 'undergrowth' )
+		: sprintf(
+			/* translators: %s: title of the post the group is named after. */
+			esc_html__( 'In the group around “%s”', 'undergrowth' ),
+			'<bdi>' . esc_html( undergrowth_plain_line( undergrowth_post_title( undergrowth_garden_group_name_post( $group ) ) ) ) . '</bdi>'
+		);
+
+	return sprintf(
+		// A whole page load, not in place: in place, the link would remove
+		// itself from under the reader's focus.
+		'<p class="wp-block-undergrowth-garden-feed-group">%1$s <a href="%2$s">%3$s</a></p>',
+		$name,
+		esc_url( remove_query_arg( array( 'group', 'garden-page' ) ) ),
+		esc_html__( 'Show the whole garden', 'undergrowth' )
 	);
 }
