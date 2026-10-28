@@ -757,6 +757,8 @@ class Test_Indexer extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Checks one alias that is not a table name and a dot.
+	 *
 	 * @dataProvider data_aliases_that_are_not_a_table
 	 *
 	 * @param string $alias Alias that is not a table name and a dot.
@@ -774,12 +776,12 @@ class Test_Indexer extends WP_UnitTestCase {
 	 */
 	public function data_aliases_that_are_not_a_table(): array {
 		return array(
-			'no dot'       => array( 'p' ),
-			'two dots'     => array( 'p..' ),
-			'a space'      => array( 'p .' ),
-			'a quote'      => array( "p'." ),
-			'a condition'  => array( '1=1 OR p.' ),
-			'a comment'    => array( '/* */p.' ),
+			'no dot'      => array( 'p' ),
+			'two dots'    => array( 'p..' ),
+			'a space'     => array( 'p .' ),
+			'a quote'     => array( "p'." ),
+			'a condition' => array( '1=1 OR p.' ),
+			'a comment'   => array( '/* */p.' ),
 		);
 	}
 
