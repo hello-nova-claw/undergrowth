@@ -23,7 +23,7 @@ The work that hid problems at this size was always the same few things: somethin
 
 **Machine.** A Mac with 10 cores and PHP 8.5, shared with other work: the load average stayed above 10 for most of the test and at times passed 500, so times vary by tens of percent between runs, and more at the worst moments. Times quoted are the fastest of several runs where a comparison matters. Queries and memory do not depend on load and are the better guide.
 
-**Database.** SQLite, through the SQLite Database Integration plugin, on WordPress 7.1. MySQL could not be measured: the Homebrew `mysqld` on this machine does not start, and there is no Docker for `wp-env`. Two of the problems below (#546, #551) came from SQLite's query planner. MySQL and MariaDB use the indexes those queries need, but that was not measured here. Everything else is PHP work that does not depend on the engine.
+**Database.** SQLite, through the SQLite Database Integration plugin, on WordPress 7.1. MySQL could not be measured: the Homebrew `mysqld` on this machine does not start, and there is no Docker for `wp-env`. Two of the problems below (#546, #551) came from SQLite's query planner. MySQL and MariaDB use the indexes those queries need, but that was not measured here. The other bottlenecks are mainly PHP work, but they read and write through the database too, so their times on MySQL will differ somewhat.
 
 **Memory.** Cron was measured from the command line, one event per process, the way `wp-cron.php` runs it. The command line has no OPcache, so a process starts at 42 MB with WordPress and Undergrowth loaded, where a web request starts at about 5 MB. Cron memory below is given as the peak above that 42 MB start, which is what a host's `memory_limit` has to cover on top of its own baseline. Web requests were measured through PHP's built-in server with OPcache, as total peak.
 
@@ -95,7 +95,7 @@ At 5,000 posts a save stays well inside a cron run. It grows linearly, though, a
 | `undergrowth_stage_cycle` | 19 runs, 44 s, longest 4.7 s, +9 MB | 47 runs, 142 s, longest 3.8 s, +12 MB |
 | `undergrowth_pollination_cycle` | 38 runs, 157 s, longest 12.3 s, +47 MB | 93 runs, 749 s, longest 15.8 s, +107 MB |
 | `undergrowth_prompt_batch` (weekly) | 5.4 s, 8,530 queries, +34 MB | 15.0 s, 14,040 queries, +73 MB (13.3 s, 1,205 queries, +14 MB after #548) |
-| `undergrowth_refresh_sources` after a pollination pass | 18 runs, 188 s, longest 18.0 s | 22 runs, median 17.9 s, longest 65.8 s under heavy load |
+| `undergrowth_refresh_sources` after a pollination pass, before #549 | 18 runs, 188 s, longest 18.0 s | 22 runs, median 17.9 s, longest 65.8 s under heavy load |
 
 The last clustering batch at 5,000 posts peaked at 152 MB from the command line, about 115 MB in a web request with OPcache: close to a 128 MB limit. Three of its steps (`undergrowth_measure_gap_threshold()`, `undergrowth_build_garden_index()` and `undergrowth_label_clusters()`) each filtered every cluster's posts with `undergrowth_can_cluster()`. That function loads each post in full with two queries, and each step read each member's vector with a query of its own.
 
