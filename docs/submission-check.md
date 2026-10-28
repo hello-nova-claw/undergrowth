@@ -7,7 +7,7 @@ Three problems were found, and none would have stopped the plugin installing or 
 | Problem | Issue | Fix |
 |---|---|---|
 | Plugin Check reported nine unescaped-SQL warnings. | [#538](https://github.com/hello-nova-claw/undergrowth/issues/538) | [#541](https://github.com/hello-nova-claw/undergrowth/pull/541) |
-| Two of the directory screenshots no longer matched their captions or the current screens. | [#539](https://github.com/hello-nova-claw/undergrowth/issues/539) | This pull request |
+| The directory screenshots showed screens from before the Orphans tab, named Map groups and the Prompt studio, and screenshot 5 showed a different screen from its caption. | [#539](https://github.com/hello-nova-claw/undergrowth/issues/539) | This pull request |
 | The release checklist said the readme was under 10 KB, and that Plugin Check warns about AI providers. Neither was true. | [#540](https://github.com/hello-nova-claw/undergrowth/issues/540) | This pull request |
 
 ## 1. Plugin Check
@@ -61,7 +61,7 @@ PHPCS with WordPress Coding Standards runs in CI with no errors or warnings, so 
 - **Contributors:** `annamcphee`, an existing WordPress.org profile.
 - **Size:** 12.8 KB, against the readme standard's warning that over 10 KB "may result in errors". That warning is about the parser's per-section limits: 2,500 words for most sections and 5,000 for the FAQ and changelog. The whole file is 2,127 words. Fine; the checklist now says so ([#540](https://github.com/hello-nova-claw/undergrowth/issues/540)).
 - **FAQ:** thirteen entries, including what each service is sent and what uninstalling removes.
-- **Screenshots:** six captions and six `.wordpress-org/screenshot-N.png`. The images were taken on 23 October; `screenshot-5.png` showed the Dashboard widget's old question card where caption 5 describes the Prompt studio, and `screenshot-1.png` showed the Suggestions tab without its checkboxes. All six are retaken from the current screens ([#539](https://github.com/hello-nova-claw/undergrowth/issues/539)).
+- **Screenshots:** six captions and six `.wordpress-org/screenshot-N.png`. The images were taken on 23 October; `screenshot-5.png` showed the Dashboard widget's old question card where caption 5 describes the Prompt studio, and `screenshot-1.png` showed the Suggestions tab without its checkboxes. The others showed the Undergrowth screen without its Orphans tab, Map groups as "Group 1", and Settings without the post types, surprise scale or Prompt studio sections. All six are retaken from the current screens, and the release checklist now names the catalogue shot behind each ([#539](https://github.com/hello-nova-claw/undergrowth/issues/539)).
 - **Changelog:** `= 0.1.0 =` with `* First release.`, as the release checklist decides.
 
 ## 4. The release zip
