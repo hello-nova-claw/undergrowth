@@ -862,6 +862,42 @@ class Test_Backfill extends WP_UnitTestCase {
 		$this->assertSame( array( 3 ), $this->run_index_refresh() );
 	}
 
+	public function test_pass_where_some_embeds_failed_still_refreshes_the_posts_it_read() {
+		list( $oca, $yacon, $mashua ) = $this->garden();
+		$this->failing[]              = undergrowth_post_text( get_post( $mashua ) );
+
+		undergrowth_start_backfill();
+		$this->run_cron();
+
+		$this->assertFalse( get_option( 'undergrowth_index_identity' ) );
+		$this->assertSame( array( 2 ), $this->run_index_refresh() );
+		$this->assertSame( 'proposed', $this->stored_link( $oca, $yacon )['state'] );
+	}
+
+	public function test_pass_that_reads_no_post_queues_no_refresh() {
+		list( , , $mashua ) = $this->garden();
+		$this->failing[]    = undergrowth_post_text( get_post( $mashua ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->run_index_refresh();
+
+		// The hourly check tries the post that failed again, and it fails again.
+		do_action( 'undergrowth_backfill_check' );
+		$this->run_cron();
+
+		$this->assertSame( array(), $this->run_index_refresh() );
+	}
+
+	public function test_refresh_after_a_pass_with_failures_stops_once_the_model_changes() {
+		list( , , $mashua ) = $this->garden();
+		$this->failing[]    = undergrowth_post_text( get_post( $mashua ) );
+		undergrowth_start_backfill();
+		$this->run_cron();
+		$this->model = 'test-model-v2';
+
+		$this->assertSame( array( 0 ), $this->run_index_refresh() );
+	}
+
 	public function test_post_read_once_the_index_is_recorded_still_gets_suggestions() {
 		list( $oca ) = $this->garden();
 		undergrowth_start_backfill();
