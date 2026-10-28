@@ -9,6 +9,25 @@ defined( 'ABSPATH' ) || exit;
 
 const UNDERGROWTH_VECTOR_CHUNK = 100;
 
+add_filter( 'pre_get_col_charset', 'undergrowth_packed_column_charset', 10, 3 );
+
+/**
+ * Tells wpdb that the packed column holds bytes, not text.
+ *
+ * The wpdb class reads a table's columns once a request and refuses a value
+ * that is not valid text for a text column. A request that adds the column
+ * while upgrading has already read the table without it, and would take the
+ * column for text and refuse every packed vector.
+ *
+ * @param string|false|null $charset Character set wpdb would use, or null to look it up.
+ * @param string            $table   Table name.
+ * @param string            $column  Column name.
+ * @return string|false|null False, meaning no character set, for the packed column.
+ */
+function undergrowth_packed_column_charset( $charset, $table, $column ) {
+	return 'packed' === strtolower( (string) $column ) && strtolower( (string) $table ) === strtolower( undergrowth_vectors_table() ) ? false : $charset;
+}
+
 /**
  * Stores the vector for a post, replacing any earlier one.
  *
@@ -37,12 +56,13 @@ function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bo
 		return false;
 	}
 
-	// An invalid vector would encode to an empty string that later reads as
-	// a stored, up-to-date vector, so it is refused rather than written. A
-	// list of finite floats always encodes, so no further check is needed.
-	$clean = undergrowth_sanitize_vector( $vector );
+	// An invalid vector would pack to an empty string that later reads as a
+	// stored, up-to-date vector, so it is refused rather than written, as is
+	// one with a value too large for single precision.
+	$clean  = undergrowth_sanitize_vector( $vector );
+	$packed = undergrowth_pack_vector( $clean );
 
-	if ( array() === $clean ) {
+	if ( '' === $packed ) {
 		return false;
 	}
 
@@ -55,11 +75,12 @@ function undergrowth_save_vector( int $post_id, array $vector, array $meta ): bo
 			'model'        => $meta['model'],
 			'language'     => $meta['language'],
 			'dimensions'   => count( $clean ),
-			'embedding'    => wp_json_encode( $clean ),
+			'embedding'    => '',
+			'packed'       => $packed,
 			'content_hash' => $meta['content_hash'],
 			'embedded_at'  => $meta['embedded_at'] ?? current_time( 'mysql', true ),
 		),
-		array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+		array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 	);
 
 	return false !== $written;
@@ -83,7 +104,7 @@ function undergrowth_get_vector( int $post_id ): ?array {
 		return null;
 	}
 
-	$vector = json_decode( (string) $row['embedding'], true );
+	$vector = undergrowth_row_vector( $row );
 
 	return array(
 		'post_id'      => (int) $row['post_id'],
@@ -91,7 +112,7 @@ function undergrowth_get_vector( int $post_id ): ?array {
 		'model'        => (string) $row['model'],
 		'language'     => (string) $row['language'],
 		'dimensions'   => (int) $row['dimensions'],
-		'vector'       => is_array( $vector ) ? array_map( 'floatval', $vector ) : array(),
+		'vector'       => $vector,
 		'content_hash' => (string) $row['content_hash'],
 		'embedded_at'  => (string) $row['embedded_at'],
 	);
@@ -141,13 +162,42 @@ function undergrowth_delete_vector( int $post_id, ?WP_Post $post = null ): void 
 }
 
 /**
- * Decodes an embedding as stored in the vectors table.
+ * Decodes an embedding stored as JSON, as versions before packing stored it.
  *
  * @param string $json The stored embedding.
  * @return float[] The vector, or an empty array when the stored value is not one.
  */
 function undergrowth_decode_embedding( string $json ): array {
 	return undergrowth_sanitize_vector( json_decode( $json, true ) );
+}
+
+/**
+ * Reads the vector from a row of the vectors table, packed or, until the
+ * row is converted, as JSON.
+ *
+ * @param array<string, mixed> $row Row with its embedding and packed columns.
+ * @return float[] The vector, or an empty array when the row holds none.
+ */
+function undergrowth_row_vector( array $row ): array {
+	return null === ( $row['packed'] ?? null )
+		? undergrowth_decode_embedding( (string) ( $row['embedding'] ?? '' ) )
+		: undergrowth_unpack_vector( (string) $row['packed'] );
+}
+
+/**
+ * Reads the packed vector from a row of the vectors table, packing one
+ * still stored as JSON.
+ *
+ * @param array<string, mixed> $row Row with its embedding and packed columns.
+ * @return string Packed floats, or an empty string when the row holds none.
+ */
+function undergrowth_row_packed( array $row ): string {
+	if ( null === ( $row['packed'] ?? null ) ) {
+		return undergrowth_pack_vector( undergrowth_decode_embedding( (string) ( $row['embedding'] ?? '' ) ) );
+	}
+
+	// A stored value of another length than whole floats is not a vector.
+	return 0 === strlen( (string) $row['packed'] ) % 4 ? (string) $row['packed'] : '';
 }
 
 /**
@@ -274,7 +324,7 @@ function undergrowth_vector_chunk_size(): int {
  * @return array<int, string> Packed vectors keyed by post ID, including the post's own.
  */
 function undergrowth_comparable_vectors( int $post_id ): array {
-	$source = undergrowth_get_vector( $post_id );
+	$source = undergrowth_get_vector_space( $post_id );
 
 	return null === $source ? array() : undergrowth_vectors_in_space( $source['provider'], $source['model'], $source['language'] );
 }
@@ -282,8 +332,9 @@ function undergrowth_comparable_vectors( int $post_id ): array {
 /**
  * Loads every stored vector from one provider, model and language.
  *
- * Rows are read a chunk at a time and kept packed, so a large archive never
- * sits in memory as JSON or as PHP arrays of floats.
+ * Rows are read a chunk at a time and kept packed, as they are stored, so a
+ * large archive never sits in memory as PHP arrays of floats. A row not yet
+ * converted from JSON is packed as it is read.
  *
  * @param string $provider Provider name.
  * @param string $model    Model name.
@@ -301,7 +352,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 		$rows = (array) $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id > %d ORDER BY post_id LIMIT %d',
+				'SELECT post_id, embedding, packed FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id > %d ORDER BY post_id LIMIT %d',
 				undergrowth_vectors_table(),
 				$provider,
 				$model,
@@ -316,7 +367,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 
 		foreach ( $rows as $row ) {
 			$after  = (int) $row['post_id'];
-			$packed = undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+			$packed = undergrowth_row_packed( $row );
 
 			if ( '' !== $packed ) {
 				$vectors[ $after ] = $packed;
@@ -324,7 +375,7 @@ function undergrowth_vectors_in_space( string $provider, string $model, string $
 		}
 
 		// wpdb keeps the last result set until the next query, which would
-		// leave a chunk of JSON behind for the whole refresh.
+		// leave a chunk of vectors behind for the whole refresh.
 		unset( $rows );
 		$wpdb->flush();
 	} while ( $size === $fetched );

@@ -8,7 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const UNDERGROWTH_SCHEMA_VERSION = 7;
+const UNDERGROWTH_SCHEMA_VERSION = 8;
 
 add_filter( 'is_protected_meta', 'undergrowth_protect_meta', 10, 2 );
 
@@ -101,6 +101,7 @@ function undergrowth_install_schema(): bool {
 			embedding longtext NOT NULL,
 			content_hash char(64) NOT NULL,
 			embedded_at datetime NOT NULL,
+			packed mediumblob,
 			PRIMARY KEY  (id),
 			UNIQUE KEY post_id (post_id)
 			) {$charset_collate};",
@@ -153,6 +154,10 @@ function undergrowth_install_schema(): bool {
 	}
 
 	update_option( 'undergrowth_schema_version', UNDERGROWTH_SCHEMA_VERSION, false );
+
+	// Version 8 stores vectors packed. Rows stored as JSON before it are
+	// converted in cron, and read as they are until then.
+	undergrowth_queue_pack_vectors();
 
 	return true;
 }
@@ -295,6 +300,8 @@ function undergrowth_deactivate_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
 	wp_unschedule_hook( 'undergrowth_measure_similar' );
+	wp_unschedule_hook( 'undergrowth_pack_vectors' );
+	delete_option( 'undergrowth_pack_vectors.lock' );
 	wp_unschedule_hook( 'undergrowth_read_popularity' );
 	// A dev tools job left half done would carry on when reactivated.
 	wp_unschedule_hook( 'undergrowth_dev_job' );
@@ -334,6 +341,8 @@ function undergrowth_uninstall_site(): void {
 	wp_unschedule_hook( 'undergrowth_discord_finish_click' );
 	wp_unschedule_hook( 'undergrowth_send_digests' );
 	wp_unschedule_hook( 'undergrowth_measure_similar' );
+	wp_unschedule_hook( 'undergrowth_pack_vectors' );
+	delete_option( 'undergrowth_pack_vectors.lock' );
 	wp_unschedule_hook( 'undergrowth_read_popularity' );
 	delete_post_meta_by_key( 'undergrowth_discord_messages' );
 	delete_metadata( 'user', 0, 'undergrowth_discord_user_id', '', true );

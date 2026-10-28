@@ -22,6 +22,7 @@ define( 'UNDERGROWTH_FILE', __FILE__ );
 
 require_once __DIR__ . '/src/schema.php';
 require_once __DIR__ . '/src/vectors.php';
+require_once __DIR__ . '/src/vector-packing.php';
 require_once __DIR__ . '/src/embed.php';
 require_once __DIR__ . '/src/keys.php';
 require_once __DIR__ . '/src/openai.php';
