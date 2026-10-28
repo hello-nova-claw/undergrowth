@@ -41,7 +41,7 @@ test.describe( 'Linked from block', () => {
 
 		oca = await requestUtils.createPost( {
 			title: 'Oca',
-			content: '<p>Oca grows here. I keep yacon nearby.</p>',
+			content: '<p>Oca grows here. I keep yacon syrup nearby.</p>',
 			status: 'publish',
 		} );
 		yacon = await requestUtils.createPost( {

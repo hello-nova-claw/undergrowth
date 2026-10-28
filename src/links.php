@@ -17,8 +17,9 @@ const UNDERGROWTH_REFRESH_BATCH        = 20;
 const UNDERGROWTH_ANCHOR_SENTENCES = 10;
 
 // Raised whenever the rules for choosing a link's words change, so stored
-// suggestions are chosen again. 2: two words or more (#511).
-const UNDERGROWTH_ANCHOR_RULES = 2;
+// suggestions are chosen again. 2: two words or more (#511). 3: never two
+// suggestions on overlapping words of one sentence (#522).
+const UNDERGROWTH_ANCHOR_RULES = 3;
 
 // On init, once every plugin has added its filters for a post's language.
 add_action( 'init', 'undergrowth_maybe_refresh_anchors' );

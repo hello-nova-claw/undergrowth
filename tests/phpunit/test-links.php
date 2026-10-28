@@ -126,6 +126,17 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotContains( $mashua, $targets );
 	}
 
+	public function test_a_site_on_the_earlier_rules_chooses_its_suggestions_again() {
+		update_option( 'undergrowth_index_identity', undergrowth_index_target(), false );
+		update_option( 'undergrowth_anchor_rules', 2 );
+		wp_clear_scheduled_hook( 'undergrowth_refresh_index', array( 0 ) );
+
+		undergrowth_maybe_refresh_anchors();
+
+		$this->assertSame( 3, (int) get_option( 'undergrowth_anchor_rules' ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
+	}
+
 	public function test_dissimilar_posts_are_not_proposed() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Tax returns', array( 0.0, 0.0, 1.0 ) );
