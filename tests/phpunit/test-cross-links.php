@@ -74,7 +74,7 @@ class Test_Cross_Links extends WP_UnitTestCase {
 		$b = $this->group(
 			array(
 				'Ledger'  => array( array( 0.0, 1.0, 0.0 ), '<p>A ledger of the year.</p>' ),
-				'Invoice' => array( array( 0.0, 1.0, 0.0 ), '<p>An invoice for seed.</p>' ),
+				'Invoice' => array( array( 0.0, 1.0, 0.0 ), '<p>An invoice from the shop.</p>' ),
 				'Bill'    => array( array( 0.0, 1.0, 0.0 ), '<p>A bill for the plot.</p>' ),
 				'Receipt' => array( $this->turned( $cosine ), '<p>The ledger shows it. The invoice came late. The bill was paid. Oca seed was on the receipt.</p>' ),
 			)
@@ -282,7 +282,7 @@ class Test_Cross_Links extends WP_UnitTestCase {
 		$b = $this->group(
 			array(
 				'Ledger'  => array( array( 0.0, 1.0, 0.0 ), '<p>A ledger of the year.</p>' ),
-				'Invoice' => array( array( 0.0, 1.0, 0.0 ), '<p>An invoice for seed.</p>' ),
+				'Invoice' => array( array( 0.0, 1.0, 0.0 ), '<p>An invoice from the shop.</p>' ),
 				'Bill'    => array( array( 0.0, 1.0, 0.0 ), '<p>A bill for the plot.</p>' ),
 				// 0.46 to the roots, 0.455 to the bread.
 				'Receipt' => array( array( 0.46, sqrt( 1 - 0.46 * 0.46 - 0.455 * 0.455 ), 0.455 ), '<p>The ledger shows it. The invoice came late. The bill was paid. Oca seed was on the receipt. Bread was on it too.</p>' ),

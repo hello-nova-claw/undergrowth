@@ -87,6 +87,45 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertCount( 3, $this->proposed( $oca ) );
 	}
 
+	public function test_two_suggestions_never_sit_on_the_same_words_of_one_sentence() {
+		global $wpdb;
+
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Rocky valley tubers grow slowly.</p>' ) );
+		// Both share "rocky valley" with the one sentence; only Ulluco also
+		// shares other words, and Yacon is nearer, so it chooses first.
+		$yacon  = $this->plant( 'Yacon', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>A rocky valley.</p>' ) );
+		$ulluco = $this->plant( 'Ulluco', array( 0.9, 0.0, 0.1 ), array( 'post_content' => '<p>A rocky valley where tubers grow slowly.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT target_id, sentence, anchor, anchor_offset FROM %i WHERE source_id = %d AND state = %s', undergrowth_links_table(), $oca, 'proposed' ), ARRAY_A );
+		$rows = array_column( $rows, null, 'target_id' );
+
+		$this->assertSame( 'rocky valley', strtolower( $rows[ $yacon ]['anchor'] ) );
+		$this->assertArrayHasKey( $ulluco, $rows );
+		$this->assertSame( $rows[ $yacon ]['sentence'], $rows[ $ulluco ]['sentence'] );
+		$this->assertNotSame( '', $rows[ $ulluco ]['anchor'] );
+		// Ulluco's words start after Yacon's end, or end before they start.
+		$yacon_end  = (int) $rows[ $yacon ]['anchor_offset'] + mb_strlen( $rows[ $yacon ]['anchor'] );
+		$ulluco_end = (int) $rows[ $ulluco ]['anchor_offset'] + mb_strlen( $rows[ $ulluco ]['anchor'] );
+		$this->assertTrue( (int) $rows[ $ulluco ]['anchor_offset'] >= $yacon_end || $ulluco_end <= (int) $rows[ $yacon ]['anchor_offset'] );
+	}
+
+	public function test_a_sentence_whose_only_shared_words_are_taken_is_skipped() {
+		global $wpdb;
+
+		$oca    = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ), array( 'post_content' => '<p>Rocky valley tubers grow slowly.</p>' ) );
+		$yacon  = $this->plant( 'Yacon', array( 0.95, 0.05, 0.0 ), array( 'post_content' => '<p>A rocky valley.</p>' ) );
+		$mashua = $this->plant( 'Mashua', array( 0.9, 0.0, 0.1 ), array( 'post_content' => '<p>The rocky valley.</p>' ) );
+
+		undergrowth_refresh_proposals( $oca );
+
+		$targets = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT target_id FROM %i WHERE source_id = %d AND state = %s', undergrowth_links_table(), $oca, 'proposed' ) ) );
+
+		$this->assertSame( array( $yacon ), $targets );
+		$this->assertNotContains( $mashua, $targets );
+	}
+
 	public function test_dissimilar_posts_are_not_proposed() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Tax returns', array( 0.0, 0.0, 1.0 ) );
