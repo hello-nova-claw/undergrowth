@@ -600,6 +600,37 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_sources', array( array_slice( $ids, UNDERGROWTH_REFRESH_BATCH ) ) ) );
 	}
 
+	public function test_a_run_starts_no_source_once_its_time_is_spent_and_queues_the_rest() {
+		add_filter( 'undergrowth_backfill_time_budget', '__return_zero' );
+		$ids = range( 1, UNDERGROWTH_REFRESH_BATCH + 5 );
+
+		undergrowth_refresh_sources( $ids );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_sources', array( array_slice( $ids, 1, UNDERGROWTH_REFRESH_BATCH - 1 ) ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_sources', array( array_slice( $ids, UNDERGROWTH_REFRESH_BATCH ) ) ) );
+	}
+
+	public function test_sources_cut_short_by_the_time_are_each_refreshed_once() {
+		$planted = $this->plant_three_sources();
+		add_filter( 'undergrowth_backfill_time_budget', '__return_zero' );
+		$refreshed = array();
+		add_action(
+			'undergrowth_proposals_refreshed',
+			static function ( $post_id ) use ( &$refreshed ) {
+				$refreshed[] = $post_id;
+			}
+		);
+
+		$this->leave( 'trash', $planted['target'] );
+		$this->run_queued_refreshes();
+
+		$counts = array_count_values( $refreshed );
+
+		foreach ( $planted['sources'] as $source ) {
+			$this->assertSame( 1, $counts[ $source ] ?? 0 );
+		}
+	}
+
 	public function test_deleting_a_post_removes_its_proposals() {
 		$oca   = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$yacon = $this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );

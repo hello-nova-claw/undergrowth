@@ -947,19 +947,28 @@ function undergrowth_forget_post_links( int $post_id, ?WP_Post $post = null ): v
  * Lets the posts that proposed a post that left the index pick a
  * replacement, a batch at a time, and queues the rest.
  *
- * A source that left the index or was composted meanwhile is skipped.
+ * Each refresh compares the post with the whole index, so a run starts no
+ * new post once the backfill's time budget is spent, and queues the posts
+ * of its batch it did not reach. A source that left the index or was
+ * composted meanwhile is skipped.
  *
  * @param int[] $source_ids Posts that proposed the post that left.
  */
 function undergrowth_refresh_sources( $source_ids ): void {
 	$source_ids = array_values( array_map( 'intval', (array) $source_ids ) );
+	$batch      = array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH );
 	$rest       = array_slice( $source_ids, UNDERGROWTH_REFRESH_BATCH );
 
+	// Queued first, so a run that dies still leaves them for the next.
 	if ( array() !== $rest ) {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $rest ) );
 	}
 
-	undergrowth_refresh_posts( array_slice( $source_ids, 0, UNDERGROWTH_REFRESH_BATCH ) );
+	$left = array_slice( $batch, count( undergrowth_refresh_posts( $batch, undergrowth_backfill_time_budget() ) ) );
+
+	if ( array() !== $left ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_sources', array( $left ) );
+	}
 }
 
 /**

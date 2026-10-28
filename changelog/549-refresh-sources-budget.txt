@@ -1,0 +1,1 @@
+Choosing new suggestions for the posts that pointed to a post that was unpublished, trashed or composted now keeps each cron run within its time on large blogs.
