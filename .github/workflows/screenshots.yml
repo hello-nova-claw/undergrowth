@@ -92,14 +92,24 @@ jobs:
       # Both runs use this branch's spec, so a state added here is captured on
       # the base too, and shows as changed rather than new. Playground
       # downloads WordPress and WP-CLI as it boots, so each run gets a second
-      # try before the comment reports it as failed.
+      # try before the comment reports it as failed. When only some states
+      # failed, the second try takes just those, rather than the whole locale
+      # again. A failed boot leaves no list of failures, so it starts over.
       - name: Take the "after" shots
         id: after
         continue-on-error: true
         working-directory: head
         env:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/after
-        run: npm run screenshots || npm run screenshots
+        run: |
+          rm -f artifacts/test-results/.last-run.json
+          npm run screenshots || {
+            if node -e "process.exit(require('./artifacts/test-results/.last-run.json').failedTests.length ? 0 : 1)" 2>/dev/null; then
+              npm run screenshots -- --last-failed
+            else
+              npm run screenshots
+            fi
+          }
       - name: Take the "before" shots
         id: before
         continue-on-error: true
@@ -107,7 +117,15 @@ jobs:
         env:
           UNDERGROWTH_PLUGIN_DIR: ${{ github.workspace }}/base
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
-        run: npm run screenshots || npm run screenshots
+        run: |
+          rm -f artifacts/test-results/.last-run.json
+          npm run screenshots || {
+            if node -e "process.exit(require('./artifacts/test-results/.last-run.json').failedTests.length ? 0 : 1)" 2>/dev/null; then
+              npm run screenshots -- --last-failed
+            else
+              npm run screenshots
+            fi
+          }
 
       # The compare job reads these to warn about a side that failed.
       - name: Record the outcome
