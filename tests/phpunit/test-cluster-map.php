@@ -151,4 +151,100 @@ class Test_Cluster_Map extends WP_UnitTestCase {
 
 		$this->assertSame( array(), undergrowth_cluster_map() );
 	}
+
+	/**
+	 * Builds a cluster of a given size and counts the queries the map takes.
+	 *
+	 * @param int $size Posts in the cluster.
+	 * @return int Queries.
+	 */
+	private function map_queries( int $size ): int {
+		$leader = $this->member( array( 1.0, 0.0, 0.0 ) );
+
+		for ( $i = 1; $i < $size; $i++ ) {
+			$this->member( array( 1.0, 0.01 * $i, 0.0 ), $leader );
+		}
+
+		wp_cache_flush();
+		undergrowth_indexed_post_types();
+		$before = get_num_queries();
+		undergrowth_cluster_map();
+
+		return get_num_queries() - $before;
+	}
+
+	public function test_the_map_takes_as_many_queries_for_a_large_cluster_as_for_a_small_one() {
+		$small = $this->map_queries( 3 );
+
+		foreach ( undergrowth_cluster_leaders() as $leader ) {
+			foreach ( undergrowth_cluster_posts( $leader ) as $post_id ) {
+				delete_post_meta( $post_id, 'undergrowth_cluster' );
+			}
+		}
+
+		$this->assertSame( $small, $this->map_queries( 12 ) );
+	}
+
+	public function test_the_map_loads_none_of_the_clustered_posts() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+		$c = $this->member( array( 0.9, 0.0, 0.1 ), $a );
+		wp_cache_flush();
+
+		$this->assertCount( 1, undergrowth_cluster_map() );
+
+		foreach ( array( $a, $b, $c ) as $post_id ) {
+			$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
+		}
+	}
+
+	public function test_the_garden_index_loads_none_of_the_clustered_posts() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+		$c = $this->member( array( 0.9, 0.0, 0.1 ), $a );
+		wp_cache_flush();
+
+		undergrowth_build_garden_index();
+
+		foreach ( array( $a, $b, $c ) as $post_id ) {
+			$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
+		}
+	}
+
+	public function test_a_member_counts_as_composting_only_by_its_first_stage_row() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+		$c = $this->member( array( 0.9, 0.0, 0.1 ), $a );
+
+		// undergrowth_get_stage() reads the first row, so both stay in the garden.
+		add_post_meta( $b, 'undergrowth_stage', 'seedling' );
+		add_post_meta( $b, 'undergrowth_stage', 'composting' );
+		update_post_meta( $c, 'undergrowth_stage', 'Composting' );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $b ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $c ) );
+		$this->assertSame( array( $a, $b, $c ), undergrowth_clusterable_posts( array( $a, $b, $c ) ) );
+	}
+
+	public function test_only_the_stage_key_itself_counts() {
+		global $wpdb;
+
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+
+		// Stored straight, as another plugin might: core reads keys by case.
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'post_id'    => $b,
+				'meta_key'   => 'UNDERGROWTH_STAGE', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A test fixture.
+				'meta_value' => 'seedling', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A test fixture.
+			)
+		);
+		add_post_meta( $b, 'undergrowth_stage', 'composting' );
+		wp_cache_delete( $b, 'post_meta' );
+
+		$this->assertSame( 'composting', undergrowth_get_stage( $b ) );
+		$this->assertSame( array( $a ), undergrowth_clusterable_posts( array( $a, $b ) ) );
+	}
 }

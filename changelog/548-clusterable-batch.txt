@@ -1,0 +1,1 @@
+The Map tab and the monthly grouping no longer load every grouped post one at a time, so on a large blog the Map opens faster and the grouping's last step needs far less memory.
