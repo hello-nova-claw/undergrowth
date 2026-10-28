@@ -237,6 +237,20 @@ class Test_Visibility extends WP_UnitTestCase {
 		$this->assertSame( array( $post_ids[1] ), undergrowth_filter_garden_visible( $post_ids, false ) );
 	}
 
+	public function test_the_batch_without_loading_forgets_what_it_read_when_the_site_switches() {
+		global $wpdb;
+
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		wp_cache_flush();
+		undergrowth_filter_garden_visible( array( $post_id ), false );
+
+		// Another site's post with the same ID, as far as the kept columns know.
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $post_id ) );
+		do_action( 'switch_blog', get_current_blog_id(), get_current_blog_id(), 'switch' );
+
+		$this->assertSame( array(), undergrowth_filter_garden_visible( array( $post_id ), false ) );
+	}
+
 	public function test_the_batch_without_loading_reads_posts_and_meta_in_a_fixed_number_of_queries() {
 		$post_ids = self::factory()->post->create_many( 12, array( 'post_status' => 'publish' ) );
 
