@@ -1,0 +1,1 @@
+The Garden index shows the 20 posts nearest the middle of each group, with a link to see the rest in the Garden feed, which can now show one group. On large blogs the page is much smaller and needs far less memory.

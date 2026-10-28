@@ -84,10 +84,10 @@ function undergrowth_row_action_form( string $action, array $fields ): string {
  * Returns a post's title, or "(no title)" as core's lists name an untitled
  * post, so a link or a button's name is never empty.
  *
- * @param int $post_id Post ID.
+ * @param int|WP_Post $post_id Post ID, or the post when it is already loaded.
  * @return string Title, not escaped.
  */
-function undergrowth_post_title( int $post_id ): string {
+function undergrowth_post_title( $post_id ): string {
 	$title = get_the_title( $post_id );
 
 	return '' === $title ? __( '(no title)', 'undergrowth' ) : $title;
