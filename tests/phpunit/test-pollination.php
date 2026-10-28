@@ -578,7 +578,10 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->run_batches( 1 );
 
 		$this->assertFalse( get_option( 'undergrowth_pollination' ) );
-		$this->assertSame( $a[0], get_option( 'undergrowth_pollination_cycle_pass' )['after'] );
+
+		$record = get_option( 'undergrowth_pollination_cycle_pass' );
+		$this->assertSame( $a[0], $record['after'] );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_pollination_cycle', undergrowth_pass_args( $a[0], $record['pass'] ) ) );
 	}
 
 	public function test_a_pass_cut_short_by_time_finds_the_same_pairs() {
