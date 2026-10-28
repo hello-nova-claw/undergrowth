@@ -15,7 +15,7 @@ How Undergrowth behaves on a blog of 2,000 and 5,000 posts, measured in October 
 | Orphans tab (SQLite) | 5.0 s | 20.6 s (0.1 s after #546) |
 | Garden page (count, filters, feed) | — | 0.8 s, 83 MB (38 MB after #543) |
 | Garden index page | — | 0.8 s, 92 MB, 1.45 MB of HTML (0.6 s, 42 MB, 209 KB after #554) |
-| Vectors table | 59 MB | 147 MB |
+| Vectors table | 59 MB | 147 MB (38 MB after #553) |
 
 The work that hid problems at this size was always the same few things: something done once per post that compares with every post, a check that loads each post in full when it needs four columns, and two queries whose plan on SQLite pairs every post with every other. None of the fixes changes which suggestions, clusters or stages a site gets. Where the output could be compared on the 5,000-post site, it was identical; the rest is covered by tests that compare a cut-short pass with a whole one.
 
@@ -73,7 +73,7 @@ A save queues `undergrowth_embed_post`, which refreshes the proposals around the
 
 | | 2,000 | 5,000 |
 | --- | --- | --- |
-| Read and decode every vector | 0.74 s | 1.81 s |
+| Read and decode every vector | 0.74 s | 1.81 s (0.05 s packed, after #553) |
 | Count every post's words | 0.79 s | 2.10 s |
 | Count them again for the per-post files (#550) | 0.8 s | 2.1 s |
 | Score one post against the index | 0.14 s | 0.37–0.60 s |
@@ -81,7 +81,17 @@ A save queues `undergrowth_embed_post`, which refreshes the proposals around the
 
 **Fixed in #550** (PR #557): the second word count. At 5,000 posts a refresh around one post now takes 8.4 s.
 
-**Filed as #553**: vectors are stored as JSON. The table is 3.5 times the size of the posts it describes, and every refresh decodes all of it. Packed floats would be a fifth of the size and need no JSON decoding.
+**Fixed in #553** (PR #569): vectors were stored as JSON. The table was 3.5 times the size of the posts it describes, and every refresh decoded all of it. They are now stored as packed single-precision floats, which the pool already held in memory. Rows stored as JSON are read as they are until a locked cron batch of 200 converts them.
+
+| At 5,000 posts | JSON | Packed |
+| --- | --- | --- |
+| Vectors table | 154 MB of pages | 38 MB |
+| Whole database file | 204 MB | 88 MB once vacuumed |
+| Read the pool for one refresh | 2.04 s, +40 MB | 0.05 s, +36 MB (the pool itself) |
+| Whole refresh around one post | 11.7 s, 940 queries | 9.3 s, 940 queries |
+| Converting the stored rows | | 24 runs, 4.5 s in all, longest 0.2 s, +8 MB |
+
+The pool read from the converted table is byte for byte the one read from JSON, so scores, suggestions and clusters cannot change. The space a converted row frees is reused by the database, but the file itself shrinks only when it is vacuumed (SQLite) or optimised (MySQL), which Undergrowth does not do. The times come from a busy machine, so they are rough, but the pool read fell by a factor of 40.
 
 At 5,000 posts a save stays well inside a cron run. It grows linearly, though, and would reach 30 s at around 15,000 posts.
 
@@ -167,7 +177,7 @@ A page with the Garden count, filters and feed peaked at 83 MB, and 38 MB after 
 
 | | 2,000 | 5,000 |
 | --- | --- | --- |
-| `undergrowth_vectors` | 59 MB | 147 MB |
+| `undergrowth_vectors` | 59 MB | 147 MB (38 MB packed, after #553) |
 | `undergrowth_links` | 5,863 rows, 1.3 MB | 10,292 rows, 2.3 MB |
 | `wp_posts`, for comparison | 17 MB | 42 MB |
 | Undergrowth post meta | 2 rows a post, 18 KB | 2 rows a post, 46 KB |
@@ -190,7 +200,7 @@ Two things grow without a bound but are not loaded on every request. `undergrowt
 | #550 | Words counted twice per save | Fixed in #557 |
 | #551 | Linked group pairs quadratic on SQLite | Fixed in #562 |
 | #552 | "More like this" scores the index in a reader's request | Filed |
-| #553 | Vectors stored as JSON | Filed |
+| #553 | Vectors stored as JSON | Fixed in #569 |
 | #554 | Garden index lists every post | Fixed in #561 (Anna chose 20 posts a group) |
 | #555 | Pollination batches had no time budget | Fixed in #564 |
 | #559 | Suggestions tab loads every suggested post | Filed |
