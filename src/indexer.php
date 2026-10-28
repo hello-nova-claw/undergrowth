@@ -939,6 +939,23 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 			undergrowth_embed_post( $post_id );
 			$retry = undergrowth_backfill_retry_time( $identity );
 
+			// Noted at once, so a run that dies later in the batch still
+			// leaves the pass knowing it has posts to refresh.
+			if ( ! $read && did_action( 'undergrowth_post_embedded' ) > $embedded ) {
+				$read = true;
+				update_option(
+					'undergrowth_backfill',
+					array_merge(
+						$identity,
+						array(
+							'after' => $after,
+							'read'  => true,
+						)
+					),
+					false
+				);
+			}
+
 			// A post OpenAI turned away is tried again first after the wait.
 			if ( 0 === $retry ) {
 				$tried[] = $post_id;
@@ -951,8 +968,6 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 			add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around', $deferred );
 		}
 	}
-
-	$read = $read || did_action( 'undergrowth_post_embedded' ) > $embedded;
 
 	if ( 0 !== $retry ) {
 		update_option(
