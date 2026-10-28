@@ -239,7 +239,9 @@ function comment( result, base ) {
 		} );
 	}
 
-	// The workflow adds a few lines after the body, so the budget leaves room.
+	// The workflow adds its warnings and a link to the run, under 1,000
+	// characters, so the budget leaves room. Its image base URL holds a
+	// placeholder as long as the SHA that replaces it.
 	let length = lines.join( '\n' ).length;
 
 	for ( const section of sections ) {

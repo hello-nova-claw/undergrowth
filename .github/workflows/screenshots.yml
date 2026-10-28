@@ -92,24 +92,15 @@ jobs:
       # Both runs use this branch's spec, so a state added here is captured on
       # the base too, and shows as changed rather than new. Playground
       # downloads WordPress and WP-CLI as it boots, so each run gets a second
-      # try before the comment reports it as failed. When only some states
-      # failed, the second try takes just those, rather than the whole locale
-      # again. A failed boot leaves no list of failures, so it starts over.
+      # try before the comment reports it as failed. The second try takes the
+      # whole locale again, because the states of a group share its posts.
       - name: Take the "after" shots
         id: after
         continue-on-error: true
         working-directory: head
         env:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/after
-        run: |
-          rm -f artifacts/test-results/.last-run.json
-          npm run screenshots || {
-            if node -e "process.exit(require('./artifacts/test-results/.last-run.json').failedTests.length ? 0 : 1)" 2>/dev/null; then
-              npm run screenshots -- --last-failed
-            else
-              npm run screenshots
-            fi
-          }
+        run: npm run screenshots || npm run screenshots
       - name: Take the "before" shots
         id: before
         continue-on-error: true
@@ -117,15 +108,7 @@ jobs:
         env:
           UNDERGROWTH_PLUGIN_DIR: ${{ github.workspace }}/base
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
-        run: |
-          rm -f artifacts/test-results/.last-run.json
-          npm run screenshots || {
-            if node -e "process.exit(require('./artifacts/test-results/.last-run.json').failedTests.length ? 0 : 1)" 2>/dev/null; then
-              npm run screenshots -- --last-failed
-            else
-              npm run screenshots
-            fi
-          }
+        run: npm run screenshots || npm run screenshots
 
       # The compare job reads these to warn about a side that failed.
       - name: Record the outcome
@@ -177,7 +160,8 @@ jobs:
           merge-multiple: true
 
       # The screenshots branch commit doesn't exist yet, so the publish job
-      # fills in its SHA.
+      # fills in its SHA. The placeholder is as long as a SHA, so the comment
+      # measures its final length.
       - name: Write the comment
         env:
           PR: ${{ github.event.pull_request.number }}
@@ -185,7 +169,7 @@ jobs:
         run: |
           mkdir -p "$SHOTS"
           node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
-            "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA/pr-${PR}" > "${SHOTS}/comment.md"
+            "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA_PLACEHOLDER_000000000000/pr-${PR}" > "${SHOTS}/comment.md"
 
           # A failed run would make every shot look new or removed, so say so
           # at the top rather than let the table pass for a real result. A
@@ -301,7 +285,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          sed "s/SCREENSHOTS_SHA/${SHA}/g" shots/comment.md > "${RUNNER_TEMP}/comment.md"
+          sed "s/SCREENSHOTS_SHA_PLACEHOLDER_000000000000/${SHA}/g" shots/comment.md > "${RUNNER_TEMP}/comment.md"
 
           id=$(gh api --paginate "repos/${REPOSITORY}/issues/${PR}/comments" \
             --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- undergrowth-screenshots -->"))) | .id' | head -n 1)
