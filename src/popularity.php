@@ -299,16 +299,14 @@ function undergrowth_fade_views( array $views, string $today ): array {
  * until the next day's read.
  *
  * With no stats plugin, anything kept from one is forgotten, so popularity
- * stops counting as soon as the plugin is gone. Either way, "More like
- * this" measures its lists again.
+ * stops counting as soon as the plugin is gone. "More like this" weighs its
+ * kept lists with the new views as each is shown.
  */
 function undergrowth_read_popularity(): void {
 	$slug = undergrowth_popularity_source();
 
 	if ( null === $slug ) {
-		if ( delete_option( 'undergrowth_popularity' ) ) {
-			undergrowth_forget_similar();
-		}
+		delete_option( 'undergrowth_popularity' );
 
 		return;
 	}
@@ -329,9 +327,6 @@ function undergrowth_read_popularity(): void {
 		),
 		false
 	);
-
-	// The kept lists were weighed with yesterday's views.
-	undergrowth_forget_similar();
 }
 
 /**
