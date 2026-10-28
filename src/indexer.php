@@ -100,7 +100,7 @@ function undergrowth_ignores_post( ?WP_Post $post ): bool {
  * @return array{0: string, 1: array<int, string>}|null The condition with its placeholders, and their values in order, or null when no post type is indexed or the alias is not a table name and a dot.
  */
 function undergrowth_indexable_sql( string $alias ): ?array {
-	if ( 1 !== preg_match( '/^(\w+\.)?$/', $alias ) ) {
+	if ( 1 !== preg_match( '/^(\w+\.)?\z/', $alias ) ) {
 		_doing_it_wrong( __FUNCTION__, esc_html__( 'The alias must be empty or a table name followed by a dot.', 'undergrowth' ), '0.1.0' );
 		return null;
 	}
