@@ -411,6 +411,20 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'And 2 more posts in this group.', $html );
 	}
 
+	public function test_a_stage_filter_carries_into_the_see_all_link() {
+		$members = $this->large_group( 25 );
+		$page    = $this->feed_page();
+
+		foreach ( array_slice( $members, 0, 22 ) as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_stage', 'sprout' );
+		}
+
+		$html = $this->render( array( 'stage' => 'sprout' ) );
+
+		$this->assertStringContainsString( 'href="' . esc_url( add_query_arg( array( 'group' => $members[0], 'stage' => 'sprout' ), get_permalink( $page ) ) ) . '"', $html );
+		$this->assertStringContainsString( 'See all 22 posts in this group', $html );
+	}
+
 	public function test_renders_without_loading_the_posts_it_lists() {
 		$members = $this->large_group( 23 );
 		wp_cache_flush();
@@ -425,7 +439,9 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 	public function test_a_larger_group_takes_no_more_queries() {
 		global $wpdb;
 
-		// Both are past the twenty shown, so both look up the feed's page.
+		// The feed's page is looked up once and remembered, so both renders
+		// below read the same option.
+		undergrowth_garden_feed_url();
 		$this->large_group( 25 );
 		wp_cache_flush();
 		$before = $wpdb->num_queries;
