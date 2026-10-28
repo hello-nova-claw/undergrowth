@@ -26,6 +26,8 @@ require_once __DIR__ . '/src/embed.php';
 require_once __DIR__ . '/src/openai.php';
 require_once __DIR__ . '/src/anthropic.php';
 require_once __DIR__ . '/src/prompts.php';
+require_once __DIR__ . '/src/prompt-sources.php';
+require_once __DIR__ . '/src/prompt-rules.php';
 require_once __DIR__ . '/src/indexer.php';
 require_once __DIR__ . '/src/anchor-words.php';
 require_once __DIR__ . '/src/anchor-spans.php';
