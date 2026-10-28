@@ -175,7 +175,7 @@ function undergrowth_garden_posts(): array {
 	}
 
 	// A post's stage is its first stored row, as undergrowth_get_stage() reads it.
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One query instead of loading every post; the condition's placeholders come with it.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter -- One query instead of loading every post; the condition's placeholders come with it.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
 			'SELECT p.ID, v.embedded_at FROM %i p LEFT JOIN %i m ON m.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = p.ID AND f.meta_key = %s ) LEFT JOIN %i v ON v.post_id = p.ID WHERE ' . $indexable[0] . ' AND ( m.meta_value IS NULL OR m.meta_value <> %s ) ORDER BY p.ID DESC',

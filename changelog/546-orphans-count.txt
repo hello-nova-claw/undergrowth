@@ -1,0 +1,1 @@
+The Orphans tab opens in a fraction of a second on large sites using SQLite, where it took about 20 seconds at 5,000 posts.

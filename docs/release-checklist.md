@@ -11,7 +11,7 @@ These are one-off decisions. Settle them before 0.1.0.
 - [x] **Contributors.** `Contributors:` in `readme.txt` must list WordPress.org usernames, case-sensitive. It is `annamcphee`, the owner's account, which submits the plugin. `novaclaw` is not a WordPress.org account (its profile page is a 404); add it only once that account exists.
 - [x] **Author.** `Author:` in `undergrowth.php` is shown on the directory page and in wp-admin. It stays `Novaclaw`, with `Author URI: https://github.com/hello-nova-claw`.
 - [x] **Branding.** The icon and banners in `.wordpress-org/` are interim artwork, drawn for 0.1.0 and fine to ship: a sprout and a fern whose tips are linked, in the WordPress admin greens. They can be replaced with commissioned artwork at any time, as long as the file names, sizes and formats stay the same. The SVGs are the sources: `icon.svg`, `banner-1544x500.svg` and `banner-772x250.svg` (the same drawing at half size). The PNGs are rendered from them in a browser at their exact sizes, with the banner text in Source Serif 4, which is under the SIL Open Font License; without that font installed the SVGs fall back to Georgia. The directory reads only PNG or JPG banners; the banner SVGs are sources and are not shown. An `icon.svg` needs the PNG icons beside it as a fallback. See [Plugin assets](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) for sizes and limits: 1 MB for an icon, 4 MB for a banner, 10 MB for a screenshot.
-- [x] **Readme size.** The readme standard warns that a `readme.txt` over 10 KB may cause errors. Keep it under that: the per-post file format and the nginx rule live in [per-post-files.md](per-post-files.md), and the Discord steps in [discord.md](discord.md), both linked from the FAQ. `wc -c readme.txt` checks it.
+- [x] **Readme size.** The readme standard says a `readme.txt` over 10 KB "may result in errors". Ours is about 13 KB, and that is fine: the directory's parser limits each section by words, 2,500 for most and 5,000 for the FAQ and changelog, and ours are well under, and Plugin Check's readme check, which uses that parser, reports nothing. Keep it from growing: the per-post file format and the nginx rule live in [per-post-files.md](per-post-files.md), and the Discord steps in [discord.md](discord.md), both linked from the FAQ. `wc -w readme.txt` gives the whole file's words, an upper bound for any one section.
 - [ ] **Slug.** The directory assigns the slug from the plugin name on submission, and it cannot be changed afterwards. `undergrowth` is what the deploy workflow and the text domain expect. If the reviewers assign another, change `SLUG` in `.github/workflows/deploy.yml`; the text domain has to match the slug, so every string would change too.
 
 ## 2. Bump the version
@@ -45,10 +45,16 @@ Then check the other readme headers:
 
 Open one pull request with steps 2 to 4, labelled `no-changelog`. Before merging:
 
-- [ ] Every check is green, including **Plugin Check**, which runs WordPress.org's own checker against the copy that would ship. It must show no errors. The `AIProvider.DirectIntegration` warnings are expected and justified in code (see the handover, section 6); mention them in the submission.
+- [ ] Every check is green, including **Plugin Check**, which runs WordPress.org's own checker against the copy that would ship. It must show no errors and no warnings. Where a query writes a fragment into SQL, or the plugin calls an AI provider directly, the `phpcs:ignore` beside it says why, and Plugin Check reads those comments; mention the direct calls to OpenAI and Anthropic in the submission (see the handover, section 6).
 - [ ] Paste `readme.txt` into the [readme validator](https://wordpress.org/plugins/developers/readme-validator/) and fix anything it reports.
 - [ ] Open the **Preview in WordPress Playground** link and click through Posts > Undergrowth, Settings > Undergrowth and the Dashboard.
-- [ ] Read the **Screenshots** comment. If a screen in `.wordpress-org/` has changed, retake it: `npm run screenshots`, then copy the `en_US--1280` shot over the matching `screenshot-N.png` (the captions in `readme.txt` say which screen each one is).
+- [ ] Read the **Screenshots** comment. If a screen in `.wordpress-org/` has changed, retake it: `npm run screenshots`, then copy the `en_US--1280` shot over the matching `screenshot-N.png`, cropping from the top where a height is given (`ffmpeg -i in.png -vf crop=1280:<height>:0:0 out.png`):
+  1. `suggestions--table`
+  2. `stages--table`
+  3. `map--clusters`
+  4. `settings--key-saved`, 1325 high, down to the Anthropic key
+  5. `studio--batch`
+  6. `block-growth-stage--front-seedling`, 600 high
 
 ## 6. Build and check the zip
 

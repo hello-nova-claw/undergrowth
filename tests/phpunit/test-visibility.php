@@ -175,4 +175,101 @@ class Test_Visibility extends WP_UnitTestCase {
 		$this->assertSame( $post_ids, $visible );
 		$this->assertLessThanOrEqual( 3, get_num_queries() - $before );
 	}
+
+	/**
+	 * Checks each kind of post without loading it, and agrees with the full check.
+	 *
+	 * @dataProvider data_hidden_posts
+	 *
+	 * @param array<string, string> $args  Post fields.
+	 * @param string                $stage Stage stored for the post.
+	 */
+	public function test_the_batch_hides_the_same_posts_without_loading_them( array $args, string $stage ) {
+		$visible = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$hidden  = self::factory()->post->create( $args + array( 'post_status' => 'publish' ) );
+		update_post_meta( $hidden, 'undergrowth_stage', $stage );
+		wp_cache_flush();
+
+		$this->assertSame( array( $visible ), undergrowth_filter_garden_visible( array( $hidden, $visible ), false ) );
+		$this->assertFalse( wp_cache_get( $visible, 'posts' ) );
+		$this->assertFalse( wp_cache_get( $hidden, 'posts' ) );
+		$this->assertSame( array( $visible ), undergrowth_filter_garden_visible( array( $hidden, $visible ) ) );
+	}
+
+	public function test_the_batch_without_loading_keeps_visible_posts_in_order_once_each() {
+		$first   = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$second  = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$draft   = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+		$compost = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		update_post_meta( $compost, 'undergrowth_stage', 'composting' );
+		wp_cache_flush();
+
+		$this->assertSame(
+			array( $second, $first ),
+			undergrowth_filter_garden_visible( array( $second, $draft, (string) $first, $compost, $second, 0, -3, PHP_INT_MAX ), false )
+		);
+	}
+
+	public function test_the_batch_without_loading_reads_each_post_once_a_request() {
+		$post_ids = self::factory()->post->create_many( 3, array( 'post_status' => 'publish' ) );
+		wp_cache_flush();
+		undergrowth_filter_garden_visible( $post_ids, false );
+
+		$before = get_num_queries();
+
+		$this->assertSame( $post_ids, undergrowth_filter_garden_visible( $post_ids, false ) );
+		$this->assertSame( $before, get_num_queries() );
+	}
+
+	public function test_the_batch_without_loading_sees_a_post_that_changed_since() {
+		$post_ids = self::factory()->post->create_many( 2, array( 'post_status' => 'publish' ) );
+		wp_cache_flush();
+		undergrowth_filter_garden_visible( $post_ids, false );
+
+		wp_update_post(
+			array(
+				'ID'          => $post_ids[0],
+				'post_status' => 'draft',
+			)
+		);
+		wp_cache_delete( $post_ids[0], 'posts' );
+
+		$this->assertSame( array( $post_ids[1] ), undergrowth_filter_garden_visible( $post_ids, false ) );
+	}
+
+	public function test_the_batch_without_loading_forgets_what_it_read_when_the_site_switches() {
+		global $wpdb;
+
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		wp_cache_flush();
+		undergrowth_filter_garden_visible( array( $post_id ), false );
+
+		// Another site's post with the same ID, as far as the kept columns know.
+		$wpdb->update( $wpdb->posts, array( 'post_status' => 'draft' ), array( 'ID' => $post_id ) );
+		do_action( 'switch_blog', get_current_blog_id(), get_current_blog_id(), 'switch' );
+
+		$this->assertSame( array(), undergrowth_filter_garden_visible( array( $post_id ), false ) );
+	}
+
+	public function test_the_batch_without_loading_reads_posts_and_meta_in_a_fixed_number_of_queries() {
+		$post_ids = self::factory()->post->create_many( 12, array( 'post_status' => 'publish' ) );
+
+		foreach ( $post_ids as $post_id ) {
+			update_post_meta( $post_id, 'undergrowth_stage', 'sprout' );
+		}
+
+		wp_cache_flush();
+		undergrowth_indexed_post_types();
+
+		$before  = get_num_queries();
+		$visible = undergrowth_filter_garden_visible( array_merge( $post_ids, range( PHP_INT_MAX - 20, PHP_INT_MAX - 1 ) ), false );
+
+		$this->assertSame( $post_ids, $visible );
+		$this->assertLessThanOrEqual( 3, get_num_queries() - $before );
+
+		// The stages were read with the batch, for callers that sort by them.
+		$after = get_num_queries();
+		$this->assertSame( 'sprout', undergrowth_get_stage( $post_ids[0] ) );
+		$this->assertSame( $after, get_num_queries() );
+	}
 }
