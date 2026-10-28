@@ -33,6 +33,7 @@ add_action( 'add_option_undergrowth_index_identity', 'undergrowth_forget_similar
 add_action( 'update_option_undergrowth_index_identity', 'undergrowth_forget_similar', 10, 0 );
 add_action( 'undergrowth_measure_similar', 'undergrowth_remeasure_similar' );
 add_action( 'undergrowth_similar_neighbours', 'undergrowth_update_similar_neighbours' );
+add_action( 'undergrowth_similar_forget', 'undergrowth_drop_similar_post' );
 add_action( 'rest_api_init', 'undergrowth_register_similar_routes' );
 
 /**
@@ -241,13 +242,50 @@ function undergrowth_similar_stage_changed( int $post_id ): void {
 }
 
 /**
- * Forgets the list of a post that left the index. The lists it is on drop
- * it as they are shown, since readers may not see it.
+ * Forgets the list of a post that left the index, and queues taking it off
+ * the other kept lists.
+ *
+ * A post unpublished would drop off them as they are shown anyway, but one
+ * whose vector a failed re-embed removed is still published, and would
+ * stay on them.
  *
  * @param int $post_id Post ID.
  */
 function undergrowth_forget_post_similar( int $post_id ): void {
 	delete_post_meta( $post_id, 'undergrowth_similar' );
+
+	if ( false === wp_next_scheduled( 'undergrowth_similar_forget', array( $post_id ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_similar_forget', array( $post_id ) );
+	}
+}
+
+/**
+ * Takes a post without a vector off every kept list. No vector is read.
+ *
+ * A post embedded again meanwhile is left to its own update of the lists
+ * near it.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_drop_similar_post( int $post_id ): void {
+	if ( null !== undergrowth_get_vector_space( $post_id ) ) {
+		return;
+	}
+
+	foreach ( array_chunk( array_diff( undergrowth_similar_measured_posts(), array( $post_id ) ), UNDERGROWTH_SIMILAR_CACHED ) as $chunk ) {
+		update_meta_cache( 'post', $chunk );
+
+		foreach ( $chunk as $list_id ) {
+			$cached = get_post_meta( $list_id, 'undergrowth_similar', true );
+
+			if ( is_array( $cached ) && isset( $cached['scores'][ $post_id ] ) ) {
+				unset( $cached['scores'][ $post_id ] );
+				update_post_meta( $list_id, 'undergrowth_similar', $cached );
+			}
+
+			wp_cache_delete( $list_id, 'post_meta' );
+		}
+	}
 }
 
 /**
@@ -303,11 +341,11 @@ function undergrowth_update_similar_neighbours( int $post_id ): void {
 /**
  * Sets one post's score in another post's kept list, or takes it off.
  *
- * @param int     $list_id   Post whose list it is.
- * @param int     $post_id   Post to place.
- * @param float[] $vector    The post's vector, or none when readers may not see it.
- * @param string  $packed    The list's own packed vector.
- * @param float   $minimum   Lowest similarity a list keeps.
+ * @param int     $list_id Post whose list it is.
+ * @param int     $post_id Post to place.
+ * @param float[] $vector  The post's vector, or none when readers may not see it.
+ * @param string  $packed  The list's own packed vector.
+ * @param float   $minimum Lowest similarity a list keeps.
  */
 function undergrowth_update_similar_list( int $list_id, int $post_id, array $vector, string $packed, float $minimum ): void {
 	$cached = get_post_meta( $list_id, 'undergrowth_similar', true );
