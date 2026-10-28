@@ -66,4 +66,19 @@ class Test_Plugin extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( "\n\n" . $this->plugin_data()['Description'] . "\n\n", $readme );
 	}
+
+	public function test_every_src_file_is_required() {
+		$main  = (string) file_get_contents( UNDERGROWTH_FILE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A local file in a test.
+		$paths = glob( dirname( UNDERGROWTH_FILE ) . '/src/*.php' );
+		$src   = implode( '', array_map( 'file_get_contents', $paths ) );
+
+		// There is no autoloader, so a file split off from another loads only
+		// once it is listed. The list tables load from admin.php when needed.
+		foreach ( array_map( 'basename', $paths ) as $file ) {
+			$listed = false !== strpos( $main, "require_once __DIR__ . '/src/{$file}';" )
+				|| false !== strpos( $src, "require_once __DIR__ . '/{$file}';" );
+
+			$this->assertTrue( $listed, $file );
+		}
+	}
 }
