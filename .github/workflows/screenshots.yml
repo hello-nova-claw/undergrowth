@@ -28,20 +28,26 @@ concurrency:
 
 jobs:
   capture:
-    name: Before and after
+    name: Before and after (${{ matrix.locale }})
     # Pull requests from forks get a read-only token, and their code must not
     # run with write access anyway.
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    # Two runs of the whole catalogue take about 20 minutes, and installing
-    # Chromium's system packages has taken up to 8 more.
+    # The whole catalogue on both sides took over 50 minutes on one runner, so
+    # each locale gets its own. One locale takes about 9 minutes a side, and
+    # installing Chromium's system packages has taken up to 11 more.
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: [en_US, he_IL, en_XA]
     # This job runs the pull request's code, so it gets no write access. The
     # publish job below writes, and runs none of it.
     permissions:
       contents: read
     env:
       SHOTS: ${{ github.workspace }}/shots
+      UNDERGROWTH_SCREENSHOTS_LOCALE: ${{ matrix.locale }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -103,33 +109,91 @@ jobs:
           UNDERGROWTH_SCREENSHOTS_DIR: ${{ env.SHOTS }}/before
         run: npm run screenshots || npm run screenshots
 
+      # The compare job reads these to warn about a side that failed.
+      - name: Record the outcome
+        if: always()
+        env:
+          LOCALE: ${{ matrix.locale }}
+          AFTER: ${{ steps.after.outcome }}
+          BEFORE: ${{ steps.before.outcome }}
+        run: |
+          mkdir -p "${SHOTS}/status"
+          echo "$AFTER" > "${SHOTS}/status/${LOCALE}-after"
+          echo "$BEFORE" > "${SHOTS}/status/${LOCALE}-before"
+
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: screenshots-pr-${{ github.event.pull_request.number }}-${{ matrix.locale }}
+          path: shots/
+          retention-days: 1
+
+  compare:
+    name: Compare
+    needs: capture
+    # Runs when a locale failed too, so the comment shows the rest.
+    if: ${{ !cancelled() && needs.capture.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # This job runs the pull request's code too, so it gets no write access.
+    permissions:
+      contents: read
+    env:
+      SHOTS: ${{ github.workspace }}/shots
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Each shot's name includes its locale, so the sets merge without
+      # clashes.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: screenshots-pr-${{ github.event.pull_request.number }}-*
+          path: shots
+          merge-multiple: true
+
       # The screenshots branch commit doesn't exist yet, so the publish job
       # fills in its SHA.
       - name: Write the comment
-        working-directory: head
         env:
           PR: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
-          AFTER: ${{ steps.after.outcome }}
-          BEFORE: ${{ steps.before.outcome }}
         run: |
           mkdir -p "$SHOTS"
           node bin/compare-screenshots.mjs "${SHOTS}/before" "${SHOTS}/after" \
             "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA/pr-${PR}" > "${SHOTS}/comment.md"
 
           # A failed run would make every shot look new or removed, so say so
-          # at the top rather than let the table pass for a real result.
+          # at the top rather than let the table pass for a real result. A
+          # locale whose job never finished has no outcome, and counts as
+          # failed.
+          failed() {
+            for locale in en_US he_IL en_XA; do
+              if [ "$(cat "${SHOTS}/status/${locale}-$1" 2>/dev/null)" != success ]; then
+                printf '%s ' "$locale"
+              fi
+            done
+          }
+          after=$(failed after)
+          before=$(failed before)
           warning=''
-          if [ "$AFTER" != success ]; then
-            warning="${warning}> [!WARNING]\n> Some \"after\" shots could not be taken, so they may show as removed. See the workflow run.\n\n"
+          if [ -n "$after" ]; then
+            warning="${warning}> [!WARNING]\n> Some \"after\" shots could not be taken (${after% }), so they may show as removed. See the workflow run.\n\n"
           fi
-          if [ "$BEFORE" != success ]; then
-            warning="${warning}> [!WARNING]\n> Some \"before\" shots could not be taken, so they may show as new. See the workflow run.\n\n"
+          if [ -n "$before" ]; then
+            warning="${warning}> [!WARNING]\n> Some \"before\" shots could not be taken (${before% }), so they may show as new. See the workflow run.\n\n"
           fi
           if [ -n "$warning" ]; then
             { head -n 3 "${SHOTS}/comment.md"; printf '%b' "$warning"; tail -n +4 "${SHOTS}/comment.md"; } > "${RUNNER_TEMP}/comment.md"
             mv "${RUNNER_TEMP}/comment.md" "${SHOTS}/comment.md"
           fi
+          rm -rf "${SHOTS}/status"
 
           printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
             "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${SHOTS}/comment.md"
@@ -142,7 +206,7 @@ jobs:
 
   publish:
     name: Publish
-    needs: capture
+    needs: compare
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
