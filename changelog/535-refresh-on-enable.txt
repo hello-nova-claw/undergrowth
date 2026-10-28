@@ -1,0 +1,1 @@
+Turning link suggestions back on in Settings now chooses every suggestion again, so none stays as it was chosen before an update or edit made while they were off.

@@ -23,6 +23,7 @@ const UNDERGROWTH_ANCHOR_RULES = 3;
 
 // On init, once every plugin has added its filters for a post's language.
 add_action( 'init', 'undergrowth_maybe_refresh_anchors' );
+add_action( 'update_option_undergrowth_suggest_links', 'undergrowth_refresh_on_enable', 10, 2 );
 add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' );
 add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_links' );
 add_action( 'deleted_post', 'undergrowth_forget_post_links', 10, 2 );
@@ -1009,6 +1010,32 @@ function undergrowth_maybe_refresh_anchors(): void {
 	// Read on every request, so it loads with the other options.
 	update_option( 'undergrowth_anchor_rules', UNDERGROWTH_ANCHOR_RULES, true );
 
+	undergrowth_queue_index_refresh();
+}
+
+/**
+ * Chooses every stored suggestion again once suggestions are turned back
+ * on, since nothing was refreshed while they were off.
+ *
+ * Rules changed by an update, and posts edited, while they were off would
+ * otherwise show as they were until each post is read again.
+ *
+ * @param mixed $old_value Value before the change.
+ * @param mixed $value     Value after it.
+ */
+function undergrowth_refresh_on_enable( $old_value, $value ): void {
+	if ( '0' === (string) $old_value && '0' !== (string) $value ) {
+		undergrowth_queue_index_refresh();
+	}
+}
+
+/**
+ * Queues one refresh of every stored suggestion, unless one is waiting.
+ *
+ * A site still being read queues the same refresh when its backfill ends,
+ * so nothing is queued for it here.
+ */
+function undergrowth_queue_index_refresh(): void {
 	if ( get_option( 'undergrowth_index_identity' ) === undergrowth_index_target() && false === wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) ) {
 		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0 ) );
 	}

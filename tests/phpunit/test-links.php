@@ -137,6 +137,63 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_refresh_index', array( 0 ) ) );
 	}
 
+	/**
+	 * Counts the refreshes of every suggestion waiting in cron.
+	 *
+	 * @return int
+	 */
+	private function queued_index_refreshes(): int {
+		$count = 0;
+
+		foreach ( (array) _get_cron_array() as $hooks ) {
+			$count += count( $hooks['undergrowth_refresh_index'] ?? array() );
+		}
+
+		return $count;
+	}
+
+	public function test_turning_suggestions_back_on_chooses_them_again_once() {
+		update_option( 'undergrowth_index_identity', undergrowth_index_target(), false );
+		update_option( 'undergrowth_suggest_links', '0' );
+		wp_clear_scheduled_hook( 'undergrowth_refresh_index', array( 0 ) );
+
+		// Rules that changed while suggestions were off are recorded, but
+		// the refresh they queue changes nothing until suggestions are on.
+		update_option( 'undergrowth_anchor_rules', UNDERGROWTH_ANCHOR_RULES - 1 );
+		undergrowth_maybe_refresh_anchors();
+		wp_clear_scheduled_hook( 'undergrowth_refresh_index', array( 0 ) );
+
+		update_option( 'undergrowth_suggest_links', '1' );
+
+		$this->assertSame( 1, $this->queued_index_refreshes() );
+
+		// Off and on again before cron runs queues no second refresh.
+		update_option( 'undergrowth_suggest_links', '0' );
+		update_option( 'undergrowth_suggest_links', '1' );
+
+		$this->assertSame( 1, $this->queued_index_refreshes() );
+	}
+
+	public function test_turning_suggestions_off_queues_nothing() {
+		update_option( 'undergrowth_index_identity', undergrowth_index_target(), false );
+		update_option( 'undergrowth_suggest_links', '1' );
+		wp_clear_scheduled_hook( 'undergrowth_refresh_index', array( 0 ) );
+
+		update_option( 'undergrowth_suggest_links', '0' );
+
+		$this->assertSame( 0, $this->queued_index_refreshes() );
+	}
+
+	public function test_turning_suggestions_on_while_the_site_is_still_read_queues_nothing() {
+		delete_option( 'undergrowth_index_identity' );
+		update_option( 'undergrowth_suggest_links', '0' );
+		wp_clear_scheduled_hook( 'undergrowth_refresh_index', array( 0 ) );
+
+		update_option( 'undergrowth_suggest_links', '1' );
+
+		$this->assertSame( 0, $this->queued_index_refreshes() );
+	}
+
 	public function test_dissimilar_posts_are_not_proposed() {
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->plant( 'Tax returns', array( 0.0, 0.0, 1.0 ) );
