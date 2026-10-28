@@ -198,7 +198,7 @@ function undergrowth_count_stages(): array {
 		return $counts;
 	}
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One grouped query instead of loading every post; the condition's placeholders come with it.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, PluginCheck.Security.DirectDB.UnescapedDBParameter -- One grouped query instead of loading every post; the condition's placeholders come with it.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
 			'SELECT m.meta_value AS stage, COUNT(*) AS posts FROM %i p LEFT JOIN %i m ON m.meta_id = ( SELECT MIN(f.meta_id) FROM %i f WHERE f.post_id = p.ID AND f.meta_key = %s ) WHERE ' . $indexable[0] . ' GROUP BY m.meta_value',
@@ -580,7 +580,7 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
 
 	$run = undergrowth_mark_pass( 'undergrowth_stage_cycle', $after_id );
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- WP_Query cannot page by ID, which keeps batches stable while posts are published mid-cycle.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
@@ -900,7 +900,7 @@ function undergrowth_order_by_stage_clauses( $clauses, $query ) {
 
 	$then = trim( (string) $clauses['orderby'] );
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The condition's placeholders come with it, and the ranks were prepared above.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, and the ranks were prepared above.
 	$clauses['orderby'] = $wpdb->prepare( "CASE WHEN {$indexable[0]} THEN 0 ELSE 1 END ASC, ", ...$indexable[1] )
 		. "{$rank} {$order}" . ( '' === $then ? '' : ', ' . $then );
 	// phpcs:enable

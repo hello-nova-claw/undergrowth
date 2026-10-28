@@ -23,34 +23,41 @@ const UNDERGROWTH_ORPHAN_SUGGESTIONS = 3;
  * the garden, so it is never an orphan. A link accepted in a post that has
  * since left the index no longer reaches readers, so it is not counted.
  *
- * @param string $select Columns to select, such as 'p.ID'.
- * @return array{0: string, 1: array<int, string>}|null The query without its order or limit, and its values in order, or null when no post type is indexed.
+ * @param string $select Columns to select: 'p.ID' or 'COUNT(*)'.
+ * @return array{0: string, 1: array<int, string>}|null The query without its order or limit, and its values in order, or null when no post type is indexed or the select list is another.
  */
 function undergrowth_orphans_sql( string $select ): ?array {
 	global $wpdb;
 
-	$post     = undergrowth_indexable_sql( 'p.' );
-	$source   = undergrowth_indexable_sql( 's.' );
-	$vectors  = undergrowth_vectors_table();
-	$links    = undergrowth_links_table();
-	$postmeta = $wpdb->postmeta;
-	$posts    = $wpdb->posts;
+	if ( ! in_array( $select, array( 'p.ID', 'COUNT(*)' ), true ) ) {
+		_doing_it_wrong( __FUNCTION__, esc_html__( 'Only p.ID or COUNT(*) can be selected.', 'undergrowth' ), '0.1.0' );
+		return null;
+	}
+
+	$post   = undergrowth_indexable_sql( 'p.' );
+	$source = undergrowth_indexable_sql( 's.' );
 
 	if ( null === $post || null === $source ) {
 		return null;
 	}
 
 	return array(
-		// The table names are the site's own, and the conditions are built
-		// with placeholders, whose values follow. The accepted links are
-		// found by their target, then each source checked by its ID: a join
-		// let SQLite walk every published post for each post counted.
-		"SELECT {$select} FROM {$posts} p"
-		. " INNER JOIN {$vectors} v ON v.post_id = p.ID"
+		// The select list is one of the two above, and the conditions are
+		// built with placeholders, whose values follow in order. The
+		// accepted links are found by their target, then each source checked
+		// by its ID: a join let SQLite walk every published post for each
+		// post counted.
+		"SELECT {$select} FROM %i p"
+		. ' INNER JOIN %i v ON v.post_id = p.ID'
 		. " WHERE {$post[0]}"
-		. " AND NOT EXISTS ( SELECT 1 FROM {$postmeta} m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )"
-		. " AND NOT EXISTS ( SELECT 1 FROM {$links} l WHERE l.target_id = p.ID AND l.state = %s AND EXISTS ( SELECT 1 FROM {$posts} s WHERE s.ID = l.source_id AND {$source[0]} ) )",
-		array_merge( $post[1], array( 'undergrowth_stage', 'composting', 'accepted' ), $source[1] ),
+		. ' AND NOT EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )'
+		. " AND NOT EXISTS ( SELECT 1 FROM %i l WHERE l.target_id = p.ID AND l.state = %s AND EXISTS ( SELECT 1 FROM %i s WHERE s.ID = l.source_id AND {$source[0]} ) )",
+		array_merge(
+			array( $wpdb->posts, undergrowth_vectors_table() ),
+			$post[1],
+			array( $wpdb->postmeta, 'undergrowth_stage', 'composting', undergrowth_links_table(), 'accepted', $wpdb->posts ),
+			$source[1]
+		),
 	);
 }
 
@@ -73,7 +80,7 @@ function undergrowth_orphan_post_ids( int $limit, int $offset = 0 ): array {
 	$query  = $sql[0] . ' ORDER BY p.post_date DESC, p.ID DESC LIMIT %d OFFSET %d';
 	$values = array_merge( $sql[1], array( $limit, max( 0, $offset ) ) );
 
-	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Built with placeholders above; links change on every accept.
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Built with placeholders in undergrowth_orphans_sql(); links change on every accept.
 	$ids = $wpdb->get_col( $wpdb->prepare( $query, $values ) );
 
 	return array_map( 'intval', (array) $ids );
@@ -93,7 +100,7 @@ function undergrowth_count_orphans(): int {
 		return 0;
 	}
 
-	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Built with placeholders above; links change on every accept.
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Built with placeholders in undergrowth_orphans_sql(); links change on every accept.
 	return (int) $wpdb->get_var( $wpdb->prepare( $sql[0], $sql[1] ) );
 }
 

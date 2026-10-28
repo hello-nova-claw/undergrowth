@@ -83,6 +83,24 @@ class Test_Orphans extends WP_UnitTestCase {
 		$this->assertSame( 1, undergrowth_count_orphans() );
 	}
 
+	public function test_the_query_names_its_tables_through_placeholders() {
+		global $wpdb;
+
+		list( $query, $values ) = undergrowth_orphans_sql( 'COUNT(*)' );
+
+		$this->assertStringNotContainsString( $wpdb->posts, $query );
+		$this->assertStringNotContainsString( $wpdb->postmeta, $query );
+		$this->assertStringNotContainsString( undergrowth_vectors_table(), $query );
+		$this->assertStringNotContainsString( undergrowth_links_table(), $query );
+		$this->assertContains( $wpdb->posts, $values );
+	}
+
+	public function test_an_unknown_select_list_is_refused() {
+		$this->setExpectedIncorrectUsage( 'undergrowth_orphans_sql' );
+
+		$this->assertNull( undergrowth_orphans_sql( 'p.ID FROM wp_users; --' ) );
+	}
+
 	public function test_a_post_leaves_the_list_once_an_accepted_link_points_to_it() {
 		$oca   = $this->seed( 'Oca', array( 1.0, 0.0 ) );
 		$yacon = $this->seed( 'Yacon', array( 0.9, 0.1 ) );
@@ -138,15 +156,13 @@ class Test_Orphans extends WP_UnitTestCase {
 	}
 
 	public function test_the_accepted_link_check_starts_from_the_link_not_from_every_post() {
-		global $wpdb;
-
 		$sql = undergrowth_orphans_sql( 'COUNT(*)' )[0];
 
 		// Joining every published post inside the check made SQLite compare
 		// each post with every other, which took 20 seconds at 5,000 posts.
-		$this->assertStringNotContainsString( 'INNER JOIN ' . $wpdb->posts . ' s', $sql );
+		$this->assertStringNotContainsString( 'INNER JOIN %i s', $sql );
 
-		$link   = strpos( $sql, 'FROM ' . undergrowth_links_table() . ' l WHERE l.target_id = p.ID' );
+		$link   = strpos( $sql, 'FROM %i l WHERE l.target_id = p.ID' );
 		$source = strpos( $sql, 'WHERE s.ID = l.source_id' );
 
 		$this->assertNotFalse( $link );
