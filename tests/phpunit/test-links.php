@@ -542,9 +542,12 @@ class Test_Links extends WP_UnitTestCase {
 		undergrowth_forget_reusable_corpus();
 		$builds = &$this->count_corpus_builds();
 
+		// The per-post files written after each refresh ask for the counts
+		// through the reusable cache, so the refresh and its files count once.
 		undergrowth_refresh_around( $oca );
-		undergrowth_reusable_corpus( undergrowth_comparable_post_ids( $oca ) );
+		$this->assertSame( 1, $builds[0] );
 
+		undergrowth_reusable_corpus( undergrowth_comparable_post_ids( $oca ) );
 		$this->assertSame( 1, $builds[0] );
 	}
 
