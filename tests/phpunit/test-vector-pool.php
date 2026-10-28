@@ -127,7 +127,15 @@ class Test_Vector_Pool extends WP_UnitTestCase {
 
 		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
 		$this->store( 300001, array( 1.0, 0.0, 0.0 ) );
-		$wpdb->update( undergrowth_vectors_table(), array( 'embedding' => '"not a vector"' ), array( 'post_id' => 300001 ) );
+		// A row stored as JSON before vectors were packed.
+		$wpdb->update(
+			undergrowth_vectors_table(),
+			array(
+				'embedding' => '"not a vector"',
+				'packed'    => null,
+			),
+			array( 'post_id' => 300001 )
+		);
 
 		$pool = undergrowth_comparable_vectors( $oca );
 

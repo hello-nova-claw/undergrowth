@@ -8,7 +8,7 @@
 /**
  * Packed vector storage.
  */
-class Test_Packed_Vectors extends WP_UnitTestCase {
+class Test_Vectors_Packed extends WP_UnitTestCase {
 
 	public function tear_down() {
 		remove_all_filters( 'undergrowth_pack_batch_size' );
@@ -121,6 +121,20 @@ class Test_Packed_Vectors extends WP_UnitTestCase {
 		$this->assertSame( array( 7 => pack( 'g*', ...$vector ) ), undergrowth_vectors_in_space( 'openai', 'text-embedding-3-small', 'en_US' ) );
 	}
 
+	public function test_a_vector_saves_after_an_upgrade_adds_the_column_in_the_same_request() {
+		global $wpdb;
+
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN packed', undergrowth_vectors_table() ) );
+
+		// wpdb now remembers the table without the column, as it would after
+		// any query on it earlier in the request that upgrades.
+		$wpdb->get_col_charset( undergrowth_vectors_table(), 'embedding' );
+		$this->assertTrue( undergrowth_install_schema() );
+
+		$this->assertTrue( $this->save( 7, array( 0.6, 0.8 ) ) );
+		$this->assertSame( pack( 'g*', 0.6, 0.8 ), $this->row( 7 )['packed'] );
+	}
+
 	public function test_a_vector_too_large_for_single_precision_is_refused() {
 		$this->assertFalse( $this->save( 7, array( 1.0, 1e39 ) ) );
 		$this->assertNull( undergrowth_get_vector( 7 ) );
@@ -138,7 +152,13 @@ class Test_Packed_Vectors extends WP_UnitTestCase {
 			),
 			undergrowth_vectors_in_space( 'openai', 'text-embedding-3-small', 'en_US' )
 		);
-		$this->assertSame( array( 7 => pack( 'g*', 0.6, 0.8 ), 8 => pack( 'g*', 0.8, 0.6 ) ), undergrowth_comparable_vectors( 7 ) );
+		$this->assertSame(
+			array(
+				7 => pack( 'g*', 0.6, 0.8 ),
+				8 => pack( 'g*', 0.8, 0.6 ),
+			),
+			undergrowth_comparable_vectors( 7 )
+		);
 	}
 
 	public function test_the_upgrade_queues_the_conversion_only_when_json_rows_are_left() {
