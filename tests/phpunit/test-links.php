@@ -533,6 +533,21 @@ class Test_Links extends WP_UnitTestCase {
 		$this->assertSame( 1, $builds[0] );
 	}
 
+	public function test_refresh_around_a_post_leaves_its_word_counts_for_the_files_written_after() {
+		$oca = $this->plant( 'Oca', array( 1.0, 0.0, 0.0 ) );
+		$this->plant( 'Yacon', array( 0.9, 0.1, 0.0 ) );
+		$this->plant( 'Mashua', array( 0.8, 0.2, 0.0 ) );
+
+		// Cron runs in a request of its own, with nothing counted yet.
+		undergrowth_forget_reusable_corpus();
+		$builds = &$this->count_corpus_builds();
+
+		undergrowth_refresh_around( $oca );
+		undergrowth_reusable_corpus( undergrowth_comparable_post_ids( $oca ) );
+
+		$this->assertSame( 1, $builds[0] );
+	}
+
 	public function test_queued_refresh_leaves_vetoes_and_accepted_links_alone() {
 		$planted = $this->plant_three_sources();
 		$yacon   = $planted['sources'][0];
