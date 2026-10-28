@@ -210,4 +210,19 @@ class Test_Cluster_Map extends WP_UnitTestCase {
 			$this->assertFalse( wp_cache_get( $post_id, 'posts' ) );
 		}
 	}
+
+	public function test_a_member_counts_as_composting_only_by_its_first_stage_row() {
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+		$c = $this->member( array( 0.9, 0.0, 0.1 ), $a );
+
+		// undergrowth_get_stage() reads the first row, so both stay in the garden.
+		add_post_meta( $b, 'undergrowth_stage', 'seedling' );
+		add_post_meta( $b, 'undergrowth_stage', 'composting' );
+		update_post_meta( $c, 'undergrowth_stage', 'Composting' );
+
+		$this->assertSame( 'seedling', undergrowth_get_stage( $b ) );
+		$this->assertSame( 'seedling', undergrowth_get_stage( $c ) );
+		$this->assertSame( array( $a, $b, $c ), undergrowth_clusterable_posts( array( $a, $b, $c ) ) );
+	}
 }
