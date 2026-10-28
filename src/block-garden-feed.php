@@ -176,7 +176,8 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 		)
 	);
 
-	$post_ids = undergrowth_filter_garden_visible( array_map( 'intval', $post_ids ) );
+	// Only the page a feed shows is loaded, by the feed itself.
+	$post_ids = undergrowth_filter_garden_visible( array_map( 'intval', $post_ids ), false );
 
 	if ( '' !== $filters['stage'] ) {
 		$post_ids = array_values(
@@ -349,8 +350,11 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 	$current = isset( $_GET['garden-page'] ) && is_string( $_GET['garden-page'] ) ? absint( $_GET['garden-page'] ) : 1;
 	$current = min( max( 1, $current ), $pages );
 	$items   = '';
+	$shown   = array_slice( $post_ids, ( $current - 1 ) * $per_page, $per_page );
 
-	foreach ( array_slice( $post_ids, ( $current - 1 ) * $per_page, $per_page ) as $index => $post_id ) {
+	_prime_post_caches( $shown, false, false );
+
+	foreach ( $shown as $index => $post_id ) {
 		$items .= undergrowth_garden_feed_item( $post_id, ! empty( $attributes['showFeatured'] ) && 1 === $current && 0 === $index, $taxonomy, $attributes );
 	}
 
