@@ -42,12 +42,14 @@ function undergrowth_orphans_sql( string $select ): ?array {
 
 	return array(
 		// The table names are the site's own, and the conditions are built
-		// with placeholders, whose values follow.
+		// with placeholders, whose values follow. The accepted links are
+		// found by their target, then each source checked by its ID: a join
+		// let SQLite walk every published post for each post counted.
 		"SELECT {$select} FROM {$posts} p"
 		. " INNER JOIN {$vectors} v ON v.post_id = p.ID"
 		. " WHERE {$post[0]}"
 		. " AND NOT EXISTS ( SELECT 1 FROM {$postmeta} m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )"
-		. " AND NOT EXISTS ( SELECT 1 FROM {$links} l INNER JOIN {$posts} s ON s.ID = l.source_id WHERE l.target_id = p.ID AND l.state = %s AND {$source[0]} )",
+		. " AND NOT EXISTS ( SELECT 1 FROM {$links} l WHERE l.target_id = p.ID AND l.state = %s AND EXISTS ( SELECT 1 FROM {$posts} s WHERE s.ID = l.source_id AND {$source[0]} ) )",
 		array_merge( $post[1], array( 'undergrowth_stage', 'composting', 'accepted' ), $source[1] ),
 	);
 }
