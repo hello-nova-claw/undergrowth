@@ -83,6 +83,24 @@ class Test_Orphans extends WP_UnitTestCase {
 		$this->assertSame( 1, undergrowth_count_orphans() );
 	}
 
+	public function test_the_query_names_its_tables_through_placeholders() {
+		global $wpdb;
+
+		list( $query, $values ) = undergrowth_orphans_sql( 'COUNT(*)' );
+
+		$this->assertStringNotContainsString( $wpdb->posts, $query );
+		$this->assertStringNotContainsString( $wpdb->postmeta, $query );
+		$this->assertStringNotContainsString( undergrowth_vectors_table(), $query );
+		$this->assertStringNotContainsString( undergrowth_links_table(), $query );
+		$this->assertContains( $wpdb->posts, $values );
+	}
+
+	public function test_an_unknown_select_list_is_refused() {
+		$this->setExpectedIncorrectUsage( 'undergrowth_orphans_sql' );
+
+		$this->assertNull( undergrowth_orphans_sql( 'p.ID FROM wp_users; --' ) );
+	}
+
 	public function test_a_post_leaves_the_list_once_an_accepted_link_points_to_it() {
 		$oca   = $this->seed( 'Oca', array( 1.0, 0.0 ) );
 		$yacon = $this->seed( 'Yacon', array( 0.9, 0.1 ) );

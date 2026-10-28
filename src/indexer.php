@@ -93,10 +93,18 @@ function undergrowth_ignores_post( ?WP_Post $post ): bool {
  * Builds undergrowth_is_indexable() as an SQL condition, for queries that
  * pick indexable posts without loading each one.
  *
+ * The alias is written into the SQL as it is, so only an empty one or a
+ * table name and a dot is taken; the values all go through placeholders.
+ *
  * @param string $alias Prefix for the posts table's columns, such as 'p.', or empty.
- * @return array{0: string, 1: array<int, string>}|null The condition with its placeholders, and their values in order, or null when no post type is indexed.
+ * @return array{0: string, 1: array<int, string>}|null The condition with its placeholders, and their values in order, or null when no post type is indexed or the alias is not a table name and a dot.
  */
 function undergrowth_indexable_sql( string $alias ): ?array {
+	if ( 1 !== preg_match( '/^(\w+\.)?\z/', $alias ) ) {
+		_doing_it_wrong( __FUNCTION__, esc_html__( 'The alias must be empty or a table name followed by a dot.', 'undergrowth' ), '0.1.0' );
+		return null;
+	}
+
 	$post_types = undergrowth_indexed_post_types();
 
 	if ( array() === $post_types ) {
@@ -310,7 +318,7 @@ function undergrowth_forget_unindexed_posts( int $limit = UNDERGROWTH_FORGET_BAT
 	$indexable = undergrowth_indexable_sql( 'p.' );
 	$condition = null === $indexable ? array( '1 = 1', array() ) : array( "NOT ( {$indexable[0]} )", $indexable[1] );
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
@@ -532,7 +540,7 @@ function undergrowth_unindexed_post_ids( array $identity, int $after_id, int $li
 		return array();
 	}
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$post_ids = $wpdb->get_col(
 		$wpdb->prepare(
@@ -599,7 +607,7 @@ function undergrowth_index_counts(): array {
 
 	$identity = undergrowth_index_target();
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$row = $wpdb->get_row(
 		$wpdb->prepare(
@@ -743,7 +751,7 @@ function undergrowth_queue_stale_embeds(): void {
 	$after = (int) get_option( 'undergrowth_stale_check', 0 );
 	$size  = undergrowth_stale_check_size();
 
-	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- The condition's placeholders come with it, one per value.
+	// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- The condition's placeholders come with it, one per value.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own table, which WP_Query cannot.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
