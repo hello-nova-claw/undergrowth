@@ -155,41 +155,58 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 
 		$this->_column_headers = array( $this->get_columns(), array(), array(), $this->get_default_primary_column_name() );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; rows change on every refresh.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT source_id, target_id, sentence, anchor, anchor_offset, kind FROM %i WHERE state = %s ORDER BY updated_at DESC, source_id ASC, score DESC',
-				undergrowth_links_table(),
-				'proposed'
-			),
-			ARRAY_A
+		// Composting posts and other targets are left out here, so that a
+		// page can be read straight from the table. Joining the source also
+		// leaves out rows whose post is gone, which no one can edit. One
+		// NOT EXISTS for each post keeps both on the post_id index: matching
+		// either in one subquery reads all of postmeta per row on SQLite.
+		$from    = $wpdb->prepare(
+			'FROM %i l INNER JOIN %i p ON p.ID = l.source_id
+			WHERE l.state = %s AND ( 0 = %d OR l.target_id = %d )
+			AND NOT EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = l.source_id AND m.meta_key = %s AND m.meta_value = %s )
+			AND NOT EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = l.target_id AND m.meta_key = %s AND m.meta_value = %s )',
+			undergrowth_links_table(),
+			$wpdb->posts,
+			'proposed',
+			$this->to,
+			$this->to,
+			$wpdb->postmeta,
+			'undergrowth_stage',
+			'composting',
+			$wpdb->postmeta,
+			'undergrowth_stage',
+			'composting'
 		);
+		$columns = 'l.source_id, l.target_id, l.sentence, l.anchor, l.anchor_offset, l.kind';
+		$order   = 'ORDER BY l.updated_at DESC, l.source_id ASC, l.score DESC';
+		$offset  = ( $this->get_pagenum() - 1 ) * self::PER_PAGE;
 
-		$rows = (array) $rows;
+		if ( $this->can_edit_every_source( $from ) ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared above; the plugin's own table, whose rows change on every refresh.
+			$total = (int) $wpdb->get_var( "SELECT COUNT(*) {$from}" );
+			$rows  = (array) $wpdb->get_results( $wpdb->prepare( "SELECT {$columns} {$from} {$order} LIMIT %d, %d", $offset, self::PER_PAGE ), ARRAY_A );
+			// phpcs:enable
 
-		// One query for every post on the screen, and one for their stages,
-		// instead of one per row for the checks and for each title and address.
-		_prime_post_caches(
-			array_unique( array_map( 'intval', array_merge( array_column( $rows, 'source_id' ), array_column( $rows, 'target_id' ) ) ) ),
-			false,
-			true
-		);
+			$this->prime( $rows );
+			// A plugin may still refuse one post, so each row is checked.
+			$rows = array_values( array_filter( $rows, array( $this, 'can_edit_source' ) ) );
+		} else {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared above; the plugin's own table, whose rows change on every refresh.
+			$rows = (array) $wpdb->get_results( "SELECT {$columns} {$from} {$order}", ARRAY_A );
 
-		$rows = array_values(
-			array_filter(
-				$rows,
-				function ( $row ) {
-					return ( 0 === $this->to || $this->to === (int) $row['target_id'] )
-						&& current_user_can( 'edit_post', (int) $row['source_id'] )
-						&& 'composting' !== undergrowth_get_stage( (int) $row['source_id'] )
-						&& 'composting' !== undergrowth_get_stage( (int) $row['target_id'] );
-				}
-			)
-		);
+			// Only the sources are needed to check each row.
+			_prime_post_caches( array_unique( array_map( 'intval', array_column( $rows, 'source_id' ) ) ), false, false );
+
+			$rows  = array_values( array_filter( $rows, array( $this, 'can_edit_source' ) ) );
+			$total = count( $rows );
+			$rows  = array_slice( $rows, $offset, self::PER_PAGE );
+
+			$this->prime( $rows );
+		}
 
 		$this->set_pagination_args(
 			array(
-				'total_items' => count( $rows ),
+				'total_items' => $total,
 				'per_page'    => self::PER_PAGE,
 			)
 		);
@@ -205,7 +222,60 @@ class Undergrowth_Links_List_Table extends WP_List_Table {
 					'kind'      => (string) $row['kind'],
 				);
 			},
-			array_slice( $rows, ( $this->get_pagenum() - 1 ) * self::PER_PAGE, self::PER_PAGE )
+			$rows
+		);
+	}
+
+	/**
+	 * Whether the current user can edit the source of every listed row.
+	 *
+	 * Someone who may edit others' published posts of each type the sources
+	 * have passes every row's check, so the page can be counted and read in
+	 * SQL. Anyone else has each row checked.
+	 *
+	 * @param string $from Prepared FROM and WHERE clauses of the listed rows.
+	 * @return bool
+	 */
+	private function can_edit_every_source( string $from ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $from is prepared by the caller.
+		$kinds = (array) $wpdb->get_results( "SELECT DISTINCT p.post_type, p.post_status {$from}", ARRAY_A );
+
+		foreach ( $kinds as $kind ) {
+			$type = get_post_type_object( (string) $kind['post_type'] );
+
+			if ( 'publish' !== $kind['post_status'] || null === $type
+				|| ! current_user_can( $type->cap->edit_others_posts )
+				|| ! current_user_can( $type->cap->edit_published_posts ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Whether the current user can edit a row's source post.
+	 *
+	 * @param array<string, mixed> $row Row from the links table.
+	 * @return bool
+	 */
+	private function can_edit_source( array $row ): bool {
+		return current_user_can( 'edit_post', (int) $row['source_id'] );
+	}
+
+	/**
+	 * Loads the posts and stages a page shows in one query each, instead of
+	 * one per row for each title and address.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Rows on the page.
+	 */
+	private function prime( array $rows ): void {
+		_prime_post_caches(
+			array_unique( array_map( 'intval', array_merge( array_column( $rows, 'source_id' ), array_column( $rows, 'target_id' ) ) ) ),
+			false,
+			true
 		);
 	}
 
