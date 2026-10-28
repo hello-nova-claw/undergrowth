@@ -463,15 +463,25 @@ function undergrowth_open_target_ids( array $post_ids ): array {
 	}
 
 	// One query for the stage key alone. Priming every meta key would hold
-	// unrelated, possibly large, meta for the rest of the refresh.
+	// unrelated, possibly large, meta for the rest of the refresh. Like
+	// undergrowth_get_stage(), only a post's first stage row counts, and
+	// only an exact "composting".
 	$placeholders = implode( ', ', array_fill( 0, count( $indexable ), '%d' ) );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Priming every meta key is what this avoids; there is one placeholder for each ID.
-	$composting = $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i WHERE meta_key = %s AND meta_value = %s AND post_id IN (' . $placeholders . ')', $wpdb->postmeta, 'undergrowth_stage', 'composting', ...$indexable ) );
+	$stages = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, meta_value FROM %i WHERE meta_key = %s AND post_id IN (' . $placeholders . ') ORDER BY meta_id ASC', $wpdb->postmeta, 'undergrowth_stage', ...$indexable ) );
 	$wpdb->flush();
 
-	foreach ( array_map( 'intval', $composting ) as $id ) {
-		unset( $open[ $id ] );
+	$first = array();
+
+	foreach ( $stages as $row ) {
+		$first[ (int) $row->post_id ] = $first[ (int) $row->post_id ] ?? (string) $row->meta_value;
+	}
+
+	foreach ( $first as $id => $stage ) {
+		if ( 'composting' === $stage ) {
+			unset( $open[ $id ] );
+		}
 	}
 
 	return $open;

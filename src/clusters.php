@@ -290,7 +290,6 @@ function undergrowth_measure_cluster( array $members ): ?array {
 	if ( array() !== $members ) {
 		$placeholders = implode( ', ', array_fill( 0, count( $members ), '%d' ) );
 
-		// One query for the members, however many there are.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The plugin's own table; there is one placeholder for each ID.
 		foreach ( (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, provider, model, language, embedding FROM %i WHERE post_id IN (' . $placeholders . ')', undergrowth_vectors_table(), ...array_map( 'intval', $members ) ), ARRAY_A ) as $row ) {
 			$rows[ (int) $row['post_id'] ] = $row;
