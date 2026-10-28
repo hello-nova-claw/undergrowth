@@ -110,7 +110,7 @@ npm run test:e2e
 
 - Every pull request from this repository that touches UI gets a **Screenshots** comment: before and after images of every shot that changed or is new, and a collapsed list of the ones that didn't. Reviewers look at it before approving, across all three locales and both widths. A visual change never fails the check, so nothing else will catch one.
 - The images are kept on the `screenshots` branch under `pr-<number>/before/` and `pr-<number>/after/`, and each push adds a commit there, so the record stays after the pull request merges. The workflow run also has the full set as an artifact.
-- `npm run screenshots` takes the same set locally, without Docker: it starts WordPress Playground with the e2e test provider and saves every screen in every state, locale (`en_US`, `he_IL`, `en_XA`) and width (1280 and 390) to `artifacts/screenshots/`, named `<screen>--<state>--<locale>--<width>.png`. When you add a screen or a state, add it to `tests/e2e/states.spec.js`.
+- `npm run screenshots` takes the same set locally, without Docker: it starts WordPress Playground with the e2e test provider and saves every screen in every state, locale (`en_US`, `he_IL`, `en_XA`) and width (1280 and 390) to `artifacts/screenshots/`, named `<screen>--<state>--<locale>--<width>.png`. Set `UNDERGROWTH_SCREENSHOTS_LOCALE=he_IL` to take one locale only, as each CI runner does. When you add a screen or a state, add it to `tests/e2e/states.spec.js`.
 
 ## Trying a pull request
 

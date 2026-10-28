@@ -13,7 +13,13 @@ const { STYLED } = require( './supports' );
 const OUTPUT = path.resolve(
 	process.env.UNDERGROWTH_SCREENSHOTS_DIR || 'artifacts/screenshots'
 );
-const LOCALES = [ 'en_US', 'he_IL', 'en_XA' ];
+// The workflow captures each locale on its own runner, because the whole
+// catalogue takes longer than one job may run.
+const LOCALES = [ 'en_US', 'he_IL', 'en_XA' ].filter(
+	( locale ) =>
+		! process.env.UNDERGROWTH_SCREENSHOTS_LOCALE ||
+		locale === process.env.UNDERGROWTH_SCREENSHOTS_LOCALE
+);
 const WIDTHS = [ 1280, 390 ];
 
 const SETTINGS = [ 'options-general.php', 'page=undergrowth' ];
