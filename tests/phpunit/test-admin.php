@@ -644,6 +644,44 @@ class Test_Admin extends WP_UnitTestCase {
 
 		remove_filter( 'map_meta_cap', $refuse, 10 );
 		$this->assertSame( array( $yacon ), array_column( $table->items, 'source_id' ) );
+		$this->assertSame( 1, $table->get_pagination_arg( 'total_items' ) );
+	}
+
+	public function test_a_capability_filter_refusing_one_post_keeps_the_count_right_on_every_page() {
+		$posts = self::factory()->post->create_many( 25 );
+		$pairs = array();
+
+		foreach ( $posts as $i => $post ) {
+			$pairs[] = array( $post, $posts[ ( $i + 1 ) % 25 ] );
+		}
+
+		$this->propose_rows( $pairs );
+		$refused = $posts[0];
+		$refuse  = static function ( $allcaps, $caps, $args ) use ( $refused ) {
+			if ( 'edit_post' === ( $args[0] ?? '' ) && (int) ( $args[2] ?? 0 ) === $refused ) {
+				return array();
+			}
+
+			return $allcaps;
+		};
+		add_filter( 'user_has_cap', $refuse, 10, 3 );
+
+		$first  = $this->suggestions_table( 1 );
+		$second = $this->suggestions_table( 2 );
+
+		remove_filter( 'user_has_cap', $refuse, 10 );
+		$this->assertSame( 24, $first->get_pagination_arg( 'total_items' ) );
+		$this->assertCount( 20, $first->items );
+		$this->assertSame( array_slice( array_reverse( $posts ), 20, 4 ), array_column( $second->items, 'source_id' ) );
+	}
+
+	public function test_suggestions_tied_on_time_source_and_score_page_in_target_order() {
+		list( $oca, $yacon, $mashua ) = self::factory()->post->create_many( 3 );
+		$this->propose_rows( array( array( $oca, $mashua ), array( $oca, $yacon ) ) );
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = %s', undergrowth_links_table(), '2026-01-01 00:00:00' ) );
+
+		$this->assertSame( array( min( $yacon, $mashua ), max( $yacon, $mashua ) ), array_column( $this->suggestions_table()->items, 'target_id' ) );
 	}
 
 	public function test_screen_explains_when_no_provider_is_set() {
