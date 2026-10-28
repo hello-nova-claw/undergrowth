@@ -782,6 +782,7 @@ class Test_Indexer extends WP_UnitTestCase {
 			'a quote'     => array( "p'." ),
 			'a condition' => array( '1=1 OR p.' ),
 			'a comment'   => array( '/* */p.' ),
+			'a newline'   => array( "p.\n" ),
 		);
 	}
 
