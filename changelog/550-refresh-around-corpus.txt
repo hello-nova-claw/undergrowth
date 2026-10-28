@@ -1,0 +1,1 @@
+Saving a post on a large blog takes less background work: the site's words are counted once for its suggestions and its per-post file, not twice.

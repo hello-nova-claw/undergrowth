@@ -821,7 +821,9 @@ function undergrowth_refresh_around( int $post_id ): void {
 		return;
 	}
 
-	$corpus = undergrowth_build_corpus( array_keys( $pool ) );
+	// Through the reusable counts, so the files written after each refresh
+	// do not read every post again for the same counts.
+	$corpus = undergrowth_reusable_corpus( array_keys( $pool ) );
 
 	undergrowth_refresh_proposals( $post_id, $pool, $corpus );
 
