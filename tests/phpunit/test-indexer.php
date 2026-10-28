@@ -749,6 +749,40 @@ class Test_Indexer extends WP_UnitTestCase {
 		$this->assertNull( undergrowth_indexable_sql( 'p.' ) );
 	}
 
+	public function test_indexable_sql_takes_an_empty_alias_or_a_table_and_a_dot() {
+		global $wpdb;
+
+		$this->assertStringStartsWith( 'post_status = %s', undergrowth_indexable_sql( '' )[0] );
+		$this->assertStringStartsWith( "{$wpdb->posts}.post_status = %s", undergrowth_indexable_sql( "{$wpdb->posts}." )[0] );
+	}
+
+	/**
+	 * @dataProvider data_aliases_that_are_not_a_table
+	 *
+	 * @param string $alias Alias that is not a table name and a dot.
+	 */
+	public function test_indexable_sql_refuses_an_alias_that_is_not_a_table( string $alias ) {
+		$this->setExpectedIncorrectUsage( 'undergrowth_indexable_sql' );
+
+		$this->assertNull( undergrowth_indexable_sql( $alias ) );
+	}
+
+	/**
+	 * Aliases that would write something other than a column name into SQL.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function data_aliases_that_are_not_a_table(): array {
+		return array(
+			'no dot'       => array( 'p' ),
+			'two dots'     => array( 'p..' ),
+			'a space'      => array( 'p .' ),
+			'a quote'      => array( "p'." ),
+			'a condition'  => array( '1=1 OR p.' ),
+			'a comment'    => array( '/* */p.' ),
+		);
+	}
+
 	public function test_collapse_spaces_makes_each_run_of_whitespace_one_space() {
 		$this->assertSame( ' Oca and yacon ', undergrowth_collapse_spaces( "\n Oca \t and\r\n\nyacon  " ) );
 		$this->assertSame( 'Oca', undergrowth_collapse_spaces( 'Oca' ) );
