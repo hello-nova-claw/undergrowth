@@ -429,7 +429,9 @@ function undergrowth_garden_feed_group_note( string $group ): string {
 		);
 
 	return sprintf(
-		'<p class="wp-block-undergrowth-garden-feed-group">%1$s <a href="%2$s" data-wp-on--click="actions.navigate">%3$s</a></p>',
+		// A whole page load, not in place: in place, the link would remove
+		// itself from under the reader's focus.
+		'<p class="wp-block-undergrowth-garden-feed-group">%1$s <a href="%2$s">%3$s</a></p>',
 		$name,
 		esc_url( remove_query_arg( array( 'group', 'garden-page' ) ) ),
 		esc_html__( 'Show the whole garden', 'undergrowth' )
