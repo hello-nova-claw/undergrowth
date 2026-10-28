@@ -550,6 +550,23 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( array( $yacon ), undergrowth_more_like_this( $this->source, 6 ) );
 	}
 
+	public function test_a_post_whose_vector_is_removed_leaves_every_kept_list() {
+		$yacon  = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$mashua = $this->old( 'Mashua', array( 1, 0.2, 0 ) );
+		$this->assertSame( array( $yacon, $mashua ), undergrowth_more_like_this( $this->source, 6 ) );
+		undergrowth_similar_scores( $mashua );
+
+		// A failed re-embed takes the vector away from a post still published.
+		undergrowth_remove_from_index( $yacon );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_forget', array( $yacon ) ) );
+		do_action( 'undergrowth_similar_forget', $yacon );
+
+		$this->assertArrayNotHasKey( $yacon, undergrowth_similar_scores( $this->source ) );
+		$this->assertArrayNotHasKey( $yacon, undergrowth_similar_scores( $mashua ) );
+		$this->assertSame( array( $mashua ), undergrowth_more_like_this( $this->source, 6 ) );
+		$this->assertFalse( undergrowth_similar_measured( $yacon ) );
+	}
+
 	public function test_a_first_read_queues_no_neighbour_updates() {
 		$mashua = $this->old( 'Mashua', array( 1, 0.1, 0 ) );
 		undergrowth_similar_scores( $this->source );
