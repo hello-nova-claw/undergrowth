@@ -225,4 +225,26 @@ class Test_Cluster_Map extends WP_UnitTestCase {
 		$this->assertSame( 'seedling', undergrowth_get_stage( $c ) );
 		$this->assertSame( array( $a, $b, $c ), undergrowth_clusterable_posts( array( $a, $b, $c ) ) );
 	}
+
+	public function test_only_the_stage_key_itself_counts() {
+		global $wpdb;
+
+		$a = $this->member( array( 1.0, 0.0, 0.0 ) );
+		$b = $this->member( array( 0.9, 0.1, 0.0 ), $a );
+
+		// Stored straight, as another plugin might: core reads keys by case.
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'post_id'    => $b,
+				'meta_key'   => 'UNDERGROWTH_STAGE', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- A test fixture.
+				'meta_value' => 'seedling', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- A test fixture.
+			)
+		);
+		add_post_meta( $b, 'undergrowth_stage', 'composting' );
+		wp_cache_delete( $b, 'post_meta' );
+
+		$this->assertSame( 'composting', undergrowth_get_stage( $b ) );
+		$this->assertSame( array( $a ), undergrowth_clusterable_posts( array( $a, $b ) ) );
+	}
 }
