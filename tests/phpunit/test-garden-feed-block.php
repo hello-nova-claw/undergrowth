@@ -375,6 +375,86 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( array( 'Mashua' ), $this->titles( $this->render( array( 'postsPerPage' => 2 ) ) ) );
 	}
 
+	public function test_loads_only_the_posts_on_the_page_it_shows() {
+		$post_ids = array();
+
+		foreach ( array( 'Oca', 'Yacon', 'Mashua', 'Ulluco', 'Achira' ) as $days => $title ) {
+			$post_ids[] = $this->post( $title, $days + 1 );
+		}
+
+		wp_cache_flush();
+		$before = get_num_queries();
+		$html   = $this->render( array( 'postsPerPage' => 2 ) );
+
+		$this->assertSame( array( 'Oca', 'Yacon' ), $this->titles( $html ) );
+		$this->assertSame(
+			array_slice( $post_ids, 0, 2 ),
+			array_values(
+				array_filter(
+					$post_ids,
+					static function ( int $post_id ): bool {
+						return false !== wp_cache_get( $post_id, 'posts' );
+					}
+				)
+			)
+		);
+		$this->assertLessThanOrEqual( 15, get_num_queries() - $before );
+	}
+
+	/**
+	 * Stores one Map group for the garden index.
+	 *
+	 * @param int[] $members Post IDs, the leader first.
+	 */
+	private function store_group( array $members ): void {
+		update_option(
+			'undergrowth_garden_index',
+			array(
+				'groups' => array(
+					array(
+						'leader'  => $members[0],
+						'members' => $members,
+					),
+				),
+			),
+			false
+		);
+	}
+
+	public function test_filters_to_one_group_from_the_query_args_in_the_feeds_order() {
+		$oca    = $this->post( 'Oca', 5 );
+		$ulluco = $this->post( 'Ulluco', 1 );
+		$yacon  = $this->post( 'Yacon', 2 );
+		$this->post( 'Mashua', 3 );
+		$this->store_group( array( $oca, $yacon, $ulluco ) );
+
+		$_GET['group'] = (string) $oca;
+
+		$html = $this->render();
+
+		$this->assertSame( array( 'Ulluco', 'Yacon', 'Oca' ), $this->titles( $html ) );
+		$this->assertStringContainsString( 'In the group around “<bdi>Oca</bdi>”', $html );
+	}
+
+	public function test_filters_to_the_posts_in_no_group() {
+		$oca = $this->post( 'Oca', 5 );
+		$this->post( 'Mashua', 3 );
+		$this->post( 'Achira', 4 );
+		$this->store_group( array( $oca, $this->post( 'Yacon', 2 ) ) );
+
+		$_GET['group'] = 'other';
+
+		$this->assertSame( array( 'Mashua', 'Achira' ), $this->titles( $this->render() ) );
+	}
+
+	public function test_an_unknown_group_matches_nothing() {
+		$this->post( 'Oca' );
+
+		$_GET['group'] = '999999';
+
+		$this->assertStringContainsString( 'Nothing in the garden matches.', $this->render() );
+	}
+
 	public function test_one_page_needs_no_page_links() {
 		$this->post( 'Oca' );
 

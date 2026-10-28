@@ -182,7 +182,7 @@ function undergrowth_cluster_map(): array {
 	$map       = array();
 
 	foreach ( undergrowth_cluster_leaders() as $leader ) {
-		$shown    = array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) );
+		$shown    = undergrowth_clusterable_posts( undergrowth_cluster_posts( $leader ) );
 		$measured = undergrowth_measure_cluster( undergrowth_centre_members( $leader ) );
 		$shown    = null === $measured ? $shown : array_merge( $measured['members'], array_diff( $shown, $measured['members'] ) );
 
@@ -247,7 +247,7 @@ function undergrowth_cluster_gaps(): array {
  * @return int[] Member post IDs, lowest first.
  */
 function undergrowth_centre_members( int $leader ): array {
-	return array_slice( array_values( array_filter( undergrowth_cluster_posts( $leader ), 'undergrowth_can_cluster' ) ), 0, UNDERGROWTH_CLUSTER_BATCH );
+	return array_slice( undergrowth_clusterable_posts( undergrowth_cluster_posts( $leader ) ), 0, UNDERGROWTH_CLUSTER_BATCH );
 }
 
 /**
@@ -282,11 +282,27 @@ function undergrowth_cluster_gap( int $leader, array $members, float $threshold 
  *         and the nearest one's similarity to it; or null when too few can be measured.
  */
 function undergrowth_measure_cluster( array $members ): ?array {
+	global $wpdb;
+
 	$groups = array();
+	$rows   = array();
+
+	if ( array() !== $members ) {
+		$placeholders = implode( ', ', array_fill( 0, count( $members ), '%d' ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The plugin's own table; there is one placeholder for each ID.
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, provider, model, language, embedding FROM %i WHERE post_id IN (' . $placeholders . ')', undergrowth_vectors_table(), ...array_map( 'intval', $members ) ), ARRAY_A ) as $row ) {
+			$rows[ (int) $row['post_id'] ] = $row;
+		}
+
+		$wpdb->flush();
+	}
 
 	foreach ( $members as $post_id ) {
-		$row    = undergrowth_get_vector( $post_id );
-		$packed = null === $row ? '' : undergrowth_unit_vector( $row['vector'] );
+		$row    = $rows[ $post_id ] ?? null;
+		$packed = null === $row ? '' : undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+
+		unset( $rows[ $post_id ] );
 
 		if ( '' === $packed ) {
 			continue;
@@ -466,6 +482,7 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	$wpdb->flush();
 
 	$fetched = count( $rows );
+	$open    = undergrowth_open_target_ids( array_map( 'intval', array_column( $rows, 'post_id' ) ) );
 	$leaders = (array) get_option( 'undergrowth_cluster_leaders', array() );
 	$pools   = array();
 	$minimum = get_option( 'undergrowth_cluster_similarity' );
@@ -478,7 +495,7 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 		$last_id = (int) $row['post_id'];
 		$vector  = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
 
-		if ( '' === $vector || ! undergrowth_can_cluster( $last_id ) ) {
+		if ( '' === $vector || ! isset( $open[ $last_id ] ) ) {
 			continue;
 		}
 
@@ -548,6 +565,29 @@ function undergrowth_can_cluster( int $post_id ): bool {
 	$post = get_post( $post_id );
 
 	return $post instanceof WP_Post && undergrowth_is_indexable( $post ) && 'composting' !== undergrowth_get_stage( $post_id );
+}
+
+/**
+ * Keeps the posts of a list that can be clustered, in the list's order.
+ *
+ * The rule of undergrowth_can_cluster(), checked for the whole list in a
+ * fixed number of queries and without loading any post, so a cluster of
+ * hundreds of posts costs no more than one of three.
+ *
+ * @param int[] $post_ids Post IDs.
+ * @return int[] The posts that can be clustered.
+ */
+function undergrowth_clusterable_posts( array $post_ids ): array {
+	$open = undergrowth_open_target_ids( $post_ids );
+
+	return array_values(
+		array_filter(
+			$post_ids,
+			static function ( int $post_id ) use ( $open ): bool {
+				return isset( $open[ $post_id ] );
+			}
+		)
+	);
 }
 
 /**

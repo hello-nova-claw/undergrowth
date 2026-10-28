@@ -913,7 +913,9 @@ function undergrowth_backfill_moved( array $counts ): bool {
  */
 function undergrowth_run_backfill_batch( array $identity ): void {
 	$pass     = get_option( 'undergrowth_backfill' );
-	$after    = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] && ( $pass['language'] ?? '' ) === $identity['language'] ? (int) ( $pass['after'] ?? 0 ) : 0;
+	$same     = is_array( $pass ) && ( $pass['provider'] ?? '' ) === $identity['provider'] && ( $pass['model'] ?? '' ) === $identity['model'] && ( $pass['language'] ?? '' ) === $identity['language'];
+	$after    = $same ? (int) ( $pass['after'] ?? 0 ) : 0;
+	$read     = $same && ! empty( $pass['read'] );
 	$size     = undergrowth_backfill_batch_size();
 	$budget   = undergrowth_backfill_time_budget();
 	$started  = microtime( true );
@@ -921,7 +923,20 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 	$tried    = array();
 	$retry    = undergrowth_backfill_retry_time( $identity );
 
+	// Until the index is recorded, the pass ends by refreshing every post's
+	// suggestions with the whole site's word counts. Refreshing the posts
+	// around each one as it is read would be thrown away, and it compares
+	// each post with the whole index, which made a read of 5,000 posts take
+	// hours of cron. A post read once the index is recorded has no such
+	// refresh to follow it, so it still refreshes the posts around it.
+	$deferred = get_option( 'undergrowth_index_identity' ) !== $identity ? has_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around' ) : false;
+
+	if ( false !== $deferred ) {
+		remove_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around', $deferred );
+	}
+
 	undergrowth_openai_deadline( $started + $budget );
+	$embedded = did_action( 'undergrowth_post_embedded' );
 
 	try {
 		foreach ( $post_ids as $post_id ) {
@@ -932,6 +947,23 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 			undergrowth_embed_post( $post_id );
 			$retry = undergrowth_backfill_retry_time( $identity );
 
+			// Noted at once, so a run that dies later in the batch still
+			// leaves the pass knowing it has posts to refresh.
+			if ( ! $read && did_action( 'undergrowth_post_embedded' ) > $embedded ) {
+				$read = true;
+				update_option(
+					'undergrowth_backfill',
+					array_merge(
+						$identity,
+						array(
+							'after' => $after,
+							'read'  => true,
+						)
+					),
+					false
+				);
+			}
+
 			// A post OpenAI turned away is tried again first after the wait.
 			if ( 0 === $retry ) {
 				$tried[] = $post_id;
@@ -939,21 +971,53 @@ function undergrowth_run_backfill_batch( array $identity ): void {
 		}
 	} finally {
 		undergrowth_openai_deadline( INF );
+
+		if ( false !== $deferred ) {
+			add_action( 'undergrowth_post_embedded', 'undergrowth_refresh_around', $deferred );
+		}
 	}
 
 	if ( 0 !== $retry ) {
-		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => array() !== $tried ? end( $tried ) : $after ) ), false );
+		update_option(
+			'undergrowth_backfill',
+			array_merge(
+				$identity,
+				array(
+					'after' => array() !== $tried ? end( $tried ) : $after,
+					'read'  => $read,
+				)
+			),
+			false
+		);
 		wp_schedule_single_event( $retry, 'undergrowth_backfill' );
 		return;
 	}
 
 	// A batch cut short by the budget left posts behind, like a full batch may.
 	if ( count( $post_ids ) === $size || count( $tried ) < count( $post_ids ) ) {
-		update_option( 'undergrowth_backfill', array_merge( $identity, array( 'after' => end( $tried ) ) ), false );
+		update_option(
+			'undergrowth_backfill',
+			array_merge(
+				$identity,
+				array(
+					'after' => end( $tried ),
+					'read'  => $read,
+				)
+			),
+			false
+		);
 		wp_schedule_single_event( time(), 'undergrowth_backfill' );
 		return;
 	}
 
 	delete_option( 'undergrowth_backfill' );
 	undergrowth_record_index_identity( $identity );
+
+	// A post that could not be read leaves the index unrecorded, so no
+	// refresh follows the pass. The posts it did read still get their
+	// suggestions, named by the identity they were read with. A pass that
+	// only tried failed posts again read nothing new and refreshes nothing.
+	if ( $read && get_option( 'undergrowth_index_identity' ) !== $identity ) {
+		wp_schedule_single_event( time(), 'undergrowth_refresh_index', array( 0, $identity ) );
+	}
 }

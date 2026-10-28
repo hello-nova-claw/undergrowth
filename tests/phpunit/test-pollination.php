@@ -333,6 +333,59 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertNotNull( $pairs[0]['sweet'] );
 	}
 
+	public function test_linked_pairs_count_only_accepted_links_between_two_groups() {
+		global $wpdb;
+
+		list( $a, $b ) = $this->two_groups( 0.46 );
+		$apart         = $this->seed( 'Roots and ledgers', array( 1.0, 1.0, 0.0, 0.0 ) );
+		$c             = $this->group(
+			array(
+				'Bread'     => array( 0.0, 0.0, 1.0, 0.0 ),
+				'Sourdough' => array( 0.0, 0.0, 1.0, 0.0 ),
+				'Starter'   => array( 0.0, 0.0, 1.0, 0.0 ),
+			)
+		);
+
+		$this->link( $a[1], $b[0] );
+		$this->link( $b[2], $a[0] );
+		$this->link( $a[0], $a[2] );
+		$this->link( $apart, $b[1] );
+		$wpdb->insert(
+			undergrowth_links_table(),
+			array(
+				'source_id'  => $a[2],
+				'target_id'  => $c[1],
+				'state'      => 'proposed',
+				'score'      => 0.5,
+				'sentence'   => '',
+				'created_at' => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			)
+		);
+
+		$this->assertSame( array( undergrowth_pollination_key( $a[0], $b[0] ) => true ), undergrowth_linked_group_pairs() );
+	}
+
+	public function test_linked_pairs_are_read_from_the_links_first() {
+		$sql = '';
+		add_filter(
+			'query',
+			static function ( $query ) use ( &$sql ) {
+				if ( false !== strpos( $query, 'DISTINCT a.meta_value' ) ) {
+					$sql = $query;
+				}
+
+				return $query;
+			}
+		);
+
+		undergrowth_linked_group_pairs();
+
+		// Joined the other way, SQLite paired every grouped post with every
+		// other before looking for a link: 3 seconds at 5,000 posts.
+		$this->assertStringContainsString( 'FROM `' . undergrowth_links_table() . '` l CROSS JOIN', $sql );
+	}
+
 	/**
 	 * Adds a fourth post to a group, so it stays a group when one leaves.
 	 *

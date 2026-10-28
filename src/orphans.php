@@ -43,16 +43,19 @@ function undergrowth_orphans_sql( string $select ): ?array {
 
 	return array(
 		// The select list is one of the two above, and the conditions are
-		// built with placeholders, whose values follow in order.
+		// built with placeholders, whose values follow in order. The
+		// accepted links are found by their target, then each source checked
+		// by its ID: a join let SQLite walk every published post for each
+		// post counted.
 		"SELECT {$select} FROM %i p"
 		. ' INNER JOIN %i v ON v.post_id = p.ID'
 		. " WHERE {$post[0]}"
 		. ' AND NOT EXISTS ( SELECT 1 FROM %i m WHERE m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = %s )'
-		. " AND NOT EXISTS ( SELECT 1 FROM %i l INNER JOIN %i s ON s.ID = l.source_id WHERE l.target_id = p.ID AND l.state = %s AND {$source[0]} )",
+		. " AND NOT EXISTS ( SELECT 1 FROM %i l WHERE l.target_id = p.ID AND l.state = %s AND EXISTS ( SELECT 1 FROM %i s WHERE s.ID = l.source_id AND {$source[0]} ) )",
 		array_merge(
 			array( $wpdb->posts, undergrowth_vectors_table() ),
 			$post[1],
-			array( $wpdb->postmeta, 'undergrowth_stage', 'composting', undergrowth_links_table(), $wpdb->posts, 'accepted' ),
+			array( $wpdb->postmeta, 'undergrowth_stage', 'composting', undergrowth_links_table(), 'accepted', $wpdb->posts ),
 			$source[1]
 		),
 	);

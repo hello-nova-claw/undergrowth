@@ -388,6 +388,7 @@ function undergrowth_uninstall_site(): void {
 	delete_post_meta_by_key( 'undergrowth_hub' );
 	delete_post_meta_by_key( 'undergrowth_hub_link' );
 	delete_option( 'undergrowth_garden_index' );
+	delete_option( 'undergrowth_garden_feed_page' );
 	delete_option( 'undergrowth_scores' );
 	delete_option( 'undergrowth_dev_job' );
 	wp_unschedule_hook( 'undergrowth_dev_job' );
