@@ -145,7 +145,13 @@ class Test_Orphans extends WP_UnitTestCase {
 		// Joining every published post inside the check made SQLite compare
 		// each post with every other, which took 20 seconds at 5,000 posts.
 		$this->assertStringNotContainsString( 'INNER JOIN ' . $wpdb->posts . ' s', $sql );
-		$this->assertStringContainsString( 's.ID = l.source_id', $sql );
+
+		$link   = strpos( $sql, 'FROM ' . undergrowth_links_table() . ' l WHERE l.target_id = p.ID' );
+		$source = strpos( $sql, 'WHERE s.ID = l.source_id' );
+
+		$this->assertNotFalse( $link );
+		$this->assertNotFalse( $source );
+		$this->assertLessThan( $source, $link );
 	}
 
 	public function test_composting_posts_never_appear() {
