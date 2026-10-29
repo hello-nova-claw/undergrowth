@@ -1,0 +1,1 @@
+The Suggestions tab now loads only the suggestions on the page shown, so it opens faster and uses far less memory on a large blog.

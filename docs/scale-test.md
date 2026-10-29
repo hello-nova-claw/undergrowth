@@ -126,7 +126,7 @@ Web requests, logged in as an administrator, fastest of three:
 | --- | --- | --- | --- |
 | Dashboard | 0.05 s, 9 MB, 56 queries | 0.05 s, 9 MB, 56 queries | |
 | Posts list (Undergrowth column, stage filter) | 0.06–0.09 s, 9 MB, 50 queries | 0.07–0.11 s, 9 MB, 50 queries | |
-| Suggestions | 1.4 s, 41 MB, 1,238 queries | 0.6 s, 80 MB, 36 queries | 80 MB (#559) |
+| Suggestions | 1.4 s, 41 MB, 1,238 queries | 0.6 s, 80 MB, 36 queries | 13 MB on the first page, 8 MB on others (#559) |
 | Growth stages | 0.06 s, 8 MB | 0.09 s, 8 MB | |
 | Map | 2.2 s, 36 MB, 4,986 queries | 3.2 s, 74 MB, 10,494 queries | 228 queries (#548) |
 | Orphans | 5.0 s, 38 MB, 4,945 queries | 20.6 s, 8 MB, 71 queries | 0.1 s (#546) |
@@ -139,7 +139,15 @@ The Posts list, the Growth stages tab, the Prompt studio, Settings and the edito
 
 - **Orphans** (fixed in #546, PR #547): the count's "no accepted link from a published post" condition joined every published post inside the subquery. On SQLite that is every post against every other: 20.4 s of the 20.6 s. Found from the link first, the count takes 0.02 s and gives the same number.
 - **Map** and **Suggestions**: almost all of their queries came from the cluster check fixed in #548. The Map tab also loaded each listed post on its own, which #548 now primes in one query.
-- **Suggestions** (#559, filed): the tab reads every proposal and loads every post they name, to show 20 rows. That takes 80 MB at 5,000 posts. The admin's limit is 256 MB, but this grows with the archive.
+- **Suggestions** (fixed in #559, PR #567): the tab read every proposal and loaded every post they named, to show 20 rows. That took 80 MB at 5,000 posts, and it grew with the archive. Composting posts and the narrowing to one target are now left out in SQL. For someone who can edit others' published posts, the count and the page come from SQL, and only the page's posts are loaded. An author still has each suggestion checked, but only the source posts are loaded for that. Loading every post had also hidden that each cross-pollination label loaded its bridge post on its own; those now load in one query.
+
+| Suggestions, 5,000 posts, 10,292 proposals | Before | After |
+| --- | --- | --- |
+| First page | 1.51 s, 76 MB, 220 queries | 1.07 s, 13 MB, 206 queries |
+| Page 200 | 0.45 s, 76 MB, 36 queries | 0.13 s, 8 MB, 38 queries |
+| Narrowed to one post's suggestions | 0.36 s, 76 MB, 37 queries | 0.06 s, 8 MB, 39 queries |
+
+The rest of the first page's time and queries go on the cluster and cross-pollination checks for its rows, which do not grow with the number of proposals. Written with both `NOT EXISTS` checks in one subquery (`post_id IN ( source, target )`), the count took 4 s on SQLite, because the planner then reads all of postmeta for each row; one subquery for each post takes 0.02 s.
 
 ## Front-end blocks
 
@@ -193,4 +201,4 @@ Two things grow without a bound but are not loaded on every request. `undergrowt
 | #553 | Vectors stored as JSON | Filed |
 | #554 | Garden index lists every post | Fixed in #561 (Anna chose 20 posts a group) |
 | #555 | Pollination batches had no time budget | Fixed in #564 |
-| #559 | Suggestions tab loads every suggested post | Filed |
+| #559 | Suggestions tab loads every suggested post | Fixed in #567 |
