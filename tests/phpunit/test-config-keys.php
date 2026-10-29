@@ -265,7 +265,9 @@ class Test_Config_Keys extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( self::OPENAI_KEY, $html );
 		$this->assertStringNotContainsString( 'Q7vZ', $html );
-		$this->assertStringNotContainsString( '0123', $html );
+		// The saved key's own tail, not any four digits: the page also prints
+		// the files folder's random name, which can hold those by chance.
+		$this->assertStringNotContainsString( 'option-0123', $html );
 		$this->assertMatchesRegularExpression( '/id="undergrowth_openai_api_key"[^>]*\sdisabled/', $html );
 		$this->assertStringContainsString( 'id="undergrowth-openai-config"', $html );
 		$this->assertStringContainsString( 'wp-config.php', $html );
