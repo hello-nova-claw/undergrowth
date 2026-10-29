@@ -540,6 +540,7 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->index_recorded();
 		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
 		$this->assertTrue( undergrowth_compost_post( $yacon ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $yacon ) ) );
 		do_action( 'undergrowth_similar_neighbours', $yacon );
 		$this->assertSame( array(), undergrowth_similar_scores( $this->source ) );
 
