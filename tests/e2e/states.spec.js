@@ -810,14 +810,18 @@ const IN_THEMES = THEMES.flatMap( ( theme ) => [
 /**
  * Says whether the page was served in a theme, for a state's `open`.
  *
+ * The Evening variation shares its theme's body class, so the test plugin
+ * marks a page it was applied to.
+ *
  * @param {string} theme Theme slug, with "-evening" for the dark variation.
  * @return {(page: import('@playwright/test').Page) => Promise<boolean>} Resolves to true when the page uses the theme.
  */
 function inTheme( theme ) {
-	return async ( page ) =>
-		( await page
-			.locator( `body.wp-theme-${ theme.replace( /-evening$/, '' ) }` )
-			.count() ) > 0;
+	const body = theme.endsWith( '-evening' )
+		? `body.wp-theme-${ theme.replace( /-evening$/, '' ) }.undergrowth-e2e-evening`
+		: `body.wp-theme-${ theme }:not(.undergrowth-e2e-evening)`;
+
+	return async ( page ) => ( await page.locator( body ).count() ) > 0;
 }
 
 // Filled in once the panel's posts exist, since the shots need their IDs.

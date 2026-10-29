@@ -407,6 +407,17 @@ if ( '' !== $undergrowth_e2e_theme ) {
 					$variation = json_decode( (string) file_get_contents( $file ), true );
 
 					if ( is_array( $variation ) && 'Evening' === ( $variation['title'] ?? '' ) && empty( $variation['blockTypes'] ) ) {
+						// The catalogue checks for this class, so a page
+						// without the variation is never filed under it.
+						add_filter(
+							'body_class',
+							static function ( $classes ) {
+								$classes[] = 'undergrowth-e2e-evening';
+
+								return $classes;
+							}
+						);
+
 						return $theme_json->update_with( $variation );
 					}
 				}
