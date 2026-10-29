@@ -14,6 +14,10 @@ class Test_Vectors_Packed extends WP_UnitTestCase {
 		remove_all_filters( 'undergrowth_pack_batch_size' );
 		delete_option( 'undergrowth_pack_vectors.lock' );
 
+		// A test that drops the packed column puts it back even if it fails,
+		// since a rollback does not undo a change to a table.
+		undergrowth_install_schema();
+
 		parent::tear_down();
 	}
 
@@ -251,6 +255,52 @@ class Test_Vectors_Packed extends WP_UnitTestCase {
 		$this->assertSame( $first, $this->row( 1 ) );
 		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE packed IS NULL', undergrowth_vectors_table() ) ) );
 		$this->assertSame( pack( 'g*', 4.0, 1.0 ), $this->row( 4 )['packed'] );
+	}
+
+	public function test_a_batch_that_converts_nothing_queues_no_next_batch() {
+		$this->store_json( 7, array( 0.6, 0.8 ) );
+		$this->store_json( 8, array( 0.8, 0.6 ) );
+		add_filter(
+			'undergrowth_pack_batch_size',
+			static function () {
+				return 2;
+			}
+		);
+		$refuse = static function ( $query ) {
+			return 0 === strpos( $query, 'UPDATE' ) ? 'UPDATE undergrowth_no_such_table SET x = 1' : $query;
+		};
+		add_filter( 'query', $refuse );
+
+		$suppress = $GLOBALS['wpdb']->suppress_errors();
+		do_action( 'undergrowth_pack_vectors' );
+		$GLOBALS['wpdb']->suppress_errors( $suppress );
+
+		remove_filter( 'query', $refuse );
+		$this->assertNull( $this->row( 7 )['packed'] );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_pack_vectors' ) );
+	}
+
+	public function test_the_version_is_not_recorded_when_the_packed_column_is_missing() {
+		global $wpdb;
+
+		$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN packed', undergrowth_vectors_table() ) );
+		delete_option( 'undergrowth_schema_version' );
+		$refuse = static function ( $queries ) {
+			return array_filter(
+				$queries,
+				static function ( $query ) {
+					return false === strpos( $query, 'packed' );
+				}
+			);
+		};
+		add_filter( 'dbdelta_queries', $refuse );
+
+		$installed = undergrowth_install_schema();
+
+		remove_filter( 'dbdelta_queries', $refuse );
+		$this->assertFalse( $installed );
+		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
+		$this->assertTrue( undergrowth_install_schema() );
 	}
 
 	public function test_a_batch_waits_while_another_holds_the_lock() {
