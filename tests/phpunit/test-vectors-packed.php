@@ -268,7 +268,7 @@ class Test_Vectors_Packed extends WP_UnitTestCase {
 		);
 		// Every update changes nothing, as on a database that refuses writes.
 		$refuse = static function ( $query ) {
-			return 0 === strpos( $query, 'UPDATE' ) ? $GLOBALS['wpdb']->prepare( 'UPDATE %i SET embedding = embedding WHERE 1 = 0', undergrowth_vectors_table() ) : $query;
+			return 0 === strpos( $query, 'UPDATE `' . undergrowth_vectors_table() . '`' ) ? $GLOBALS['wpdb']->prepare( 'UPDATE %i SET embedding = embedding WHERE 1 = 0', undergrowth_vectors_table() ) : $query;
 		};
 		add_filter( 'query', $refuse );
 
