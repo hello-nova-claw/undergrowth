@@ -267,22 +267,20 @@ function undergrowth_garden_feed_item( int $post_id, bool $featured, string $tax
 	$post  = get_post( $post_id );
 	$stage = undergrowth_get_stage( $post_id );
 
-	// The title beside it names the link, so the image adds nothing for a
-	// screen reader and is left out of the link's name.
+	// The title beside them names the link, so the image and the stage's
+	// glyph add nothing for a screen reader and are left out of the link's
+	// name. The glyph sits in the link to take its colour; the stage's
+	// name follows the link, for screen readers only.
 	$picture = $featured && has_post_thumbnail( $post ) ? get_the_post_thumbnail( $post, 'large', array( 'alt' => '' ) ) : '';
 	$item    = sprintf(
-		'<li class="wp-block-undergrowth-garden-feed-item%1$s"><a class="wp-block-undergrowth-garden-feed-title" href="%2$s">%3$s<span>%4$s</span></a>',
+		'<li class="wp-block-undergrowth-garden-feed-item%1$s"><a class="wp-block-undergrowth-garden-feed-title" href="%2$s">%3$s<span class="wp-block-undergrowth-garden-feed-stage is-stage-%4$s">%5$s</span><span>%6$s</span></a><span class="screen-reader-text">%7$s</span>',
 		$featured ? ' is-featured' : '',
 		esc_url( (string) get_permalink( $post ) ),
 		$picture,
-		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) )
-	);
-
-	$item .= sprintf(
-		'<span class="wp-block-undergrowth-garden-feed-stage is-stage-%1$s">%2$s</span>',
 		esc_attr( $stage ),
-		undergrowth_stage_icon(
-			$stage,
+		undergrowth_stage_icon( $stage ),
+		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) ),
+		esc_html(
 			sprintf(
 				/* translators: %s: growth stage name, such as Sprout. */
 				__( 'Growth stage: %s', 'undergrowth' ),

@@ -67,6 +67,22 @@
 	text-decoration-color: currentcolor;
 }
 
+/*
+ * The stage's glyph sits in the title's link, so it takes the link's
+ * colour, and on the title's first line, standing on its baseline.
+ */
+.wp-block-undergrowth-garden-index-icon {
+	display: inline-block;
+	margin-inline-end: 0.4em;
+	vertical-align: -0.2em;
+}
+
+.wp-block-undergrowth-garden-index-icon .undergrowth-stage-icon {
+	display: block;
+	width: 1.25em;
+	height: 1.25em;
+}
+
 .wp-block-undergrowth-garden-index-stage {
 	font-variant-caps: all-small-caps;
 }
