@@ -249,9 +249,10 @@ test.describe( 'Garden filters block', () => {
 				rtl: 'rtl' === style.direction,
 			};
 		} );
+		// The browser scrolls by whole pixels, so allow one of rounding.
 		const clear = {
-			left: box.x + ( rtl ? fade : 0 ),
-			right: box.x + box.width - ( rtl ? 0 : fade ),
+			left: box.x + ( rtl ? fade : 0 ) - 1,
+			right: box.x + box.width - ( rtl ? 0 : fade ) + 1,
 		};
 		expect( focused.x ).toBeGreaterThanOrEqual( clear.left );
 		expect( focused.x + focused.width ).toBeLessThanOrEqual( clear.right );

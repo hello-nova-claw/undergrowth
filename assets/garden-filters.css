@@ -54,8 +54,9 @@
  * mask so no colour is set. The padding at the end keeps the last link,
  * and the scroll padding keeps any link brought into view by focus, clear
  * of the fade. The padding around it leaves room for the focus ring. The
- * scrollbar stays, thin and in the text colour, so a reader with a mouse
- * and no sideways wheel can still drag to the hidden topics.
+ * scrollbar stays, thin and in the browser's own colours, which keep
+ * their contrast on any theme, so a reader with a mouse and no sideways
+ * wheel can still drag to the hidden topics.
  */
 .wp-block-undergrowth-garden-filters-topics ul {
 	display: flex;
@@ -70,7 +71,6 @@
 	scroll-snap-type: x proximity;
 	scroll-padding-inline-end: 3em;
 	scrollbar-width: thin;
-	scrollbar-color: color-mix(in srgb, currentcolor 40%, transparent) transparent;
 	mask-image: linear-gradient(to right, currentcolor calc(100% - 3em), transparent);
 }
 
