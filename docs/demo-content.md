@@ -51,6 +51,8 @@ The preview imports the small file and uses the e2e test provider, so it needs n
 
 The blueprint imports the posts without reading them, then calls `undergrowth_e2e_read_demo()` (in `tests/e2e/mu-plugins/undergrowth-e2e.php`). That reads every post, runs the monthly cycle once, and suggests links for each post once. Reading each post as it was imported took about three minutes; reading them together takes seconds.
 
+It then publishes two pages of its own: "The Garden", made from the `undergrowth/garden-page` pattern and set as the home page, so the preview opens on the reader blocks, and "Posts", set as the posts page, so the blog index stays reachable. Twenty Twenty-Four and Twenty Twenty-One are installed, not activated, beside the default theme.
+
 ## Licensing
 
 Every text is in the public domain in the United States, as each book's page on gutenberg.org says, because it was published before 1929. Each author died more than 70 years ago (the latest, Elizabeth von Arnim, in 1941), so the texts are also out of copyright in countries whose term is the author's life plus 70 years.
