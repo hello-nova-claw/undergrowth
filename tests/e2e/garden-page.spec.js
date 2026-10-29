@@ -73,11 +73,13 @@ test.describe( 'Garden page pattern', () => {
 		await insertGardenPage( { admin, page, requestUtils } );
 
 		const garden = page.locator( PAGE );
-		// The page's own title is the only heading.
+		// The page's own title is the only heading: the pattern adds none.
+		// (PAGE also matches a theme group that wraps the title, so the
+		// check looks for the pattern's heading block, not any heading.)
 		await expect(
 			page.getByRole( 'heading', { level: 1, name: 'Garden' } )
 		).toBeVisible();
-		await expect( garden.getByRole( 'heading' ) ).toHaveCount( 0 );
+		await expect( garden.locator( '.wp-block-heading' ) ).toHaveCount( 0 );
 		// The count is one quiet line above the intro, which is a placeholder
 		// only the author sees, in the theme's large size.
 		const count = garden.locator(
@@ -122,7 +124,9 @@ test.describe( 'Garden page pattern', () => {
 			await insertGardenPage( { admin, page, requestUtils } );
 
 			const garden = page.locator( PAGE );
-			await expect( garden.getByRole( 'heading' ) ).toHaveCount( 0 );
+			await expect( garden.locator( '.wp-block-heading' ) ).toHaveCount(
+				0
+			);
 			await expect(
 				garden.locator( '.wp-block-undergrowth-garden-feed-title' )
 			).toHaveCount( 2 );
