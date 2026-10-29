@@ -6,6 +6,18 @@ const FILTERS = '.wp-block-undergrowth-garden-filters';
 const FEED = '.wp-block-undergrowth-garden-feed';
 const TITLE = '.wp-block-undergrowth-garden-feed-title';
 const COUNT = '.wp-block-undergrowth-garden-filters-count';
+const TOPICS = '.wp-block-undergrowth-garden-filters-topics';
+const SUBMIT = '.wp-block-undergrowth-garden-filters-submit';
+
+// Enough topics to overflow the row on a phone.
+const MORE_TOPICS = [
+	'tubers',
+	'andes',
+	'winter',
+	'storage',
+	'seedlings',
+	'harvest',
+];
 
 /**
  * Plants a small garden and a page holding the filters and the feed.
@@ -20,7 +32,7 @@ async function plantGarden( requestUtils ) {
 
 	// Tags outlive deleted posts, so an earlier test's tag is reused.
 	const tags = {};
-	for ( const slug of [ 'roots', 'leaves' ] ) {
+	for ( const slug of [ 'roots', 'leaves', ...MORE_TOPICS ] ) {
 		const [ found ] = await requestUtils.rest( {
 			path: '/wp/v2/tags',
 			params: { slug },
@@ -34,8 +46,8 @@ async function plantGarden( requestUtils ) {
 			} ) );
 	}
 
-	for ( const [ title, format, tag ] of [
-		[ 'Oca', 'standard', 'roots' ],
+	for ( const [ title, format, ...tagged ] of [
+		[ 'Oca', 'standard', 'roots', ...MORE_TOPICS ],
 		[ 'Yacon', 'aside', 'roots' ],
 		[ 'Mashua', 'standard', 'leaves' ],
 	] ) {
@@ -47,7 +59,7 @@ async function plantGarden( requestUtils ) {
 				content: `<p>${ title } grows here.</p>`,
 				status: 'publish',
 				format,
-				tags: [ tags[ tag ].id ],
+				tags: tagged.map( ( tag ) => tags[ tag ].id ),
 			},
 		} );
 	}
@@ -55,9 +67,22 @@ async function plantGarden( requestUtils ) {
 	return requestUtils.createPage( {
 		title: 'Garden',
 		content:
-			'<!-- wp:undergrowth/garden-filters /--><!-- wp:undergrowth/garden-feed /-->',
+			'<!-- wp:undergrowth/garden-filters {"showCount":true} /--><!-- wp:undergrowth/garden-feed /-->',
 		status: 'publish',
 	} );
+}
+
+/**
+ * Reads where the topics and the form sit, to tell one row from two.
+ *
+ * @param {import('@playwright/test').Page} page The garden page.
+ * @return {Promise<{topics: Object, form: Object}>} Bounding boxes.
+ */
+async function rowBoxes( page ) {
+	return {
+		topics: await page.locator( `${ FILTERS } ${ TOPICS }` ).boundingBox(),
+		form: await page.locator( `${ FILTERS } form` ).boundingBox(),
+	};
 }
 
 // Selectors use classes, names and slugs, not text, because this spec also
@@ -81,6 +106,10 @@ test.describe( 'Garden filters block', () => {
 			await expect( page.locator( `${ FEED } ${ TITLE }` ) ).toHaveCount(
 				3
 			);
+			// Without the script, the button is the only way to send the form.
+			await expect(
+				page.locator( `${ FILTERS } ${ SUBMIT } button` )
+			).toBeVisible();
 
 			const roots = page.locator( `${ FILTERS } a[href*="topic=roots"]` );
 			await roots.focus();
@@ -165,8 +194,62 @@ test.describe( 'Garden filters block', () => {
 		expect( await page.evaluate( () => window.undergrowthNoReload ) ).toBe(
 			true
 		);
+		// A select applies itself, so the button is hidden.
+		await expect(
+			page.locator( `${ FILTERS } ${ SUBMIT } button` )
+		).toBeHidden();
 		await expectNoA11yViolations( page, FILTERS );
 		await expectNoA11yViolations( page, FEED );
+	} );
+
+	test( 'is one row that becomes two on a phone, and keeps a focused topic in view', async ( {
+		page,
+	} ) => {
+		await page.goto( `/?page_id=${ garden.id }` );
+
+		// The label, the topics and the selects share a row.
+		const wide = await rowBoxes( page );
+		expect( wide.form.y ).toBeLessThan(
+			wide.topics.y + wide.topics.height
+		);
+
+		await page.setViewportSize( { width: 390, height: 800 } );
+		const narrow = await rowBoxes( page );
+		expect( narrow.form.y ).toBeGreaterThanOrEqual(
+			narrow.topics.y + narrow.topics.height
+		);
+
+		// The topics never wrap: the list scrolls sideways instead.
+		const list = page.locator( `${ FILTERS } ${ TOPICS } ul` );
+		const links = page.locator( `${ FILTERS } ${ TOPICS } a` );
+		await expect( links ).toHaveCount( 2 + MORE_TOPICS.length );
+		expect(
+			await list.evaluate(
+				( element ) => element.scrollWidth > element.clientWidth
+			)
+		).toBe( true );
+		const first = await links.first().boundingBox();
+		const last = await links.last().boundingBox();
+		expect( Math.round( last.y ) ).toBe( Math.round( first.y ) );
+
+		// Tab reaches the last topic, and the list scrolls so the whole
+		// link sits inside it, clear of the fade at its end.
+		await links.first().focus();
+		for ( let tab = 1; tab < 2 + MORE_TOPICS.length; tab++ ) {
+			await page.keyboard.press( 'Tab' );
+		}
+		await expect( links.last() ).toBeFocused();
+		const box = await list.boundingBox();
+		const focused = await links.last().boundingBox();
+		const fade = await list.evaluate(
+			( element ) =>
+				3 * parseFloat( window.getComputedStyle( element ).fontSize )
+		);
+		expect( focused.x ).toBeGreaterThanOrEqual( box.x );
+		expect( focused.x + focused.width ).toBeLessThanOrEqual(
+			box.x + box.width - fade
+		);
+		await expectNoA11yViolations( page, FILTERS );
 	} );
 
 	test( 'previews in the editor', async ( { admin, editor, page } ) => {

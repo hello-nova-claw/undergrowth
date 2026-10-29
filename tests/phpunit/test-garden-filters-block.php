@@ -101,6 +101,7 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_render_garden_filters_block', $type->render_callback );
 		$this->assertSame( array( 'post_tag', 'category' ), $type->attributes['topicSource']['enum'] );
 		$this->assertSame( array( 'undergrowth-garden-filters' ), $type->style_handles );
+		$this->assertFalse( $type->attributes['showCount']['default'] );
 		$this->assertTrue( $type->supports['interactivity'] );
 		$this->assertFalse( $type->supports['html'] );
 	}
@@ -356,10 +357,12 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<input type="hidden" name="page_id" value="7">', $html );
 		$this->assertStringContainsString( '<input type="hidden" name="topic" value="roots">', $html );
 		$this->assertStringContainsString( '<option value="seedling" selected>', $html );
-		$this->assertMatchesRegularExpression( '#<button type="submit"[^>]*>#', $html );
+		// The button stays for a reader without JavaScript.
+		$this->assertMatchesRegularExpression( '#<p class="wp-block-undergrowth-garden-filters-submit"><button type="submit"[^>]*>#', $html );
+		$this->assertStringNotContainsString( 'is-live', $html );
 	}
 
-	public function test_each_select_has_a_label() {
+	public function test_each_select_has_a_label_a_screen_reader_hears_and_an_all_choice_readers_see() {
 		set_post_format( $this->post( 'Oca' ), 'aside' );
 		$this->post( 'Yacon' );
 
@@ -369,21 +372,42 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertCount( 2, $ids[1] );
 
 		foreach ( $ids[1] as $id ) {
-			$this->assertStringContainsString( '<label for="' . $id . '">', $html );
+			$this->assertStringContainsString( '<label class="screen-reader-text" for="' . $id . '">', $html );
 		}
+
+		$this->assertStringContainsString( '<option value="">All stages</option>', $html );
+		$this->assertStringContainsString( '<option value="">All types</option>', $html );
 	}
 
-	public function test_announces_how_many_posts_match() {
+	public function test_puts_the_topics_and_the_selects_on_one_row_under_a_visible_label() {
+		wp_set_post_tags( $this->post( 'Oca' ), array( 'Roots' ) );
+		set_post_format( $this->post( 'Yacon' ), 'aside' );
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<div class="wp-block-undergrowth-garden-filters-row"><nav class="wp-block-undergrowth-garden-filters-topics" aria-labelledby="([^"]+)"><span class="wp-block-undergrowth-garden-filters-label" id="\1">Topics</span><ul>#', $html );
+		$this->assertMatchesRegularExpression( '#</nav><form class="wp-block-undergrowth-garden-filters-form"#', $html );
+		$this->assertMatchesRegularExpression( '#</form></div></div>$#', $html );
+		// Plain links: the chosen one is marked, none is wrapped in anything else.
+		$this->assertMatchesRegularExpression( '#<li><a href="[^"]*" aria-current="true"[^>]*>All topics</a></li><li><a href="[^"]*"[^>]*>Roots</a></li></ul></nav>#', $html );
+	}
+
+	public function test_counts_the_matching_posts_only_when_asked() {
 		wp_set_post_tags( $this->post( 'Oca' ), array( 'Roots' ) );
 		$this->post( 'Yacon' );
 
-		$this->assertMatchesRegularExpression( '#<p class="wp-block-undergrowth-garden-filters-count" role="status">2 posts</p>#', $this->render() );
+		$this->assertStringNotContainsString( 'wp-block-undergrowth-garden-filters-count', $this->render() );
+		$this->assertStringNotContainsString( 'role="status"', $this->render() );
+
+		$html = $this->render( array( 'showCount' => true ) );
+
+		$this->assertMatchesRegularExpression( '#</div><p class="wp-block-undergrowth-garden-filters-count" role="status">2 posts</p></div>$#', $html );
 
 		$_GET['topic'] = 'roots';
-		$this->assertStringContainsString( 'role="status">1 post</p>', $this->render() );
+		$this->assertStringContainsString( 'role="status">1 post</p>', $this->render( array( 'showCount' => true ) ) );
 	}
 
-	public function test_is_a_router_region_that_updates_in_place() {
+	public function test_is_a_router_region_that_updates_in_place_and_applies_a_select_on_change() {
 		$this->post( 'Oca' );
 
 		$html = $this->render();
@@ -392,6 +416,8 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-wp-router-region="undergrowth/garden-filters"', $html );
 		$this->assertStringContainsString( 'data-wp-on--submit="actions.filter"', $html );
 		$this->assertStringContainsString( 'data-wp-on--change="actions.filter"', $html );
+		// With the script, the form takes the class that hides the button.
+		$this->assertMatchesRegularExpression( '#<form class="wp-block-undergrowth-garden-filters-form"[^>]* data-wp-class--is-live="state.live"#', $html );
 	}
 
 	public function test_can_leave_out_each_filter() {
@@ -408,7 +434,8 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'Roots', $html );
 		$this->assertStringNotContainsString( '<select', $html );
-		$this->assertStringContainsString( 'role="status"', $html );
+		$this->assertStringNotContainsString( '<form', $html );
+		$this->assertStringNotContainsString( 'wp-block-undergrowth-garden-filters-row', $html );
 	}
 
 	public function test_escapes_term_names() {
