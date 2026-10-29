@@ -1,5 +1,6 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { expectNoA11yViolations } = require( './a11y' );
+const { uploadFeaturedImage } = require( './featured-image' );
 const { skipWelcomeGuide } = require( './preferences' );
 const { STYLED, expectSupportsOnce } = require( './supports' );
 
@@ -46,11 +47,14 @@ test.describe( 'Garden feed block', () => {
 				data: { name: 'Roots', slug: 'roots' },
 			} ) );
 
+		// Two entries with a picture, one without, so the grid holds both.
+		const picture = await uploadFeaturedImage( requestUtils );
+
 		posts = {};
-		for ( const [ name, format, tags ] of [
-			[ 'Oca', 'standard', [ roots.id ] ],
-			[ 'Yacon', 'aside', [] ],
-			[ 'Mashua', 'standard', [] ],
+		for ( const [ name, format, tags, featured ] of [
+			[ 'Oca', 'standard', [ roots.id ], picture ],
+			[ 'Yacon', 'aside', [], 0 ],
+			[ 'Mashua', 'standard', [], picture ],
 		] ) {
 			posts[ name ] = await requestUtils.rest( {
 				method: 'POST',
@@ -62,6 +66,7 @@ test.describe( 'Garden feed block', () => {
 					status: 'publish',
 					format,
 					tags,
+					featured_media: featured,
 				},
 			} );
 		}
@@ -91,7 +96,16 @@ test.describe( 'Garden feed block', () => {
 			'Mashua',
 			'Yacon',
 		] );
-		await expect( feed.locator( '.is-featured' ) ).toHaveCount( 1 );
+		// Every entry with a picture shows it, above its title and as wide
+		// as the entry, and says nothing more to a screen reader.
+		const pictured = feed.locator( '.has-image' );
+		await expect( pictured ).toHaveCount( 2 );
+		await expect( feed.locator( 'img[alt=""]' ) ).toHaveCount( 2 );
+		const entry = await pictured.first().boundingBox();
+		const image = await pictured.first().locator( 'img' ).boundingBox();
+		const title = await pictured.first().locator( TITLE ).boundingBox();
+		expect( Math.round( image.width ) ).toBe( Math.round( entry.width ) );
+		expect( image.y + image.height ).toBeLessThanOrEqual( title.y );
 		await expect(
 			feed.locator( 'svg[role="img"][aria-label]' )
 		).toHaveCount( 3 );
@@ -143,10 +157,28 @@ test.describe( 'Garden feed block', () => {
 		await expect( page.locator( `${ FEED } ${ TITLE }` ) ).toHaveText( [
 			'Mashua',
 		] );
-		// Only the first page leads with a featured post.
-		await expect( page.locator( `${ FEED } .is-featured` ) ).toHaveCount(
-			0
+		// A picture shows on every page, not only the first.
+		await expect( page.locator( `${ FEED } .has-image img` ) ).toHaveCount(
+			1
 		);
+	} );
+
+	test( 'keeps the images of a block saved before the setting was renamed', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		const garden = await feedPage( requestUtils, { showFeatured: true } );
+
+		await page.goto( `/?page_id=${ garden.id }` );
+		await expect( page.locator( `${ FEED } .has-image img` ) ).toHaveCount(
+			2
+		);
+
+		const bare = await feedPage( requestUtils, { showImages: false } );
+
+		await page.goto( `/?page_id=${ bare.id }` );
+		await expect( page.locator( `${ FEED } ${ TITLE }` ) ).toHaveCount( 3 );
+		await expect( page.locator( `${ FEED } img` ) ).toHaveCount( 0 );
 	} );
 
 	test( 'previews in the editor and changes the order by keyboard', async ( {

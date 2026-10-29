@@ -1,11 +1,13 @@
 /*
  * The feed is a grid of entries that fills the width it is given, one
  * column on a phone, each entry under a hairline drawn from the text
- * colour. The featured entry spans the whole row.
+ * colour. The flow is dense so a tall card does not leave a hole beside
+ * the text entries that follow it.
  */
 .wp-block-undergrowth-garden-feed-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+	grid-auto-flow: dense;
 	gap: var(--wp--preset--spacing--40, 1.5rem) var(--wp--preset--spacing--50, 2.5rem);
 	margin: 0;
 	padding: 0;
@@ -16,6 +18,7 @@
 	display: grid;
 	grid-template-columns: auto 1fr;
 	grid-template-areas:
+		"image image"
 		"stage title"
 		". excerpt"
 		". details";
@@ -26,9 +29,12 @@
 	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
 }
 
-.wp-block-undergrowth-garden-feed-item.is-featured {
-	grid-column: 1 / -1;
-	padding-block-end: var(--wp--preset--spacing--30, 1rem);
+.wp-block-undergrowth-garden-feed-image {
+	grid-area: image;
+	display: block;
+	width: 100%;
+	height: auto;
+	margin-block-end: var(--wp--preset--spacing--30, 1rem);
 }
 
 /*
@@ -64,18 +70,6 @@
 	text-decoration-color: currentcolor;
 }
 
-.is-featured .wp-block-undergrowth-garden-feed-title {
-	font-size: clamp(1.5em, 1em + 2vw, 2.25em);
-	line-height: 1.15;
-}
-
-.wp-block-undergrowth-garden-feed-title img {
-	display: block;
-	width: 100%;
-	height: auto;
-	margin-block-end: var(--wp--preset--spacing--30, 1rem);
-}
-
 /* The stage's glyph sits on the title's first line. */
 .wp-block-undergrowth-garden-feed-stage {
 	grid-area: stage;
@@ -89,22 +83,11 @@
 	margin-block-start: 0.1em;
 }
 
-/* The image sits above the title, so the icon moves down beside it. */
-.is-featured .wp-block-undergrowth-garden-feed-stage {
-	align-self: end;
-	margin-block-end: 0.35em;
-}
-
 .wp-block-undergrowth-garden-feed-excerpt {
 	grid-area: excerpt;
 	margin: 0.4em 0 0;
 	font-size: 0.875em;
 	text-wrap: pretty;
-}
-
-.is-featured .wp-block-undergrowth-garden-feed-excerpt {
-	max-width: 40em;
-	font-size: inherit;
 }
 
 .wp-block-undergrowth-garden-feed-details {

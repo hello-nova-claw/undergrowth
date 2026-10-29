@@ -258,23 +258,32 @@ function undergrowth_garden_feed_type_label( int $post_id, string $taxonomy ): s
  * Renders one post in the feed.
  *
  * @param int                  $post_id    Post ID.
- * @param bool                 $featured   Whether it leads the feed, with its featured image.
+ * @param bool                 $images     Whether to show its featured image, above the title.
  * @param string               $taxonomy   Taxonomy that names each post's type.
  * @param array<string, mixed> $attributes Block attributes.
  * @return string List item markup.
  */
-function undergrowth_garden_feed_item( int $post_id, bool $featured, string $taxonomy, array $attributes ): string {
+function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxonomy, array $attributes ): string {
 	$post  = get_post( $post_id );
 	$stage = undergrowth_get_stage( $post_id );
 
-	// The title beside it names the link, so the image adds nothing for a
-	// screen reader and is left out of the link's name.
-	$picture = $featured && has_post_thumbnail( $post ) ? get_the_post_thumbnail( $post, 'large', array( 'alt' => '' ) ) : '';
+	// The title names the entry, so the image says nothing more to a
+	// screen reader and is left decorative.
+	$picture = $images && has_post_thumbnail( $post )
+		? get_the_post_thumbnail(
+			$post,
+			'large',
+			array(
+				'alt'   => '',
+				'class' => 'wp-block-undergrowth-garden-feed-image',
+			)
+		)
+		: '';
 	$item    = sprintf(
-		'<li class="wp-block-undergrowth-garden-feed-item%1$s"><a class="wp-block-undergrowth-garden-feed-title" href="%2$s">%3$s<span>%4$s</span></a>',
-		$featured ? ' is-featured' : '',
-		esc_url( (string) get_permalink( $post ) ),
+		'<li class="wp-block-undergrowth-garden-feed-item%1$s">%2$s<a class="wp-block-undergrowth-garden-feed-title" href="%3$s"><span>%4$s</span></a>',
+		'' === $picture ? '' : ' has-image',
 		$picture,
+		esc_url( (string) get_permalink( $post ) ),
 		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) )
 	);
 
@@ -369,8 +378,11 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 
 	_prime_post_caches( $shown, false, false );
 
-	foreach ( $shown as $index => $post_id ) {
-		$items .= undergrowth_garden_feed_item( $post_id, ! empty( $attributes['showFeatured'] ) && 1 === $current && 0 === $index, $taxonomy, $attributes );
+	// A block saved before the setting was renamed still says showFeatured.
+	$images = isset( $attributes['showFeatured'] ) ? ! empty( $attributes['showFeatured'] ) : ! empty( $attributes['showImages'] );
+
+	foreach ( $shown as $post_id ) {
+		$items .= undergrowth_garden_feed_item( $post_id, $images, $taxonomy, $attributes );
 	}
 
 	$group = '' === $filters['group'] ? '' : undergrowth_garden_feed_group_note( $filters['group'] );

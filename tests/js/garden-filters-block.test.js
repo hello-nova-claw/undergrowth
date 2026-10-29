@@ -74,6 +74,8 @@ describe( 'Garden filters block', () => {
 		expect( type.attributes.topicSource.default ).toBe( 'post_tag' );
 		// The types follow the garden feed on the same page.
 		expect( type.attributes.typeSource ).toBeUndefined();
+		// The count is a line of its own, off unless the author wants it.
+		expect( type.attributes.showCount.default ).toBe( false );
 		expect( type.supports.interactivity ).toBe( true );
 	} );
 
@@ -87,6 +89,7 @@ describe( 'Garden filters block', () => {
 			...DEFAULTS,
 			topicSource: 'category',
 			showType: false,
+			showCount: true,
 			backgroundColor: 'accent',
 			style: { spacing: { padding: { top: '2em' } } },
 		} );
@@ -100,6 +103,7 @@ describe( 'Garden filters block', () => {
 		);
 		expect( path ).toContain( 'attributes[topicSource]=category' );
 		expect( path ).toContain( 'attributes[showType]=false' );
+		expect( path ).toContain( 'attributes[showCount]=true' );
 		// The wrapper carries the supports, so the preview never doubles them.
 		expect( path ).not.toMatch( /backgroundColor|padding/ );
 		expect( container.querySelector( 'li a' ).textContent ).toBe( 'Roots' );

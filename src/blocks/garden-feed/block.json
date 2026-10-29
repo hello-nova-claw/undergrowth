@@ -10,7 +10,7 @@
 	"keywords": [ "garden", "feed", "stages", "tended" ],
 	"textdomain": "undergrowth",
 	"attributes": {
-		"showFeatured": {
+		"showImages": {
 			"type": "boolean",
 			"default": true
 		},

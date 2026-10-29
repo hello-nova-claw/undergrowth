@@ -151,7 +151,7 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertContains( 'core/separator', $names );
 		$this->assertNotContains( 'core/columns', $names );
 		$this->assertStringContainsString( 'var:preset|spacing|', $pattern['content'] );
-		$this->assertStringContainsString( '"showFeatured":true', $pattern['content'] );
+		$this->assertStringContainsString( '"showImages":true', $pattern['content'] );
 	}
 
 	public function test_the_pattern_sets_no_colours_and_leaves_the_intro_to_the_author() {
