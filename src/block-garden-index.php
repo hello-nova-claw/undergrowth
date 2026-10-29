@@ -353,8 +353,10 @@ function undergrowth_render_garden_index_block( $attributes ): string {
 			$stage = undergrowth_get_stage( $post->ID );
 			$name  = undergrowth_stage_label( $stage );
 
+			// The stage's glyph sits in the link to take its colour, and is
+			// left out of the link's name: the stage is named after the link.
 			$items .= sprintf(
-				'<li><a href="%1$s">%2$s</a> <span class="wp-block-undergrowth-garden-index-stage is-stage-%3$s"><span class="screen-reader-text">%4$s</span><span aria-hidden="true">%5$s</span></span></li>',
+				'<li><a href="%1$s"><span class="wp-block-undergrowth-garden-index-icon is-stage-%3$s">%6$s</span>%2$s</a> <span class="wp-block-undergrowth-garden-index-stage is-stage-%3$s"><span class="screen-reader-text">%4$s</span><span aria-hidden="true">%5$s</span></span></li>',
 				esc_url( (string) get_permalink( $post ) ),
 				esc_html( undergrowth_plain_line( undergrowth_post_title( $post ) ) ),
 				esc_attr( $stage ),
@@ -365,7 +367,8 @@ function undergrowth_render_garden_index_block( $attributes ): string {
 						$name
 					)
 				),
-				esc_html( $name )
+				esc_html( $name ),
+				undergrowth_stage_icon( $stage )
 			);
 		}
 

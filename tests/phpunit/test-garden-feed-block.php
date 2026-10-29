@@ -102,7 +102,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 	 * @return string[] Titles.
 	 */
 	private function titles( string $html ): array {
-		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span>([^<]*)</span></a>#', $html, $titles );
+		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage[^"]*">.*?</span><span>([^<]*)</span></a>#s', $html, $titles );
 
 		return array_map( 'html_entity_decode', $titles[1] );
 	}
@@ -201,12 +201,15 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( '', $this->render() );
 	}
 
-	public function test_each_entry_shows_its_stage_icon_with_an_accessible_name() {
+	public function test_each_entry_shows_its_stage_icon_in_the_title_link_and_names_the_stage_after_it() {
 		update_post_meta( $this->post( 'Oca' ), 'undergrowth_stage', 'budding' );
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-stage is-stage-budding"><svg [^>]*role="img" aria-label="Growth stage: Budding"#', $html );
+		// The glyph takes the link's colour and is left out of its name, so
+		// the link is named by the title alone.
+		$this->assertMatchesRegularExpression( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage is-stage-budding"><svg [^>]*aria-hidden="true" focusable="false">.*?</svg></span><span>Oca</span></a><span class="screen-reader-text">Growth stage: Budding</span>#s', $html );
+		$this->assertStringNotContainsString( 'role="img"', $html );
 	}
 
 	public function test_each_entry_shows_when_it_was_last_tended() {
@@ -353,7 +356,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( 1, substr_count( $html, 'has-image' ) );
 		$this->assertSame( 1, substr_count( $html, '<img ' ) );
 		// Decorative: the title names the entry, so the image says nothing more.
-		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-image"><img [^>]*class="[^"]*wp-block-undergrowth-garden-feed-image[^"]*"[^>]*><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span>Oca</span></a>#', $html );
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-image"><img [^>]*class="[^"]*wp-block-undergrowth-garden-feed-image[^"]*"[^>]*><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage[^"]*">.*?</span><span>Oca</span></a>#s', $html );
 		$this->assertMatchesRegularExpression( '#<img [^>]*alt=""#', $html );
 		$this->assertStringNotContainsString( 'is-featured', $html );
 

@@ -69,6 +69,20 @@ test.describe( 'Garden index block', () => {
 		await expect(
 			index.locator( '.is-stage-seedling .screen-reader-text' ).first()
 		).toBeAttached();
+		// Each stage's glyph sits in the title's link, drawn in the link's
+		// colour and left out of its name.
+		const lead = index.locator( 'li a' ).first();
+		await expect( lead.locator( 'svg[aria-hidden="true"]' ) ).toHaveCount(
+			1
+		);
+		await expect( lead ).toHaveAccessibleName( /^(First|Second|Third)$/ );
+		expect(
+			await lead.evaluate(
+				( link ) =>
+					window.getComputedStyle( link.querySelector( 'svg' ) )
+						.stroke === window.getComputedStyle( link ).color
+			)
+		).toBe( true );
 		await expectNoA11yViolations( page, INDEX );
 
 		// Composted the way an author would, from the Posts screen.

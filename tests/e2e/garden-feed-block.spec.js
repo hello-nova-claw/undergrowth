@@ -106,9 +106,21 @@ test.describe( 'Garden feed block', () => {
 		const title = await pictured.first().locator( TITLE ).boundingBox();
 		expect( Math.round( image.width ) ).toBe( Math.round( entry.width ) );
 		expect( image.y + image.height ).toBeLessThanOrEqual( title.y );
+		// Each stage's glyph sits in the title's link, drawn in the link's
+		// colour and left out of its name; the stage is named after it.
 		await expect(
-			feed.locator( 'svg[role="img"][aria-label]' )
+			feed.locator( `${ TITLE } svg[aria-hidden="true"]` )
 		).toHaveCount( 3 );
+		await expect( feed.locator( '.screen-reader-text' ) ).toHaveCount( 3 );
+		const lead = feed.locator( TITLE ).first();
+		await expect( lead ).toHaveAccessibleName( 'Oca' );
+		expect(
+			await lead.evaluate( ( link ) => [
+				window.getComputedStyle( link.querySelector( 'svg' ) )
+					.stroke === window.getComputedStyle( link ).color,
+				link.getBoundingClientRect().height >= 24,
+			] )
+		).toEqual( [ true, true ] );
 		await expect( feed.locator( 'time[datetime]' ) ).toHaveCount( 3 );
 		// Only the aside has a type; a standard post carries no label.
 		await expect(

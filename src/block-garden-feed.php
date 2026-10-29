@@ -268,7 +268,9 @@ function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxon
 	$stage = undergrowth_get_stage( $post_id );
 
 	// The title names the entry, so the image says nothing more to a
-	// screen reader and is left decorative.
+	// screen reader and is left decorative. The stage's glyph sits in the
+	// link to take its colour, and is left out of the link's name too;
+	// the stage's name follows the link, for screen readers only.
 	$picture = $images && has_post_thumbnail( $post )
 		? get_the_post_thumbnail(
 			$post,
@@ -280,18 +282,14 @@ function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxon
 		)
 		: '';
 	$item    = sprintf(
-		'<li class="wp-block-undergrowth-garden-feed-item%1$s">%2$s<a class="wp-block-undergrowth-garden-feed-title" href="%3$s"><span>%4$s</span></a>',
+		'<li class="wp-block-undergrowth-garden-feed-item%1$s">%2$s<a class="wp-block-undergrowth-garden-feed-title" href="%3$s"><span class="wp-block-undergrowth-garden-feed-stage is-stage-%4$s">%5$s</span><span>%6$s</span></a><span class="screen-reader-text">%7$s</span>',
 		'' === $picture ? '' : ' has-image',
 		$picture,
 		esc_url( (string) get_permalink( $post ) ),
-		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) )
-	);
-
-	$item .= sprintf(
-		'<span class="wp-block-undergrowth-garden-feed-stage is-stage-%1$s">%2$s</span>',
 		esc_attr( $stage ),
-		undergrowth_stage_icon(
-			$stage,
+		undergrowth_stage_icon( $stage ),
+		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) ),
+		esc_html(
 			sprintf(
 				/* translators: %s: growth stage name, such as Sprout. */
 				__( 'Growth stage: %s', 'undergrowth' ),

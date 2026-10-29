@@ -87,7 +87,7 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		$groups = array();
 
 		foreach ( $sections as $section ) {
-			preg_match_all( '#<a href="[^"]*">([^<]*)</a>#', $section[2], $titles );
+			preg_match_all( '#<a href="[^"]*">(?:<span class="wp-block-undergrowth-garden-index-icon[^"]*">.*?</span>)?([^<]*)</a>#s', $section[2], $titles );
 			$groups[ html_entity_decode( $section[1] ) ] = $titles[1];
 		}
 
@@ -157,6 +157,19 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 
 		$this->assertMatchesRegularExpression( '#>Oca leaves</a> <span class="wp-block-undergrowth-garden-index-stage is-stage-budding"><span class="screen-reader-text">Growth stage: Budding</span><span aria-hidden="true">Budding</span></span>#', $html );
 		$this->assertStringContainsString( '<span aria-hidden="true">Seedling</span>', $html );
+	}
+
+	public function test_each_post_shows_its_stage_icon_in_the_title_link() {
+		$posts = $this->plant_clusters();
+		update_post_meta( $posts['Oca leaves'], 'undergrowth_stage', 'budding' );
+		undergrowth_build_garden_index();
+
+		$html = $this->render();
+
+		// The glyph takes the link's colour and is left out of its name, so
+		// the link is named by the title alone.
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*"><span class="wp-block-undergrowth-garden-index-icon is-stage-budding"><svg [^>]*aria-hidden="true" focusable="false">.*?</svg></span>Oca leaves</a>#s', $html );
+		$this->assertStringNotContainsString( 'role="img"', $html );
 	}
 
 	/**

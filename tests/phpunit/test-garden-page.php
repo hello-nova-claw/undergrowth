@@ -111,6 +111,32 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertSame( '', $this->render() );
 	}
 
+	public function test_offers_a_quiet_style_beside_the_display_numeral() {
+		$registry = WP_Block_Styles_Registry::get_instance();
+		$registry->unregister( 'undergrowth/garden-count', 'quiet' );
+
+		undergrowth_register_block_styles();
+
+		$this->assertTrue( $registry->is_registered( 'undergrowth/garden-count', 'quiet' ) );
+		$this->assertSame( 'Quiet', $registry->get_registered_styles_for_block( 'undergrowth/garden-count' )['quiet']['label'] );
+
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-count.css' );
+
+		// The quiet number sits inline at the block's own size; the default
+		// keeps the display numeral.
+		$this->assertMatchesRegularExpression( '#\.is-style-quiet \.wp-block-undergrowth-garden-count-number \{[^}]*display: inline;[^}]*font-size: inherit;#s', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-count-number \{[^}]*font-size: clamp\(#ms', $css );
+	}
+
+	public function test_the_quiet_style_keeps_the_count_on_one_line() {
+		$this->posts( 3 );
+
+		$html = $this->render( array( 'className' => 'is-style-quiet' ) );
+
+		$this->assertMatchesRegularExpression( '#^<p class="[^"]*\bis-style-quiet\b[^"]*"><span class="wp-block-undergrowth-garden-count-number">3</span> <span class="wp-block-undergrowth-garden-count-label">posts in the garden</span></p>$#', $html );
+		$this->assertSame( '3 posts in the garden', trim( wp_strip_all_tags( $html ) ) );
+	}
+
 	public function test_registers_the_garden_page_pattern_in_its_own_category() {
 		$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( 'undergrowth/garden-page' );
 
@@ -144,14 +170,17 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$walk( parse_blocks( $pattern['content'] ) );
 
 		$this->assertSame(
-			array( 'core/heading', 'core/paragraph', 'undergrowth/garden-count', 'undergrowth/garden-filters', 'undergrowth/garden-feed' ),
-			array_values( array_intersect( $names, array( 'core/heading', 'core/paragraph', 'undergrowth/garden-count', 'undergrowth/garden-filters', 'undergrowth/garden-feed' ) ) )
+			array( 'undergrowth/garden-count', 'core/paragraph', 'undergrowth/garden-filters', 'undergrowth/garden-feed' ),
+			array_values( array_intersect( $names, array( 'core/paragraph', 'undergrowth/garden-count', 'undergrowth/garden-filters', 'undergrowth/garden-feed' ) ) )
 		);
+		// The page's own title is the heading.
+		$this->assertNotContains( 'core/heading', $names );
 		$this->assertContains( 'core/group', $names );
 		$this->assertContains( 'core/separator', $names );
 		$this->assertNotContains( 'core/columns', $names );
 		$this->assertStringContainsString( 'var:preset|spacing|', $pattern['content'] );
 		$this->assertStringContainsString( '"showImages":true', $pattern['content'] );
+		$this->assertStringContainsString( '<!-- wp:undergrowth/garden-count {"className":"is-style-quiet"} /-->', $pattern['content'] );
 	}
 
 	public function test_the_pattern_sets_no_colours_and_leaves_the_intro_to_the_author() {
@@ -160,8 +189,9 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertDoesNotMatchRegularExpression( '/#[0-9a-f]{3,6}\b|rgb\(|"(text|background)Color"/i', $content );
 		$this->assertStringNotContainsString( 'style="', $content );
 		// The intro is a placeholder the editor shows, so readers see none
-		// of it until the author writes their own.
-		$this->assertMatchesRegularExpression( '#<!-- wp:paragraph \{"placeholder":"[^"]+"\} -->\s*<p></p>#', $content );
+		// of it until the author writes their own. It takes the theme's
+		// large size, through the preset rather than a value.
+		$this->assertMatchesRegularExpression( '#<!-- wp:paragraph \{"placeholder":"[^"]+","fontSize":"large"\} -->\s*<p class="has-large-font-size"></p>#', $content );
 	}
 
 	public function test_the_pattern_renders_the_visible_garden() {
@@ -169,8 +199,8 @@ class Test_Garden_Page extends WP_UnitTestCase {
 
 		$html = do_blocks( WP_Block_Patterns_Registry::get_instance()->get_registered( 'undergrowth/garden-page' )['content'] );
 
-		$this->assertStringContainsString( 'The Garden', $html );
-		$this->assertStringContainsString( 'wp-block-undergrowth-garden-count', $html );
+		$this->assertStringNotContainsString( '<h2', $html );
+		$this->assertMatchesRegularExpression( '#<p class="[^"]*\bis-style-quiet\b[^"]*"><span class="wp-block-undergrowth-garden-count-number">2</span> <span class="wp-block-undergrowth-garden-count-label">posts in the garden</span></p>#', $html );
 		$this->assertStringContainsString( 'wp-block-undergrowth-garden-filters', $html );
 		$this->assertSame( 2, substr_count( $html, 'wp-block-undergrowth-garden-feed-item' ) );
 	}
