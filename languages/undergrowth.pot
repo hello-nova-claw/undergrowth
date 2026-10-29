@@ -2732,7 +2732,7 @@ msgstr ""
 
 #: build/blocks/garden-feed/index.js
 #: src/blocks/garden-feed/edit.js
-msgid "Feature the first post, with its image"
+msgid "Show featured images"
 msgstr ""
 
 #: build/blocks/garden-feed/index.js
@@ -2815,6 +2815,11 @@ msgstr ""
 #: build/blocks/garden-filters/index.js
 #: src/blocks/garden-filters/edit.js
 msgid "The types follow the garden feed on this page."
+msgstr ""
+
+#: build/blocks/garden-filters/index.js
+#: src/blocks/garden-filters/edit.js
+msgid "Show how many posts match"
 msgstr ""
 
 #: build/blocks/garden-index/index.js
