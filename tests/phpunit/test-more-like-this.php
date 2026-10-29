@@ -498,6 +498,15 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
 	}
 
+	public function test_an_editor_s_view_before_the_post_is_read_keeps_no_list() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertSame( '', $this->render( $post_id, array(), false ) );
+
+		// Kept empty, the list would never be measured once the post is read.
+		$this->assertFalse( undergrowth_similar_measured( $post_id ) );
+	}
+
 	public function test_a_post_without_a_vector_queues_no_measure() {
 		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
 
