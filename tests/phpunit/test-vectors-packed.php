@@ -11,14 +11,20 @@
 class Test_Vectors_Packed extends WP_UnitTestCase {
 
 	public function tear_down() {
+		global $wpdb;
+
 		remove_all_filters( 'undergrowth_pack_batch_size' );
 		delete_option( 'undergrowth_pack_vectors.lock' );
 
-		// A test that drops the packed column puts it back even if it fails,
-		// since a rollback does not undo a change to a table.
-		undergrowth_install_schema();
-
 		parent::tear_down();
+
+		// A test that drops the packed column gets it back even if it fails,
+		// since a rollback does not undo a change to a table. Only then, and
+		// only after the rollback: on MySQL a change to a table commits the
+		// test's rows, which would then outlive it.
+		if ( array() === (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', undergrowth_vectors_table(), 'packed' ) ) ) {
+			undergrowth_install_schema();
+		}
 	}
 
 	/**
@@ -299,7 +305,6 @@ class Test_Vectors_Packed extends WP_UnitTestCase {
 		remove_filter( 'dbdelta_queries', $refuse );
 		$this->assertFalse( $installed );
 		$this->assertFalse( get_option( 'undergrowth_schema_version' ) );
-		$this->assertTrue( undergrowth_install_schema() );
 	}
 
 	public function test_a_batch_waits_while_another_holds_the_lock() {
