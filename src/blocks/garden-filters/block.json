@@ -39,7 +39,10 @@
 		},
 		"typography": {
 			"fontSize": true,
-			"lineHeight": true
+			"lineHeight": true,
+			"__experimentalFontFamily": true,
+			"__experimentalLetterSpacing": true,
+			"__experimentalTextTransform": true
 		},
 		"spacing": {
 			"margin": true,
