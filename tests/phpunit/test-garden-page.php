@@ -59,6 +59,14 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertFalse( $type->supports['html'] );
 	}
 
+	public function test_block_brings_its_own_stylesheet() {
+		$type = WP_Block_Type_Registry::get_instance()->get_registered( 'undergrowth/garden-count' );
+
+		$this->assertSame( array( 'undergrowth-garden-count' ), $type->style_handles );
+		$this->assertTrue( wp_style_is( 'undergrowth-garden-count', 'registered' ) );
+		$this->assertFileExists( dirname( UNDERGROWTH_FILE ) . '/assets/garden-count.css' );
+	}
+
 	public function test_registers_again_without_a_build() {
 		WP_Block_Type_Registry::get_instance()->unregister( 'undergrowth/garden-count' );
 
@@ -140,7 +148,9 @@ class Test_Garden_Page extends WP_UnitTestCase {
 			array_values( array_intersect( $names, array( 'core/heading', 'core/paragraph', 'undergrowth/garden-count', 'undergrowth/garden-filters', 'undergrowth/garden-feed' ) ) )
 		);
 		$this->assertContains( 'core/group', $names );
-		$this->assertContains( 'core/columns', $names );
+		$this->assertContains( 'core/separator', $names );
+		$this->assertNotContains( 'core/columns', $names );
+		$this->assertStringContainsString( 'var:preset|spacing|', $pattern['content'] );
 		$this->assertStringContainsString( '"showFeatured":true', $pattern['content'] );
 	}
 

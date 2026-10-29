@@ -11,6 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_action( 'init', 'undergrowth_register_blocks' );
+add_action( 'init', 'undergrowth_register_block_styles' );
 
 /**
  * Registers the blocks from their block.json files.
@@ -47,6 +48,30 @@ function undergrowth_register_blocks(): void {
 
 		register_block_type( $folder, $args );
 	}
+}
+
+/**
+ * Registers the block styles authors can pick in place of the plain lists.
+ *
+ * Each is a real alternative layout, drawn in the plugin's stylesheets from
+ * the theme's own colours and spacing.
+ */
+function undergrowth_register_block_styles(): void {
+	register_block_style(
+		'undergrowth/more-like-this',
+		array(
+			'name'  => 'columns',
+			'label' => _x( 'Columns', 'block style', 'undergrowth' ),
+		)
+	);
+
+	register_block_style(
+		'undergrowth/garden-index',
+		array(
+			'name'  => 'specimen',
+			'label' => _x( 'Specimen', 'block style', 'undergrowth' ),
+		)
+	);
 }
 
 /**
@@ -142,7 +167,16 @@ function undergrowth_render_growth_stage_block( $attributes, $content, $block ):
  * @return string List markup, or an empty string when there is nothing to show.
  */
 function undergrowth_render_more_like_this_block( $attributes, $content, $block ): string {
-	$post_ids = undergrowth_more_like_this( (int) ( $block->context['postId'] ?? 0 ), (int) ( $attributes['postsToShow'] ?? 3 ) );
+	$post_id = (int) ( $block->context['postId'] ?? 0 );
+
+	// A list never measured is measured in cron, not while a reader waits.
+	// Someone who can edit the post, such as the author in the editor's
+	// preview, has it measured there and then, as the editor sidebar does.
+	if ( ! current_user_can( 'edit_post', $post_id ) && ! undergrowth_similar_ready( $post_id ) ) {
+		return '';
+	}
+
+	$post_ids = undergrowth_more_like_this( $post_id, (int) ( $attributes['postsToShow'] ?? 3 ) );
 
 	if ( array() === $post_ids ) {
 		return '';

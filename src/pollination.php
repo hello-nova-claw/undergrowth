@@ -791,8 +791,18 @@ function undergrowth_pollination_pairs( int $limit = 0, ?int $step = null, ?arra
 		$members[ $cluster['leader'] ] = $cluster['members'];
 	}
 
-	$linked = undergrowth_linked_group_pairs();
-	$pairs  = array();
+	$linked  = undergrowth_linked_group_pairs();
+	$pairs   = array();
+	$bridges = array();
+
+	// The first bridge of each pair, which is nearly always the one taken,
+	// in one query rather than one each below.
+	foreach ( (array) $stored['pairs'] as $found ) {
+		$first     = (array) ( array_values( (array) ( $found['bridge'] ?? array() ) )[0] ?? array() );
+		$bridges[] = (int) ( array_values( $first )[0] ?? 0 );
+	}
+
+	_prime_post_caches( array_unique( array_filter( $bridges ) ), false, false );
 
 	foreach ( $keys as $key ) {
 		list( $a, $b ) = array_map( 'intval', explode( '-', (string) $key ) );

@@ -26,17 +26,23 @@ const UNDERGROWTH_SIMILAR_FRESH_LIFT = 0.1;
 const UNDERGROWTH_SIMILAR_FRESH_HALF = 180;
 const UNDERGROWTH_SIMILAR_POPULAR    = 0.15;
 
-add_action( 'undergrowth_post_embedded', 'undergrowth_forget_similar' );
-add_action( 'undergrowth_post_left_index', 'undergrowth_forget_similar' );
-add_action( 'undergrowth_stage_changed', 'undergrowth_forget_similar' );
+add_action( 'undergrowth_post_embedded', 'undergrowth_queue_similar_neighbours' );
+add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_similar', 10, 2 );
+add_action( 'undergrowth_stage_changed', 'undergrowth_similar_stage_changed' );
+add_action( 'add_option_undergrowth_index_identity', 'undergrowth_forget_similar', 10, 0 );
+add_action( 'update_option_undergrowth_index_identity', 'undergrowth_forget_similar', 10, 0 );
 add_action( 'undergrowth_measure_similar', 'undergrowth_remeasure_similar' );
+add_action( 'undergrowth_similar_neighbours', 'undergrowth_update_similar_neighbours' );
+add_action( 'undergrowth_similar_forget', 'undergrowth_drop_similar_post' );
 add_action( 'rest_api_init', 'undergrowth_register_similar_routes' );
 
 /**
  * Marks every cached list as stale.
  *
- * A new or changed vector, or a new stage, can change any post's list, so
- * one counter covers them all, and each list is measured again in cron once it is next shown.
+ * Once the index is read again with a new provider, model or language,
+ * every list is out of date, so one counter covers them all, and each list
+ * is measured again in cron once it is next shown. A single post's change
+ * reaches only the lists near it: see undergrowth_update_similar_neighbours().
  */
 function undergrowth_forget_similar(): void {
 	update_option( 'undergrowth_similar_generation', (int) get_option( 'undergrowth_similar_generation', 0 ) + 1, false );
@@ -50,8 +56,9 @@ function undergrowth_forget_similar(): void {
  * decided when the list is shown, not here.
  *
  * Measuring reads every vector, so a page view never does it twice. A list
- * kept from before a vector changed is still shown, and measured again in
- * cron. Only a post that was never measured is measured on the spot.
+ * kept from before the index was read again is still shown, and measured
+ * again in cron. Only a post that was never measured is measured on the
+ * spot, which the block never asks for: see undergrowth_similar_ready().
  *
  * @param int $post_id Post ID.
  * @return array<int, float> Similarity keyed by post ID, highest first.
@@ -71,39 +78,48 @@ function undergrowth_similar_scores( int $post_id ): array {
 }
 
 /**
- * Measures how close every comparable post is to a post, and keeps the
- * closest.
+ * Whether a post's list can be shown without measuring it, queuing the
+ * measure in cron when it cannot.
+ *
+ * Measuring compares the post with the whole index, which a reader should
+ * never wait for, so the block shows nothing for a post until cron has
+ * measured its list once.
  *
  * @param int $post_id Post ID.
- * @return array<int, float> Similarity keyed by post ID, highest first.
+ * @return bool True when the post has a kept list.
  */
-function undergrowth_measure_similar( int $post_id ): array {
-	$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
-	$pool       = undergrowth_comparable_vectors( $post_id );
-	$scores     = array();
-
-	if ( isset( $pool[ $post_id ] ) ) {
-		$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
-		$minimum = undergrowth_min_link_similarity();
-
-		unset( $pool[ $post_id ] );
-
-		foreach ( $pool as $target_id => $packed ) {
-			$vector = undergrowth_unpack_vector( $packed );
-
-			if ( ! undergrowth_vectors_comparable( $source, $vector ) ) {
-				continue;
-			}
-
-			$score = undergrowth_cosine( $source, $vector );
-
-			if ( $score >= $minimum ) {
-				$scores[ (int) $target_id ] = $score;
-			}
-		}
+function undergrowth_similar_ready( int $post_id ): bool {
+	if ( undergrowth_similar_measured( $post_id ) ) {
+		return true;
 	}
 
-	// Ties go to the lower ID, so the same vectors always give the same list.
+	if ( undergrowth_is_garden_visible( $post_id ) && null !== undergrowth_get_vector_space( $post_id ) && false === wp_next_scheduled( 'undergrowth_measure_similar', array( $post_id ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_measure_similar', array( $post_id ) );
+	}
+
+	return false;
+}
+
+/**
+ * Whether a post's list was measured and kept.
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function undergrowth_similar_measured( int $post_id ): bool {
+	$cached = get_post_meta( $post_id, 'undergrowth_similar', true );
+
+	return is_array( $cached ) && is_array( $cached['scores'] ?? null );
+}
+
+/**
+ * Orders scores highest first, ties to the lower ID, so the same vectors
+ * always give the same list.
+ *
+ * @param array<int, float> $scores Similarity keyed by post ID.
+ * @return array<int, float>
+ */
+function undergrowth_sort_similar( array $scores ): array {
 	uksort(
 		$scores,
 		static function ( $a, $b ) use ( $scores ) {
@@ -113,18 +129,61 @@ function undergrowth_measure_similar( int $post_id ): array {
 		}
 	);
 
+	return $scores;
+}
+
+/**
+ * Measures how close every comparable post is to a post, and keeps the
+ * closest.
+ *
+ * @param int                     $post_id Post ID.
+ * @param array<int, string>|null $pool    Packed vectors of the post's space, when the caller has read them already.
+ * @return array<int, float> Similarity keyed by post ID, highest first.
+ */
+function undergrowth_measure_similar( int $post_id, ?array $pool = null ): array {
+	$generation = (int) get_option( 'undergrowth_similar_generation', 0 );
+	$pool       = $pool ?? undergrowth_comparable_vectors( $post_id );
+	$scores     = array();
+
+	// A post not read yet has nothing to measure, and an empty list kept
+	// for it would never be measured once it is read.
+	if ( ! isset( $pool[ $post_id ] ) ) {
+		return array();
+	}
+
+	$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
+	$minimum = undergrowth_min_link_similarity();
+
+	unset( $pool[ $post_id ] );
+
+	foreach ( $pool as $target_id => $packed ) {
+		$vector = undergrowth_unpack_vector( $packed );
+
+		if ( ! undergrowth_vectors_comparable( $source, $vector ) ) {
+			continue;
+		}
+
+		$score = undergrowth_cosine( $source, $vector );
+
+		if ( $score >= $minimum ) {
+			$scores[ (int) $target_id ] = $score;
+		}
+	}
+
+	$scores = undergrowth_sort_similar( $scores );
+
 	// Posts readers may not see, or the author hid, are left out first, so
-	// they never take the place of one that can be shown. Each change to
-	// either measures the list again.
+	// they never take the place of one that can be shown. Hiding measures
+	// the list again, and a post returned from compost is added back to the
+	// lists near it.
 	$hidden = array_flip( undergrowth_similar_hidden( $post_id ) );
 	$scores = array_intersect_key( $scores, array_flip( undergrowth_filter_garden_visible( array_keys( array_diff_key( $scores, $hidden ) ) ) ) );
 
 	// Every candidate is weighed here, so a post far down by meaning alone
 	// that rises on its stage, freshness or views is kept. The closest by
 	// meaning are kept too, for the quiet slot. The bound keeps one post's
-	// list from holding the whole archive. Stage changes and each day's
-	// views measure it again, and freshness fades too slowly to reorder
-	// much before the next measure.
+	// list from holding the whole archive. Each view weighs the kept list
+	// again with the day's stages and views, so neither measures it again.
 	$weighted = undergrowth_similar_rank( $scores, undergrowth_posts_popularity( array_keys( $scores ) ) );
 
 	$keep   = array_slice( array_keys( $weighted ), 0, UNDERGROWTH_SIMILAR_CACHED );
@@ -144,12 +203,198 @@ function undergrowth_measure_similar( int $post_id ): array {
 }
 
 /**
- * Measures a post's list again in cron, after a vector changed.
+ * Measures a post's list in cron, the first time it is shown or once the
+ * index was read again.
  *
  * @param int $post_id Post ID.
  */
 function undergrowth_remeasure_similar( int $post_id ): void {
 	undergrowth_measure_similar( $post_id );
+}
+
+/**
+ * Queues the update of the lists near a post whose vector is new or changed.
+ *
+ * During a first read, or a read again with a new provider, model or
+ * language, every list is measured again once the index is recorded, so
+ * updating the lists as each post is read would be thrown away.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_queue_similar_neighbours( int $post_id ): void {
+	if ( get_option( 'undergrowth_index_identity' ) === undergrowth_index_target() && false === wp_next_scheduled( 'undergrowth_similar_neighbours', array( $post_id ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_similar_neighbours', array( $post_id ) );
+	}
+}
+
+/**
+ * Updates the lists near a post composted or returned from compost.
+ *
+ * A post composted is taken off them, as a fresh measure would leave it
+ * out, and one returned is put back. Other stage changes need nothing:
+ * each view weighs the kept list with the current stages.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_similar_stage_changed( int $post_id ): void {
+	$log  = undergrowth_stage_log( $post_id );
+	$last = end( $log );
+
+	if ( is_array( $last ) && $last['from'] !== $last['to'] && in_array( 'composting', array( $last['from'], $last['to'] ), true ) ) {
+		undergrowth_queue_similar_neighbours( $post_id );
+	}
+}
+
+/**
+ * Forgets the list of a post that left the index, and queues taking it off
+ * the other kept lists.
+ *
+ * A post unpublished would drop off them as they are shown anyway, but one
+ * whose vector a failed re-embed removed is still published, and would
+ * stay on them. A post that never had a vector is on no list, so the lists
+ * are walked only when one was removed.
+ *
+ * @param int  $post_id    Post ID.
+ * @param bool $had_vector Whether the post had a vector until now.
+ */
+function undergrowth_forget_post_similar( int $post_id, bool $had_vector = true ): void {
+	delete_post_meta( $post_id, 'undergrowth_similar' );
+
+	if ( $had_vector && false === wp_next_scheduled( 'undergrowth_similar_forget', array( $post_id ) ) ) {
+		wp_schedule_single_event( time(), 'undergrowth_similar_forget', array( $post_id ) );
+	}
+}
+
+/**
+ * Takes a post without a vector off every kept list. No vector is read.
+ *
+ * A post embedded again meanwhile is left to its own update of the lists
+ * near it.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_drop_similar_post( int $post_id ): void {
+	if ( null !== undergrowth_get_vector_space( $post_id ) ) {
+		return;
+	}
+
+	foreach ( array_chunk( array_diff( undergrowth_similar_measured_posts(), array( $post_id ) ), UNDERGROWTH_SIMILAR_CACHED ) as $chunk ) {
+		update_meta_cache( 'post', $chunk );
+
+		foreach ( $chunk as $list_id ) {
+			$cached = get_post_meta( $list_id, 'undergrowth_similar', true );
+
+			if ( is_array( $cached ) && isset( $cached['scores'][ $post_id ] ) ) {
+				unset( $cached['scores'][ $post_id ] );
+				update_post_meta( $list_id, 'undergrowth_similar', $cached );
+			}
+
+			wp_cache_delete( $list_id, 'post_meta' );
+		}
+	}
+}
+
+/**
+ * Lists the posts whose list was measured and kept.
+ *
+ * @return int[] Post IDs.
+ */
+function undergrowth_similar_measured_posts(): array {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Every post with the key, which no core function lists.
+	return array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( 'SELECT post_id FROM %i WHERE meta_key = %s', $wpdb->postmeta, 'undergrowth_similar' ) ) );
+}
+
+/**
+ * Puts a post with a new or changed vector into the kept lists near it, at
+ * its new score, and takes it off the lists it is no longer near.
+ *
+ * Similarity is symmetric, so one pass over the index gives the post's
+ * score in every other list, and no other list is measured again. The
+ * post's own list, if it has one, is measured from the same pass.
+ *
+ * @param int $post_id Post ID.
+ */
+function undergrowth_update_similar_neighbours( int $post_id ): void {
+	$pool = undergrowth_comparable_vectors( $post_id );
+
+	if ( ! isset( $pool[ $post_id ] ) ) {
+		return;
+	}
+
+	if ( undergrowth_similar_measured( $post_id ) ) {
+		undergrowth_measure_similar( $post_id, $pool );
+	}
+
+	$vector  = undergrowth_unpack_vector( $pool[ $post_id ] );
+	$shown   = undergrowth_is_garden_visible( $post_id );
+	$minimum = undergrowth_min_link_similarity();
+	$lists   = array_values( array_diff( array_intersect( undergrowth_similar_measured_posts(), array_keys( $pool ) ), array( $post_id ) ) );
+
+	// A chunk's meta is read in one query and let go after, so a large
+	// archive's lists never all sit in memory at once.
+	foreach ( array_chunk( $lists, UNDERGROWTH_SIMILAR_CACHED ) as $chunk ) {
+		update_meta_cache( 'post', $chunk );
+
+		foreach ( $chunk as $list_id ) {
+			undergrowth_update_similar_list( $list_id, $post_id, $shown ? $vector : array(), $pool[ $list_id ], $minimum );
+			wp_cache_delete( $list_id, 'post_meta' );
+		}
+	}
+}
+
+/**
+ * Sets one post's score in another post's kept list, or takes it off.
+ *
+ * @param int     $list_id Post whose list it is.
+ * @param int     $post_id Post to place.
+ * @param float[] $vector  The post's vector, or none when readers may not see it.
+ * @param string  $packed  The list's own packed vector.
+ * @param float   $minimum Lowest similarity a list keeps.
+ */
+function undergrowth_update_similar_list( int $list_id, int $post_id, array $vector, string $packed, float $minimum ): void {
+	$cached = get_post_meta( $list_id, 'undergrowth_similar', true );
+
+	if ( ! is_array( $cached ) || ! is_array( $cached['scores'] ?? null ) ) {
+		return;
+	}
+
+	$scores = $cached['scores'];
+	$own    = undergrowth_unpack_vector( $packed );
+	$score  = null;
+
+	// Scored as measuring this list would score it, list first.
+	if ( undergrowth_vectors_comparable( $own, $vector ) && ! in_array( $post_id, undergrowth_similar_hidden( $list_id ), true ) ) {
+		$score = undergrowth_cosine( $own, $vector );
+	}
+
+	if ( null !== $score && $score >= $minimum ) {
+		// A full list keeps only what beats its lowest score.
+		if ( ! isset( $scores[ $post_id ] ) && count( $scores ) >= 2 * UNDERGROWTH_SIMILAR_CACHED && $score <= min( $scores ) ) {
+			return;
+		}
+
+		if ( ( $scores[ $post_id ] ?? null ) === $score ) {
+			return;
+		}
+
+		$scores[ $post_id ] = $score;
+		$scores             = array_slice( undergrowth_sort_similar( $scores ), 0, 2 * UNDERGROWTH_SIMILAR_CACHED, true );
+	} elseif ( isset( $scores[ $post_id ] ) ) {
+		unset( $scores[ $post_id ] );
+	} else {
+		return;
+	}
+
+	update_post_meta(
+		$list_id,
+		'undergrowth_similar',
+		array(
+			'generation' => $cached['generation'] ?? 0,
+			'scores'     => $scores,
+		)
+	);
 }
 
 /**

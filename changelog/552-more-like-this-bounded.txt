@@ -1,0 +1,1 @@
+"More like this" no longer makes a reader wait while it compares a post with every other post. A post's list is worked out in the background the first time the block is shown, and the block appears once it is ready. Saving a post now updates only the lists near it, instead of making every list be worked out again.

@@ -371,6 +371,63 @@ add_filter(
 	99
 );
 
+// The catalogue shows the reader blocks in several themes. Each request
+// that carries this cookie uses that theme, if it is installed, so every
+// theme is served by one site without switching it for the others.
+$undergrowth_e2e_theme = undergrowth_e2e_cookie( 'undergrowth_e2e_theme', array( 'twentytwentyfive', 'twentytwentyfive-evening', 'twentytwentyfour', 'twentytwentyone' ) );
+
+if ( '' !== $undergrowth_e2e_theme ) {
+	$undergrowth_e2e_slug = str_replace( '-evening', '', $undergrowth_e2e_theme );
+	// Checked when first asked, since the theme folders are registered
+	// after this file loads. A theme that is not installed is left alone.
+	$undergrowth_e2e_switch = static function ( $value ) use ( $undergrowth_e2e_slug ) {
+		static $exists = null;
+
+		if ( null === $exists ) {
+			// False while it looks, in case looking asks for the option.
+			$exists = false;
+			$exists = wp_get_theme( $undergrowth_e2e_slug )->exists();
+		}
+
+		return $exists ? $undergrowth_e2e_slug : $value;
+	};
+
+	add_filter( 'pre_option_stylesheet', $undergrowth_e2e_switch );
+	add_filter( 'pre_option_template', $undergrowth_e2e_switch );
+
+	// Evening is Twenty Twenty-Five's dark style variation, applied as if
+	// the author had chosen it in the Site Editor.
+	if ( 'twentytwentyfive-evening' === $undergrowth_e2e_theme ) {
+		add_filter(
+			'wp_theme_json_data_user',
+			static function ( $theme_json ) {
+				$folder = get_stylesheet_directory() . '/styles';
+
+				foreach ( array_merge( (array) glob( $folder . '/*.json' ), (array) glob( $folder . '/*/*.json' ) ) as $file ) {
+					$variation = json_decode( (string) file_get_contents( $file ), true );
+
+					if ( is_array( $variation ) && 'Evening' === ( $variation['title'] ?? '' ) && empty( $variation['blockTypes'] ) ) {
+						// The catalogue checks for this class, so a page
+						// without the variation is never filed under it.
+						add_filter(
+							'body_class',
+							static function ( $classes ) {
+								$classes[] = 'undergrowth-e2e-evening';
+
+								return $classes;
+							}
+						);
+
+						return $theme_json->update_with( $variation );
+					}
+				}
+
+				return $theme_json;
+			}
+		);
+	}
+}
+
 // Each fixture changes only what one screen reads, and only for requests that
 // carry the cookie.
 switch ( undergrowth_e2e_cookie( 'undergrowth_e2e_fixture', array( 'no-provider', 'key-saved', 'code-provider-key-saved', 'last-error', 'file-last-error', 'accept-last-error', 'suggestions-off', 'post-types-by-code', 'digest-on', 'prompt-key-saved', 'prompt-asked', 'prompt-last-error', 'prompt-refused', 'prompt', 'prompt-studio', 'discord-saved', 'discord-invalid', 'discord-last-error', 'index-partial', 'backfill-stalled', 'tight-gaps', 'hubs', 'meter-below', 'meter-crossed', 'meter-no-answer', 'first-run', 'first-key-saved' ) ) ) {

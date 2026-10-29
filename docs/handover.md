@@ -339,6 +339,7 @@ Anna confirmed docs/vision.md on 2026-10-25, accepting every recommendation. The
 - Popularity is pluggable: an `undergrowth_post_popularity` filter with adapters for Jetpack Stats (public `WPCOM_Stats` class), Koko Analytics and Post Views Counter. With none, popularity is left out. No built-in view counter.
 - Approval (exception to principles 2 and 7, decided): placing the block is the author's approval of the list it shows. Per post, the author can veto any suggestion, and the veto is kept forever like every other veto.
 - Titles, author-written excerpts, featured images and links only. No model text.
+- Measured in cron, never while a reader waits. A post whose list was never measured shows readers no block until cron has measured it; someone who can edit the post, as in the editor's preview, has it measured on the spot. A save places the post in the kept lists near it, at the score it would get from a fresh measure, rather than marking every list stale. Stage changes and the day's views reweigh the kept list each time it is shown. Every list is measured again once the index is read with a new provider, model or language.
 
 ### 12.3 Garden SEO without reader data
 

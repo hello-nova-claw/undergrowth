@@ -309,6 +309,26 @@ class Test_Pollination extends WP_UnitTestCase {
 		$this->assertNull( $pairs[0]['sweet'] );
 	}
 
+	public function test_bridge_posts_are_loaded_together_not_one_by_one() {
+		$this->two_groups( 0.0 );
+		$bridge = $this->seed( 'Roots and ledgers', array( 1.0, 1.0, 0.0, 0.0 ) );
+		$this->find();
+		clean_post_cache( $bridge );
+		$single = 0;
+		$count  = static function ( $query ) use ( &$single ) {
+			$single += (int) preg_match( '/^SELECT \* FROM \S+ WHERE ID = \d+ LIMIT 1$/', $query );
+
+			return $query;
+		};
+		add_filter( 'query', $count );
+
+		$pairs = undergrowth_pollination_pairs( 0, 1 );
+
+		remove_filter( 'query', $count );
+		$this->assertSame( $bridge, $pairs[0]['bridge'][0] );
+		$this->assertSame( 0, $single );
+	}
+
 	public function test_weak_bridge_needs_a_higher_step() {
 		$this->two_groups( 0.0 );
 		// 0.44 to each centre: past step 3's 0.45, within step 4's 0.425.

@@ -92,11 +92,19 @@ class Test_More_Like_This extends WP_UnitTestCase {
 	/**
 	 * Renders the block for a post.
 	 *
-	 * @param int                  $post_id Post ID given as block context.
-	 * @param array<string, mixed> $attrs   Block attributes.
+	 * The list is measured first, as cron would have, unless $measured is
+	 * false.
+	 *
+	 * @param int                  $post_id  Post ID given as block context.
+	 * @param array<string, mixed> $attrs    Block attributes.
+	 * @param bool                 $measured Whether to measure a list never measured before rendering.
 	 * @return string Markup.
 	 */
-	private function render( int $post_id, array $attrs = array() ): string {
+	private function render( int $post_id, array $attrs = array(), bool $measured = true ): string {
+		if ( $measured && $post_id > 0 && ! is_array( get_post_meta( $post_id, 'undergrowth_similar', true ) ) ) {
+			undergrowth_measure_similar( $post_id );
+		}
+
 		$block = new WP_Block(
 			array(
 				'blockName'    => 'undergrowth/more-like-this',
@@ -204,14 +212,16 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( array( $shown ), undergrowth_more_like_this( $this->source, 3 ) );
 	}
 
-	public function test_a_new_stage_measures_the_lists_again() {
-		$yacon = $this->old( 'Yacon', array( 1, 0, 0 ) );
-		undergrowth_similar_scores( $this->source );
+	public function test_a_new_stage_reorders_the_kept_list_without_measuring_it_again() {
+		$closer = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$budded = $this->old( 'Mashua', array( 1, 0.2, 0 ) );
+		$this->assertSame( array( $closer, $budded ), undergrowth_more_like_this( $this->source, 6 ) );
 
-		do_action( 'undergrowth_stage_changed', $yacon );
-		undergrowth_similar_scores( $this->source );
+		undergrowth_set_stage( $budded, 'evergreen', 'cycle' );
 
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+		$this->assertSame( array( $budded, $closer ), undergrowth_more_like_this( $this->source, 6 ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $budded ) ) );
 	}
 
 	public function test_stage_weights_can_be_filtered() {
@@ -380,30 +390,246 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( array( $first, $second ), undergrowth_more_like_this( $this->source, 2 ) );
 	}
 
-	public function test_the_list_is_kept_until_a_vector_changes_then_measured_again_in_cron() {
+	public function test_a_new_vector_is_added_to_the_kept_lists_in_cron_without_measuring_them() {
+		$this->index_recorded();
 		$yacon = $this->old( 'Yacon', array( 1, 0, 0 ) );
 		$this->assertSame( array( $yacon => 1.0 ), array_map( 'round', undergrowth_similar_scores( $this->source ) ) );
 
 		// A vector stored without an embed is not seen until one happens.
 		$mashua = $this->old( 'Mashua', array( 1, 0.1, 0 ) );
 		$this->assertArrayNotHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
-		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
 
 		// After one, a page view still gets the kept list and reads no
-		// vectors; the list is measured again in cron.
+		// vectors. The new post is added to the lists near it in cron.
 		do_action( 'undergrowth_post_embedded', $mashua );
 		$before = get_num_queries();
 		$this->assertArrayNotHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
 		$this->assertLessThanOrEqual( 3, get_num_queries() - $before );
-		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $mashua ) ) );
 
-		do_action( 'undergrowth_measure_similar', $this->source );
+		do_action( 'undergrowth_similar_neighbours', $mashua );
 		$this->assertArrayHasKey( $mashua, undergrowth_similar_scores( $this->source ) );
 
 		$this->old( 'Syrup', array( 1, 0.2, 0 ) );
 		do_action( 'undergrowth_post_left_index', $yacon );
 		undergrowth_measure_similar( $this->source );
 		$this->assertCount( 3, undergrowth_similar_scores( $this->source ) );
+	}
+
+	/**
+	 * Records the index as read with the current provider, as the end of a
+	 * first read does.
+	 */
+	private function index_recorded(): void {
+		update_option( 'undergrowth_index_identity', undergrowth_index_target(), false );
+	}
+
+	/**
+	 * Measures each post's list afresh and returns them all.
+	 *
+	 * @param int[] $post_ids Post IDs.
+	 * @return array<int, array<int, float>> Each list's scores, rounded to float32 precision, keyed by post ID.
+	 */
+	private function measured_afresh( array $post_ids ): array {
+		$lists = array();
+
+		foreach ( $post_ids as $post_id ) {
+			$lists[ $post_id ] = array_map( array( $this, 'rounded' ), undergrowth_measure_similar( $post_id ) );
+		}
+
+		return $lists;
+	}
+
+	/**
+	 * Returns each post's kept list.
+	 *
+	 * @param int[] $post_ids Post IDs.
+	 * @return array<int, array<int, float>> Each list's scores, rounded to float32 precision, keyed by post ID.
+	 */
+	private function kept( array $post_ids ): array {
+		$lists = array();
+
+		foreach ( $post_ids as $post_id ) {
+			$lists[ $post_id ] = array_map( array( $this, 'rounded' ), undergrowth_similar_scores( $post_id ) );
+		}
+
+		return $lists;
+	}
+
+	/**
+	 * Rounds a score to the precision a packed vector keeps.
+	 *
+	 * @param float $score Score.
+	 * @return float
+	 */
+	public function rounded( float $score ): float {
+		return round( $score, 5 );
+	}
+
+	public function test_the_block_never_measures_a_list_while_a_reader_waits() {
+		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		wp_set_current_user( 0 );
+		$reads = 0;
+		$count = static function ( $query ) use ( &$reads ) {
+			$reads += (int) ( false !== strpos( $query, undergrowth_vectors_table() ) && false !== strpos( $query, 'embedding' ) );
+
+			return $query;
+		};
+		add_filter( 'query', $count );
+
+		$html = $this->render( $this->source, array(), false );
+
+		remove_filter( 'query', $count );
+		$this->assertSame( '', $html );
+		$this->assertSame( 0, $reads );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+
+		do_action( 'undergrowth_measure_similar', $this->source );
+
+		$this->assertStringContainsString( (string) get_permalink( $yacon ), $this->render( $this->source, array(), false ) );
+	}
+
+	public function test_the_block_measures_the_list_for_someone_who_can_edit_the_post() {
+		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+
+		// The editor's preview, or the author looking at their own post.
+		$this->assertStringContainsString( (string) get_permalink( $yacon ), $this->render( $this->source, array(), false ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+	}
+
+	public function test_an_editor_s_view_before_the_post_is_read_keeps_no_list() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertSame( '', $this->render( $post_id, array(), false ) );
+
+		// Kept empty, the list would never be measured once the post is read.
+		$this->assertFalse( undergrowth_similar_measured( $post_id ) );
+	}
+
+	public function test_a_post_without_a_vector_queues_no_measure() {
+		$post_id = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+
+		$this->assertSame( '', $this->render( $post_id, array(), false ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $post_id ) ) );
+	}
+
+	public function test_one_save_queues_no_measure_of_the_lists_viewed_afterwards() {
+		$this->index_recorded();
+		$posts = array( $this->source );
+
+		for ( $i = 1; $i <= 8; $i++ ) {
+			$posts[] = $this->old( 'Post ' . $i, array( 1, $i / 10, 0 ) );
+		}
+
+		$this->kept( $posts );
+		$this->plant( 'Saved', array( 1, 0.05, 0 ) );
+		$this->kept( $posts );
+
+		foreach ( $posts as $post_id ) {
+			$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $post_id ) ), (string) $post_id );
+		}
+	}
+
+	public function test_lists_kept_after_saves_match_lists_measured_afresh() {
+		$this->index_recorded();
+		$yacon  = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$mashua = $this->old( 'Mashua', array( 1, 0.5, 0 ) );
+		$far    = $this->old( 'Far', array( 0, 0, 1 ) );
+		$posts  = array( $this->source, $yacon, $mashua, $far );
+		$this->kept( $posts );
+
+		// A new post near some lists, and an old one moved far from them.
+		$new = $this->plant( 'Syrup', array( 1, 0.3, 0 ) );
+		undergrowth_save_vector( $yacon, array( 0, 0.1, 1 ), $this->space( $yacon ) );
+		do_action( 'undergrowth_post_embedded', $yacon );
+		do_action( 'undergrowth_similar_neighbours', $new );
+		do_action( 'undergrowth_similar_neighbours', $yacon );
+
+		$kept = $this->kept( $posts );
+
+		$this->assertSame( $this->measured_afresh( $posts ), $kept );
+		$this->assertArrayHasKey( $new, $kept[ $this->source ] );
+		$this->assertArrayNotHasKey( $yacon, $kept[ $this->source ] );
+		$this->assertArrayHasKey( $yacon, $kept[ $far ] );
+	}
+
+	public function test_a_post_back_from_compost_returns_to_the_lists_near_it() {
+		$this->index_recorded();
+		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$this->assertTrue( undergrowth_compost_post( $yacon ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $yacon ) ) );
+		do_action( 'undergrowth_similar_neighbours', $yacon );
+		wp_clear_scheduled_hook( 'undergrowth_similar_neighbours', array( $yacon ) );
+		$this->assertSame( array(), undergrowth_similar_scores( $this->source ) );
+
+		$this->assertTrue( undergrowth_return_post( $yacon ) );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $yacon ) ) );
+		do_action( 'undergrowth_similar_neighbours', $yacon );
+
+		$this->assertSame( array( $yacon ), undergrowth_more_like_this( $this->source, 6 ) );
+	}
+
+	public function test_a_post_whose_vector_is_removed_leaves_every_kept_list() {
+		$yacon  = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		$mashua = $this->old( 'Mashua', array( 1, 0.2, 0 ) );
+		$this->assertSame( array( $yacon, $mashua ), undergrowth_more_like_this( $this->source, 6 ) );
+		undergrowth_similar_scores( $mashua );
+
+		// A failed re-embed takes the vector away from a post still published.
+		undergrowth_remove_from_index( $yacon );
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_similar_forget', array( $yacon ) ) );
+		do_action( 'undergrowth_similar_forget', $yacon );
+
+		$this->assertArrayNotHasKey( $yacon, undergrowth_similar_scores( $this->source ) );
+		$this->assertArrayNotHasKey( $yacon, undergrowth_similar_scores( $mashua ) );
+		$this->assertSame( array( $mashua ), undergrowth_more_like_this( $this->source, 6 ) );
+		$this->assertFalse( undergrowth_similar_measured( $yacon ) );
+	}
+
+	public function test_a_post_that_never_had_a_vector_queues_no_walk_of_the_lists() {
+		undergrowth_similar_scores( $this->source );
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		undergrowth_remove_from_index( $draft );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_similar_forget', array( $draft ) ) );
+	}
+
+	public function test_a_first_read_queues_no_neighbour_updates() {
+		$mashua = $this->old( 'Mashua', array( 1, 0.1, 0 ) );
+		undergrowth_similar_scores( $this->source );
+
+		do_action( 'undergrowth_post_embedded', $mashua );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_similar_neighbours', array( $mashua ) ) );
+	}
+
+	public function test_a_new_provider_s_index_measures_each_list_again_when_shown() {
+		$this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		undergrowth_similar_scores( $this->source );
+
+		$this->index_recorded();
+		undergrowth_similar_scores( $this->source );
+
+		$this->assertNotFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
+	}
+
+	/**
+	 * Returns the identity a post's stored vector has.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<string, string> Provider, model, language and content hash.
+	 */
+	private function space( int $post_id ): array {
+		$stored = (array) undergrowth_get_vector( $post_id );
+
+		return array(
+			'provider'     => (string) $stored['provider'],
+			'model'        => (string) $stored['model'],
+			'language'     => (string) $stored['language'],
+			'content_hash' => (string) $stored['content_hash'],
+		);
 	}
 
 	public function test_a_post_without_a_vector_has_an_empty_list() {
