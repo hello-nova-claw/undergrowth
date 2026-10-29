@@ -145,6 +145,13 @@ function undergrowth_install_schema(): bool {
 		}
 	}
 
+	// Version 8 reads and writes the packed column. One the upgrade could
+	// not add leaves the version unrecorded, so the next load tries again.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checking the plugin's own table.
+	if ( array() === (array) $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $vectors, 'packed' ) ) ) {
+		return false;
+	}
+
 	// Before clustering, the monthly event measured stages straight away.
 	// Only that event has no arguments; the batches it chained are left to
 	// finish. It is cleared here, once per upgrade, rather than on every load,
