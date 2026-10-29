@@ -73,18 +73,32 @@ test.describe( 'Garden page pattern', () => {
 		await insertGardenPage( { admin, page, requestUtils } );
 
 		const garden = page.locator( PAGE );
-		await expect( garden.locator( 'h2' ) ).toHaveCount( 1 );
+		// The page's own title is the only heading.
 		await expect(
-			garden.locator( '.wp-block-undergrowth-garden-count-number' )
+			page.getByRole( 'heading', { level: 1, name: 'Garden' } )
+		).toBeVisible();
+		await expect( garden.getByRole( 'heading' ) ).toHaveCount( 0 );
+		// The count is one quiet line above the intro, which is a placeholder
+		// only the author sees, in the theme's large size.
+		const count = garden.locator(
+			'.wp-block-undergrowth-garden-count.is-style-quiet'
+		);
+		await expect( count ).toHaveCount( 1 );
+		await expect(
+			count.locator( '.wp-block-undergrowth-garden-count-number' )
 		).toHaveText( '2' );
+		await expect(
+			garden.locator(
+				'.wp-block-undergrowth-garden-count + p.has-large-font-size:empty'
+			)
+		).toHaveCount( 1 );
+		await expect( garden.locator( 'p:empty' ) ).toHaveCount( 1 );
 		await expect(
 			garden.locator( '.wp-block-undergrowth-garden-filters' )
 		).toBeVisible();
 		await expect(
 			garden.locator( '.wp-block-undergrowth-garden-feed-title' )
 		).toHaveText( [ 'Yacon', 'Oca' ] );
-		// The intro is a placeholder only the author sees.
-		await expect( garden.locator( 'p:empty' ) ).toHaveCount( 1 );
 		await expectNoA11yViolations( page, PAGE );
 	} );
 
@@ -108,6 +122,7 @@ test.describe( 'Garden page pattern', () => {
 			await insertGardenPage( { admin, page, requestUtils } );
 
 			const garden = page.locator( PAGE );
+			await expect( garden.getByRole( 'heading' ) ).toHaveCount( 0 );
 			await expect(
 				garden.locator( '.wp-block-undergrowth-garden-feed-title' )
 			).toHaveCount( 2 );

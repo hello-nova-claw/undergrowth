@@ -734,6 +734,16 @@ const WITH_GARDEN_FILTERS = [
 	},
 ];
 
+// The garden count in both its styles: the display numeral, then the
+// quiet line the Garden page pattern uses.
+const WITH_GARDEN_COUNT = [
+	{
+		screen: 'block-garden-count',
+		state: 'front-styles',
+		front: () => `/?page_id=${ gardenFeedPages.count }`,
+	},
+];
+
 // The Garden page pattern as readers see it once inserted, and in the
 // editor with its intro still a placeholder.
 const WITH_GARDEN_PAGE = [
@@ -1762,10 +1772,20 @@ test.describe( 'Screenshot catalogue', () => {
 					status: 'publish',
 				} )
 			).id;
+
+			gardenFeedPages.count = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:undergrowth/garden-count /--><!-- wp:undergrowth/garden-count {"className":"is-style-quiet"} /-->',
+					status: 'publish',
+				} )
+			).id;
 		} );
 
 		capture( WITH_GARDEN_FEED );
 		capture( WITH_GARDEN_FILTERS );
+		capture( WITH_GARDEN_COUNT );
 		capture( WITH_GARDEN_PAGE );
 	} );
 
