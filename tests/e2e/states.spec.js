@@ -7,6 +7,7 @@
 const fs = require( 'fs' );
 const path = require( 'path' );
 const { test } = require( '@wordpress/e2e-test-utils-playwright' );
+const { uploadFeaturedImage } = require( './featured-image' );
 const { skipWelcomeGuide } = require( './preferences' );
 const { STYLED } = require( './supports' );
 
@@ -687,9 +688,9 @@ const WITH_GARDEN_INDEX = [
 // Filled in once the feed's page exists, since the shots need its ID.
 const gardenFeedPages = {};
 
-// The garden feed on a page: the featured first post, the rest, and the
-// page links. Then filtered by type through the query args, filtered to a
-// stage no post has reached, and in the editor.
+// The garden feed on a page: entries with and without a picture packed
+// into one grid, and the page links. Then filtered by type through the
+// query args, filtered to a stage no post has reached, and in the editor.
 const WITH_GARDEN_FEED = [
 	{
 		screen: 'block-garden-feed',
@@ -1706,20 +1707,26 @@ test.describe( 'Screenshot catalogue', () => {
 					} ) );
 			}
 
-			for ( const [ title, format, excerpt, tag ] of [
+			// Two posts have a picture, so the feed shows cards and text
+			// entries together.
+			const picture = await uploadFeaturedImage( requestUtils );
+
+			for ( const [ title, format, excerpt, tag, featured ] of [
 				[
 					'Oca',
 					'standard',
 					'Small tubers that keep through winter.',
 					'roots',
+					picture,
 				],
-				[ 'Yacon', 'aside', 'Sweet roots, eaten raw.', 'roots' ],
-				[ 'Mashua', 'standard', '', 'leaves' ],
+				[ 'Yacon', 'aside', 'Sweet roots, eaten raw.', 'roots', 0 ],
+				[ 'Mashua', 'standard', '', 'leaves', picture ],
 				[
 					'Ulluco',
 					'standard',
 					'Bright, waxy and slow to grow.',
 					'roots',
+					0,
 				],
 			] ) {
 				await requestUtils.rest( {
@@ -1732,6 +1739,7 @@ test.describe( 'Screenshot catalogue', () => {
 						status: 'publish',
 						format,
 						tags: [ tags[ tag ].id ],
+						featured_media: featured,
 					},
 				} );
 			}

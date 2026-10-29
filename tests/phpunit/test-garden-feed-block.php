@@ -102,7 +102,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 	 * @return string[] Titles.
 	 */
 	private function titles( string $html ): array {
-		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*">(?:<img[^>]*>)?<span>([^<]*)</span></a>#', $html, $titles );
+		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span>([^<]*)</span></a>#', $html, $titles );
 
 		return array_map( 'html_entity_decode', $titles[1] );
 	}
@@ -115,6 +115,8 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( 'undergrowth_render_garden_feed_block', $type->render_callback );
 		$this->assertSame( array( 'tended', 'newest', 'stage' ), $type->attributes['orderBy']['enum'] );
 		$this->assertSame( 'post_format', $type->attributes['typeSource']['default'] );
+		$this->assertTrue( $type->attributes['showImages']['default'] );
+		$this->assertArrayNotHasKey( 'showFeatured', $type->attributes );
 		$this->assertSame( array( 'undergrowth-garden-feed' ), $type->style_handles );
 		$this->assertArrayHasKey( 'color', $type->supports );
 		$this->assertArrayHasKey( 'typography', $type->supports );
@@ -330,26 +332,54 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Nothing in the garden matches.', $html );
 	}
 
-	public function test_features_the_first_post_with_its_image_on_the_first_page_only() {
-		$first = $this->post( 'Oca', 1 );
-		$this->post( 'Yacon', 2 );
-		$this->post( 'Mashua', 3 );
-		set_post_thumbnail( $first, self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg', $first ) );
+	/**
+	 * Gives a post a featured image.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	private function picture( int $post_id ): void {
+		set_post_thumbnail( $post_id, self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg', $post_id ) );
+	}
 
-		$attrs = array(
-			'showFeatured' => true,
-			'postsPerPage' => 2,
-		);
+	public function test_shows_each_entrys_featured_image_above_its_title_on_every_page() {
+		$this->picture( $this->post( 'Oca', 1 ) );
+		$this->post( 'Yacon', 2 );
+		$this->picture( $this->post( 'Mashua', 3 ) );
+
+		$attrs = array( 'postsPerPage' => 2 );
 		$html  = $this->render( $attrs );
 
-		$this->assertSame( 1, substr_count( $html, 'is-featured' ) );
-		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item is-featured"><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><img [^>]*alt=""#', $html );
+		$this->assertSame( array( 'Oca', 'Yacon' ), $this->titles( $html ) );
+		$this->assertSame( 1, substr_count( $html, 'has-image' ) );
+		$this->assertSame( 1, substr_count( $html, '<img ' ) );
+		// Decorative: the title names the entry, so the image says nothing more.
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-image"><img [^>]*class="[^"]*wp-block-undergrowth-garden-feed-image[^"]*"[^>]*><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span>Oca</span></a>#', $html );
+		$this->assertMatchesRegularExpression( '#<img [^>]*alt=""#', $html );
+		$this->assertStringNotContainsString( 'is-featured', $html );
 
 		$_GET['garden-page'] = '2';
-		$this->assertStringNotContainsString( 'is-featured', $this->render( $attrs ) );
+		$html                = $this->render( $attrs );
 
-		unset( $_GET['garden-page'] );
-		$this->assertStringNotContainsString( 'is-featured', $this->render( array( 'showFeatured' => false ) ) );
+		$this->assertSame( array( 'Mashua' ), $this->titles( $html ) );
+		$this->assertSame( 1, substr_count( $html, '<img ' ) );
+	}
+
+	public function test_can_leave_the_images_out() {
+		$this->picture( $this->post( 'Oca' ) );
+
+		$html = $this->render( array( 'showImages' => false ) );
+
+		$this->assertSame( array( 'Oca' ), $this->titles( $html ) );
+		$this->assertStringNotContainsString( '<img ', $html );
+		$this->assertStringNotContainsString( 'has-image', $html );
+	}
+
+	public function test_reads_the_old_show_featured_setting_as_show_images() {
+		$this->picture( $this->post( 'Oca' ) );
+
+		// A block saved before the setting was renamed keeps working.
+		$this->assertStringContainsString( '<img ', $this->render( array( 'showFeatured' => true ) ) );
+		$this->assertStringNotContainsString( '<img ', $this->render( array( 'showFeatured' => false ) ) );
 	}
 
 	public function test_pages_through_the_garden_keeping_the_filters() {

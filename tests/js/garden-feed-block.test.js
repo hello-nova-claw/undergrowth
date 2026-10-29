@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals';
 import apiFetch from '@wordpress/api-fetch';
-import { getBlockType } from '@wordpress/blocks';
+import { getBlockType, parse } from '@wordpress/blocks';
 import { createRoot } from '@wordpress/element';
 
 import metadata from '../../src/blocks/garden-feed/block.json';
@@ -72,7 +72,27 @@ describe( 'Garden feed block', () => {
 		expect( type.title ).toBe( metadata.title );
 		expect( type.attributes.orderBy.default ).toBe( 'tended' );
 		expect( type.attributes.typeSource.default ).toBe( 'post_format' );
-		expect( type.attributes.showFeatured.default ).toBe( true );
+		expect( type.attributes.showImages.default ).toBe( true );
+		expect( type.attributes.showFeatured ).toBeUndefined();
+	} );
+
+	test( 'reads a block saved with the old showFeatured setting', () => {
+		// Saved before the setting was renamed, so the editor keeps the choice.
+		const [ block ] = parse(
+			'<!-- wp:undergrowth/garden-feed {"showFeatured":false,"postsPerPage":6} /-->'
+		);
+
+		expect( block.name ).toBe( 'undergrowth/garden-feed' );
+		expect( block.isValid ).toBe( true );
+		expect( block.attributes.showImages ).toBe( false );
+		expect( block.attributes.postsPerPage ).toBe( 6 );
+		expect( block.attributes.showFeatured ).toBeUndefined();
+
+		const [ current ] = parse(
+			'<!-- wp:undergrowth/garden-feed {"showImages":false} /-->'
+		);
+
+		expect( current.attributes.showImages ).toBe( false );
 	} );
 
 	test( 'previews the server render with the chosen settings', async () => {
