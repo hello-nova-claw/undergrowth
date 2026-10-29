@@ -224,11 +224,11 @@ function undergrowth_queue_similar_neighbours( int $post_id ): void {
 }
 
 /**
- * Updates the lists near a post returned from compost.
+ * Updates the lists near a post composted or returned from compost.
  *
- * Other stage changes need nothing: each view weighs the kept list with
- * the current stages. A post composted drops off every list as it is
- * shown, since readers may not see it.
+ * A post composted is taken off them, as a fresh measure would leave it
+ * out, and one returned is put back. Other stage changes need nothing:
+ * each view weighs the kept list with the current stages.
  *
  * @param int $post_id Post ID.
  */
@@ -236,7 +236,7 @@ function undergrowth_similar_stage_changed( int $post_id ): void {
 	$log  = undergrowth_stage_log( $post_id );
 	$last = end( $log );
 
-	if ( is_array( $last ) && 'composting' === $last['from'] && 'composting' !== $last['to'] ) {
+	if ( is_array( $last ) && $last['from'] !== $last['to'] && in_array( 'composting', array( $last['from'], $last['to'] ), true ) ) {
 		undergrowth_queue_similar_neighbours( $post_id );
 	}
 }
