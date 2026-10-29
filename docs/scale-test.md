@@ -15,6 +15,8 @@ How Undergrowth behaves on a blog of 2,000 and 5,000 posts, measured in October 
 | Orphans tab (SQLite) | 5.0 s | 20.6 s (0.1 s after #546) |
 | Garden page (count, filters, feed) | — | 0.8 s, 83 MB (38 MB after #543) |
 | Garden index page | — | 0.8 s, 92 MB, 1.45 MB of HTML (0.6 s, 42 MB, 209 KB after #554) |
+| More like this, first view of a post | — | 2.84 s, +92 MB (0.003 s, +0.2 MB after #552) |
+| More like this after one save | — | 1 re-measure queued for each post viewed, 3.2 s each (none after #552; one 3.0 s update of the lists near the saved post) |
 | Vectors table | 59 MB | 147 MB |
 
 The work that hid problems at this size was always the same few things: something done once per post that compares with every post, a check that loads each post in full when it needs four columns, and two queries whose plan on SQLite pairs every post with every other. None of the fixes changes which suggestions, clusters or stages a site gets. Where the output could be compared on the 5,000-post site, it was identical; the rest is covered by tests that compare a cut-short pass with a whole one.
@@ -157,7 +159,7 @@ Rendered for one post at 5,000 posts, cold (empty object cache, as on a host wit
 | --- | --- | --- |
 | Growth stage | 0.002 s, 4 queries | 0.000 s |
 | Linked from | 0.002 s, 5 queries | 0.000 s |
-| More like this, first view of the post | 2.76 s, 63 queries, +58 MB | 0.002 s |
+| More like this, first view of the post | 2.76 s, 63 queries, +58 MB (0.003 s, 6 queries, +0.2 MB after #552, which shows nothing until cron has measured the list) | 0.002 s |
 | Garden count | 0.47 s, +73 MB (0.41 s, +31 MB after #543) | 0.03 s |
 | Garden filters | 0.87 s, +73 MB (0.61 s, +28 MB after #543) | 0.03 s |
 | Garden feed | 0.49 s, +70 MB (0.26 s, +25 MB after #543) | 0.03 s |
@@ -167,7 +169,16 @@ A page with the Garden count, filters and feed peaked at 83 MB, and 38 MB after 
 
 **Fixed in #543** (PR #545): the count, filters and feed check visibility from the posts' status, password, type and stage only, and the feed loads only the page it shows.
 
-**Filed as #552**: the first reader of each post waits while "More like this" scores the whole index. Every save then marks every list stale, so each post viewed afterwards queues a 2–3 s re-measure in cron.
+**Fixed in #552** (PR #568): the first reader of each post waited while "More like this" scored the whole index. Every save, stage change and daily read of views then marked every list stale, so each post viewed afterwards queued a 2–3 s re-measure in cron. Now a post whose list was never measured shows no block and queues the measure. A new or changed vector is placed in the kept lists near it, at the score a fresh measure would give, since similarity is the same both ways. Stage changes and views only reorder the kept list as it is shown, as they already did, and every list is measured again only once the index is read with a new provider.
+
+Measured on the 5,000-post site with 100 lists kept, 50 of them near the saved post:
+
+| | Before | After |
+| --- | --- | --- |
+| First view of a post never measured | 2.84 s, 61 queries, +92 MB | 0.003 s, 6 queries, +0.2 MB, no block; measure queued |
+| One save, then 100 posts viewed | 100 re-measures queued, 3.2 s and +98 MB each in cron | none queued; one 3.0 s update, 180 queries, +98 MB |
+
+At this size, re-measuring every viewed list after a save would have taken about 4 hours of cron. To check the update, the saved post's vector was moved to another topic and all 100 kept lists were compared with lists measured afresh. Every list showed the same six posts. The kept lists held the same posts at the same scores, except for one post at about the 100th place. There a fresh measure trims the list to its closest and best-weighed 100, and the update does not.
 
 **Fixed in #554** (PR #561), as Anna decided: the Garden index prints every post on one page, 1.45 MB of HTML and 92 MB at 5,000 posts. Each group now shows the 20 posts nearest its centre, with a link to the Garden feed filtered to that group, and the index reads only the columns a title and a link need. The page is now 209 KB and 42 MB. Every group keeps its name and the same first 20 posts.
 
@@ -197,7 +208,7 @@ Two things grow without a bound but are not loaded on every request. `undergrowt
 | #549 | Refreshing sources had no time budget | Fixed in #563 |
 | #550 | Words counted twice per save | Fixed in #557 |
 | #551 | Linked group pairs quadratic on SQLite | Fixed in #562 |
-| #552 | "More like this" scores the index in a reader's request | Filed |
+| #552 | "More like this" scores the index in a reader's request | Fixed in #568 |
 | #553 | Vectors stored as JSON | Filed |
 | #554 | Garden index lists every post | Fixed in #561 (Anna chose 20 posts a group) |
 | #555 | Pollination batches had no time budget | Fixed in #564 |

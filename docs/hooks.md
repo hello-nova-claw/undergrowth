@@ -99,7 +99,7 @@ Each action passes the post ID first.
 | Action | Where | Fires |
 |---|---|---|
 | `undergrowth_post_embedded` | `src/indexer.php` | After a post's vector is stored or replaced. Proposals around the post are refreshed from it. |
-| `undergrowth_post_left_index` | `src/indexer.php` | After a post leaves the index, for example when it is unpublished. |
+| `undergrowth_post_left_index` | `src/indexer.php` | After a post leaves the index, for example when it is unpublished. Also fires for a post that never had a vector; the second argument says whether it had one. |
 | `undergrowth_proposals_refreshed` | `src/links.php` | After a post's proposed links are rewritten. The per-post file and Discord listen for it. |
 | `undergrowth_stage_changed` | `src/stages.php` | After a post's stage changes, or the author pins, unpins, composts or returns it. |
 | `undergrowth_stage_cycled` | `src/stages.php` | After the monthly stage pass has measured a post, whether or not its stage changed. |
