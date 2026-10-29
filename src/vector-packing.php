@@ -58,9 +58,10 @@ function undergrowth_queue_pack_vectors(): void {
  * Batches run one at a time, under a lock. Each row is converted on its
  * own, by its ID, so a batch cut short, or run twice, leaves every row
  * either as it was or converted. The provider, model, language, content
- * hash and time read stay as they were. A row whose JSON is not a vector is
- * marked with an empty packed value, which reads as no vector, as it read
- * before.
+ * hash and time read stay as they were. A row whose JSON cannot be packed,
+ * because it is not a vector or holds a value too large for single
+ * precision, keeps its JSON and is marked with an empty packed value. It
+ * then reads as it did before, and is not tried again.
  */
 function undergrowth_run_pack_vectors(): void {
 	global $wpdb;
@@ -86,7 +87,12 @@ function undergrowth_run_pack_vectors(): void {
 		$converted = 0;
 
 		while ( array() !== $rows ) {
-			$row = array_shift( $rows );
+			$row    = array_shift( $rows );
+			$packed = undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+			$data   = '' === $packed ? array( 'packed' => '' ) : array(
+				'packed'    => $packed,
+				'embedding' => '',
+			);
 
 			// A save meanwhile replaces the row with a packed one of a new
 			// ID, which this leaves alone. update() checks each value against
@@ -95,12 +101,9 @@ function undergrowth_run_pack_vectors(): void {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Converting the plugin's own table.
 			$converted += (int) $wpdb->update(
 				$table,
-				array(
-					'packed'    => undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) ),
-					'embedding' => '',
-				),
+				$data,
 				array( 'id' => (int) $row['id'] ),
-				array( '%s', '%s' ),
+				array_fill( 0, count( $data ), '%s' ),
 				array( '%d' )
 			);
 		}

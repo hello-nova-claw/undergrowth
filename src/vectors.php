@@ -173,13 +173,14 @@ function undergrowth_decode_embedding( string $json ): array {
 
 /**
  * Reads the vector from a row of the vectors table, packed or, until the
- * row is converted, as JSON.
+ * row is converted, as JSON. A row marked with an empty packed value kept
+ * its JSON because it could not be packed, and is read from that.
  *
  * @param array<string, mixed> $row Row with its embedding and packed columns.
  * @return float[] The vector, or an empty array when the row holds none.
  */
 function undergrowth_row_vector( array $row ): array {
-	return null === ( $row['packed'] ?? null )
+	return in_array( $row['packed'] ?? null, array( null, '' ), true )
 		? undergrowth_decode_embedding( (string) ( $row['embedding'] ?? '' ) )
 		: undergrowth_unpack_vector( (string) $row['packed'] );
 }
