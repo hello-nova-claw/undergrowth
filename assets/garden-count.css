@@ -12,15 +12,18 @@
 }
 
 .wp-block-undergrowth-garden-count-number {
-	font-family: var(--wp--preset--font-family--heading, inherit);
 	font-size: clamp(3em, 2em + 4vw, 5em);
 	font-variant-numeric: tabular-nums lining-nums;
 	letter-spacing: -0.02em;
 	line-height: 0.9;
 }
 
+/* The theme's heading face, unless the author chose a font for the block. */
+:where(.wp-block-undergrowth-garden-count:not([class*="-font-family"], [style*="font-family"])) .wp-block-undergrowth-garden-count-number {
+	font-family: var(--wp--preset--font-family--heading, inherit);
+}
+
 .wp-block-undergrowth-garden-count-label {
 	font-variant-caps: all-small-caps;
 	letter-spacing: 0.08em;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }

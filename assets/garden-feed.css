@@ -39,11 +39,15 @@
 	display: block;
 	grid-area: title;
 	min-height: 24px;
-	font-family: var(--wp--preset--font-family--heading, inherit);
-	font-size: var(--wp--preset--font-size--medium, 1.125em);
+	font-size: 1.125em;
 	font-weight: 600;
 	line-height: 1.3;
 	text-decoration: none;
+}
+
+/* The theme's heading face, unless the author chose a font for the block. */
+:where(.wp-block-undergrowth-garden-feed:not([class*="-font-family"], [style*="font-family"])) .wp-block-undergrowth-garden-feed-title {
+	font-family: var(--wp--preset--font-family--heading, inherit);
 }
 
 .wp-block-undergrowth-garden-feed-title span {
@@ -61,7 +65,7 @@
 }
 
 .is-featured .wp-block-undergrowth-garden-feed-title {
-	font-size: var(--wp--preset--font-size--x-large, clamp(1.5rem, 1rem + 2vw, 2.25rem));
+	font-size: clamp(1.5em, 1em + 2vw, 2.25em);
 	line-height: 1.15;
 }
 
@@ -72,11 +76,10 @@
 	margin-block-end: var(--wp--preset--spacing--30, 1rem);
 }
 
-/* The stage's glyph, softened, sits on the title's first line. */
+/* The stage's glyph sits on the title's first line. */
 .wp-block-undergrowth-garden-feed-stage {
 	grid-area: stage;
 	align-self: start;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 .wp-block-undergrowth-garden-feed-stage .undergrowth-stage-icon {
@@ -95,7 +98,7 @@
 .wp-block-undergrowth-garden-feed-excerpt {
 	grid-area: excerpt;
 	margin: 0.4em 0 0;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	text-wrap: pretty;
 }
 
@@ -110,7 +113,6 @@
 	font-variant-caps: all-small-caps;
 	font-variant-numeric: tabular-nums;
 	letter-spacing: 0.08em;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 .wp-block-undergrowth-garden-feed-type::after {
@@ -133,7 +135,7 @@
 	min-width: max(24px, 2em);
 	min-height: max(24px, 2em);
 	padding-inline: 0.5em;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	color: inherit;
 	text-decoration: none;
 	border: 1px solid transparent;

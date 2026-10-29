@@ -16,9 +16,10 @@
 }
 
 /*
- * A quiet label in the theme's own type: small capitals, a little
- * tracking, and the text colour softened rather than replaced, so it reads
- * on light and dark themes alike. :where() keeps it easy to override.
+ * A quiet label in the theme's own type and colour: small capitals and a
+ * little tracking. The text keeps the theme's own contrast, so only the
+ * glyph beside it, which screen readers skip, is softened. :where() keeps
+ * it easy to override.
  */
 :where(.wp-block-undergrowth-growth-stage) {
 	display: flex;
@@ -27,7 +28,6 @@
 	font-variant-caps: all-small-caps;
 	letter-spacing: 0.08em;
 	line-height: 1.2;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 /* A background from Global Styles gets room to breathe. */
@@ -43,4 +43,5 @@
 	flex: none;
 	width: 1.35em;
 	height: 1.35em;
+	color: color-mix(in srgb, currentcolor 75%, transparent);
 }

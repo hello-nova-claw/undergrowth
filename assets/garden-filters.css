@@ -1,7 +1,8 @@
 /*
  * Topics read as a calm row of pills that wraps. Each is at least 24px
- * tall for touch and pointer users (WCAG 2.5.8), and every colour is the
- * text colour, softened, so the row suits light and dark themes alike.
+ * tall for touch and pointer users (WCAG 2.5.8). Text keeps the theme's
+ * colour; edges and washes are that colour softened, so the row suits light
+ * and dark themes alike.
  */
 .wp-block-undergrowth-garden-filters-topics ul {
 	display: flex;
@@ -21,7 +22,7 @@
 	align-items: center;
 	min-height: max(24px, 2em);
 	padding: 0 0.9em;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	line-height: 1.2;
 	color: inherit;
 	text-decoration: none;
@@ -66,19 +67,18 @@
 	margin-block-end: 0.25em;
 	font-variant-caps: all-small-caps;
 	letter-spacing: 0.08em;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
-/* The select's edge keeps a 3:1 contrast with the page (WCAG 1.4.11). */
+/* The select's edge is the text colour, so it keeps the theme's contrast (WCAG 1.4.11). */
 .wp-block-undergrowth-garden-filters-field select {
 	min-height: max(24px, 2.25em);
 	padding-block: 0;
 	padding-inline: 0.9em 2em;
 	font: inherit;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	color: inherit;
 	background-color: transparent;
-	border: 1px solid color-mix(in srgb, currentcolor 60%, transparent);
+	border: 1px solid currentcolor;
 	border-radius: 999px;
 }
 
@@ -86,15 +86,14 @@
 .wp-block-undergrowth-garden-filters-submit .wp-element-button {
 	min-height: max(24px, 2.25em);
 	padding-block: 0;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	line-height: 1.2;
 }
 
 .wp-block-undergrowth-garden-filters-count {
 	margin: var(--wp--preset--spacing--30, 1rem) 0 0;
-	font-size: var(--wp--preset--font-size--small, 0.875em);
+	font-size: 0.875em;
 	font-variant-numeric: tabular-nums;
-	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
