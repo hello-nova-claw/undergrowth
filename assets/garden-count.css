@@ -1,0 +1,26 @@
+/*
+ * The number reads as a display numeral in the theme's heading face, with
+ * a quiet label beneath it. It is sized from the block's own font size, so
+ * any size an author picks scales both together.
+ */
+:where(.wp-block-undergrowth-garden-count) {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35em;
+	margin-block: var(--wp--preset--spacing--40, 1.5rem);
+	line-height: 1.2;
+}
+
+.wp-block-undergrowth-garden-count-number {
+	font-family: var(--wp--preset--font-family--heading, inherit);
+	font-size: clamp(3em, 2em + 4vw, 5em);
+	font-variant-numeric: tabular-nums lining-nums;
+	letter-spacing: -0.02em;
+	line-height: 0.9;
+}
+
+.wp-block-undergrowth-garden-count-label {
+	font-variant-caps: all-small-caps;
+	letter-spacing: 0.08em;
+	color: color-mix(in srgb, currentcolor 75%, transparent);
+}
