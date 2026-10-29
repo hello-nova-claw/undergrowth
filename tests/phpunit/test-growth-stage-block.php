@@ -70,6 +70,45 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertFalse( $type->supports['html'] );
 	}
 
+	/**
+	 * Every block readers see takes the theme's type and borders from Global Styles.
+	 *
+	 * @dataProvider data_reader_blocks
+	 *
+	 * @param string $name Block name.
+	 */
+	public function test_reader_block_lets_authors_set_its_type( string $name ) {
+		$supports = WP_Block_Type_Registry::get_instance()->get_registered( $name )->supports;
+
+		$this->assertTrue( $supports['typography']['__experimentalFontFamily'] );
+		$this->assertTrue( $supports['typography']['__experimentalLetterSpacing'] );
+		$this->assertTrue( $supports['typography']['__experimentalTextTransform'] );
+	}
+
+	/**
+	 * Blocks readers see.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public function data_reader_blocks(): array {
+		$names = array( 'growth-stage', 'linked-from', 'more-like-this', 'garden-count', 'garden-filters', 'garden-feed', 'garden-index' );
+
+		return array_combine( $names, array_map( static fn( string $name ): array => array( 'undergrowth/' . $name ), $names ) );
+	}
+
+	public function test_registers_a_block_style_for_each_list_with_another_layout() {
+		$registry = WP_Block_Styles_Registry::get_instance();
+		$registry->unregister( 'undergrowth/more-like-this', 'columns' );
+		$registry->unregister( 'undergrowth/garden-index', 'specimen' );
+
+		undergrowth_register_block_styles();
+
+		$this->assertTrue( $registry->is_registered( 'undergrowth/more-like-this', 'columns' ) );
+		$this->assertTrue( $registry->is_registered( 'undergrowth/garden-index', 'specimen' ) );
+		$this->assertStringContainsString( '.is-style-columns', (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/more-like-this.css' ) );
+		$this->assertStringContainsString( '.is-style-specimen', (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-index.css' ) );
+	}
+
 	public function test_block_brings_its_own_rule_to_hide_the_label() {
 		$type = WP_Block_Type_Registry::get_instance()->get_registered( 'undergrowth/growth-stage' );
 
