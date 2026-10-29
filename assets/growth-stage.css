@@ -16,12 +16,32 @@
 }
 
 /*
+ * A quiet label in the theme's own type and colour: small capitals and a
+ * little tracking. The text keeps the theme's own contrast, so only the
+ * glyph beside it, which screen readers skip, is softened. :where() keeps
+ * it easy to override.
+ */
+:where(.wp-block-undergrowth-growth-stage) {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	font-variant-caps: all-small-caps;
+	letter-spacing: 0.08em;
+	line-height: 1.2;
+}
+
+/* A background from Global Styles gets room to breathe. */
+:where(.wp-block-undergrowth-growth-stage.has-background) {
+	padding: 0.25em 0.75em;
+}
+
+/*
  * The icon sits on the line beside the stage's name, at the size of the
  * text, so it grows with any font size the block sets.
  */
 .wp-block-undergrowth-growth-stage .undergrowth-stage-icon {
-	width: 1.25em;
-	height: 1.25em;
-	margin-inline-end: 0.25em;
-	vertical-align: -0.25em;
+	flex: none;
+	width: 1.35em;
+	height: 1.35em;
+	color: color-mix(in srgb, currentcolor 75%, transparent);
 }

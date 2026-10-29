@@ -19,7 +19,17 @@ add_action( 'init', 'undergrowth_register_garden_page_pattern' );
  */
 function undergrowth_register_garden_count_block(): void {
 	$folder = dirname( UNDERGROWTH_FILE ) . '/build/blocks/garden-count';
-	$args   = array( 'render_callback' => 'undergrowth_render_garden_count_block' );
+	$args   = array(
+		'render_callback' => 'undergrowth_render_garden_count_block',
+		'style_handles'   => array( 'undergrowth-garden-count' ),
+	);
+
+	wp_register_style(
+		'undergrowth-garden-count',
+		plugins_url( 'assets/garden-count.css', UNDERGROWTH_FILE ),
+		array(),
+		UNDERGROWTH_VERSION
+	);
 
 	if ( ! file_exists( $folder . '/block.json' ) ) {
 		$folder                        = dirname( UNDERGROWTH_FILE ) . '/src/blocks/garden-count';
@@ -78,26 +88,31 @@ function undergrowth_register_garden_page_pattern(): void {
 		)
 	);
 
-	$content = '<!-- wp:group {"align":"wide","layout":{"type":"constrained"}} -->
-<div class="wp-block-group alignwide"><!-- wp:columns {"verticalAlignment":"bottom"} -->
-<div class="wp-block-columns are-vertically-aligned-bottom"><!-- wp:column {"verticalAlignment":"bottom"} -->
-<div class="wp-block-column is-vertically-aligned-bottom"><!-- wp:heading -->
+	// The page is built only from core layout blocks and the theme's own
+	// spacing presets: the heading and intro beside the count, a rule, then
+	// the filters and the feed, all at the theme's wide width.
+	$content = '<!-- wp:group {"align":"wide","style":{"spacing":{"blockGap":"var:preset|spacing|50"}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignwide"><!-- wp:group {"align":"wide","style":{"spacing":{"blockGap":"var:preset|spacing|40"}},"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between","verticalAlignment":"bottom"}} -->
+<div class="wp-block-group alignwide"><!-- wp:group {"style":{"layout":{"selfStretch":"fixed","flexSize":"36rem"}},"layout":{"type":"default"}} -->
+<div class="wp-block-group"><!-- wp:heading -->
 <h2 class="wp-block-heading">%1$s</h2>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph %2$s -->
 <p></p>
 <!-- /wp:paragraph --></div>
-<!-- /wp:column -->
+<!-- /wp:group -->
 
-<!-- wp:column {"verticalAlignment":"bottom"} -->
-<div class="wp-block-column is-vertically-aligned-bottom"><!-- wp:undergrowth/garden-count /--></div>
-<!-- /wp:column --></div>
-<!-- /wp:columns -->
+<!-- wp:undergrowth/garden-count /--></div>
+<!-- /wp:group -->
 
-<!-- wp:undergrowth/garden-filters /-->
+<!-- wp:separator {"align":"wide","className":"is-style-wide"} -->
+<hr class="wp-block-separator alignwide has-alpha-channel-opacity is-style-wide"/>
+<!-- /wp:separator -->
 
-<!-- wp:undergrowth/garden-feed {"showFeatured":true} /--></div>
+<!-- wp:undergrowth/garden-filters {"align":"wide"} /-->
+
+<!-- wp:undergrowth/garden-feed {"showFeatured":true,"align":"wide"} /--></div>
 <!-- /wp:group -->';
 
 	register_block_pattern(

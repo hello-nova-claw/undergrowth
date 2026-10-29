@@ -3,7 +3,7 @@
 	"meta": {
 		"title": "Undergrowth screenshot catalogue",
 		"author": "hello-nova-claw",
-		"description": "The plugin with the e2e test provider, Hebrew, and the en_XA pseudo-locale. Used by playwright.screenshots.config.js."
+		"description": "The plugin with the e2e test provider, Hebrew, the en_XA pseudo-locale, and Twenty Twenty-Four and Twenty Twenty-One beside the default theme for the reader blocks. Used by playwright.screenshots.config.js."
 	},
 	"preferredVersions": {
 		"php": "8.3",
@@ -18,6 +18,26 @@
 			"step": "defineWpConfigConsts",
 			"consts": {
 				"WP_ENVIRONMENT_TYPE": "local"
+			}
+		},
+		{
+			"step": "installTheme",
+			"themeData": {
+				"resource": "wordpress.org/themes",
+				"slug": "twentytwentyfour"
+			},
+			"options": {
+				"activate": false
+			}
+		},
+		{
+			"step": "installTheme",
+			"themeData": {
+				"resource": "wordpress.org/themes",
+				"slug": "twentytwentyone"
+			},
+			"options": {
+				"activate": false
 			}
 		},
 		{

@@ -1,0 +1,1 @@
+The blocks readers see, and the Garden page pattern, now take their colours, type and spacing from your theme, with quiet small-caps details, hairline rules, a large garden count and pill-shaped filters. You can set their font, letter spacing and borders in the editor, and choose a "Columns" style for More like this or a two-column "Specimen" style for the Garden index.

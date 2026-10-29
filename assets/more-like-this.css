@@ -1,15 +1,59 @@
 /*
- * A plain list the theme dresses. Only the image is held to its column, so
- * a large featured image never runs past the block.
+ * The heading is a small label rather than a section title, and the posts
+ * a list ruled with hairlines drawn from the text colour. Only the image is
+ * held to its column, so a large featured image never runs past the block.
  */
+.wp-block-undergrowth-more-like-this > .wp-block-heading {
+	margin-block: 0 var(--wp--preset--spacing--20, 0.5rem);
+	font-size: inherit;
+	font-variant-caps: all-small-caps;
+	line-height: 1.3;
+}
+
+/* Its tracking, unless the author set letter spacing on the block. */
+:where(.wp-block-undergrowth-more-like-this:not([style*="letter-spacing"])) > .wp-block-heading {
+	letter-spacing: 0.08em;
+}
+
 .undergrowth-more-like-this-list {
 	margin: 0;
-	padding-inline-start: 0;
+	padding: 0;
 	list-style: none;
 }
 
-.undergrowth-more-like-this-item + .undergrowth-more-like-this-item {
-	margin-block-start: 1em;
+.undergrowth-more-like-this-item {
+	margin: 0;
+	padding-block: 0.75em;
+	border-block-end: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
+}
+
+.undergrowth-more-like-this-item:first-child {
+	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
+}
+
+.undergrowth-more-like-this-link {
+	display: block;
+	min-height: 24px;
+	text-decoration: none;
+}
+
+.undergrowth-more-like-this-title {
+	text-decoration-line: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: color-mix(in srgb, currentcolor 35%, transparent);
+	text-underline-offset: 0.25em;
+	text-wrap: balance;
+	transition: text-decoration-color 0.2s ease;
+}
+
+/* The theme's heading face, unless the author chose a font for the block. */
+:where(.wp-block-undergrowth-more-like-this:not([class*="-font-family"], [style*="font-family"])) .undergrowth-more-like-this-title {
+	font-family: var(--wp--preset--font-family--heading, inherit);
+}
+
+.undergrowth-more-like-this-link:hover .undergrowth-more-like-this-title,
+.undergrowth-more-like-this-link:focus-visible .undergrowth-more-like-this-title {
+	text-decoration-color: currentcolor;
 }
 
 .undergrowth-more-like-this-link img {
@@ -21,4 +65,28 @@
 
 .undergrowth-more-like-this-excerpt {
 	margin-block: 0.25em 0;
+	font-size: 0.875em;
+	text-wrap: pretty;
+}
+
+/*
+ * The "Columns" style sets the posts side by side, each under its own
+ * hairline, as many to a row as fit.
+ */
+.is-style-columns .undergrowth-more-like-this-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+	gap: var(--wp--preset--spacing--30, 1rem) var(--wp--preset--spacing--40, 1.5rem);
+}
+
+.is-style-columns .undergrowth-more-like-this-item {
+	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
+	border-block-end: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.undergrowth-more-like-this-title {
+		transition: none;
+	}
 }

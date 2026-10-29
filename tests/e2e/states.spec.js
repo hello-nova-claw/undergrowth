@@ -774,6 +774,56 @@ const WITH_LINKED_FROM = [
 	},
 ];
 
+// Filled in once the themes' post and page exist, since the shots need
+// their IDs.
+const themePages = {};
+
+// Themes the reader blocks are drawn for: two block themes, the dark style
+// variation of one, and a classic theme.
+const THEMES = [
+	'twentytwentyfive',
+	'twentytwentyfour',
+	'twentytwentyfive-evening',
+	'twentytwentyone',
+];
+
+// The reader blocks in each theme, as readers see them: a post with its
+// growth stage, "Linked from" and "More like this", and the Garden page
+// pattern. A theme the site lacks is listed as skipped.
+const IN_THEMES = THEMES.flatMap( ( theme ) => [
+	{
+		screen: `theme-${ theme }`,
+		state: 'front-post',
+		theme,
+		front: () => `/?p=${ themePages.post }`,
+		open: inTheme( theme ),
+	},
+	{
+		screen: `theme-${ theme }`,
+		state: 'front-garden-page',
+		theme,
+		front: () => `/?page_id=${ themePages.garden }`,
+		open: inTheme( theme ),
+	},
+] );
+
+/**
+ * Says whether the page was served in a theme, for a state's `open`.
+ *
+ * The Evening variation shares its theme's body class, so the test plugin
+ * marks a page it was applied to.
+ *
+ * @param {string} theme Theme slug, with "-evening" for the dark variation.
+ * @return {(page: import('@playwright/test').Page) => Promise<boolean>} Resolves to true when the page uses the theme.
+ */
+function inTheme( theme ) {
+	const body = theme.endsWith( '-evening' )
+		? `body.wp-theme-${ theme.replace( /-evening$/, '' ) }.undergrowth-e2e-evening`
+		: `body.wp-theme-${ theme }:not(.undergrowth-e2e-evening)`;
+
+	return async ( page ) => ( await page.locator( body ).count() ) > 0;
+}
+
 // Filled in once the panel's posts exist, since the shots need their IDs.
 const panelPosts = {};
 
@@ -1028,6 +1078,10 @@ function capture( states ) {
 					cookies.push( [ 'undergrowth_e2e_dev_tools', '1' ] );
 				}
 
+				if ( entry.theme ) {
+					cookies.push( [ 'undergrowth_e2e_theme', entry.theme ] );
+				}
+
 				await context.addCookies(
 					cookies.map( ( [ name, value ] ) => ( {
 						name,
@@ -1163,6 +1217,42 @@ function capture( states ) {
 			} );
 		}
 	}
+}
+
+/**
+ * Accepts the suggestion from one post through its own Accept form, as the
+ * author's click would send it.
+ *
+ * @param {Object} requestUtils Request utilities.
+ * @param {number} source       ID of the post the link goes in.
+ */
+async function acceptSuggestion( requestUtils, source ) {
+	const screen = await requestUtils.request.get(
+		'wp-admin/edit.php?page=undergrowth-links'
+	);
+	const form = [
+		...( await screen.text() ).matchAll(
+			/<form method="post" action="[^"]*" id="undergrowth-accept-[^"]*">([\s\S]*?)<\/form>/g
+		),
+	].find( ( match ) =>
+		match[ 1 ].includes( `name="source" value="${ source }"` )
+	);
+
+	if ( ! form ) {
+		throw new Error( `No suggestion from post ${ source }.` );
+	}
+
+	const fields = Object.fromEntries(
+		[
+			...form[ 1 ].matchAll(
+				/<input type="hidden"[^>]*name="([^"]*)" value="([^"]*)"/g
+			),
+		].map( ( [ , name, value ] ) => [ name, value ] )
+	);
+
+	await requestUtils.request.post( 'wp-admin/admin-post.php', {
+		form: fields,
+	} );
 }
 
 test.describe( 'Screenshot catalogue', () => {
@@ -1736,34 +1826,7 @@ test.describe( 'Screenshot catalogue', () => {
 			linkedFromPosts.linked = yacon.id;
 			linkedFromPosts.empty = oca.id;
 
-			// Accepted through the suggestion's own Accept form, as the
-			// author's click would send it.
-			const screen = await requestUtils.request.get(
-				'wp-admin/edit.php?page=undergrowth-links'
-			);
-			const form = [
-				...( await screen.text() ).matchAll(
-					/<form method="post" action="[^"]*" id="undergrowth-accept-[^"]*">([\s\S]*?)<\/form>/g
-				),
-			].find( ( match ) =>
-				match[ 1 ].includes( `name="source" value="${ oca.id }"` )
-			);
-
-			if ( ! form ) {
-				throw new Error( 'No suggestion for Oca to link to Yacon.' );
-			}
-
-			const fields = Object.fromEntries(
-				[
-					...form[ 1 ].matchAll(
-						/<input type="hidden"[^>]*name="([^"]*)" value="([^"]*)"/g
-					),
-				].map( ( [ , name, value ] ) => [ name, value ] )
-			);
-
-			await requestUtils.request.post( 'wp-admin/admin-post.php', {
-				form: fields,
-			} );
+			await acceptSuggestion( requestUtils, oca.id );
 
 			// A failed Accept would otherwise capture an empty list under
 			// the "linked" states' names.
@@ -1779,6 +1842,51 @@ test.describe( 'Screenshot catalogue', () => {
 		} );
 
 		capture( WITH_LINKED_FROM );
+	} );
+
+	test.describe( 'in each theme', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.deleteAllPosts();
+			await requestUtils.deleteAllPages();
+
+			// Oca's sentence about yacon is suggested as a link to Yacon, and
+			// accepted, so Yacon's "Linked from" lists Oca.
+			const oca = await requestUtils.createPost( {
+				title: 'Oca',
+				excerpt: 'Small tubers that keep through winter.',
+				content:
+					'<!-- wp:paragraph --><p>Oca grows here. I keep yacon nearby.</p><!-- /wp:paragraph -->',
+				status: 'publish',
+			} );
+			const yacon = await requestUtils.createPost( {
+				title: 'Yacon',
+				content:
+					'<!-- wp:undergrowth/growth-stage /--><!-- wp:paragraph --><p>Yacon syrup is sweet.</p><!-- /wp:paragraph --><!-- wp:undergrowth/linked-from /--><!-- wp:undergrowth/more-like-this {"showExcerpt":true} /-->',
+				status: 'publish',
+			} );
+
+			await acceptSuggestion( requestUtils, oca.id );
+
+			// Made after the Accept, so Oca's is the only suggestion.
+			await requestUtils.createPost( {
+				title: 'Yacon syrup',
+				excerpt: 'Boiled down slowly, it keeps for a year.',
+				content: '<p>Yacon syrup boiled down from yacon.</p>',
+				status: 'publish',
+			} );
+
+			themePages.post = yacon.id;
+			themePages.garden = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:pattern {"slug":"undergrowth/garden-page"} /-->',
+					status: 'publish',
+				} )
+			).id;
+		} );
+
+		capture( IN_THEMES );
 	} );
 
 	test.describe( 'with the editor panel', () => {
