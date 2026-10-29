@@ -71,7 +71,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Every block readers see takes the theme's type and borders from Global Styles.
+	 * Every block readers see lets authors set its type and borders.
 	 *
 	 * @dataProvider data_reader_blocks
 	 *
@@ -83,6 +83,7 @@ class Test_Growth_Stage_Block extends WP_UnitTestCase {
 		$this->assertTrue( $supports['typography']['__experimentalFontFamily'] );
 		$this->assertTrue( $supports['typography']['__experimentalLetterSpacing'] );
 		$this->assertTrue( $supports['typography']['__experimentalTextTransform'] );
+		$this->assertTrue( $supports['__experimentalBorder']['width'] );
 	}
 
 	/**
