@@ -222,7 +222,7 @@ test.describe( 'Garden filters block', () => {
 		// The topics never wrap: the list scrolls sideways instead.
 		const list = page.locator( `${ FILTERS } ${ TOPICS } ul` );
 		const links = page.locator( `${ FILTERS } ${ TOPICS } a` );
-		await expect( links ).toHaveCount( 2 + MORE_TOPICS.length );
+		await expect( links ).toHaveCount( 3 + MORE_TOPICS.length );
 		expect(
 			await list.evaluate(
 				( element ) => element.scrollWidth > element.clientWidth
@@ -235,7 +235,7 @@ test.describe( 'Garden filters block', () => {
 		// Tab reaches the last topic, and the list scrolls so the whole
 		// link sits inside it, clear of the fade at its end.
 		await links.first().focus();
-		for ( let tab = 1; tab < 2 + MORE_TOPICS.length; tab++ ) {
+		for ( let tab = 1; tab < 3 + MORE_TOPICS.length; tab++ ) {
 			await page.keyboard.press( 'Tab' );
 		}
 		await expect( links.last() ).toBeFocused();

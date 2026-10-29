@@ -301,8 +301,8 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 			'<p class="wp-block-undergrowth-garden-filters-count" role="status">%s</p>',
 			esc_html(
 				sprintf(
-					/* translators: %s: number of posts. */
-					_n( '%s post', '%s posts', count( $matches ), 'undergrowth' ),
+					/* translators: %1$s: number of posts. */
+					_n( '%1$s post', '%1$s posts', count( $matches ), 'undergrowth' ),
 					number_format_i18n( count( $matches ) )
 				)
 			)

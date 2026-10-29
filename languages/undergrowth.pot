@@ -587,11 +587,11 @@ msgstr ""
 msgid "Show"
 msgstr ""
 
-#. translators: %s: number of posts.
+#. translators: %1$s: number of posts.
 #: src/block-garden-filters.php
 #, php-format
-msgid "%s post"
-msgid_plural "%s posts"
+msgid "%1$s post"
+msgid_plural "%1$s posts"
 msgstr[0] ""
 msgstr[1] ""
 
