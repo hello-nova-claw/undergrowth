@@ -102,7 +102,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 	 * @return string[] Titles.
 	 */
 	private function titles( string $html ): array {
-		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*">(?:<img[^>]*>)?<span>([^<]*)</span></a>#', $html, $titles );
+		preg_match_all( '#<a class="wp-block-undergrowth-garden-feed-title" href="[^"]*">(?:<img[^>]*>)?<span class="wp-block-undergrowth-garden-feed-stage[^"]*">.*?</span><span>([^<]*)</span></a>#s', $html, $titles );
 
 		return array_map( 'html_entity_decode', $titles[1] );
 	}
