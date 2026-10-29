@@ -145,24 +145,28 @@ function undergrowth_measure_similar( int $post_id, ?array $pool = null ): array
 	$pool       = $pool ?? undergrowth_comparable_vectors( $post_id );
 	$scores     = array();
 
-	if ( isset( $pool[ $post_id ] ) ) {
-		$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
-		$minimum = undergrowth_min_link_similarity();
+	// A post not read yet has nothing to measure, and an empty list kept
+	// for it would never be measured once it is read.
+	if ( ! isset( $pool[ $post_id ] ) ) {
+		return array();
+	}
 
-		unset( $pool[ $post_id ] );
+	$source  = undergrowth_unpack_vector( $pool[ $post_id ] );
+	$minimum = undergrowth_min_link_similarity();
 
-		foreach ( $pool as $target_id => $packed ) {
-			$vector = undergrowth_unpack_vector( $packed );
+	unset( $pool[ $post_id ] );
 
-			if ( ! undergrowth_vectors_comparable( $source, $vector ) ) {
-				continue;
-			}
+	foreach ( $pool as $target_id => $packed ) {
+		$vector = undergrowth_unpack_vector( $packed );
 
-			$score = undergrowth_cosine( $source, $vector );
+		if ( ! undergrowth_vectors_comparable( $source, $vector ) ) {
+			continue;
+		}
 
-			if ( $score >= $minimum ) {
-				$scores[ (int) $target_id ] = $score;
-			}
+		$score = undergrowth_cosine( $source, $vector );
+
+		if ( $score >= $minimum ) {
+			$scores[ (int) $target_id ] = $score;
 		}
 	}
 
