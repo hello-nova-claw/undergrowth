@@ -80,7 +80,7 @@ No. Undergrowth has no view counter of its own. If Jetpack Stats, Koko Analytics
 
 = How do I make a garden page? =
 
-Add a new page and choose Garden page from the patterns offered for it, or insert it later from the Undergrowth category of patterns. It sets a heading, an introduction for you to write, the number of posts in your garden, the garden filters and the garden feed, newest tended first. Change the heading, write your introduction and publish. Every block takes its colours and spacing from your theme. Readers see only your published posts that are public and not composting, and nothing a model wrote.
+Add a new page and choose Garden page from the patterns offered for it, or insert it later from the Undergrowth category of patterns. Under the page's own title it sets the number of posts in your garden as one quiet line, an introduction for you to write, the garden filters and the garden feed, newest tended first. Write your introduction and publish. Every block takes its colours and spacing from your theme, and the Garden count block's default style shows the number large instead. Readers see only your published posts that are public and not composting, and nothing a model wrote.
 
 = What does it cost? =
 

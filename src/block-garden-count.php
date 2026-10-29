@@ -1,7 +1,7 @@
 <?php
 /**
- * The garden count block, and the Garden page pattern that sets it beside a
- * heading, the filters and the feed.
+ * The garden count block, and the Garden page pattern that sets it above
+ * the author's introduction, the filters and the feed.
  *
  * @package Undergrowth
  */
@@ -75,9 +75,9 @@ function undergrowth_render_garden_count_block( $attributes ): string {
 /**
  * Registers the Garden page pattern, in an Undergrowth category.
  *
- * The heading is the author's to change, and the intro is only a
- * placeholder the editor shows, so readers see none of it until the author
- * writes their own. Colours and spacing come from the theme.
+ * The page's own title is its heading, so the pattern adds none. The intro
+ * is only a placeholder the editor shows, so readers see none of it until
+ * the author writes their own. Colours and spacing come from the theme.
  */
 function undergrowth_register_garden_page_pattern(): void {
 	register_block_pattern_category(
@@ -89,21 +89,15 @@ function undergrowth_register_garden_page_pattern(): void {
 	);
 
 	// The page is built only from core layout blocks and the theme's own
-	// spacing presets: the heading and intro beside the count, a rule, then
-	// the filters and the feed, all at the theme's wide width.
+	// spacing presets: the count as one quiet line above the intro, a rule,
+	// then the filters and the feed, all at the theme's wide width.
 	$content = '<!-- wp:group {"align":"wide","style":{"spacing":{"blockGap":"var:preset|spacing|50"}},"layout":{"type":"constrained"}} -->
-<div class="wp-block-group alignwide"><!-- wp:group {"align":"wide","style":{"spacing":{"blockGap":"var:preset|spacing|40"}},"layout":{"type":"flex","flexWrap":"wrap","justifyContent":"space-between","verticalAlignment":"bottom"}} -->
-<div class="wp-block-group alignwide"><!-- wp:group {"style":{"layout":{"selfStretch":"fixed","flexSize":"36rem"}},"layout":{"type":"default"}} -->
-<div class="wp-block-group"><!-- wp:heading -->
-<h2 class="wp-block-heading">%1$s</h2>
-<!-- /wp:heading -->
+<div class="wp-block-group alignwide"><!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|20"}},"layout":{"type":"default"}} -->
+<div class="wp-block-group"><!-- wp:undergrowth/garden-count {"className":"is-style-quiet"} /-->
 
-<!-- wp:paragraph %2$s -->
-<p></p>
+<!-- wp:paragraph %1$s -->
+<p class="has-large-font-size"></p>
 <!-- /wp:paragraph --></div>
-<!-- /wp:group -->
-
-<!-- wp:undergrowth/garden-count /--></div>
 <!-- /wp:group -->
 
 <!-- wp:separator {"align":"wide","className":"is-style-wide"} -->
@@ -119,17 +113,22 @@ function undergrowth_register_garden_page_pattern(): void {
 		'undergrowth/garden-page',
 		array(
 			'title'       => __( 'Garden page', 'undergrowth' ),
-			'description' => __( 'A garden page: a heading, your own introduction, the number of posts, the filters and the garden feed.', 'undergrowth' ),
+			'description' => __( 'A garden page under its own title: the number of posts, your own introduction, the filters and the garden feed.', 'undergrowth' ),
 			'categories'  => array( 'undergrowth' ),
 			'keywords'    => array( __( 'garden', 'undergrowth' ), __( 'digital garden', 'undergrowth' ) ),
 			'blockTypes'  => array( 'core/post-content' ),
 			'postTypes'   => array( 'page' ),
 			'content'     => sprintf(
 				$content,
-				esc_html__( 'The Garden', 'undergrowth' ),
 				// The placeholder lives in the block's comment, so a translation
-				// is encoded the way the editor would save it.
-				serialize_block_attributes( array( 'placeholder' => __( 'Write a few words about your garden: what grows here, and how to wander it.', 'undergrowth' ) ) )
+				// is encoded the way the editor would save it. The intro takes
+				// the theme's large size, as a page's opening line does.
+				serialize_block_attributes(
+					array(
+						'placeholder' => __( 'Write a few words about your garden: what grows here, and how to wander it.', 'undergrowth' ),
+						'fontSize'    => 'large',
+					)
+				)
 			),
 		)
 	);

@@ -490,7 +490,7 @@ msgid "Garden page"
 msgstr ""
 
 #: src/block-garden-count.php
-msgid "A garden page: a heading, your own introduction, the number of posts, the filters and the garden feed."
+msgid "A garden page under its own title: the number of posts, your own introduction, the filters and the garden feed."
 msgstr ""
 
 #: src/block-garden-count.php
@@ -499,10 +499,6 @@ msgstr ""
 
 #: src/block-garden-count.php
 msgid "digital garden"
-msgstr ""
-
-#: src/block-garden-count.php
-msgid "The Garden"
 msgstr ""
 
 #: src/block-garden-count.php
@@ -629,6 +625,11 @@ msgstr ""
 #: src/blocks.php
 msgctxt "block style"
 msgid "Specimen"
+msgstr ""
+
+#: src/blocks.php
+msgctxt "block style"
+msgid "Quiet"
 msgstr ""
 
 #: src/blocks.php
