@@ -48,13 +48,10 @@ export default function Edit( { attributes, setAttributes } ) {
 				<PanelBody title={ __( 'Settings', 'undergrowth' ) }>
 					<ToggleControl
 						__nextHasNoMarginBottom
-						label={ __(
-							'Feature the first post, with its image',
-							'undergrowth'
-						) }
-						checked={ attributes.showFeatured }
-						onChange={ ( showFeatured ) =>
-							setAttributes( { showFeatured } )
+						label={ __( 'Show featured images', 'undergrowth' ) }
+						checked={ attributes.showImages }
+						onChange={ ( showImages ) =>
+							setAttributes( { showImages } )
 						}
 					/>
 					<SelectControl
