@@ -622,6 +622,16 @@ msgid "Linked from"
 msgstr ""
 
 #: src/blocks.php
+msgctxt "block style"
+msgid "Columns"
+msgstr ""
+
+#: src/blocks.php
+msgctxt "block style"
+msgid "Specimen"
+msgstr ""
+
+#: src/blocks.php
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
 msgid "More like this"
