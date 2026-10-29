@@ -1,11 +1,12 @@
 /*
  * The feed is a grid of entries that fills the width it is given, one
- * column on a phone. The featured entry spans the whole row.
+ * column on a phone, each entry under a hairline drawn from the text
+ * colour. The featured entry spans the whole row.
  */
 .wp-block-undergrowth-garden-feed-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
-	gap: 1.5rem 2rem;
+	gap: var(--wp--preset--spacing--40, 1.5rem) var(--wp--preset--spacing--50, 2.5rem);
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -18,13 +19,16 @@
 		"stage title"
 		". excerpt"
 		". details";
-	column-gap: 0.5rem;
+	column-gap: 0.6em;
 	align-content: start;
 	margin: 0;
+	padding-block-start: var(--wp--preset--spacing--30, 1rem);
+	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
 }
 
 .wp-block-undergrowth-garden-feed-item.is-featured {
 	grid-column: 1 / -1;
+	padding-block-end: var(--wp--preset--spacing--30, 1rem);
 }
 
 /*
@@ -35,46 +39,78 @@
 	display: block;
 	grid-area: title;
 	min-height: 24px;
+	font-family: var(--wp--preset--font-family--heading, inherit);
+	font-size: var(--wp--preset--font-size--medium, 1.125em);
 	font-weight: 600;
+	line-height: 1.3;
+	text-decoration: none;
+}
+
+.wp-block-undergrowth-garden-feed-title span {
+	text-decoration-line: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: color-mix(in srgb, currentcolor 35%, transparent);
+	text-underline-offset: 0.25em;
+	text-wrap: balance;
+	transition: text-decoration-color 0.2s ease;
+}
+
+.wp-block-undergrowth-garden-feed-title:hover span,
+.wp-block-undergrowth-garden-feed-title:focus-visible span {
+	text-decoration-color: currentcolor;
 }
 
 .is-featured .wp-block-undergrowth-garden-feed-title {
-	font-size: 1.5em;
+	font-size: var(--wp--preset--font-size--x-large, clamp(1.5rem, 1rem + 2vw, 2.25rem));
+	line-height: 1.15;
 }
 
 .wp-block-undergrowth-garden-feed-title img {
 	display: block;
 	width: 100%;
 	height: auto;
-	margin-block-end: 0.5rem;
+	margin-block-end: var(--wp--preset--spacing--30, 1rem);
 }
 
+/* The stage's glyph, softened, sits on the title's first line. */
 .wp-block-undergrowth-garden-feed-stage {
 	grid-area: stage;
 	align-self: start;
+	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 .wp-block-undergrowth-garden-feed-stage .undergrowth-stage-icon {
 	display: block;
-	width: 1.5em;
-	height: 1.5em;
+	width: 1.35em;
+	height: 1.35em;
+	margin-block-start: 0.1em;
 }
 
 /* The image sits above the title, so the icon moves down beside it. */
 .is-featured .wp-block-undergrowth-garden-feed-stage {
 	align-self: end;
+	margin-block-end: 0.35em;
 }
 
 .wp-block-undergrowth-garden-feed-excerpt {
 	grid-area: excerpt;
-	margin: 0.25rem 0 0;
+	margin: 0.4em 0 0;
+	font-size: var(--wp--preset--font-size--small, 0.875em);
+	text-wrap: pretty;
+}
+
+.is-featured .wp-block-undergrowth-garden-feed-excerpt {
+	max-width: 40em;
+	font-size: inherit;
 }
 
 .wp-block-undergrowth-garden-feed-details {
 	grid-area: details;
-	margin: 0.25rem 0 0;
-	font-size: 0.875em;
-	opacity: 0.8;
+	margin: 0.4em 0 0;
+	font-variant-caps: all-small-caps;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.08em;
+	color: color-mix(in srgb, currentcolor 75%, transparent);
 }
 
 .wp-block-undergrowth-garden-feed-type::after {
@@ -85,13 +121,45 @@
 .wp-block-undergrowth-garden-feed-pages {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
-	margin-block-start: 2rem;
+	gap: 0.25em;
+	margin-block-start: var(--wp--preset--spacing--50, 2.5rem);
+	font-variant-numeric: tabular-nums;
 }
 
 .wp-block-undergrowth-garden-feed-pages .page-numbers {
-	display: inline-block;
-	min-width: 24px;
-	min-height: 24px;
-	text-align: center;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: max(24px, 2em);
+	min-height: max(24px, 2em);
+	padding-inline: 0.5em;
+	font-size: var(--wp--preset--font-size--small, 0.875em);
+	color: inherit;
+	text-decoration: none;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	transition: background-color 0.2s ease;
+}
+
+.wp-block-undergrowth-garden-feed-pages a.page-numbers:hover {
+	background-color: color-mix(in srgb, currentcolor 8%, transparent);
+}
+
+/* The current page is marked by more than colour: a border and weight. */
+.wp-block-undergrowth-garden-feed-pages .page-numbers.current {
+	font-weight: 600;
+	border-color: currentcolor;
+}
+
+.wp-block-undergrowth-garden-feed a:focus-visible {
+	outline: 2px solid currentcolor;
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.wp-block-undergrowth-garden-feed-title span,
+	.wp-block-undergrowth-garden-feed-pages .page-numbers {
+		transition: none;
+	}
 }
