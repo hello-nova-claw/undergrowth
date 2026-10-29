@@ -359,7 +359,8 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( '<option value="seedling" selected>', $html );
 		// The button stays for a reader without JavaScript.
 		$this->assertMatchesRegularExpression( '#<p class="wp-block-undergrowth-garden-filters-submit"><button type="submit"[^>]*>#', $html );
-		$this->assertStringNotContainsString( 'is-live', $html );
+		// The class that hides it is only added once the script runs.
+		$this->assertMatchesRegularExpression( '#<form class="wp-block-undergrowth-garden-filters-form" #', $html );
 	}
 
 	public function test_each_select_has_a_label_a_screen_reader_hears_and_an_all_choice_readers_see() {
