@@ -179,7 +179,7 @@ class Test_Garden_Page extends WP_UnitTestCase {
 		$this->assertContains( 'core/separator', $names );
 		$this->assertNotContains( 'core/columns', $names );
 		$this->assertStringContainsString( 'var:preset|spacing|', $pattern['content'] );
-		$this->assertStringContainsString( '"showFeatured":true', $pattern['content'] );
+		$this->assertStringContainsString( '"showImages":true', $pattern['content'] );
 		$this->assertStringContainsString( '<!-- wp:undergrowth/garden-count {"className":"is-style-quiet"} /-->', $pattern['content'] );
 	}
 

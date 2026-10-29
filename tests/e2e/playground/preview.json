@@ -3,15 +3,35 @@
 	"meta": {
 		"title": "Undergrowth preview",
 		"author": "hello-nova-claw",
-		"description": "Undergrowth with the e2e test provider and the small demo blog (demo/undergrowth-demo-small.xml), opened on Posts > Undergrowth. The test provider counts each post's words instead of calling an API, and the test site answers for Claude, so no key is needed or asked for. The monthly cycle has run once, so the growth stages and the Map are filled in. The Dashboard shows one prompt, from a sample reader's question."
+		"description": "Undergrowth with the e2e test provider and the small demo blog (demo/undergrowth-demo-small.xml), opened on its home page, a Garden page made from the plugin's pattern. The test provider counts each post's words instead of calling an API, and the test site answers for Claude, so no key is needed or asked for. The monthly cycle has run once, so the growth stages and the Map are filled in. The Dashboard shows one prompt, from a sample reader's question. Twenty Twenty-Four and Twenty Twenty-One are installed beside the default theme, so the reader blocks can be compared under Appearance > Themes."
 	},
 	"preferredVersions": {
 		"php": "8.3",
 		"wp": "latest"
 	},
-	"landingPage": "/wp-admin/edit.php?page=undergrowth-links",
+	"landingPage": "/",
 	"login": true,
 	"steps": [
+		{
+			"step": "installTheme",
+			"themeData": {
+				"resource": "wordpress.org/themes",
+				"slug": "twentytwentyfour"
+			},
+			"options": {
+				"activate": false
+			}
+		},
+		{
+			"step": "installTheme",
+			"themeData": {
+				"resource": "wordpress.org/themes",
+				"slug": "twentytwentyone"
+			},
+			"options": {
+				"activate": false
+			}
+		},
 		{
 			"step": "activatePlugin",
 			"pluginPath": "undergrowth/undergrowth.php"
@@ -30,6 +50,10 @@
 		{
 			"step": "runPHP",
 			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\nundergrowth_e2e_read_demo();\n\n// A reader's question, and a made-up key, so the Dashboard has a prompt.\n// The test site answers every request to Claude itself.\n$posts = get_posts(\n\tarray(\n\t\t'tag'         => 'winter',\n\t\t'numberposts' => 1,\n\t\t'order'       => 'ASC',\n\t)\n);\nwp_insert_comment(\n\tarray(\n\t\t'comment_post_ID'      => $posts[0]->ID,\n\t\t'comment_content'      => 'How do you keep oca through the winter?',\n\t\t'comment_approved'     => 1,\n\t\t'comment_author'       => 'A reader',\n\t\t'comment_author_email' => 'reader@example.com',\n\t)\n);\nupdate_option( 'undergrowth_anthropic_api_key', 'not-a-real-anthropic-key' );\nundergrowth_write_prompt();\n"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// A Garden page from the plugin's pattern, as the home page, so the reader\n// blocks show on the front of the site with the demo blog. A Posts page\n// keeps the blog index reachable.\n$garden = wp_insert_post(\n\tarray(\n\t\t'post_type'    => 'page',\n\t\t'post_title'   => 'The Garden',\n\t\t'post_name'    => 'garden',\n\t\t'post_content' => '<!-- wp:pattern {\"slug\":\"undergrowth/garden-page\"} /-->',\n\t\t'post_status'  => 'publish',\n\t),\n\ttrue\n);\n$posts = wp_insert_post(\n\tarray(\n\t\t'post_type'   => 'page',\n\t\t'post_title'  => 'Posts',\n\t\t'post_name'   => 'posts',\n\t\t'post_status' => 'publish',\n\t),\n\ttrue\n);\n\nif ( is_wp_error( $garden ) || is_wp_error( $posts ) ) {\n\tthrow new Exception( 'Could not make the Garden and Posts pages.' );\n}\n\nupdate_option( 'show_on_front', 'page' );\nupdate_option( 'page_on_front', $garden );\nupdate_option( 'page_for_posts', $posts );\n"
 		}
 	]
 }

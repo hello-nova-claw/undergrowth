@@ -106,7 +106,7 @@ function undergrowth_register_garden_page_pattern(): void {
 
 <!-- wp:undergrowth/garden-filters {"align":"wide"} /-->
 
-<!-- wp:undergrowth/garden-feed {"showFeatured":true,"align":"wide"} /--></div>
+<!-- wp:undergrowth/garden-feed {"showImages":true,"align":"wide"} /--></div>
 <!-- /wp:group -->';
 
 	register_block_pattern(

@@ -89,6 +89,17 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { showType } )
 						}
 					/>
+					<ToggleControl
+						__nextHasNoMarginBottom
+						label={ __(
+							'Show how many posts match',
+							'undergrowth'
+						) }
+						checked={ attributes.showCount }
+						onChange={ ( showCount ) =>
+							setAttributes( { showCount } )
+						}
+					/>
 				</PanelBody>
 			</InspectorControls>
 			{ /* The links and the form are for readers, so the preview holds no tab stops. */ }
