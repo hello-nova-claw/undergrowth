@@ -10,6 +10,14 @@
  */
 class Test_Vectors_Packed extends WP_UnitTestCase {
 
+	public function set_up() {
+		parent::set_up();
+
+		// On MySQL a schema test's upgrade commits the conversion it queued,
+		// since a change to a table commits, so it can outlive that test.
+		wp_clear_scheduled_hook( 'undergrowth_pack_vectors' );
+	}
+
 	public function tear_down() {
 		global $wpdb;
 
