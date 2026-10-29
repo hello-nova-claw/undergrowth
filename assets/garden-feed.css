@@ -112,6 +112,10 @@
 	margin: 0.4em 0 0;
 	font-variant-caps: all-small-caps;
 	font-variant-numeric: tabular-nums;
+}
+
+/* Its tracking, unless the author set letter spacing on the block. */
+:where(.wp-block-undergrowth-garden-feed:not([style*="letter-spacing"])) .wp-block-undergrowth-garden-feed-details {
 	letter-spacing: 0.08em;
 }
 

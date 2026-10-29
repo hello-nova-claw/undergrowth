@@ -14,8 +14,12 @@
 .wp-block-undergrowth-garden-count-number {
 	font-size: clamp(3em, 2em + 4vw, 5em);
 	font-variant-numeric: tabular-nums lining-nums;
-	letter-spacing: -0.02em;
 	line-height: 0.9;
+}
+
+/* Its tracking, unless the author set letter spacing on the block. */
+:where(.wp-block-undergrowth-garden-count:not([style*="letter-spacing"])) .wp-block-undergrowth-garden-count-number {
+	letter-spacing: -0.02em;
 }
 
 /* The theme's heading face, unless the author chose a font for the block. */
@@ -25,5 +29,9 @@
 
 .wp-block-undergrowth-garden-count-label {
 	font-variant-caps: all-small-caps;
+}
+
+/* Its tracking, unless the author set letter spacing on the block. */
+:where(.wp-block-undergrowth-garden-count:not([style*="letter-spacing"])) .wp-block-undergrowth-garden-count-label {
 	letter-spacing: 0.08em;
 }

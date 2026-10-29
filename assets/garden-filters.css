@@ -66,6 +66,10 @@
 	display: block;
 	margin-block-end: 0.25em;
 	font-variant-caps: all-small-caps;
+}
+
+/* Its tracking, unless the author set letter spacing on the block. */
+:where(.wp-block-undergrowth-garden-filters:not([style*="letter-spacing"])) .wp-block-undergrowth-garden-filters-field label {
 	letter-spacing: 0.08em;
 }
 
