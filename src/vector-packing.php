@@ -82,7 +82,8 @@ function undergrowth_run_pack_vectors(): void {
 		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, embedding FROM %i WHERE packed IS NULL ORDER BY id LIMIT %d', $table, $size ), ARRAY_A );
 
 		$wpdb->flush();
-		$fetched = count( $rows );
+		$fetched   = count( $rows );
+		$converted = 0;
 
 		while ( array() !== $rows ) {
 			$row = array_shift( $rows );
@@ -92,7 +93,7 @@ function undergrowth_run_pack_vectors(): void {
 			// its column, so the bytes reach a binary column untouched, where
 			// a query of its own would be checked as text as a whole.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Converting the plugin's own table.
-			$wpdb->update(
+			$converted += (int) $wpdb->update(
 				$table,
 				array(
 					'packed'    => undergrowth_pack_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) ),
@@ -104,7 +105,9 @@ function undergrowth_run_pack_vectors(): void {
 			);
 		}
 
-		if ( $size === $fetched ) {
+		// A full batch that converted nothing would only fail again at once,
+		// so the hourly check tries it later instead.
+		if ( $size === $fetched && $converted > 0 ) {
 			wp_schedule_single_event( time(), 'undergrowth_pack_vectors' );
 		}
 	} finally {
