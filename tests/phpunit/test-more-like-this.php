@@ -567,6 +567,15 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertFalse( undergrowth_similar_measured( $yacon ) );
 	}
 
+	public function test_a_post_that_never_had_a_vector_queues_no_walk_of_the_lists() {
+		undergrowth_similar_scores( $this->source );
+		$draft = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		undergrowth_remove_from_index( $draft );
+
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_similar_forget', array( $draft ) ) );
+	}
+
 	public function test_a_first_read_queues_no_neighbour_updates() {
 		$mashua = $this->old( 'Mashua', array( 1, 0.1, 0 ) );
 		undergrowth_similar_scores( $this->source );
