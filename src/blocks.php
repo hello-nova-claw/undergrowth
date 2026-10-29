@@ -145,7 +145,9 @@ function undergrowth_render_more_like_this_block( $attributes, $content, $block 
 	$post_id = (int) ( $block->context['postId'] ?? 0 );
 
 	// A list never measured is measured in cron, not while a reader waits.
-	if ( ! undergrowth_similar_ready( $post_id ) ) {
+	// Someone who can edit the post, such as the author in the editor's
+	// preview, has it measured there and then, as the editor sidebar does.
+	if ( ! current_user_can( 'edit_post', $post_id ) && ! undergrowth_similar_ready( $post_id ) ) {
 		return '';
 	}
 
