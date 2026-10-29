@@ -19,6 +19,7 @@ Undergrowth's rules are fixed in code (handover section 2, principle 6). These h
 | `undergrowth_stale_check_size` | `src/indexer.php` | How many posts saved since their vector was made one run of the hourly check reads, to find text that changed without being embedded again; each full run queues the next at once. Default 100. |
 | `undergrowth_post_chunk_size` | `src/links.php` | How many posts are read in one query wherever posts are read in chunks, such as building the word counts or checking link targets. Default 100. A smaller chunk holds less in memory and sends more queries. |
 | `undergrowth_vector_chunk_size` | `src/links.php` | How many stored vectors are read in one query. Default 100. |
+| `undergrowth_pack_batch_size` | `src/vector-packing.php` | How many vectors stored as JSON, before version 8 of the schema, one cron batch converts to packed floats. Default 200. |
 
 ### Thresholds
 

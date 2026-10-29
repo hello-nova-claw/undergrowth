@@ -229,7 +229,7 @@ function undergrowth_run_resurfacing_cycle( $after_id = 0 ): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT v.post_id, v.provider, v.model, v.language, v.embedding FROM %i v INNER JOIN %i m ON m.post_id = v.post_id WHERE m.meta_key = %s AND m.meta_value = %s AND v.post_id > %d ORDER BY v.post_id ASC LIMIT %d',
+			'SELECT v.post_id, v.provider, v.model, v.language, v.embedding, v.packed FROM %i v INNER JOIN %i m ON m.post_id = v.post_id WHERE m.meta_key = %s AND m.meta_value = %s AND v.post_id > %d ORDER BY v.post_id ASC LIMIT %d',
 			undergrowth_vectors_table(),
 			$wpdb->postmeta,
 			'undergrowth_stage',
@@ -256,7 +256,7 @@ function undergrowth_run_resurfacing_cycle( $after_id = 0 ): void {
 			continue;
 		}
 
-		$vector = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+		$vector = undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 		if ( '' === $vector ) {
 			continue;

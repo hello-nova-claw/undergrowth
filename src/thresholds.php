@@ -100,7 +100,7 @@ function undergrowth_measure_scores(): void {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 		$rows = (array) $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT post_id, language, embedding FROM %i WHERE provider = %s AND model = %s AND post_id > %d ORDER BY post_id LIMIT %d',
+				'SELECT post_id, language, embedding, packed FROM %i WHERE provider = %s AND model = %s AND post_id > %d ORDER BY post_id LIMIT %d',
 				undergrowth_vectors_table(),
 				$identity['provider'],
 				$identity['model'],
@@ -114,7 +114,7 @@ function undergrowth_measure_scores(): void {
 
 		foreach ( $rows as $row ) {
 			$after  = (int) $row['post_id'];
-			$packed = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+			$packed = undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 			// Vectors of another length, from a change of model settings,
 			// cannot be compared either.

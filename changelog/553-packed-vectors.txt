@@ -1,0 +1,1 @@
+Undergrowth now stores what it learns about each post in about a quarter of the space, and reads it faster. Posts read by an earlier version are converted in the background, a batch at a time.

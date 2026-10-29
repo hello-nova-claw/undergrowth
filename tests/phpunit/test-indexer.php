@@ -276,7 +276,8 @@ class Test_Indexer extends WP_UnitTestCase {
 		undergrowth_embed_post( $post_id );
 
 		$row = undergrowth_get_vector( $post_id );
-		$this->assertSame( array( 0.1, 0.2, 0.3 ), $row['vector'] );
+		// Stored as single-precision floats, as the provider sent them.
+		$this->assertEqualsWithDelta( array( 0.1, 0.2, 0.3 ), $row['vector'], 1e-7 );
 		$this->assertSame( 'test-provider', $row['provider'] );
 		$this->assertSame( 'test-model-v1', $row['model'] );
 		$this->assertSame( get_locale(), $row['language'] );

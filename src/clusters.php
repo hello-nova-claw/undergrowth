@@ -291,7 +291,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
 		$placeholders = implode( ', ', array_fill( 0, count( $members ), '%d' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The plugin's own table; there is one placeholder for each ID.
-		foreach ( (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, provider, model, language, embedding FROM %i WHERE post_id IN (' . $placeholders . ')', undergrowth_vectors_table(), ...array_map( 'intval', $members ) ), ARRAY_A ) as $row ) {
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( 'SELECT post_id, provider, model, language, embedding, packed FROM %i WHERE post_id IN (' . $placeholders . ')', undergrowth_vectors_table(), ...array_map( 'intval', $members ) ), ARRAY_A ) as $row ) {
 			$rows[ (int) $row['post_id'] ] = $row;
 		}
 
@@ -300,7 +300,7 @@ function undergrowth_measure_cluster( array $members ): ?array {
 
 	foreach ( $members as $post_id ) {
 		$row    = $rows[ $post_id ] ?? null;
-		$packed = null === $row ? '' : undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+		$packed = null === $row ? '' : undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 		unset( $rows[ $post_id ] );
 
@@ -469,7 +469,7 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT post_id, provider, model, language, embedding FROM %i WHERE post_id > %d ORDER BY post_id ASC LIMIT %d',
+			'SELECT post_id, provider, model, language, embedding, packed FROM %i WHERE post_id > %d ORDER BY post_id ASC LIMIT %d',
 			undergrowth_vectors_table(),
 			$after_id,
 			UNDERGROWTH_CLUSTER_BATCH
@@ -478,7 +478,7 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	);
 
 	// wpdb keeps the last result set until the next query, which would leave
-	// a batch of JSON behind while the batch is compared.
+	// a batch of vectors behind while the batch is compared.
 	$wpdb->flush();
 
 	$fetched = count( $rows );
@@ -493,7 +493,7 @@ function undergrowth_run_cluster_batch( int $after_id, string $pass ): void {
 	while ( array() !== $rows ) {
 		$row     = array_shift( $rows );
 		$last_id = (int) $row['post_id'];
-		$vector  = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+		$vector  = undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 		if ( '' === $vector || ! isset( $open[ $last_id ] ) ) {
 			continue;
@@ -641,7 +641,7 @@ function undergrowth_leader_vectors( array $leader_ids, array $identity ): array
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 		$rows = (array) $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT post_id, embedding FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id IN ({$placeholders}) ORDER BY post_id ASC",
+				"SELECT post_id, embedding, packed FROM %i WHERE provider = %s AND model = %s AND language = %s AND post_id IN ({$placeholders}) ORDER BY post_id ASC",
 				array_merge( array( undergrowth_vectors_table(), $identity['provider'], $identity['model'], $identity['language'] ), $chunk )
 			),
 			ARRAY_A
@@ -651,7 +651,7 @@ function undergrowth_leader_vectors( array $leader_ids, array $identity ): array
 		$wpdb->flush();
 
 		foreach ( $rows as $row ) {
-			$vector = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+			$vector = undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 			if ( '' !== $vector ) {
 				$vectors[ (int) $row['post_id'] ] = $vector;

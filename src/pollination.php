@@ -370,7 +370,7 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table; vectors change on every embed.
 	$rows = (array) $wpdb->get_results(
 		$wpdb->prepare(
-			'SELECT post_id, provider, model, language, embedding FROM %i WHERE post_id > %d ORDER BY post_id ASC LIMIT %d',
+			'SELECT post_id, provider, model, language, embedding, packed FROM %i WHERE post_id > %d ORDER BY post_id ASC LIMIT %d',
 			undergrowth_vectors_table(),
 			$after_id,
 			UNDERGROWTH_CLUSTER_BATCH
@@ -398,7 +398,7 @@ function undergrowth_run_pollination_batch( int $after_id, string $pass ): void 
 		$row     = array_shift( $rows );
 		$last_id = (int) $row['post_id'];
 		$post    = get_post( $last_id );
-		$source  = undergrowth_unit_vector( undergrowth_decode_embedding( (string) $row['embedding'] ) );
+		$source  = undergrowth_unit_vector( undergrowth_row_vector( $row ) );
 
 		if ( '' === $source || ! $post instanceof WP_Post || ! undergrowth_is_indexable( $post ) ) {
 			continue;
