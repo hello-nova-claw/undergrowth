@@ -26,6 +26,10 @@
 		"showType": {
 			"type": "boolean",
 			"default": true
+		},
+		"showCount": {
+			"type": "boolean",
+			"default": false
 		}
 	},
 	"supports": {

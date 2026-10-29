@@ -174,8 +174,12 @@ function undergrowth_garden_filters_choices( array $post_ids, string $topic_taxo
 /**
  * Renders a select for one filter, with its label.
  *
+ * The first choice, "All stages" or "All types", is what readers see as
+ * the select's name. The label is for a screen reader, in core's own
+ * screen-reader-text class so it looks the same in every theme.
+ *
  * @param string                $name    Query arg the select sets.
- * @param string                $label   Visible label.
+ * @param string                $label   Label a screen reader hears.
  * @param string                $all     Label of the choice that sets no filter.
  * @param array<string, string> $choices Names keyed by value.
  * @param string                $current The value chosen now.
@@ -195,7 +199,7 @@ function undergrowth_garden_filters_select( string $name, string $label, string 
 	}
 
 	return sprintf(
-		'<p class="wp-block-undergrowth-garden-filters-field"><label for="%1$s">%2$s</label><select id="%1$s" name="%3$s">%4$s</select></p>',
+		'<p class="wp-block-undergrowth-garden-filters-field"><label class="screen-reader-text" for="%1$s">%2$s</label><select id="%1$s" name="%3$s">%4$s</select></p>',
 		esc_attr( $id ),
 		esc_html( $label ),
 		esc_attr( $name ),
@@ -219,7 +223,7 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 	}
 
 	$choices = undergrowth_garden_filters_choices( $garden, (string) $attributes['topicSource'], $type_taxonomy );
-	$matches = array() === array_filter( $filters ) ? $garden : undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters );
+	$matches = empty( $attributes['showCount'] ) || array() === array_filter( $filters ) ? $garden : undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters );
 	$html    = '';
 
 	// Each link keeps the other filters and starts again at the first page.
@@ -238,9 +242,12 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 			);
 		}
 
-		$html .= sprintf(
-			'<nav class="wp-block-undergrowth-garden-filters-topics" aria-label="%1$s"><ul>%2$s</ul></nav>',
-			esc_attr__( 'Topics', 'undergrowth' ),
+		// The label readers see names the list for a screen reader too.
+		$label_id = wp_unique_id( 'undergrowth-garden-filters-topics-' );
+		$html    .= sprintf(
+			'<nav class="wp-block-undergrowth-garden-filters-topics" aria-labelledby="%1$s"><span class="wp-block-undergrowth-garden-filters-label" id="%1$s">%2$s</span><ul>%3$s</ul></nav>',
+			esc_attr( $label_id ),
+			esc_html__( 'Topics', 'undergrowth' ),
 			$items
 		);
 	}
@@ -271,8 +278,11 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 			}
 		}
 
+		// A changed select applies itself through the view script, which
+		// marks the form so the button is hidden. Without the script the
+		// button stays and sends the form.
 		$html .= sprintf(
-			'<form class="wp-block-undergrowth-garden-filters-form" method="get" action="%1$s" data-wp-on--submit="actions.filter" data-wp-on--change="actions.filter">%2$s%3$s<p class="wp-block-undergrowth-garden-filters-submit"><button type="submit" class="wp-element-button">%4$s</button></p></form>',
+			'<form class="wp-block-undergrowth-garden-filters-form" method="get" action="%1$s" data-wp-on--submit="actions.filter" data-wp-on--change="actions.filter" data-wp-class--is-live="state.live">%2$s%3$s<p class="wp-block-undergrowth-garden-filters-submit"><button type="submit" class="wp-element-button">%4$s</button></p></form>',
 			esc_url( (string) strtok( $base, '?' ) ),
 			$hidden,
 			$fields,
@@ -280,18 +290,24 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 		);
 	}
 
+	if ( '' !== $html ) {
+		$html = '<div class="wp-block-undergrowth-garden-filters-row">' . $html . '</div>';
+	}
+
 	// Read out when the feed changes in place, so a screen reader user
 	// knows the filter took effect.
-	$html .= sprintf(
-		'<p class="wp-block-undergrowth-garden-filters-count" role="status">%s</p>',
-		esc_html(
-			sprintf(
-				/* translators: %s: number of posts. */
-				_n( '%s post', '%s posts', count( $matches ), 'undergrowth' ),
-				number_format_i18n( count( $matches ) )
+	if ( ! empty( $attributes['showCount'] ) ) {
+		$html .= sprintf(
+			'<p class="wp-block-undergrowth-garden-filters-count" role="status">%s</p>',
+			esc_html(
+				sprintf(
+					/* translators: %s: number of posts. */
+					_n( '%s post', '%s posts', count( $matches ), 'undergrowth' ),
+					number_format_i18n( count( $matches ) )
+				)
 			)
-		)
-	);
+		);
+	}
 
 	return sprintf(
 		'<div %1$s>%2$s</div>',

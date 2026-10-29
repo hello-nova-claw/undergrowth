@@ -3,6 +3,12 @@ import { getElement, store } from '@wordpress/interactivity';
 import { formAddress } from './form-address';
 
 const { actions } = store( 'undergrowth/garden', {
+	state: {
+		// True once this script runs, so the form can hide its button: a
+		// changed select applies itself. Without the script the form has
+		// no such state, and the button stays.
+		live: true,
+	},
 	actions: {
 		/**
 		 * Loads another garden address and swaps the feed and the filters in
