@@ -339,12 +339,38 @@ class Test_Vectors_Packed extends WP_UnitTestCase {
 
 	public function test_a_row_saved_during_the_conversion_keeps_its_new_vector() {
 		$this->store_json( 7, array( 0.6, 0.8 ) );
-		$this->assertTrue( $this->save( 7, array( 0.8, 0.6 ) ) );
+		$saved = false;
+
+		// The save lands after the batch read the row, before it is updated.
+		$save = function ( $query ) use ( &$saved ) {
+			if ( ! $saved && 0 === strpos( $query, 'UPDATE `' . undergrowth_vectors_table() . '`' ) ) {
+				$saved = true;
+				$this->save( 7, array( 0.8, 0.6 ) );
+			}
+
+			return $query;
+		};
+		add_filter( 'query', $save );
 
 		undergrowth_queue_pack_vectors();
 		$this->convert();
 
+		remove_filter( 'query', $save );
+		$this->assertTrue( $saved );
 		$this->assertSame( pack( 'g*', 0.8, 0.6 ), $this->row( 7 )['packed'] );
+	}
+
+	public function test_a_json_vector_too_large_to_pack_keeps_its_json() {
+		$this->store_json( 7, '[1.0,1e39]' );
+		$this->store_json( 8, array( 0.6, 0.8 ) );
+
+		undergrowth_queue_pack_vectors();
+		$this->convert();
+
+		$this->assertSame( '', $this->row( 7 )['packed'] );
+		$this->assertSame( '[1.0,1e39]', $this->row( 7 )['embedding'] );
+		$this->assertSame( array( 1.0, 1e39 ), undergrowth_get_vector( 7 )['vector'] );
+		$this->assertSame( array( 8 ), array_keys( undergrowth_vectors_in_space( 'openai', 'text-embedding-3-small', 'en_US' ) ) );
 	}
 
 	public function test_clusters_read_json_and_packed_rows_alike() {
