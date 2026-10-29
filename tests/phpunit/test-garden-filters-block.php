@@ -388,24 +388,25 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 
 		$this->assertMatchesRegularExpression( '#<div class="wp-block-undergrowth-garden-filters-row"><nav class="wp-block-undergrowth-garden-filters-topics" aria-labelledby="([^"]+)"><span class="wp-block-undergrowth-garden-filters-label" id="\1">Topics</span><ul>#', $html );
 		$this->assertMatchesRegularExpression( '#</nav><form class="wp-block-undergrowth-garden-filters-form"#', $html );
-		$this->assertMatchesRegularExpression( '#</form></div></div>$#', $html );
+		$this->assertMatchesRegularExpression( '#</form></div><p class="wp-block-undergrowth-garden-filters-count screen-reader-text" role="status">[^<]+</p></div>$#', $html );
 		// Plain links: the chosen one is marked, none is wrapped in anything else.
 		$this->assertMatchesRegularExpression( '#<li><a href="[^"]*" aria-current="true"[^>]*>All topics</a></li><li><a href="[^"]*"[^>]*>Roots</a></li></ul></nav>#', $html );
 	}
 
-	public function test_counts_the_matching_posts_only_when_asked() {
+	public function test_counts_the_matching_posts_and_shows_the_count_only_when_asked() {
 		wp_set_post_tags( $this->post( 'Oca' ), array( 'Roots' ) );
 		$this->post( 'Yacon' );
 
-		$this->assertStringNotContainsString( 'wp-block-undergrowth-garden-filters-count', $this->render() );
-		$this->assertStringNotContainsString( 'role="status"', $this->render() );
+		// The status is read out either way; by default only a screen reader gets it.
+		$this->assertMatchesRegularExpression( '#</div><p class="wp-block-undergrowth-garden-filters-count screen-reader-text" role="status">2 posts</p></div>$#', $this->render() );
 
 		$html = $this->render( array( 'showCount' => true ) );
 
 		$this->assertMatchesRegularExpression( '#</div><p class="wp-block-undergrowth-garden-filters-count" role="status">2 posts</p></div>$#', $html );
 
 		$_GET['topic'] = 'roots';
-		$this->assertStringContainsString( 'role="status">1 post</p>', $this->render( array( 'showCount' => true ) ) );
+		$this->assertStringContainsString( 'screen-reader-text" role="status">1 post</p>', $this->render() );
+		$this->assertStringContainsString( 'filters-count" role="status">1 post</p>', $this->render( array( 'showCount' => true ) ) );
 	}
 
 	public function test_is_a_router_region_that_updates_in_place_and_applies_a_select_on_change() {

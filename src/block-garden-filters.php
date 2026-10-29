@@ -223,7 +223,7 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 	}
 
 	$choices = undergrowth_garden_filters_choices( $garden, (string) $attributes['topicSource'], $type_taxonomy );
-	$matches = empty( $attributes['showCount'] ) || array() === array_filter( $filters ) ? $garden : undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters );
+	$matches = array() === array_filter( $filters ) ? $garden : undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters );
 	$html    = '';
 
 	// Each link keeps the other filters and starts again at the first page.
@@ -295,19 +295,19 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 	}
 
 	// Read out when the feed changes in place, so a screen reader user
-	// knows the filter took effect.
-	if ( ! empty( $attributes['showCount'] ) ) {
-		$html .= sprintf(
-			'<p class="wp-block-undergrowth-garden-filters-count" role="status">%s</p>',
-			esc_html(
-				sprintf(
-					/* translators: %1$s: number of posts. */
-					_n( '%1$s post', '%1$s posts', count( $matches ), 'undergrowth' ),
-					number_format_i18n( count( $matches ) )
-				)
+	// knows the filter took effect. The count is always there for that;
+	// the setting only decides whether sighted readers see it too.
+	$html .= sprintf(
+		'<p class="wp-block-undergrowth-garden-filters-count%1$s" role="status">%2$s</p>',
+		empty( $attributes['showCount'] ) ? ' screen-reader-text' : '',
+		esc_html(
+			sprintf(
+				/* translators: %1$s: number of posts. */
+				_n( '%1$s post', '%1$s posts', count( $matches ), 'undergrowth' ),
+				number_format_i18n( count( $matches ) )
 			)
-		);
-	}
+		)
+	);
 
 	return sprintf(
 		'<div %1$s>%2$s</div>',

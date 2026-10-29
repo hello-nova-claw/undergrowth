@@ -233,7 +233,8 @@ test.describe( 'Garden filters block', () => {
 		expect( Math.round( last.y ) ).toBe( Math.round( first.y ) );
 
 		// Tab reaches the last topic, and the list scrolls so the whole
-		// link sits inside it, clear of the fade at its end.
+		// link sits inside it, clear of the fade at its end: the right edge
+		// in English, the left edge in Hebrew.
 		await links.first().focus();
 		for ( let tab = 1; tab < 3 + MORE_TOPICS.length; tab++ ) {
 			await page.keyboard.press( 'Tab' );
@@ -241,14 +242,19 @@ test.describe( 'Garden filters block', () => {
 		await expect( links.last() ).toBeFocused();
 		const box = await list.boundingBox();
 		const focused = await links.last().boundingBox();
-		const fade = await list.evaluate(
-			( element ) =>
-				3 * parseFloat( window.getComputedStyle( element ).fontSize )
-		);
-		expect( focused.x ).toBeGreaterThanOrEqual( box.x );
-		expect( focused.x + focused.width ).toBeLessThanOrEqual(
-			box.x + box.width - fade
-		);
+		const { fade, rtl } = await list.evaluate( ( element ) => {
+			const style = window.getComputedStyle( element );
+			return {
+				fade: 3 * parseFloat( style.fontSize ),
+				rtl: 'rtl' === style.direction,
+			};
+		} );
+		const clear = {
+			left: box.x + ( rtl ? fade : 0 ),
+			right: box.x + box.width - ( rtl ? 0 : fade ),
+		};
+		expect( focused.x ).toBeGreaterThanOrEqual( clear.left );
+		expect( focused.x + focused.width ).toBeLessThanOrEqual( clear.right );
 		await expectNoA11yViolations( page, FILTERS );
 	} );
 

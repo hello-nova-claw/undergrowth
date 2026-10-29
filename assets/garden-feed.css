@@ -1,8 +1,8 @@
 /*
  * The feed is a grid of entries that fills the width it is given, one
  * column on a phone, each entry under a hairline drawn from the text
- * colour. An entry with a featured image shows it above its title, as
- * wide as the entry, and the grid packs cards and text entries together.
+ * colour. The flow is dense so a tall card does not leave a hole beside
+ * the text entries that follow it.
  */
 .wp-block-undergrowth-garden-feed-list {
 	display: grid;
