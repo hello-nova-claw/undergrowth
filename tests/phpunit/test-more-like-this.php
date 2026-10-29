@@ -469,6 +469,7 @@ class Test_More_Like_This extends WP_UnitTestCase {
 
 	public function test_the_block_never_measures_a_list_while_a_reader_waits() {
 		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+		wp_set_current_user( 0 );
 		$reads = 0;
 		$count = static function ( $query ) use ( &$reads ) {
 			$reads += (int) ( false !== strpos( $query, undergrowth_vectors_table() ) && false !== strpos( $query, 'embedding' ) );
@@ -487,6 +488,14 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		do_action( 'undergrowth_measure_similar', $this->source );
 
 		$this->assertStringContainsString( (string) get_permalink( $yacon ), $this->render( $this->source, array(), false ) );
+	}
+
+	public function test_the_block_measures_the_list_for_someone_who_can_edit_the_post() {
+		$yacon = $this->old( 'Yacon', array( 1, 0.1, 0 ) );
+
+		// The editor's preview, or the author looking at their own post.
+		$this->assertStringContainsString( (string) get_permalink( $yacon ), $this->render( $this->source, array(), false ) );
+		$this->assertFalse( wp_next_scheduled( 'undergrowth_measure_similar', array( $this->source ) ) );
 	}
 
 	public function test_a_post_without_a_vector_queues_no_measure() {
