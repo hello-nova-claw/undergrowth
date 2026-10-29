@@ -284,14 +284,20 @@ function undergrowth_embed_post( int $post_id ): void {
  * @param int $post_id Post ID.
  */
 function undergrowth_remove_from_index( int $post_id ): void {
+	$had_vector = null !== undergrowth_get_vector_space( $post_id );
+
 	undergrowth_delete_vector( $post_id );
 
 	/**
 	 * Fires after a post leaves the index, for example when it is unpublished.
 	 *
-	 * @param int $post_id Post ID.
+	 * It also fires for a post that never had a vector, such as a draft
+	 * saved for the first time.
+	 *
+	 * @param int  $post_id    Post ID.
+	 * @param bool $had_vector Whether the post had a vector until now.
 	 */
-	do_action( 'undergrowth_post_left_index', $post_id );
+	do_action( 'undergrowth_post_left_index', $post_id, $had_vector );
 }
 
 /**

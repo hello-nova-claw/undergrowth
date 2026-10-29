@@ -27,7 +27,7 @@ const UNDERGROWTH_SIMILAR_FRESH_HALF = 180;
 const UNDERGROWTH_SIMILAR_POPULAR    = 0.15;
 
 add_action( 'undergrowth_post_embedded', 'undergrowth_queue_similar_neighbours' );
-add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_similar' );
+add_action( 'undergrowth_post_left_index', 'undergrowth_forget_post_similar', 10, 2 );
 add_action( 'undergrowth_stage_changed', 'undergrowth_similar_stage_changed' );
 add_action( 'add_option_undergrowth_index_identity', 'undergrowth_forget_similar', 10, 0 );
 add_action( 'update_option_undergrowth_index_identity', 'undergrowth_forget_similar', 10, 0 );
@@ -247,14 +247,16 @@ function undergrowth_similar_stage_changed( int $post_id ): void {
  *
  * A post unpublished would drop off them as they are shown anyway, but one
  * whose vector a failed re-embed removed is still published, and would
- * stay on them.
+ * stay on them. A post that never had a vector is on no list, so the lists
+ * are walked only when one was removed.
  *
- * @param int $post_id Post ID.
+ * @param int  $post_id    Post ID.
+ * @param bool $had_vector Whether the post had a vector until now.
  */
-function undergrowth_forget_post_similar( int $post_id ): void {
+function undergrowth_forget_post_similar( int $post_id, bool $had_vector = true ): void {
 	delete_post_meta( $post_id, 'undergrowth_similar' );
 
-	if ( false === wp_next_scheduled( 'undergrowth_similar_forget', array( $post_id ) ) ) {
+	if ( $had_vector && false === wp_next_scheduled( 'undergrowth_similar_forget', array( $post_id ) ) ) {
 		wp_schedule_single_event( time(), 'undergrowth_similar_forget', array( $post_id ) );
 	}
 }
