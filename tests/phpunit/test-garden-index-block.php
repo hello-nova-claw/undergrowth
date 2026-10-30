@@ -127,6 +127,9 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-index ul\.wp-block-undergrowth-garden-index-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;[^}]*\blist-style: none;#ms', $css );
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-index \.wp-block-undergrowth-garden-index-list > li \{[^}]*\bmargin: 0;[^}]*\bpadding: 0\.2em 0;[^}]*\blist-style: none;#ms', $css );
 		$this->assertDoesNotMatchRegularExpression( '#^\.wp-block-undergrowth-garden-index (ul|li) \{#m', $css );
+		// The Specimen style's list rule names the list class too, so it
+		// still applies over the reset.
+		$this->assertMatchesRegularExpression( '#^\.is-style-specimen \.wp-block-undergrowth-garden-index-list \{#m', $css );
 	}
 
 	public function test_lists_the_maps_groups_in_map_order_named_as_on_the_map() {

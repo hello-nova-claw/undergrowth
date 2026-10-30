@@ -683,6 +683,7 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		// "Columns" style names the block's class too, to keep its borders.
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this ul\.undergrowth-more-like-this-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;[^}]*\blist-style: none;#ms', $css );
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this \.undergrowth-more-like-this-list > li \{[^}]*\bmargin: 0;[^}]*\bpadding: 0\.75em 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this\.is-style-columns \.undergrowth-more-like-this-list \{[^}]*\bdisplay: grid;#ms', $css );
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this\.is-style-columns \.undergrowth-more-like-this-list > li \{[^}]*\bborder-block-end: 0;#ms', $css );
 		$this->assertDoesNotMatchRegularExpression( '#^(\.is-style-columns )?\.undergrowth-more-like-this-(list|item) \{#m', $css );
 	}
