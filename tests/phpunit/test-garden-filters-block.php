@@ -458,9 +458,12 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '<b>', $this->render() );
 	}
 
-	public function test_the_feed_is_a_router_region_too() {
-		$this->post( 'Oca' );
-
+	/**
+	 * Renders the garden feed, which the filters must agree with.
+	 *
+	 * @return string Markup.
+	 */
+	private function feed(): string {
 		$block = new WP_Block(
 			array(
 				'blockName'    => 'undergrowth/garden-feed',
@@ -470,9 +473,48 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 				'innerContent' => array(),
 			)
 		);
-		$html  = $block->render();
+
+		return $block->render();
+	}
+
+	public function test_the_feed_is_a_router_region_too() {
+		$this->post( 'Oca' );
+
+		$html = $this->feed();
 
 		$this->assertStringContainsString( 'data-wp-interactive="undergrowth/garden"', $html );
 		$this->assertStringContainsString( 'data-wp-router-region="undergrowth/garden-feed"', $html );
+	}
+
+	public function test_counts_a_filter_of_zero_as_the_feed_does() {
+		$this->post( 'Oca' );
+		$this->post( 'Yacon' );
+
+		// A reader can write any value into the address. Nothing has this
+		// slug, so the feed filters down to nothing and the count must too.
+		$_GET['topic'] = '0';
+
+		$this->assertStringContainsString( 'role="status">0 posts</p>', $this->render() );
+		$this->assertStringContainsString( 'Nothing in the garden matches.', $this->feed() );
+	}
+
+	public function test_counts_a_topic_whose_slug_is_zero_as_the_feed_does() {
+		// Core keeps "0" as a slug: a term named "0" takes it when no other
+		// term in its taxonomy is in the way, and sanitize_title() keeps it
+		// when it is read back from the address.
+		$zero = self::factory()->tag->create( array( 'name' => '0' ) );
+		$this->assertSame( '0', get_term( $zero )->slug );
+
+		$this->post( 'Oca', array( 'tags_input' => array( $zero ) ) );
+		$this->post( 'Yacon' );
+
+		$_GET['topic'] = '0';
+
+		$html = $this->render();
+		$feed = $this->feed();
+
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*" aria-current="true"[^>]*>0</a>#', $html );
+		$this->assertSame( 1, substr_count( $feed, 'wp-block-undergrowth-garden-feed-item' ) );
+		$this->assertStringContainsString( 'role="status">1 post</p>', $html );
 	}
 }

@@ -88,6 +88,26 @@ function undergrowth_garden_feed_filters(): array {
 }
 
 /**
+ * Says whether any filter narrows the garden.
+ *
+ * The count in the garden filters and the feed both ask this, so they
+ * always agree. Only the empty string means "all": a slug of "0" is a
+ * filter too, which array_filter() without a callback would drop.
+ *
+ * @param array{stage: string, type: string, topic: string, group: string} $filters From undergrowth_garden_feed_filters().
+ * @return bool True when at least one filter is set.
+ */
+function undergrowth_garden_feed_filtered( array $filters ): bool {
+	foreach ( $filters as $value ) {
+		if ( '' !== $value ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Picks the taxonomy whose terms name each post's type.
  *
  * @param string $source Taxonomy chosen in the block settings.
@@ -102,6 +122,36 @@ function undergrowth_garden_feed_type_taxonomy( string $source ): string {
 	}
 
 	return $taxonomy->name;
+}
+
+/**
+ * Builds the tax_query clause for one slug a reader chose.
+ *
+ * WP_Tax_Query::transform_query() passes the slugs through array_filter()
+ * with no callback, which drops the slug "0" and matches nothing. So the
+ * slug is resolved to its term first and the clause names the term ID. A
+ * slug with no term keeps the slug clause, which matches nothing, as before.
+ *
+ * @param string $taxonomy Taxonomy to look in.
+ * @param string $slug     Term slug from the address.
+ * @return array{taxonomy: string, field: string, terms: int|string} One tax_query clause.
+ */
+function undergrowth_garden_feed_term_clause( string $taxonomy, string $slug ): array {
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+
+	if ( ! $term instanceof WP_Term ) {
+		return array(
+			'taxonomy' => $taxonomy,
+			'field'    => 'slug',
+			'terms'    => $slug,
+		);
+	}
+
+	return array(
+		'taxonomy' => $taxonomy,
+		'field'    => 'term_id',
+		'terms'    => $term->term_id,
+	);
 }
 
 /**
@@ -136,16 +186,8 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 	if ( '' !== $filters['topic'] ) {
 		$terms[] = array(
 			'relation' => 'OR',
-			array(
-				'taxonomy' => 'post_tag',
-				'field'    => 'slug',
-				'terms'    => $filters['topic'],
-			),
-			array(
-				'taxonomy' => 'category',
-				'field'    => 'slug',
-				'terms'    => $filters['topic'],
-			),
+			undergrowth_garden_feed_term_clause( 'post_tag', $filters['topic'] ),
+			undergrowth_garden_feed_term_clause( 'category', $filters['topic'] ),
 		);
 	}
 
@@ -155,11 +197,7 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 			'operator' => 'NOT EXISTS',
 		);
 	} elseif ( '' !== $filters['type'] ) {
-		$terms[] = array(
-			'taxonomy' => $taxonomy,
-			'field'    => 'slug',
-			'terms'    => 'post_format' === $taxonomy ? 'post-format-' . $filters['type'] : $filters['type'],
-		);
+		$terms[] = undergrowth_garden_feed_term_clause( $taxonomy, 'post_format' === $taxonomy ? 'post-format-' . $filters['type'] : $filters['type'] );
 	}
 
 	$post_ids = get_posts(
@@ -355,7 +393,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 	if ( array() === $post_ids ) {
 		// An empty garden shows readers nothing. A filter that matches
 		// nothing says so, or the reader would think the page broken.
-		if ( array() === array_filter( $filters ) || array() === undergrowth_garden_feed_posts( 'tended', $taxonomy, array_fill_keys( array_keys( $filters ), '' ) ) ) {
+		if ( ! undergrowth_garden_feed_filtered( $filters ) || array() === undergrowth_garden_feed_posts( 'tended', $taxonomy, array_fill_keys( array_keys( $filters ), '' ) ) ) {
 			return '';
 		}
 

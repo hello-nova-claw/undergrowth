@@ -223,7 +223,7 @@ function undergrowth_render_garden_filters_block( $attributes ): string {
 	}
 
 	$choices = undergrowth_garden_filters_choices( $garden, (string) $attributes['topicSource'], $type_taxonomy );
-	$matches = array() === array_filter( $filters ) ? $garden : undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters );
+	$matches = undergrowth_garden_feed_filtered( $filters ) ? undergrowth_garden_feed_posts( 'tended', $type_taxonomy, $filters ) : $garden;
 	$html    = '';
 
 	// Each link keeps the other filters and starts again at the first page.

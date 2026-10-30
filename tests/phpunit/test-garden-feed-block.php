@@ -346,6 +346,27 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Nothing in the garden matches.', $html );
 	}
 
+	public function test_a_filter_of_zero_is_set_and_an_empty_one_is_not() {
+		$_GET['topic'] = '0';
+
+		$filters = undergrowth_garden_feed_filters();
+
+		$this->assertSame( '0', $filters['topic'] );
+		$this->assertTrue( undergrowth_garden_feed_filtered( $filters ) );
+		$this->assertFalse( undergrowth_garden_feed_filtered( array_fill_keys( array_keys( $filters ), '' ) ) );
+	}
+
+	public function test_says_so_when_a_topic_of_zero_matches_nothing() {
+		$this->post( 'Oca' );
+
+		$_GET['topic'] = '0';
+
+		$html = $this->render();
+
+		$this->assertSame( array(), $this->titles( $html ) );
+		$this->assertStringContainsString( 'Nothing in the garden matches.', $html );
+	}
+
 	/**
 	 * Gives a post a featured image.
 	 *
