@@ -114,11 +114,10 @@ jobs:
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # One publish at a time per pull request, in order, so two runs never
-    # write the branch and the comment over each other.
-    concurrency:
-      group: ${{ github.workflow }}-publish-${{ github.event.pull_request.number }}
-      cancel-in-progress: false
+    # No concurrency group here: a group keeps one pending job, so an older
+    # run joining the queue would drop the current commit's publish. The
+    # check below is what keeps an older run from publishing, and the
+    # commit step retries from the branch's latest state if two runs race.
     permissions:
       contents: write
       pull-requests: write
