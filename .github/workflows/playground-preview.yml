@@ -26,7 +26,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
@@ -58,7 +58,7 @@ jobs:
             ' tests/e2e/playground/preview.json
             echo 'BLUEPRINT'
           } >> "$GITHUB_OUTPUT"
-      - uses: WordPress/action-wp-playground-pr-preview@v4.0.0
+      - uses: WordPress/action-wp-playground-pr-preview@1b15093d61b5e98cdfeb31466f34ade495762cd7 # v4.0.0
         with:
           mode: comment
           blueprint: ${{ steps.blueprint.outputs.json }}

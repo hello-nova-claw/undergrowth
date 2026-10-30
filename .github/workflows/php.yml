@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.3"
           coverage: none
@@ -31,13 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.3"
           coverage: none
           tools: cs2pr
-      - uses: ramsey/composer-install@4.0.0
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
       - run: vendor/bin/phpcs -q --report=checkstyle | cs2pr
 
   phpstan:
@@ -45,12 +45,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.3"
           coverage: none
-      - uses: ramsey/composer-install@4.0.0
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
       - run: composer analyse -- --error-format=github --no-progress
 
   phpunit:
@@ -66,16 +66,16 @@ jobs:
           - { wp: latest, core: "", php: "8.4" }
           - { wp: trunk, core: "WordPress/WordPress#master", php: "8.4" }
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.3"
           coverage: none
-      - uses: ramsey/composer-install@4.0.0
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
       - run: npm ci
       - name: Start wp-env
         env:
@@ -113,16 +113,16 @@ jobs:
       WP_TESTS_DIR: ${{ github.workspace }}/wordpress-phpunit
     steps:
       # The plugin sits where wp-env mounts it, so file paths match.
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: wordpress/wp-content/plugins/undergrowth
           persist-credentials: false
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: "8.3"
           coverage: xdebug
           extensions: mysqli
-      - uses: ramsey/composer-install@4.0.0
+      - uses: ramsey/composer-install@65e4f84970763564f46a70b8a54b90d033b3bdda # 4.0.0
         with:
           working-directory: wordpress/wp-content/plugins/undergrowth
       # Like wp-env with "core": null: the latest release, and the PHPUnit
@@ -135,7 +135,7 @@ jobs:
           echo "WordPress $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
       # The test suite changes only with the release, so it is cloned once a release.
-      - uses: actions/cache@v6.1.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: test-suite
         with:
           path: ${{ env.WP_TESTS_DIR }}

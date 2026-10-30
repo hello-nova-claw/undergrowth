@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -30,6 +30,6 @@ jobs:
           npm run build
       # Check the plugin as it would ship to WordPress.org, not the repository.
       - run: mkdir -p dist && rsync -a --exclude-from=.distignore ./ dist/undergrowth/
-      - uses: wordpress/plugin-check-action@v1.1.9
+      - uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
           build-dir: dist/undergrowth
