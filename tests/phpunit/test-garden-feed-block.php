@@ -489,6 +489,19 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'undergrowth-type-icon', $html );
 	}
 
+	public function test_the_type_icon_filter_may_return_an_svg_without_attributes() {
+		$this->post( 'Oca' );
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg><path d="M4 4h16"/></svg>';
+			}
+		);
+
+		$this->assertStringContainsString( '<span class="wp-block-undergrowth-garden-feed-icon"><svg><path d="M4 4h16" /></svg></span>', $this->render() );
+	}
+
 	public function test_the_type_icon_filter_cannot_add_a_link_or_a_script() {
 		$this->post( 'Oca' );
 
