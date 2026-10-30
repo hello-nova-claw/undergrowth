@@ -43,7 +43,10 @@ test.describe( 'Theme gallery', () => {
 
 	test.beforeAll( async ( { requestUtils } ) => {
 		// Playground answers requests before its blueprint has finished, so
-		// the page its last step makes is waited for, up to ten minutes.
+		// the page its last step makes is waited for, up to ten minutes,
+		// which is longer than a hook is otherwise given.
+		test.setTimeout( 660_000 );
+
 		let garden;
 		let post;
 
