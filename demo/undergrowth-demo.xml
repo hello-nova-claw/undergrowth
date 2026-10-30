@@ -1223,7 +1223,7 @@
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>First Study, part 1</title>
@@ -1265,7 +1265,7 @@
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1009]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Donkey, the Pack, and the Pack-Saddle, part 1</title>
@@ -1726,7 +1726,7 @@
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>January, part 2</title>
@@ -2183,7 +2183,7 @@
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1000]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Return of the Birds, part 2</title>
@@ -2311,7 +2311,7 @@
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>May 10th</title>
@@ -2418,7 +2418,7 @@ There is not a creature in all this part of the world who could in the least und
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Royal Sport Nautique, part 1</title>
@@ -2535,7 +2535,7 @@ There is not a creature in all this part of the world who could in the least und
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1010]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Green Donkey-Driver, part 1</title>
@@ -3404,7 +3404,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Third Week</title>
@@ -3785,7 +3785,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1011]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>The Exhilarations of the Road, part 3</title>
@@ -4009,7 +4009,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Reading, part 2</title>
@@ -4059,7 +4059,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>March, part 3</title>
@@ -4243,7 +4243,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Fourth Week</title>
@@ -4959,7 +4959,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Snow-Walkers, part 2</title>
@@ -5013,7 +5013,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>Sounds, part 1</title>
@@ -5443,7 +5443,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1028]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Snow-Walkers, part 3</title>
@@ -5534,7 +5534,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1006]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>On Being Hard Up, part 2</title>
@@ -5592,7 +5592,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>May, part 1</title>
@@ -5648,7 +5648,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>We Are Pedlars, part 1</title>
@@ -5890,7 +5890,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Sixth Week</title>
@@ -6790,7 +6790,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1023]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Solitude, part 2</title>
@@ -6962,7 +6962,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>On Vanity and Vanities, part 2</title>
@@ -7175,7 +7175,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>The Travelling Merchant</title>
@@ -7265,7 +7265,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Fourth Study, part 1</title>
@@ -7927,7 +7927,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Visitors, part 1</title>
@@ -8253,7 +8253,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1029]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Adirondacks, part 2</title>
@@ -8470,7 +8470,7 @@ When the first Daffodils are out and suitable greenery is not abundant in the ga
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>On Getting on in the World, part 2</title>
@@ -8946,7 +8946,7 @@ As the evening went on, the wine grew more to my taste; the spirits proved bette
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1003]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Visitors, part 3</title>
@@ -9146,7 +9146,7 @@ As the evening went on, the wine grew more to my taste; the spirits proved bette
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1027]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>The Adirondacks, part 3</title>
@@ -9296,7 +9296,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1022]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>August, part 2</title>
@@ -9367,7 +9367,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1003]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Bean-Field, part 1</title>
@@ -9671,7 +9671,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>September, part 1</title>
@@ -10381,7 +10381,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1007]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>Autumn Tides, part 2</title>
@@ -10463,7 +10463,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Eleventh Week</title>
@@ -10517,7 +10517,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>November 11th, part 3</title>
@@ -10833,7 +10833,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Oise in Flood, part 2</title>
@@ -10889,7 +10889,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1026]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Fifth Study, part 3</title>
@@ -11111,7 +11111,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1029]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>November 20th, part 1</title>
@@ -11440,7 +11440,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>October, part 2</title>
@@ -11719,7 +11719,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1028]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Apple, part 1</title>
@@ -11793,7 +11793,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1006]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Ponds, part 1</title>
@@ -12107,7 +12107,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Thirteenth Week, part 1</title>
@@ -12141,7 +12141,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>The Ponds, part 2</title>
@@ -12307,7 +12307,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Apple, part 2</title>
@@ -12362,7 +12362,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1029]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Across the Goulet</title>
@@ -12512,7 +12512,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Sixth Study, part 2</title>
@@ -12749,7 +12749,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>November, part 2</title>
@@ -12858,7 +12858,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Apple, part 3</title>
@@ -13106,7 +13106,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1011]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>A Night Among the Pines, part 1</title>
@@ -13149,7 +13149,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>November, part 3</title>
@@ -13596,7 +13596,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Mellow England</title>
@@ -13808,7 +13808,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Seventh Study, part 1</title>
@@ -14059,7 +14059,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>December 22nd, part 1</title>
@@ -14634,7 +14634,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Seventh Study, part 2</title>
@@ -14842,7 +14842,7 @@ Cats have the credit of being more worldly wise than dogs—of looking more afte
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1002]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>December 22nd, part 2</title>
@@ -15364,7 +15364,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>London, part 1</title>
@@ -15426,7 +15426,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Across the Lozere, part 2</title>
@@ -15808,7 +15808,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>On Babies, part 2</title>
@@ -16077,7 +16077,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>La Fère of Cursed Memory, part 2</title>
@@ -16135,7 +16135,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Eighth Study, part 1</title>
@@ -16533,7 +16533,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[demo]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Beginning and Learning, part 1</title>
@@ -16726,7 +16726,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Beginning and Learning, part 2</title>
@@ -16789,7 +16789,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1005]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Down the Oise: Through the Golden Valley, part 1</title>
@@ -17067,7 +17067,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1003]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>December 27th, part 2</title>
@@ -17197,7 +17197,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>On Eating and Drinking, part 2</title>
@@ -17256,7 +17256,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1007]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Pont de Montvert, part 2</title>
@@ -17515,7 +17515,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>Down the Oise: Through the Golden Valley, part 2</title>
@@ -17833,7 +17833,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1003]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>January 1st, part 1</title>
@@ -17986,7 +17986,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1006]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Seventeenth Week, part 1</title>
@@ -18272,7 +18272,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Down the Oise: to Compiègne</title>
@@ -18335,7 +18335,7 @@ The large lawn space I am supposing stretches away a good distance from the hous
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1026]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Ninth Study, part 1</title>
@@ -19088,7 +19088,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1028]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Colours of Flowers, part 1</title>
@@ -19217,7 +19217,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Ninth Study, part 2</title>
@@ -19471,7 +19471,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>English Characteristics, part 1</title>
@@ -19831,7 +19831,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1009]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Bluebird, part 1</title>
@@ -20299,7 +20299,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1029]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Scents of the Garden, part 2</title>
@@ -20366,7 +20366,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Eighteenth Week, part 2</title>
@@ -20478,7 +20478,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>English Characteristics, part 3</title>
@@ -20536,7 +20536,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Changed Times, part 2</title>
@@ -20794,7 +20794,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Worship of False Gods, part 1</title>
@@ -21222,7 +21222,7 @@ I remembered now that a young farmer of my acquaintance had told me how he had m
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Tenth Study, part 2</title>
@@ -21763,7 +21763,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Spring, part 1</title>
@@ -21929,7 +21929,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1025]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Tenth Study, part 3</title>
@@ -22003,7 +22003,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1010]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>January 28th, part 1</title>
@@ -22120,7 +22120,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>Weeds and Pests, part 1</title>
@@ -22400,7 +22400,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Heart of the Country, part 2</title>
@@ -22571,7 +22571,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1011]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>January 28th, part 2</title>
@@ -23331,7 +23331,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Eleventh Study, part 2</title>
@@ -23785,7 +23785,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>Masters and Men, part 1</title>
@@ -24069,7 +24069,7 @@ It is just the same when you want to marry. Great ability is not required so muc
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1008]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>Précy and the Marionnettes, part 3</title>
