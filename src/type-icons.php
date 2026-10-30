@@ -20,8 +20,8 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $slug     Term slug, or a post format slug such as aside.
  * @param string $taxonomy Taxonomy the slug belongs to.
- * @return string SVG markup, with no link and no script, or an empty string
- *                when a filter gives the type no SVG.
+ * @return string SVG markup. A filter's markup is cleaned: no link, no script,
+ *                or an empty string when the filter gives the type no SVG.
  */
 function undergrowth_type_icon( string $slug, string $taxonomy ): string {
 	$drawings = array(
@@ -66,11 +66,17 @@ function undergrowth_type_icon( string $slug, string $taxonomy ): string {
 	 * @param string $slug     Term slug, or a post format slug such as aside.
 	 * @param string $taxonomy Taxonomy the slug belongs to.
 	 */
-	$svg = (string) apply_filters( 'undergrowth_garden_type_icon', $svg, $slug, $taxonomy );
+	$filtered = (string) apply_filters( 'undergrowth_garden_type_icon', $svg, $slug, $taxonomy );
+
+	// The plugin's own drawing is fixed markup, so it is used as it is: each
+	// WordPress version's wp_kses() orders and cases attributes its own way.
+	if ( $filtered === $svg ) {
+		return $svg;
+	}
 
 	// Only the drawing itself: text left behind by a stripped tag would show.
 	// The opening tag may carry attributes or none.
-	preg_match( '#<svg[\s>].*?</svg>#s', wp_kses( $svg, undergrowth_type_icon_allowed_html() ), $found );
+	preg_match( '#<svg[\s>].*?</svg>#s', wp_kses( $filtered, undergrowth_type_icon_allowed_html() ), $found );
 
 	// WordPress 7.0's wp_kses() lowercases attribute names, and SVG's
 	// viewBox is case-sensitive outside an HTML document.

@@ -485,7 +485,8 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$html = $this->render();
 
 		$this->assertSame( array( 'quote', 'post_format' ), $seen );
-		$this->assertStringContainsString( '<span class="wp-block-undergrowth-garden-feed-icon"><svg class="my-quote" aria-hidden="true" focusable="false"><path d="M4 4h16" /></svg></span>', $html );
+		// Each WordPress version's wp_kses() orders the attributes its own way.
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*class="my-quote"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
 		$this->assertStringNotContainsString( 'undergrowth-type-icon', $html );
 	}
 
@@ -499,7 +500,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertStringContainsString( '<span class="wp-block-undergrowth-garden-feed-icon"><svg><path d="M4 4h16" /></svg></span>', $this->render() );
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg><path d="M4 4h16" ?/></svg></span>#', $this->render() );
 	}
 
 	public function test_the_type_icon_filter_cannot_add_a_link_or_a_script() {
@@ -516,7 +517,7 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( '<script', $html );
 		$this->assertStringNotContainsString( 'example.com', $html );
-		$this->assertStringContainsString( '<span class="wp-block-undergrowth-garden-feed-icon"><svg aria-hidden="true" focusable="false"><path d="M4 4h16" /></svg></span>', $html );
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*aria-hidden="true"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
 	}
 
 	public function test_every_post_format_has_its_own_icon() {
