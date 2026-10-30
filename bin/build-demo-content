@@ -4,9 +4,10 @@
 The demo blog is for demos, screenshots, Playground previews and testing, so
 that nobody's own writing is ever needed. Every word in it was written by the
 books' authors, long dead. Titles come from their own chapter headings and
-nothing is written, summarised or titled by a model. Each post gets one of
-the illustrations in demo/images/ as its featured image. See
-docs/demo-content.md.
+nothing is written, summarised or titled by a model. Most posts get one of
+the illustrations in demo/images/ as their featured image; about one in
+four gets a post format and no picture instead, so the Garden feed shows
+both of its cards. See docs/demo-content.md.
 
 Usage: python3 -I bin/build-demo-content [--cache DIR] [--out DIR]
 
@@ -223,6 +224,14 @@ IMAGE_TAG_MOTIFS = {'Birds': 'birds', 'Winter': 'winter', 'Trees': 'trees', 'Flo
 IMAGE_CATEGORY_MOTIFS = {'Gardening': 'flowers', 'Nature': 'leaves', 'Travel': 'hills', 'Home': 'hearth', 'Idle Thoughts': 'moon'}
 IMAGE_DATE = FIRST_DATE - timedelta(days=14)
 IMAGE_CREDIT = 'Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.'
+
+# A garden mixes essays with notes, links and quotes. About one post in
+# FORMAT_EVERY has a post format and no featured image, so the Garden feed
+# shows its text card, with the format's icon, among the image cards. A
+# hash of the title picks the post and its format, so a post keeps its
+# format from one build to the next, whatever else changes.
+FORMATS = ('aside', 'link', 'quote', 'status')
+FORMAT_EVERY = 4
 
 
 def fail(message):
@@ -474,6 +483,12 @@ def image_name(category, post_tags, title):
     return f'{motif}-{stable(title) % IMAGE_VARIANTS + 1}.jpg'
 
 
+def post_format(title):
+    """The post format a post takes, or '' for a standard post, which has a picture instead."""
+    n = stable(f'type {title}')
+    return FORMATS[n // FORMAT_EVERY % len(FORMATS)] if n % FORMAT_EVERY == 0 else ''
+
+
 def build_posts(texts):
     """Every post and page, with dates, statuses and terms."""
     posts, pages = [], []
@@ -573,7 +588,12 @@ def item(post, post_id, post_type, images):
         terms.append(f'\t\t<category domain="category" nicename="{slug(category)}">{cdata(category)}</category>')
         for tag in post_tags:
             terms.append(f'\t\t<category domain="post_tag" nicename="{slug(tag)}">{cdata(tag)}</category>')
-        terms.append(postmeta('_thumbnail_id', images[image_name(category, post_tags, post['title'])]))
+        # The format's term as Tools > Export writes it; the importer makes the term from it.
+        fmt = post_format(post['title'])
+        if fmt:
+            terms.append(f'\t\t<category domain="post_format" nicename="post-format-{fmt}">{cdata(fmt.capitalize())}</category>')
+        else:
+            terms.append(postmeta('_thumbnail_id', images[image_name(category, post_tags, post['title'])]))
     published = post['status'] in ('publish', 'private')
     return '\n'.join([
         '\t<item>',
@@ -639,7 +659,7 @@ def wxr(posts, pages, title):
     categories = sorted({p['book']['category'] for p in posts})
     tag_names = sorted({t for p in posts for t in tags(p['parts'])})
     # Only the illustrations these posts use, each once, shared by every post that shows it.
-    names = sorted({image_name(p['book']['category'], tags(p['parts']), p['title']) for p in posts})
+    names = sorted({image_name(p['book']['category'], tags(p['parts']), p['title']) for p in posts if not post_format(p['title'])})
     images = {name: 1000 + i for i, name in enumerate(names)}
     head = [
         '<?xml version="1.0" encoding="UTF-8" ?>',
@@ -702,7 +722,8 @@ def main():
     if args.list:
         for post, length in zip(posts, lengths):
             print(f"{post['date']:%Y-%m-%d} {length:5d} {post['status']:8s} {post['format']:7s} "
-                  f"{'S' if post['small'] else ' '} {post['title']} ({post['book']['title']}) {tags(post['parts'])}")
+                  f"{post_format(post['title']) or 'standard':8s} {'S' if post['small'] else ' '} "
+                  f"{post['title']} ({post['book']['title']}) {tags(post['parts'])}")
 
 
 main()
