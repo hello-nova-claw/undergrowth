@@ -195,6 +195,17 @@ if ( '' !== wxr ) {
 	} );
 }
 
+// The demo blog's illustrations, inside the plugin folder, where the plugin
+// answers the importer's download of each from disk, so the demo imports
+// with its pictures without reaching GitHub. The zip does not ship them,
+// so plugin-mounts.cjs leaves them out.
+if ( Object.hasOwn( demoWxr, wxrSetting ) ) {
+	mount.push( {
+		hostPath: join( root, 'demo/images' ),
+		vfsPath: '/wordpress/wp-content/plugins/undergrowth/demo/images',
+	} );
+}
+
 const { runCLI } = await import( '@wp-playground/cli' );
 
 let server;
