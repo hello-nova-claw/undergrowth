@@ -114,6 +114,18 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/garden-filters' ) );
 	}
 
+	public function test_the_topic_list_keeps_the_blocks_edge_under_a_classic_themes_list_rule() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-filters.css' );
+
+		// A classic theme indents every list in the content with a rule
+		// such as `.entry-content ul`, a class and an element printed after
+		// the block's styles. The topic list's rule names the block's class
+		// as well, in both writing directions, so it outranks that rule.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-filters \.wp-block-undergrowth-garden-filters-topics ul \{[^}]*\bmargin: -4px 0 -4px -4px;[^}]*\bpadding: 4px 3em 4px 4px;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\[dir="rtl"\] \.wp-block-undergrowth-garden-filters \.wp-block-undergrowth-garden-filters-topics ul \{[^}]*\bmargin: -4px -4px -4px 0;[^}]*\bpadding: 4px 4px 4px 3em;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#^(\[dir="rtl"\] )?\.wp-block-undergrowth-garden-filters-topics ul \{#m', $css );
+	}
+
 	public function test_shows_nothing_when_the_garden_is_empty() {
 		$this->post( 'Draft', array( 'post_status' => 'draft' ) );
 
