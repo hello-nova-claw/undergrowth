@@ -232,7 +232,7 @@ test.describe( 'Garden feed block', () => {
 		await expect( page.locator( `${ FEED } img` ) ).toHaveCount( 0 );
 	} );
 
-	test( 'previews in the editor and changes the order by keyboard', async ( {
+	test( 'previews in the editor and changes the order and layout by keyboard', async ( {
 		admin,
 		editor,
 		page,
@@ -274,6 +274,31 @@ test.describe( 'Garden feed block', () => {
 			'Yacon',
 			'Oca',
 		] );
+
+		// The Layout select is the last in the panel. Its value is typed the
+		// same way, and the server render picks the layout up.
+		const layout = page
+			.locator( '.block-editor-block-inspector select' )
+			.last();
+		await expect( layout ).toHaveValue( 'grid' );
+		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
+		const masonry = await layout
+			.locator( 'option[value="masonry"]' )
+			.textContent();
+		await layout.focus();
+		await page.keyboard.type( masonry );
+		await expect( layout ).toHaveValue( 'masonry' );
+		await expect( layout ).toBeFocused();
+		await expect( preview ).toHaveClass( /is-layout-masonry/ );
+		await expect( preview.locator( TITLE ) ).toHaveCount( 3 );
+
+		// And back to the grid.
+		const grid = await layout
+			.locator( 'option[value="grid"]' )
+			.textContent();
+		await page.keyboard.type( grid );
+		await expect( layout ).toHaveValue( 'grid' );
+		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
 		await expectNoA11yViolations( page, '.block-editor-block-inspector' );
 	} );
 
