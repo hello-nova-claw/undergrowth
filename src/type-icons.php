@@ -71,7 +71,9 @@ function undergrowth_type_icon( string $slug, string $taxonomy ): string {
 	// Only the drawing itself: text left behind by a stripped tag would show.
 	preg_match( '#<svg\s.*?</svg>#s', wp_kses( $svg, undergrowth_type_icon_allowed_html() ), $found );
 
-	return $found[0] ?? '';
+	// WordPress 7.0's wp_kses() lowercases attribute names, and SVG's
+	// viewBox is case-sensitive outside an HTML document.
+	return str_replace( ' viewbox=', ' viewBox=', $found[0] ?? '' );
 }
 
 /**
