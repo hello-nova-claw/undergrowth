@@ -11,6 +11,8 @@ const { tmpdir } = require( 'os' );
 const { join } = require( 'path' );
 const { PNG } = require( 'pngjs' );
 
+const { galleryThemes } = require( '../../bin/gallery-themes' );
+
 const script = join( __dirname, '../../bin/gallery-sheet.mjs' );
 const BASE = 'https://github.com/o/r/blob/abc/gallery-12';
 
@@ -75,7 +77,7 @@ describe( 'gallery-sheet', () => {
 		expect( lines[ 0 ] ).toBe( '<!-- undergrowth-theme-gallery -->' );
 		expect(
 			lines.filter( ( line ) => line.startsWith( '| `' ) )
-		).toHaveLength( 10 );
+		).toHaveLength( galleryThemes().length );
 		expect( lines ).toContain(
 			'| Theme | Garden page, 1280 | Garden page, 390 | Post, 1280 | Post, 390 |'
 		);
@@ -113,7 +115,11 @@ describe( 'gallery-sheet', () => {
 		expect( out ).toMatch(
 			/^\| `kadence` \| missing \| missing \| missing \| missing \|$/m
 		);
-		expect( out ).toContain( '2 themes shot, 1 not installed, 7 missing' );
+		expect( out ).toContain(
+			`2 themes shot, 1 not installed, ${
+				galleryThemes().length - 3
+			} missing`
+		);
 	} );
 
 	it( 'says when nothing was taken', () => {

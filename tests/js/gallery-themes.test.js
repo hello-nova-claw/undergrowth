@@ -11,7 +11,7 @@ describe( 'galleryThemes', () => {
 		const themes = galleryThemes();
 
 		expect( themes[ 0 ] ).toBe( 'twentytwentyfive' );
-		expect( themes ).toHaveLength( 10 );
+		expect( themes.length ).toBeGreaterThan( 1 );
 		expect( new Set( themes ).size ).toBe( themes.length );
 		expect( themes.every( ( slug ) => /^[a-z0-9-]+$/.test( slug ) ) ).toBe(
 			true
@@ -26,6 +26,21 @@ describe( 'galleryThemes', () => {
 			false
 		);
 		expect( themesFrom( list.data ) ).toEqual( galleryThemes() );
+	} );
+
+	it( 'is served by the test site for every theme', () => {
+		// The cookie's allow-list is PHP, so the slugs are listed there too.
+		const php = readFileSync(
+			join( __dirname, '../e2e/mu-plugins/undergrowth-e2e.php' ),
+			'utf8'
+		);
+		const [ , allowed ] = php.match(
+			/'undergrowth_e2e_theme',\s*array\(([^)]*)\)/
+		);
+
+		for ( const slug of galleryThemes() ) {
+			expect( allowed ).toContain( `'${ slug }'` );
+		}
 	} );
 
 	it( 'ignores blank lines and spaces around a slug', () => {

@@ -12,13 +12,14 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   capture:
     name: Capture
+    # On the job, not the workflow, so a run that skips the job (a label
+    # that is not this one) never cancels a gallery still being taken.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+      cancel-in-progress: true
     # A label that is not this one would take the gallery again for nothing.
     if: >-
       github.event_name == 'workflow_dispatch'
