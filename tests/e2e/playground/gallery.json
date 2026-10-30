@@ -3,7 +3,7 @@
 	"meta": {
 		"title": "Undergrowth theme gallery",
 		"author": "hello-nova-claw",
-		"description": "The plugin with the e2e test provider and the small demo blog (demo/undergrowth-demo-small.xml), read once, with a Garden page made from the plugin's pattern as the home page and one demo post carrying the reader blocks, plus the themes listed in the writeFile step installed beside the default one, not activated. Used by playwright.gallery.config.js and bin/gallery-sheet.mjs; the theme list is read by bin/gallery-themes.cjs."
+		"description": "The plugin with the e2e test provider and the small demo blog (demo/undergrowth-demo-small.xml), read once, with a Garden page made from the plugin's pattern as the home page, four posts given a format and no picture so the feed shows text cards beside image cards, and one demo post carrying the reader blocks, plus the themes listed in the writeFile step installed beside the default one, not activated. Used by playwright.gallery.config.js and bin/gallery-sheet.mjs; the theme list is read by bin/gallery-themes.cjs."
 	},
 	"preferredVersions": {
 		"php": "8.3",
@@ -18,6 +18,10 @@
 		{
 			"step": "runPHP",
 			"code": "<?php\nrequire '/wordpress/wp-load.php';\nrequire_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';\nrequire_once ABSPATH . 'wp-admin/includes/file.php';\nrequire_once ABSPATH . 'wp-admin/includes/theme.php';\n\n// Each theme is installed on its own, with WordPress's own installer, so\n// one that wordpress.org no longer has, or a download that fails, leaves\n// the others in place. The gallery lists a theme it cannot find as\n// skipped. A theme the site already has, such as the default one, is left\n// as it is.\n$slugs = array_filter( array_map( 'trim', (array) file( WP_CONTENT_DIR . '/undergrowth-gallery-themes.txt' ) ) );\n\nforeach ( $slugs as $slug ) {\n\tif ( wp_get_theme( $slug )->exists() ) {\n\t\tcontinue;\n\t}\n\n\t$upgrader = new Theme_Upgrader( new Automatic_Upgrader_Skin() );\n\n\tif ( true !== $upgrader->install( 'https://downloads.wordpress.org/theme/' . $slug . '.latest-stable.zip' ) ) {\n\t\techo \"Could not install the {$slug} theme.\\n\";\n\t}\n}\n"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// A garden mixes essays with notes, links and quotes, so four of the posts\n// the feed shows first lose their picture and take a format. The Garden\n// page then holds both cards, the image card and the text card, in every\n// theme. The gallery post keeps its picture, since the post shot shows it.\n$post_ids = get_posts(\n\tarray(\n\t\t'post_status'  => 'publish',\n\t\t'orderby'      => 'modified',\n\t\t'order'        => 'DESC',\n\t\t'numberposts'  => 12,\n\t\t'exclude'      => array( get_page_by_path( 'undergrowth-gallery', OBJECT, 'post' )->ID ),\n\t\t'fields'       => 'ids',\n\t)\n);\n\nforeach ( array( 1 => 'aside', 4 => 'link', 6 => 'quote', 9 => 'status' ) as $place => $format ) {\n\tif ( ! isset( $post_ids[ $place ] ) ) {\n\t\tthrow new Exception( 'The demo blog has too few posts for the text cards.' );\n\t}\n\n\tdelete_post_thumbnail( $post_ids[ $place ] );\n\tset_post_format( $post_ids[ $place ], $format );\n}\n"
 		},
 		{
 			"step": "activatePlugin",
