@@ -141,7 +141,7 @@ add_filter(
 		update_option( 'undergrowth_e2e_planted', $planted );
 
 		// 10:00 on 1 January 2026, UTC.
-		$gmt   = gmdate( 'Y-m-d H:i:s', 1767261600 + $planted * MINUTE_IN_SECONDS );
+		$gmt   = wp_date( 'Y-m-d H:i:s', 1767261600 + $planted * MINUTE_IN_SECONDS, new DateTimeZone( 'UTC' ) );
 		$local = get_date_from_gmt( $gmt );
 
 		$data['post_modified']     = $local;
