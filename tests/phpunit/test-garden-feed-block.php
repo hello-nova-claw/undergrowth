@@ -388,7 +388,9 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( 1, substr_count( $html, 'has-image' ) );
 		$this->assertSame( 1, substr_count( $html, '<img ' ) );
 		// Decorative: the title names the entry, so the image says nothing more.
-		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-image"><img [^>]*class="[^"]*wp-block-undergrowth-garden-feed-image[^"]*"[^>]*><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage[^"]*">.*?</span><span>Oca</span></a>#s', $html );
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-image" data-type="standard" data-stage="seedling"><img [^>]*class="[^"]*wp-block-undergrowth-garden-feed-image[^"]*"[^>]*><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage[^"]*">.*?</span><span>Oca</span></a>#s', $html );
+		// The image card has no icon column.
+		$this->assertStringNotContainsString( 'has-icon', explode( '</li>', $html )[0] );
 		$this->assertMatchesRegularExpression( '#<img [^>]*alt=""#', $html );
 		$this->assertStringNotContainsString( 'is-featured', $html );
 
@@ -407,6 +409,219 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( array( 'Oca' ), $this->titles( $html ) );
 		$this->assertStringNotContainsString( '<img ', $html );
 		$this->assertStringNotContainsString( 'has-image', $html );
+		// Without its picture, the entry is a text card like any other.
+		$this->assertStringContainsString( 'has-icon', $html );
+	}
+
+	public function test_a_post_without_a_picture_gets_the_text_card_with_its_types_icon() {
+		$post_id = $this->post( 'Yacon', 1, array( 'post_excerpt' => 'Sweet roots.' ) );
+		set_post_format( $post_id, 'aside' );
+		update_post_meta( $post_id, 'undergrowth_stage', 'sprout' );
+		$this->picture( $this->post( 'Oca', 2 ) );
+
+		$html = $this->render();
+
+		// The icon opens the card, in a column of its own, before the title
+		// link; it is decorative and never a link, so each card keeps one
+		// tab stop. The stage glyph, the title, the stage's name for screen
+		// readers, the excerpt and the details line follow as on the image
+		// card.
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item has-icon" data-type="aside" data-stage="sprout"><span class="wp-block-undergrowth-garden-feed-icon"><svg class="undergrowth-type-icon" [^>]*aria-hidden="true" focusable="false">.*?</svg></span><a class="wp-block-undergrowth-garden-feed-title" href="[^"]*"><span class="wp-block-undergrowth-garden-feed-stage is-stage-sprout">.*?</span><span>Yacon</span></a><span class="screen-reader-text">Growth stage: Sprout</span><p class="wp-block-undergrowth-garden-feed-excerpt">Sweet roots.</p><p class="wp-block-undergrowth-garden-feed-details"><span class="wp-block-undergrowth-garden-feed-type">Aside</span> <time #s', $html );
+		$this->assertSame( undergrowth_type_icon( 'aside', 'post_format' ), $this->icon( $html ) );
+		$this->assertStringNotContainsString( '<a class="wp-block-undergrowth-garden-feed-icon', $html );
+		$this->assertSame( 2, substr_count( $html, '<li ' ) );
+		$this->assertSame( 2, substr_count( $html, '<a ' ) );
+		$this->assertSame( 1, substr_count( $html, 'has-icon' ) );
+		$this->assertSame( 1, substr_count( $html, 'has-image' ) );
+	}
+
+	/**
+	 * Reads the first type icon out of the feed.
+	 *
+	 * @param string $html Block markup.
+	 * @return string The icon's SVG, or an empty string for none.
+	 */
+	private function icon( string $html ): string {
+		preg_match( '#<span class="wp-block-undergrowth-garden-feed-icon">(<svg .*?</svg>)</span>#s', $html, $icon );
+
+		return $icon[1] ?? '';
+	}
+
+	public function test_a_standard_post_without_a_picture_gets_the_standard_icon() {
+		$this->post( 'Oca' );
+
+		$html = $this->render();
+
+		$this->assertStringContainsString( 'data-type="standard"', $html );
+		$this->assertSame( undergrowth_type_icon( 'standard', 'post_format' ), $this->icon( $html ) );
+	}
+
+	public function test_a_term_from_another_taxonomy_gets_the_generic_leaf() {
+		$essay = self::factory()->category->create( array( 'slug' => 'essay' ) );
+		$this->post( 'Oca', 1, array( 'post_category' => array( $essay ) ) );
+
+		$html = $this->render( array( 'typeSource' => 'category' ) );
+
+		$this->assertStringContainsString( 'data-type="essay"', $html );
+		$this->assertSame( undergrowth_type_icon( 'essay', 'category' ), $this->icon( $html ) );
+		$this->assertSame( undergrowth_type_icon( 'anything', 'some_taxonomy' ), undergrowth_type_icon( 'essay', 'category' ) );
+	}
+
+	public function test_a_filter_can_give_a_type_its_own_icon() {
+		set_post_format( $this->post( 'Oca' ), 'quote' );
+		$seen = array();
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function ( string $svg, string $slug, string $taxonomy ) use ( &$seen ): string {
+				$seen = array( $slug, $taxonomy );
+
+				return '<svg class="my-quote" aria-hidden="true" focusable="false"><path d="M4 4h16"/></svg>';
+			},
+			10,
+			3
+		);
+
+		$html = $this->render();
+
+		$this->assertSame( array( 'quote', 'post_format' ), $seen );
+		// Each WordPress version's wp_kses() orders the attributes its own way.
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*class="my-quote"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
+		$this->assertStringNotContainsString( 'undergrowth-type-icon', $html );
+	}
+
+	public function test_the_type_icon_filter_may_return_an_svg_without_attributes() {
+		$this->post( 'Oca' );
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg><path d="M4 4h16"/></svg>';
+			}
+		);
+
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg aria-hidden="true" focusable="false"><path d="M4 4h16" ?/></svg></span>#', $this->render() );
+	}
+
+	public function test_the_type_icon_filter_cannot_expose_the_icon_or_make_it_a_stop() {
+		$this->post( 'Oca' );
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg class="loud" aria-hidden="false" focusable="true"><path d="M4 4h16"/></svg>';
+			}
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg aria-hidden="true" focusable="false" [^>]*class="loud"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
+		$this->assertStringNotContainsString( 'aria-hidden="false"', $html );
+		$this->assertStringNotContainsString( 'focusable="true"', $html );
+	}
+
+	public function test_the_type_icon_filter_cannot_smuggle_an_event_handler_in_a_quoted_value() {
+		$this->post( 'Oca' );
+
+		// Quotes nested the other way round, so that a rewrite of the cleaned
+		// markup could turn a value into an attribute.
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg class=\'x aria-hidden="y\' fill="z\' onload=\'alert(1)\'"><path d="M0 0"/></svg>';
+			}
+		);
+
+		$html = $this->render();
+
+		// Read as a browser would: the handler stays text inside a value,
+		// never an attribute of its own.
+		$this->assertSame( 1, preg_match( '#<span class="wp-block-undergrowth-garden-feed-icon">(<svg.*?</svg>)</span>#s', $html, $found ) );
+
+		$libxml_errors = libxml_use_internal_errors( true );
+		$document      = new DOMDocument();
+		$document->loadHTML( '<!DOCTYPE html><html><body>' . $found[1] . '</body></html>' );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $libxml_errors );
+
+		$svg   = $document->getElementsByTagName( 'svg' )->item( 0 );
+		$names = array();
+
+		$this->assertInstanceOf( DOMElement::class, $svg );
+
+		foreach ( $svg->attributes as $attribute ) {
+			$names[] = $attribute->name;
+		}
+
+		$this->assertNotContains( 'onload', $names );
+		$this->assertSame( 'true', $svg->getAttribute( 'aria-hidden' ) );
+		$this->assertSame( 'false', $svg->getAttribute( 'focusable' ) );
+	}
+
+	public function test_a_type_left_without_an_icon_gets_a_text_card_with_no_icon_column() {
+		$this->post( 'Oca' );
+
+		add_filter( 'undergrowth_garden_type_icon', '__return_empty_string' );
+
+		$html = $this->render();
+
+		$this->assertSame( array( 'Oca' ), $this->titles( $html ) );
+		$this->assertStringNotContainsString( 'has-icon', $html );
+		$this->assertStringNotContainsString( 'has-image', $html );
+		$this->assertStringNotContainsString( 'wp-block-undergrowth-garden-feed-icon', $html );
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item" data-type="standard" data-stage="[a-z]+"><a class="wp-block-undergrowth-garden-feed-title" #', $html );
+	}
+
+	public function test_the_type_icon_filter_cannot_add_a_link_or_a_script() {
+		$this->post( 'Oca' );
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<a href="https://example.com">x</a><script>alert(1)</script><svg aria-hidden="true" focusable="false"><path d="M4 4h16"/></svg>';
+			}
+		);
+
+		$html = $this->render();
+
+		$this->assertStringNotContainsString( '<script', $html );
+		$this->assertStringNotContainsString( 'example.com', $html );
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*aria-hidden="true"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
+	}
+
+	public function test_every_post_format_has_its_own_icon() {
+		$icons = array();
+
+		foreach ( get_post_format_slugs() as $slug ) {
+			$icon = undergrowth_type_icon( $slug, 'post_format' );
+
+			$this->assertStringStartsWith( '<svg class="undergrowth-type-icon" ', $icon );
+			$this->assertStringContainsString( 'viewBox="0 0 24 24"', $icon );
+			$this->assertStringContainsString( 'stroke="currentColor"', $icon );
+			$this->assertStringContainsString( 'stroke-width="1.5"', $icon );
+			$this->assertStringContainsString( 'aria-hidden="true" focusable="false"', $icon );
+			$this->assertStringNotContainsString( 'role="img"', $icon );
+			$icons[] = $icon;
+		}
+
+		$this->assertCount( 10, $icons );
+		$this->assertCount( 10, array_unique( $icons ) );
+		// A format slug that is no format gets the generic leaf, as a term does.
+		$this->assertSame( undergrowth_type_icon( 'essay', 'category' ), undergrowth_type_icon( 'no-such-format', 'post_format' ) );
+		$this->assertNotContains( undergrowth_type_icon( 'essay', 'category' ), $icons );
+	}
+
+	public function test_the_text_card_keeps_the_feeds_edge_and_sizes_its_icon_in_em() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
+
+		// The icon column comes first, then the title, excerpt and details
+		// beside it; the column is set in em, so it scales with the theme's
+		// type, and stays under 2em.
+		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-item\.has-icon \{[^}]*grid-template-areas:\s*"icon title"\s*"icon excerpt"\s*"icon details";#ms', $css );
+		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-item\.has-icon \{[^}]*grid-template-columns: (0\.\d+|1(\.\d+)?)em #ms', $css );
+		// Any SVG in the icon span is sized, a filter's as much as the plugin's.
+		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-icon > svg \{[^}]*width: (0\.\d+|1(\.\d+)?)em;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#\#[0-9a-f]{3,8}\b#i', $css );
 	}
 
 	public function test_reads_the_old_show_featured_setting_as_show_images() {

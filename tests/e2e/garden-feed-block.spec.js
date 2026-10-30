@@ -106,6 +106,45 @@ test.describe( 'Garden feed block', () => {
 		const title = await pictured.first().locator( TITLE ).boundingBox();
 		expect( Math.round( image.width ) ).toBe( Math.round( entry.width ) );
 		expect( image.y + image.height ).toBeLessThanOrEqual( title.y );
+		// The entry without a picture is a text card: its type's icon in a
+		// column on the left, never a link, with the card's title beside
+		// it; the two cards share one left edge, and each names its type
+		// and stage for a theme to style.
+		const card = feed.locator( '.has-icon' );
+		await expect( card ).toHaveCount( 1 );
+		await expect( card ).toHaveAttribute( 'data-type', 'aside' );
+		await expect( card ).toHaveAttribute( 'data-stage', /^[a-z]+$/ );
+		await expect( pictured.first() ).toHaveAttribute(
+			'data-type',
+			'standard'
+		);
+		await expect(
+			card.locator(
+				'.wp-block-undergrowth-garden-feed-icon svg[aria-hidden="true"]'
+			)
+		).toHaveCount( 1 );
+		await expect( card.locator( 'a' ) ).toHaveCount( 1 );
+		const icon = await card
+			.locator( '.wp-block-undergrowth-garden-feed-icon' )
+			.boundingBox();
+		const cardTitle = await card.locator( TITLE ).boundingBox();
+		const [ fontSize, rtl ] = await card.evaluate( ( li ) => [
+			parseFloat( window.getComputedStyle( li ).fontSize ),
+			window.getComputedStyle( li ).direction === 'rtl',
+		] );
+		// The edge the text starts from, which is the right one in Hebrew.
+		const start = ( box ) => ( rtl ? box.x + box.width : box.x );
+		expect(
+			Math.abs( start( icon ) - start( image ) )
+		).toBeLessThanOrEqual( 1 );
+		expect(
+			Math.abs( start( cardTitle ) - start( icon ) )
+		).toBeLessThanOrEqual( 2 * fontSize + 1 );
+		expect(
+			rtl
+				? cardTitle.x + cardTitle.width <= icon.x
+				: cardTitle.x >= icon.x + icon.width
+		).toBe( true );
 		// Each stage's glyph sits in the title's link, drawn in the link's
 		// colour and left out of its name; the stage is named after it.
 		await expect(
