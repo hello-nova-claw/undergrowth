@@ -42,14 +42,28 @@ test.describe( 'Theme gallery', () => {
 	test.use( { storageState: { cookies: [], origins: [] } } );
 
 	test.beforeAll( async ( { requestUtils } ) => {
-		const [ garden ] = await requestUtils.rest( {
-			path: '/wp/v2/pages',
-			params: { slug: 'garden' },
-		} );
-		const [ post ] = await requestUtils.rest( {
-			path: '/wp/v2/posts',
-			params: { slug: 'undergrowth-gallery' },
-		} );
+		// Playground answers requests before its blueprint has finished, so
+		// the page its last step makes is waited for, up to ten minutes.
+		let garden;
+		let post;
+
+		for ( let tries = 0; tries < 120 && ! garden; tries++ ) {
+			[ garden ] = await requestUtils.rest( {
+				path: '/wp/v2/pages',
+				params: { slug: 'garden' },
+			} );
+
+			if ( ! garden ) {
+				await new Promise( ( resolve ) => setTimeout( resolve, 5000 ) );
+			}
+		}
+
+		if ( garden ) {
+			[ post ] = await requestUtils.rest( {
+				path: '/wp/v2/posts',
+				params: { slug: 'undergrowth-gallery' },
+			} );
+		}
 
 		if ( ! garden || ! post ) {
 			throw new Error(
