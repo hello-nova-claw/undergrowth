@@ -239,6 +239,61 @@ add_filter(
 	3
 );
 
+/**
+ * Finds the demo blog's illustrations, demo/images/ in the repository:
+ * mounted beside the demo WXR files on a local site, or inside the plugin
+ * folder where the preview installs the whole repository.
+ *
+ * @return string The folder, or an empty string when neither is there.
+ */
+function undergrowth_e2e_demo_images_dir(): string {
+	foreach ( array( WP_CONTENT_DIR . '/undergrowth-demo/images', WP_PLUGIN_DIR . '/undergrowth/demo/images' ) as $dir ) {
+		if ( is_dir( $dir ) ) {
+			return $dir;
+		}
+	}
+
+	return '';
+}
+
+// The demo WXR files name each illustration by its address in the
+// repository, for a real site to download when it imports them. A test site
+// has no network, and a preview must show the files of its own commit, so
+// the importer's download is answered from the local copy. The importer
+// streams each file to a temporary path; a name the copy lacks gets a 404,
+// so the importer moves on without a request.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		$base = 'https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/';
+
+		if ( 0 !== strpos( (string) $url, $base ) || empty( $args['stream'] ) || empty( $args['filename'] ) ) {
+			return $preempt;
+		}
+
+		$dir   = undergrowth_e2e_demo_images_dir();
+		$name  = sanitize_file_name( substr( (string) $url, strlen( $base ) ) );
+		$path  = $dir . '/' . $name;
+		$found = '' !== $dir && '' !== $name && is_file( $path ) && copy( $path, (string) $args['filename'] );
+
+		return array(
+			'headers'  => $found ? array(
+				'content-type'   => (string) wp_check_filetype( $name )['type'],
+				'content-length' => (string) filesize( $path ),
+			) : array(),
+			'body'     => '',
+			'response' => array(
+				'code'    => $found ? 200 : 404,
+				'message' => $found ? 'OK' : 'Not Found',
+			),
+			'cookies'  => array(),
+			'filename' => $found ? (string) $args['filename'] : null,
+		);
+	},
+	10,
+	3
+);
+
 // Cron does not run reliably during a test, so a test asks for the monthly
 // clustering pass, and the resurfacing it ends with, by visiting any admin
 // page with this argument. A test site has fewer posts than one batch, so
