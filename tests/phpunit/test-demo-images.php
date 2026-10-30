@@ -108,6 +108,60 @@ class Test_Demo_Images extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Addresses that name a demo illustration, by its path in the repository.
+	 *
+	 * @dataProvider urls_that_name_an_illustration
+	 *
+	 * @param string $url Address requested.
+	 */
+	public function test_name_is_the_file_under_the_repository_path( string $url ) {
+		$this->assertSame( 'birds-1.jpg', undergrowth_demo_image_name( $url ) );
+	}
+
+	/**
+	 * The address the WXR files give, the same file on another branch, and
+	 * the same path served by another host.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function urls_that_name_an_illustration(): array {
+		return array(
+			'main'           => array( self::BASE . 'birds-1.jpg' ),
+			'another branch' => array( 'https://raw.githubusercontent.com/hello-nova-claw/undergrowth/602-images-fallback/demo/images/birds-1.jpg' ),
+			'another host'   => array( 'https://example.com/hello-nova-claw/undergrowth/main/demo/images/birds-1.jpg' ),
+			'a query string' => array( self::BASE . 'birds-1.jpg?raw=true' ),
+			'encoded name'   => array( self::BASE . 'birds%2D1.jpg' ),
+		);
+	}
+
+	/**
+	 * Addresses that do not name a demo illustration.
+	 *
+	 * @dataProvider urls_that_name_no_illustration
+	 *
+	 * @param string $url Address requested.
+	 */
+	public function test_name_is_empty_off_the_repository_path( string $url ) {
+		$this->assertSame( '', undergrowth_demo_image_name( $url ) );
+	}
+
+	/**
+	 * Another folder of the repository, another repository, a folder above
+	 * the images, and the base alone.
+	 *
+	 * @return array<string, array{string}>
+	 */
+	public function urls_that_name_no_illustration(): array {
+		return array(
+			'another folder'     => array( 'https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/undergrowth-demo.xml' ),
+			'another repository' => array( 'https://raw.githubusercontent.com/example/undergrowth/main/demo/images/birds-1.jpg' ),
+			'parent folder'      => array( self::BASE . '../../undergrowth.php' ),
+			'the base alone'     => array( self::BASE ),
+			'no path'            => array( 'https://example.com' ),
+		);
+	}
+
+	/**
 	 * Addresses the plugin has no file for, each left to the network.
 	 *
 	 * @dataProvider urls_with_no_file
@@ -119,14 +173,14 @@ class Test_Demo_Images extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Addresses under the base with no file, and one on another host.
+	 * Addresses under the base with no file, and one off the repository path.
 	 *
 	 * @return array<string, array{string}>
 	 */
 	public function urls_with_no_file(): array {
 		return array(
 			'missing name'   => array( self::BASE . 'nothing-here.jpg' ),
-			'another host'   => array( 'https://example.com/demo/images/birds-1.jpg' ),
+			'another path'   => array( 'https://example.com/demo/images/birds-1.jpg' ),
 			'parent folder'  => array( self::BASE . '../../undergrowth.php' ),
 			'the base alone' => array( self::BASE ),
 		);
@@ -193,7 +247,7 @@ class Test_Demo_Images extends WP_UnitTestCase {
 		$this->assertSame( '', file_get_contents( $this->tmp ) );
 	}
 
-	public function test_import_download_from_another_host_is_untouched() {
+	public function test_import_download_off_the_repository_path_is_untouched() {
 		do_action( 'import_start' );
 
 		$response = $this->download( 'https://example.com/demo/images/birds-1.jpg' );
