@@ -157,7 +157,10 @@ class Test_Demo_Content extends WP_UnitTestCase {
 		krsort( $dated );
 
 		// The feed's first page, twenty posts, holds every format and at
-		// least one post with no format, which has a picture instead.
+		// least one post with no format, which has a picture instead. The
+		// feed's default order is newest tended first, by modified time, and
+		// the importer gives each post its date as its modified time, since
+		// the files carry none, so the newest twenty by date are that page.
 		$first_page_posts = array_slice( $dated, 0, 20 );
 		$first_page       = array_filter( $first_page_posts );
 
