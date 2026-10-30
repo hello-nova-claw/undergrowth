@@ -37,12 +37,14 @@ function undergrowth_demo_image_name( string $url ): string {
 /**
  * The plugin's own copy of the illustrations: demo/images/ in a checkout of
  * the repository. The release zip leaves demo/ out, so a plugin installed
- * from it has none.
+ * from it has none. The folder is found from this file, not from the
+ * plugin's constants, so a Playground site can load this file alone before
+ * the plugin is active and import the demo with its pictures.
  *
  * @return string The folder, without a trailing slash, or an empty string when the plugin has none.
  */
 function undergrowth_demo_images_dir(): string {
-	$dir = untrailingslashit( plugin_dir_path( UNDERGROWTH_FILE ) ) . '/demo/images';
+	$dir = dirname( __DIR__ ) . '/demo/images';
 
 	return is_dir( $dir ) ? $dir : '';
 }
