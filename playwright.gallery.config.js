@@ -6,7 +6,7 @@ const { pluginMounts } = require( './bin/plugin-mounts.cjs' );
 // playground`.
 const port = process.env.UNDERGROWTH_PLAYGROUND_PORT || '9420';
 // "debug" makes Playground print each blueprint step and what its PHP
-// wrote, which is how a step that fails quietly is found.
+// wrote, for when a step fails quietly.
 const verbosity = process.env.UNDERGROWTH_PLAYGROUND_VERBOSITY || 'normal';
 
 process.env.WP_BASE_URL ??= `http://127.0.0.1:${ port }`;

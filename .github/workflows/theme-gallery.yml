@@ -68,7 +68,6 @@ jobs:
       - name: Take the shots
         env:
           UNDERGROWTH_GALLERY_DIR: ${{ env.SHOTS }}/gallery
-          UNDERGROWTH_PLAYGROUND_VERBOSITY: debug
         run: npm run gallery || npm run gallery
 
       # The sheet goes to the summary whatever happened, so a failed run
