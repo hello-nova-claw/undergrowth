@@ -672,6 +672,21 @@ class Test_More_Like_This extends WP_UnitTestCase {
 		$this->assertSame( 2, substr_count( $html, '<li ' ) );
 	}
 
+	public function test_the_list_keeps_the_blocks_edge_under_a_classic_themes_list_rule() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/more-like-this.css' );
+
+		// A classic theme indents every list in the content with a rule
+		// such as `.entry-content ul`, a class and an element printed after
+		// the block's styles. The list's reset names the block's class, the
+		// element and the list's class, and each entry's rule the block's
+		// class and the list's class, so both outrank that rule. The
+		// "Columns" style names the block's class too, to keep its borders.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this ul\.undergrowth-more-like-this-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this \.undergrowth-more-like-this-list > li \{[^}]*\bmargin: 0;[^}]*\bpadding: 0\.75em 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-more-like-this\.is-style-columns \.undergrowth-more-like-this-list > li \{[^}]*\bborder-block-end: 0;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#^(\.is-style-columns )?\.undergrowth-more-like-this-(list|item) \{#m', $css );
+	}
+
 	public function test_shows_as_many_posts_as_asked_within_limits() {
 		foreach ( range( 1, 8 ) as $n ) {
 			$this->old( 'Post ' . $n, array( 1, $n / 10, 0 ) );

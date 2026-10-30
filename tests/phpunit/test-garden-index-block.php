@@ -83,7 +83,7 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 	 * @return array<string, string[]> Titles keyed by group heading, in order.
 	 */
 	private function groups( string $html ): array {
-		preg_match_all( '#<h2 class="wp-block-heading">([^<]*)</h2><ul>(.*?)</ul>#s', $html, $sections, PREG_SET_ORDER );
+		preg_match_all( '#<h2 class="wp-block-heading">([^<]*)</h2><ul class="wp-block-undergrowth-garden-index-list">(.*?)</ul>#s', $html, $sections, PREG_SET_ORDER );
 		$groups = array();
 
 		foreach ( $sections as $section ) {
@@ -113,6 +113,20 @@ class Test_Garden_Index_Block extends WP_UnitTestCase {
 		undergrowth_register_garden_index_block();
 
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/garden-index' ) );
+	}
+
+	public function test_the_lists_keep_the_blocks_edge_under_a_classic_themes_list_rule() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-index.css' );
+
+		// A classic theme indents every list in the content with a rule
+		// such as `.entry-content ul`, a class and an element printed after
+		// the block's styles. Each group's list is reset by a rule naming
+		// the block's class, the element and the list's class, and each
+		// entry by one naming the block's class and the list's class, so
+		// both outrank that rule.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-index ul\.wp-block-undergrowth-garden-index-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-index \.wp-block-undergrowth-garden-index-list > li \{[^}]*\bmargin: 0;[^}]*\bpadding: 0\.2em 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#^\.wp-block-undergrowth-garden-index (ul|li) \{#m', $css );
 	}
 
 	public function test_lists_the_maps_groups_in_map_order_named_as_on_the_map() {
