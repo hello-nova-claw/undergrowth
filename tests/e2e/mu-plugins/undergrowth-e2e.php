@@ -371,10 +371,27 @@ add_filter(
 	99
 );
 
-// The catalogue shows the reader blocks in several themes. Each request
-// that carries this cookie uses that theme, if it is installed, so every
-// theme is served by one site without switching it for the others.
-$undergrowth_e2e_theme = undergrowth_e2e_cookie( 'undergrowth_e2e_theme', array( 'twentytwentyfive', 'twentytwentyfive-evening', 'twentytwentyfour', 'twentytwentyone' ) );
+// The catalogue and the theme gallery show the reader blocks in several
+// themes. Each request that carries this cookie uses that theme, if it is
+// installed, so every theme is served by one site without switching it for
+// the others. The gallery's themes are the ones its blueprint installs,
+// tests/e2e/playground/gallery.json; a theme added there is added here too.
+$undergrowth_e2e_theme = undergrowth_e2e_cookie(
+	'undergrowth_e2e_theme',
+	array(
+		'twentytwentyfive',
+		'twentytwentyfive-evening',
+		'twentytwentyfour',
+		'twentytwentythree',
+		'twentytwentytwo',
+		'twentytwentyone',
+		'ollie',
+		'frost',
+		'astra',
+		'generatepress',
+		'kadence',
+	)
+);
 
 if ( '' !== $undergrowth_e2e_theme ) {
 	$undergrowth_e2e_slug = str_replace( '-evening', '', $undergrowth_e2e_theme );

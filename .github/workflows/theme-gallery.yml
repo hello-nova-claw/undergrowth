@@ -1,0 +1,243 @@
+name: Theme gallery
+
+# Shoots the Garden page and one demo post in ten themes, at two widths, as
+# readers see them, for a design review. Run by hand, or on a pull request
+# labelled theme-gallery. It is for looking at only: it is never a required
+# check, and a theme that cannot be installed is listed as skipped.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions: {}
+
+jobs:
+  capture:
+    name: Capture
+    # On the job, not the workflow, so a run that skips the job (a label
+    # that is not this one) never cancels a gallery still being taken.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+      cancel-in-progress: true
+    # A label that is not this one would take the gallery again for nothing.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (contains(github.event.pull_request.labels.*.name, 'theme-gallery')
+          && (github.event.action != 'labeled' || github.event.label.name == 'theme-gallery'))
+    runs-on: ubuntu-latest
+    # Forty shots on one site, after reading the demo blog and downloading
+    # nine themes. Installing Chromium's system packages has taken up to 11
+    # minutes on its own.
+    timeout-minutes: 25
+    # This job runs the pull request's code, so it gets no write access. The
+    # publish job below writes, and runs none of it.
+    permissions:
+      contents: read
+    env:
+      SHOTS: ${{ github.workspace }}/shots
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The browser is cached by Playwright version; its system packages are not.
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6.1.0
+        id: playwright-browser
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.playwright-browser.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+      - if: steps.playwright-browser.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Playground downloads WordPress and WP-CLI as it boots, so the run
+      # gets a second try before it counts as failed. A theme the spec could
+      # not find is skipped, not failed, so a theme missing from
+      # wordpress.org keeps the run green.
+      - name: Take the shots
+        env:
+          UNDERGROWTH_GALLERY_DIR: ${{ env.SHOTS }}/gallery
+        run: npm run gallery || npm run gallery
+
+      # The sheet goes to the summary whatever happened, so a failed run
+      # still says which shots it has. The screenshots branch commit doesn't
+      # exist yet, so the publish job fills in its SHA; the placeholder is
+      # as long as a SHA.
+      - name: Write the sheet
+        if: always()
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          mkdir -p "${SHOTS}/gallery"
+          node bin/gallery-sheet.mjs "${SHOTS}/gallery" > "${SHOTS}/summary.md"
+          {
+            cat "${SHOTS}/summary.md"
+            printf '\nThe images are in the workflow artifact.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$PR" ]; then
+            node bin/gallery-sheet.mjs "${SHOTS}/gallery" \
+              "https://github.com/${REPOSITORY}/blob/SCREENSHOTS_SHA_PLACEHOLDER_000000000000/gallery-${PR}" > "${SHOTS}/comment.md"
+            printf '\n[Workflow run and full set](%s/%s/actions/runs/%s)\n' \
+              "$GITHUB_SERVER_URL" "$REPOSITORY" "$GITHUB_RUN_ID" >> "${SHOTS}/comment.md"
+          fi
+
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: ${{ github.event_name == 'pull_request' && format('theme-gallery-pr-{0}', github.event.pull_request.number) || format('theme-gallery-run-{0}', github.run_id) }}
+          path: shots/
+          retention-days: 90
+
+  publish:
+    name: Publish
+    needs: capture
+    # Runs when a theme failed too, so the comment shows the rest. A run by
+    # hand has only the summary and the artifact. Pull requests from forks
+    # get a read-only token, and their code must not run with write access
+    # anyway.
+    if: >-
+      !cancelled() && needs.capture.result != 'skipped'
+      && github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One publish at a time per pull request. The queue keeps every pending
+    # run rather than the default one, so an older run joining it never
+    # drops the current commit's publish. The queue is not strictly in
+    # order, so the head checks below still decide who may publish.
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # A run for an older commit, re-run or late, must not replace the
+      # gallery of the commit the pull request now has.
+      - name: Check the pull request still has this commit
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          head=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq .head.sha)
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "The pull request has moved on to ${head:0:7}; not publishing ${HEAD_SHA:0:7}."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Pinned by commit because this job holds a write token.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.current.outputs.stale != 'true'
+        with:
+          name: theme-gallery-pr-${{ github.event.pull_request.number }}
+          path: shots
+
+      # Each pull request owns gallery-<number>/ on the orphan screenshots
+      # branch, beside the catalogue's pr-<number>/. Every push replaces that
+      # folder in a new commit, so the history keeps every version, and
+      # identical images cost nothing to store again.
+      - name: Commit to the screenshots branch
+        id: commit
+        if: steps.current.outputs.stale != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          shots="$PWD/shots"
+          mkdir branch && cd branch
+          git init -q
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git remote add origin "https://github.com/${REPOSITORY}.git"
+
+          pushed=''
+          for _ in 1 2 3; do
+            if git fetch -q --depth 1 origin screenshots; then
+              git checkout -q -B screenshots FETCH_HEAD
+            else
+              git checkout -q --orphan screenshots
+            fi
+
+            rm -rf "gallery-${PR}"
+            mkdir -p "gallery-${PR}"
+            if [ -d "${shots}/gallery" ]; then
+              cp -R "${shots}/gallery/." "gallery-${PR}/"
+            fi
+
+            git add -A "gallery-${PR}"
+            if git rev-parse -q --verify HEAD >/dev/null && git diff --cached --quiet; then
+              pushed=yes
+              break
+            fi
+
+            # Checked again just before the push: the pull request may have
+            # moved on, and a newer run published, while this one waited.
+            head=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq .head.sha)
+            if [ "$head" != "$HEAD_SHA" ]; then
+              echo "The pull request has moved on; not publishing ${HEAD_SHA:0:7}."
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git commit -q -m "Theme gallery for #${PR} at ${HEAD_SHA:0:7}."
+
+            # Another pull request may have pushed in the meantime. The next
+            # try starts again from the fetched branch.
+            if git push -q origin screenshots; then
+              pushed=yes
+              break
+            fi
+          done
+
+          if [ -z "$pushed" ]; then
+            echo "::error::Could not push to the screenshots branch."
+            exit 1
+          fi
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Post or update the comment
+        if: steps.current.outputs.stale != 'true' && steps.commit.outputs.stale != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ steps.commit.outputs.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # The same check once more, so a newer run's comment is never
+          # overwritten with this one's.
+          head=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq .head.sha)
+          if [ "$head" != "$HEAD_SHA" ]; then
+            echo "The pull request has moved on; leaving the comment to the newer run."
+            exit 0
+          fi
+
+          sed "s/SCREENSHOTS_SHA_PLACEHOLDER_000000000000/${SHA}/g" shots/comment.md > "${RUNNER_TEMP}/comment.md"
+
+          id=$(gh api --paginate "repos/${REPOSITORY}/issues/${PR}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- undergrowth-theme-gallery -->"))) | .id' | head -n 1)
+
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/${REPOSITORY}/issues/comments/${id}" -F body=@"${RUNNER_TEMP}/comment.md" > /dev/null
+          else
+            gh api -X POST "repos/${REPOSITORY}/issues/${PR}/comments" -F body=@"${RUNNER_TEMP}/comment.md" > /dev/null
+          fi
