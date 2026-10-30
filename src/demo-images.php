@@ -12,14 +12,26 @@
  * @package Undergrowth
  */
 
+defined( 'ABSPATH' ) || exit;
+
 /**
- * The address the demo WXR files give each illustration, with a trailing
- * slash.
+ * The name of the illustration an address asks for. The demo WXR files give
+ * each illustration its address in the repository, which ends in the
+ * repository's path, a branch and the file's name under demo/images/. The
+ * plugin knows its own illustrations by that path, whichever host serves
+ * the repository.
  *
- * @return string
+ * @param string $url Address requested.
+ * @return string The file's name, or an empty string when the address does not name a demo illustration.
  */
-function undergrowth_demo_images_url(): string {
-	return 'https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/';
+function undergrowth_demo_image_name( string $url ): string {
+	$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+
+	if ( ! preg_match( '#/hello-nova-claw/undergrowth/[^/]+/demo/images/([^/]+)$#', $path, $found ) ) {
+		return '';
+	}
+
+	return sanitize_file_name( rawurldecode( $found[1] ) );
 }
 
 /**
@@ -40,19 +52,18 @@ function undergrowth_demo_images_dir(): string {
  *
  * @param string $dir Folder holding the illustrations, or an empty string for none.
  * @param string $url Address requested.
- * @return string Path of the file, or an empty string when the address is not under the demo image base or the folder has no file of that name.
+ * @return string Path of the file, or an empty string when the address does not name a demo illustration or the folder has no file of that name.
  */
 function undergrowth_demo_image_path( string $dir, string $url ): string {
-	$base = undergrowth_demo_images_url();
+	$name = undergrowth_demo_image_name( $url );
 
-	if ( '' === $dir || 0 !== strpos( $url, $base ) ) {
+	if ( '' === $dir || '' === $name ) {
 		return '';
 	}
 
-	$name = sanitize_file_name( substr( $url, strlen( $base ) ) );
 	$path = $dir . '/' . $name;
 
-	return '' !== $name && is_file( $path ) ? $path : '';
+	return is_file( $path ) ? $path : '';
 }
 
 /**

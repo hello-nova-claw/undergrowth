@@ -339,7 +339,7 @@ function undergrowth_e2e_demo_images_dir(): string {
 add_filter(
 	'pre_http_request',
 	static function ( $preempt, $args, $url ) {
-		if ( false !== $preempt || ! function_exists( 'undergrowth_demo_image_response' ) || 0 !== strpos( (string) $url, undergrowth_demo_images_url() ) || empty( $args['stream'] ) || empty( $args['filename'] ) ) {
+		if ( false !== $preempt || ! function_exists( 'undergrowth_demo_image_response' ) || '' === undergrowth_demo_image_name( (string) $url ) || empty( $args['stream'] ) || empty( $args['filename'] ) ) {
 			return $preempt;
 		}
 
