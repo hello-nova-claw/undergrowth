@@ -4,8 +4,8 @@
 
 | File | Posts | Used by |
 | --- | --- | --- |
-| `demo/undergrowth-demo.xml` | 361 posts, 2 pages, about 420,000 words | `WXR=demo npm run playground:real` |
-| `demo/undergrowth-demo-small.xml` | 61 posts, 2 pages | The PR Playground preview, `npm run playground`, `WXR=demo-small npm run playground:real` |
+| `demo/undergrowth-demo.xml` | 361 posts, 2 pages, about 420,000 words | `WXR=demo` in `.env.local`, then `npm run playground:real` |
+| `demo/undergrowth-demo-small.xml` | 61 posts, 2 pages | The PR Playground preview, `npm run playground`, `WXR=demo-small` in `.env.local`, then `npm run playground:real` |
 
 Both are WordPress export (WXR) files, so they also import into any site through **Tools › Import › WordPress**.
 
@@ -57,6 +57,21 @@ Each post shows the motif of its first tag (Birds, Winter, Trees, Flowers, Water
 
 In the WXR files each image in use is one attachment item, shared by every post that shows it through a `_thumbnail_id` meta, with its `wp:attachment_url` under `https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/`. A real site that imports a file with **Download and import file attachments** ticked fetches them from there. The caption of each attachment holds its credit.
 
+### Where an import gets them
+
+The importer downloads each attachment from its `wp:attachment_url`, so an import that fetches them needs GitHub to be reachable, and gets the `main` branch's files whatever commit is checked out. So while the WordPress Importer runs, between its `import_start` and `import_end` actions, the plugin answers a download whose address ends in the repository path, a branch and a file name under `demo/images/`, on whatever host serves the repository, from its own `demo/images/` folder when the file is there (`src/demo-images.php`, through the `pre_http_request` filter), and the demo imports from a checkout with no network. A file the folder lacks still goes to GitHub, and one that cannot be fetched is left out: the importer records the failed download and moves on, and the post shows as a text card on the Garden page. Nothing retries, and no request outside an import passes through the filter. The release zip leaves `demo/` out (see `.distignore`), so a plugin installed from it downloads every image from GitHub as before.
+
+Each way of importing the demo blog gets the images from here:
+
+| Import | Images from |
+| --- | --- |
+| **Tools › Import › WordPress** or `wp import`, with the plugin folder a checkout of the repository | `demo/images/` in the plugin folder, without a request |
+| **Tools › Import › WordPress** or `wp import`, with the plugin installed from the release zip | GitHub, the `main` branch |
+| The pull request preview, `npm run playground`, `npm run gallery` and `npm run test:a11y` | `demo/images/` mounted at `wp-content/undergrowth-demo/images`, through the e2e mu-plugin (see [The Playground preview](#the-playground-preview)) |
+| `WXR=demo` or `WXR=demo-small` in `.env.local`, then `npm run playground:real` | `demo/images/` mounted into the plugin folder, and `src/demo-images.php` loaded by a must-use plugin before the import, since the plugin is activated after it, without a request |
+
+The plugin has no screen or command of its own that imports the demo blog; every path above is the WordPress Importer.
+
 To replace an illustration with a photograph, put the file in `demo/images/` under the same name, or add a motif in `IMAGE_TAG_MOTIFS` and `IMAGE_CATEGORY_MOTIFS` in `bin/build-demo-content`, add its row to the table above with the file page, author and licence, and rebuild. Only public-domain or CC0 images, at most 1200 pixels on the long edge and about 150 KB, so the set stays small. A photograph needs no change to `bin/draw-demo-images`, which only draws the motifs it knows.
 
 ## Building it
@@ -79,7 +94,7 @@ draws the illustrations into `demo/images/` again, from Pillow. The same name al
 
 The preview imports the small file and uses the e2e test provider, so it needs no key. The demo posts have none of the provider's fixture words, so while the option `undergrowth_e2e_demo` is set, the provider counts every word of five letters or more, hashed into 2,048 places. Posts that share words still get similar vectors. It is a demo, not a model: it finds books on the same subject, not posts that mean the same thing.
 
-The importer downloads each attachment from its `wp:attachment_url`, which a Playground site cannot reach: the browser has no network for PHP, and the local CLI would fetch the `main` branch's files rather than the commit under review. So the test site answers that download itself, through the `pre_http_request` filter in `tests/e2e/mu-plugins/undergrowth-e2e.php`, with the file from `demo/images/` beside the WXR files (mounted at `wp-content/undergrowth-demo/`, or inside the plugin folder where the preview installs the whole repository). The importer then creates the attachments and sets each post's featured image as it would on any site, and no blueprint needs a step for it.
+The importer downloads each attachment from its `wp:attachment_url`, which a Playground site cannot reach: the browser has no network for PHP, and the local CLI would fetch the `main` branch's files rather than the commit under review. So the test site answers that download itself, through the `pre_http_request` filter in `tests/e2e/mu-plugins/undergrowth-e2e.php`, with the file from `demo/images/` beside the WXR files (mounted at `wp-content/undergrowth-demo/`, or inside the plugin folder where the preview installs the whole repository). It finds the folder itself and builds the response with the plugin's helper from `src/demo-images.php`; unlike the plugin, it answers a name the copy lacks with 404 rather than leaving it to a network the site has not got. The importer then creates the attachments and sets each post's featured image as it would on any site, and no blueprint needs a step for it.
 
 The blueprint imports the posts without reading them, then calls `undergrowth_e2e_read_demo()` (in `tests/e2e/mu-plugins/undergrowth-e2e.php`). That reads every post, runs the monthly cycle once, and suggests links for each post once. Reading each post as it was imported took about three minutes; reading them together takes seconds.
 
