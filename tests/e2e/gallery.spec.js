@@ -53,7 +53,9 @@ test.describe( 'Theme gallery', () => {
 
 		if ( ! garden || ! post ) {
 			throw new Error(
-				'The gallery blueprint did not make the Garden page and the gallery post.'
+				`The gallery blueprint did not make the ${
+					garden ? 'gallery post' : 'Garden page'
+				}. Playground's output above says which step failed.`
 			);
 		}
 

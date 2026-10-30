@@ -25,9 +25,13 @@ module.exports = defineConfig( {
 	// A gallery run never retries: a theme that fails should show as missing.
 	retries: 0,
 	reporter: process.env.CI ? [ [ 'github' ], [ 'list' ] ] : [ [ 'list' ] ],
+	// Playground's own output stays in the log: a gallery run is for
+	// looking at, and a blueprint step that fails is the first thing to see.
 	webServer: {
+		stdout: 'pipe',
+		stderr: 'pipe',
 		command: [
-			`npx wp-playground-cli server --port=${ port } --verbosity=quiet`,
+			`npx wp-playground-cli server --port=${ port }`,
 			...pluginMounts( plugin ).map(
 				( { hostPath, vfsPath } ) =>
 					`--mount="${ hostPath }:${ vfsPath }"`
