@@ -123,7 +123,9 @@ function sheet( dir, base ) {
 
 	const lines = [ MARKER, '## Theme gallery', '' ];
 
-	if ( 0 === shot ) {
+	// A theme that could not be installed is still worth a row, so the
+	// sheet is empty only when there is nothing at all to say.
+	if ( 0 === shot && 0 === notInstalled.size ) {
 		lines.push( 'No shots were taken. Check the workflow run for errors.' );
 		return lines.join( '\n' );
 	}

@@ -134,6 +134,23 @@ describe( 'gallery-sheet', () => {
 		}
 	} );
 
+	it( 'still names the themes that were not installed when none was shot', () => {
+		const none = mkdtempSync( join( tmpdir(), 'gallery-none-' ) );
+
+		try {
+			writeFileSync( join( none, 'skipped.json' ), '["frost"]\n' );
+
+			const out = sheet( none );
+
+			expect( out ).toContain( '0 themes shot, 1 not installed' );
+			expect( out ).toMatch(
+				/^\| `frost` \| not installed \| not installed \| not installed \| not installed \|$/m
+			);
+		} finally {
+			rmSync( none, { recursive: true, force: true } );
+		}
+	} );
+
 	it( 'refuses to run without a folder', () => {
 		expect( () =>
 			execFileSync( 'node', [ script ], {
