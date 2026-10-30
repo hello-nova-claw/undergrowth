@@ -20,6 +20,12 @@
 	list-style: none;
 }
 
+/*
+ * An entry's picture picks its card. An image card is tall: the picture on
+ * top, then the title. A text card is short: its type's icon in a narrow
+ * column on the left, the title, excerpt and details beside it. Both start
+ * at the same edge, so the grid reads as one list of mixed heights.
+ */
 .wp-block-undergrowth-garden-feed-item {
 	display: grid;
 	grid-template-areas:
@@ -33,12 +39,38 @@
 	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
 }
 
+.wp-block-undergrowth-garden-feed-item.has-icon {
+	grid-template-areas:
+		"icon title"
+		"icon excerpt"
+		"icon details";
+	grid-template-columns: 1.5em 1fr;
+	column-gap: 0.5em;
+}
+
 .wp-block-undergrowth-garden-feed-image {
 	grid-area: image;
 	display: block;
 	width: 100%;
 	height: auto;
 	margin-block-end: var(--wp--preset--spacing--30, 1rem);
+}
+
+/*
+ * The type's icon is drawn in the text colour and sized in em, so it
+ * scales with the theme's type. It stands on the title's first line, as
+ * tall as that line, and is decorative: the type's word is in the details
+ * line.
+ */
+.wp-block-undergrowth-garden-feed-icon {
+	grid-area: icon;
+	display: block;
+}
+
+.wp-block-undergrowth-garden-feed-icon .undergrowth-type-icon {
+	display: block;
+	width: 1.5em;
+	height: 1.5em;
 }
 
 /*

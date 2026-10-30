@@ -259,6 +259,30 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 }
 
 /**
+ * Reads a post's type slug from the chosen taxonomy.
+ *
+ * It picks the type's icon and marks the entry for a theme to style. A
+ * post with no format is standard; a post with several terms is typed by
+ * its first.
+ *
+ * @param int    $post_id  Post ID.
+ * @param string $taxonomy Taxonomy that names each post's type.
+ * @return string Term slug, or a post format slug, or an empty string for
+ *                a post with no term.
+ */
+function undergrowth_garden_feed_type_slug( int $post_id, string $taxonomy ): string {
+	if ( 'post_format' === $taxonomy ) {
+		$format = get_post_format( $post_id );
+
+		return $format ? $format : 'standard';
+	}
+
+	$terms = get_the_terms( $post_id, $taxonomy );
+
+	return is_array( $terms ) && isset( $terms[0] ) ? $terms[0]->slug : '';
+}
+
+/**
  * Names a post's type from the chosen taxonomy.
  *
  * A post with no format is Standard, the type of most posts on most sites,
@@ -295,6 +319,12 @@ function undergrowth_garden_feed_type_label( int $post_id, string $taxonomy ): s
 /**
  * Renders one post in the feed.
  *
+ * The post's picture picks its card. One with a picture is an image card:
+ * the picture on top, then the title. One without is a text card: its
+ * type's icon in a column on the left, the title beside it. Both carry
+ * the type and the stage as data attributes, for a theme to style one
+ * type its own way.
+ *
  * @param int                  $post_id    Post ID.
  * @param bool                 $images     Whether to show its featured image, above the title.
  * @param string               $taxonomy   Taxonomy that names each post's type.
@@ -304,9 +334,11 @@ function undergrowth_garden_feed_type_label( int $post_id, string $taxonomy ): s
 function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxonomy, array $attributes ): string {
 	$post  = get_post( $post_id );
 	$stage = undergrowth_get_stage( $post_id );
+	$slug  = undergrowth_garden_feed_type_slug( $post_id, $taxonomy );
 
 	// The title names the entry, so the image says nothing more to a
-	// screen reader and is left decorative. The stage's glyph sits in the
+	// screen reader and is left decorative, as is the type's icon: the
+	// type's word is in the details line. The stage's glyph sits in the
 	// link to take its colour, and is left out of the link's name too;
 	// the stage's name follows the link, for screen readers only.
 	$picture = $images && has_post_thumbnail( $post )
@@ -319,12 +351,16 @@ function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxon
 			)
 		)
 		: '';
+	$lead    = '' === $picture
+		? '<span class="wp-block-undergrowth-garden-feed-icon">' . undergrowth_type_icon( $slug, $taxonomy ) . '</span>'
+		: $picture;
 	$item    = sprintf(
-		'<li class="wp-block-undergrowth-garden-feed-item%1$s">%2$s<a class="wp-block-undergrowth-garden-feed-title" href="%3$s"><span class="wp-block-undergrowth-garden-feed-stage is-stage-%4$s">%5$s</span><span>%6$s</span></a><span class="screen-reader-text">%7$s</span>',
-		'' === $picture ? '' : ' has-image',
-		$picture,
-		esc_url( (string) get_permalink( $post ) ),
+		'<li class="wp-block-undergrowth-garden-feed-item %1$s" data-type="%2$s" data-stage="%3$s">%4$s<a class="wp-block-undergrowth-garden-feed-title" href="%5$s"><span class="wp-block-undergrowth-garden-feed-stage is-stage-%3$s">%6$s</span><span>%7$s</span></a><span class="screen-reader-text">%8$s</span>',
+		'' === $picture ? 'has-icon' : 'has-image',
+		esc_attr( $slug ),
 		esc_attr( $stage ),
+		$lead,
+		esc_url( (string) get_permalink( $post ) ),
 		undergrowth_stage_icon( $stage ),
 		esc_html( undergrowth_plain_line( undergrowth_post_title( $post_id ) ) ),
 		esc_html(
