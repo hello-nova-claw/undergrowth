@@ -156,9 +156,12 @@ class Test_Demo_Content extends WP_UnitTestCase {
 
 		krsort( $dated );
 
-		// The feed's first page, twenty posts, holds every format.
-		$first_page = array_filter( array_slice( $dated, 0, 20 ) );
+		// The feed's first page, twenty posts, holds every format and at
+		// least one post with no format, which has a picture instead.
+		$first_page_posts = array_slice( $dated, 0, 20 );
+		$first_page       = array_filter( $first_page_posts );
 
+		$this->assertContains( '', $first_page_posts, 'the first page includes a picture' );
 		$this->assertEqualSets(
 			array( 'post-format-aside', 'post-format-link', 'post-format-quote', 'post-format-status' ),
 			array_values( array_unique( $first_page ) )
