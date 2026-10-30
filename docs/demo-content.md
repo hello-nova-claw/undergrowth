@@ -34,11 +34,18 @@ Jerome is the outlier. *Winter Sunshine* ends with a journey to England and Fran
 - **Terms.** One category per book, and up to two of six tags (Birds, Flowers, Food, Trees, Water, Winter) for words a post uses often.
 - **Edge cases.** About one post in thirty is in Classic-editor markup. Four posts are drafts, one is private and one has the password `demo`. Two pages hold front matter by the authors: Jekyll's preface and Warner's dedication. All of these are in the small file too.
 - **Credit.** Every post and page ends with a line naming the book, author, year and Gutenberg number, with a link to the book's page.
-- **Images.** Every post has a featured image, one of the thirty illustrations in `demo/images/`, so the Garden page shows a picture above each title. See [Images](#images).
+- **Formats.** About one post in four has a post format (aside, link, quote or status) and no featured image, so the Garden feed shows its text card, with the format's icon, among the image cards. See [Formats](#formats).
+- **Images.** Every other post has a featured image, one of the thirty illustrations in `demo/images/`, so the Garden page shows a picture above its title. See [Images](#images).
+
+## Formats
+
+The Garden feed gives each post one of two cards: a post with a featured image gets the image card, and a post without one gets a shorter text card with its type's icon on the left. A garden mixes essays with notes, links and quotes, so the demo blog needs both. About one post in four takes a post format and no picture; the full file has 89 such posts and the small file 15, with all four formats among the twenty newest posts, which fill the feed's first page.
+
+A hash of the post's title picks the post and its format, as it picks the illustration's variant, so a post keeps its format from one build to the next, whatever else changes: `FORMATS` and `FORMAT_EVERY` in `bin/build-demo-content` hold the formats and the rate. The format is only texture for the feed; the post's text is the author's chapter as before, and the format term is written as **Tools › Export** writes it, so the importer makes the term and any theme shows the format as it would on any site.
 
 ## Images
 
-The Garden feed shows a post's featured image above its title, so the demo blog needs pictures. No open-access photograph could be fetched when they were added, so the images are flat illustrations in quiet colours, drawn by `bin/draw-demo-images` from a seed: ten motifs in three variants each, 1200 × 800 pixels, about 25 KB a file. Nothing in them is anyone's photograph or a model's work.
+The Garden feed shows a post's featured image above its title, so the demo blog needs pictures: every post without a format has one. No open-access photograph could be fetched when they were added, so the images are flat illustrations in quiet colours, drawn by `bin/draw-demo-images` from a seed: ten motifs in three variants each, 1200 × 800 pixels, about 25 KB a file. Nothing in them is anyone's photograph or a model's work.
 
 | Files | Source | Author | Licence |
 | --- | --- | --- | --- |
@@ -53,9 +60,9 @@ The Garden feed shows a post's featured image above its title, so the demo blog 
 | `water-1.jpg` to `water-3.jpg` | Drawn by `bin/draw-demo-images` | This repository | CC0 1.0 |
 | `winter-1.jpg` to `winter-3.jpg` | Drawn by `bin/draw-demo-images` | This repository | CC0 1.0 |
 
-Each post shows the motif of its first tag (Birds, Winter, Trees, Flowers, Water or Food), or of its category when it has no tag: flowers for Gardening, leaves for Nature, hills for Travel, a hearth for Home and the moon for Idle Thoughts. The variant comes from a hash of the post's title, so neighbours on the Garden page differ. The builder names the picture; it never reads the file.
+Each post with a picture shows the motif of its first tag (Birds, Winter, Trees, Flowers, Water or Food), or of its category when it has no tag: flowers for Gardening, leaves for Nature, hills for Travel, a hearth for Home and the moon for Idle Thoughts. The variant comes from a hash of the post's title, so neighbours on the Garden page differ. The builder names the picture; it never reads the file.
 
-In the WXR files each image in use is one attachment item, shared by every post that shows it through a `_thumbnail_id` meta, with its `wp:attachment_url` under `https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/`. A real site that imports a file with **Download and import file attachments** ticked fetches them from there. The caption of each attachment holds its credit.
+In the WXR files each image in use is one attachment item, shared by every post that shows it through a `_thumbnail_id` meta; an illustration no post in a file shows has no item there, so the small file carries fewer than thirty. Each attachment has its `wp:attachment_url` under `https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/`. A real site that imports a file with **Download and import file attachments** ticked fetches them from there. The caption of each attachment holds its credit.
 
 To replace an illustration with a photograph, put the file in `demo/images/` under the same name, or add a motif in `IMAGE_TAG_MOTIFS` and `IMAGE_CATEGORY_MOTIFS` in `bin/build-demo-content`, add its row to the table above with the file page, author and licence, and rebuild. Only public-domain or CC0 images, at most 1200 pixels on the long edge and about 150 KB, so the set stays small. A photograph needs no change to `bin/draw-demo-images`, which only draws the motifs it knows.
 
