@@ -232,7 +232,7 @@ test.describe( 'Garden feed block', () => {
 		await expect( page.locator( `${ FEED } img` ) ).toHaveCount( 0 );
 	} );
 
-	test( 'previews in the editor and changes the order by keyboard', async ( {
+	test( 'previews in the editor and changes the order and layout by keyboard', async ( {
 		admin,
 		editor,
 		page,
@@ -274,6 +274,26 @@ test.describe( 'Garden feed block', () => {
 			'Yacon',
 			'Oca',
 		] );
+
+		// The Layout select is the last in the panel. The arrow keys move a
+		// closed select between its two options in any locale, and the
+		// server render picks the layout up.
+		const layout = page
+			.locator( '.block-editor-block-inspector select' )
+			.last();
+		await expect( layout ).toHaveValue( 'grid' );
+		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
+		await layout.focus();
+		await page.keyboard.press( 'ArrowDown' );
+		await expect( layout ).toHaveValue( 'masonry' );
+		await expect( layout ).toBeFocused();
+		await expect( preview ).toHaveClass( /is-layout-masonry/ );
+		await expect( preview.locator( TITLE ) ).toHaveCount( 3 );
+
+		// And back to the grid.
+		await page.keyboard.press( 'ArrowUp' );
+		await expect( layout ).toHaveValue( 'grid' );
+		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
 		await expectNoA11yViolations( page, '.block-editor-block-inspector' );
 	} );
 

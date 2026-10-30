@@ -21,6 +21,26 @@
 }
 
 /*
+ * The masonry layout, when the author chooses it, packs the entries into
+ * CSS columns instead: as wide as the grid's, with its column gap, so
+ * the two layouts take the same number of columns at any width. Each
+ * entry stays whole and carries the grid's row gap as its own margin, so
+ * the columns balance. The entries then read top to bottom down each
+ * column, which is the trade-off of columns, and why the grid is the
+ * default; the list's order, and a screen reader's, is unchanged.
+ */
+.wp-block-undergrowth-garden-feed.is-layout-masonry ul.wp-block-undergrowth-garden-feed-list {
+	display: block;
+	column-width: 16rem;
+	column-gap: var(--wp--preset--spacing--50, 2.5rem);
+}
+
+.wp-block-undergrowth-garden-feed.is-layout-masonry .wp-block-undergrowth-garden-feed-item {
+	break-inside: avoid;
+	margin-block-end: var(--wp--preset--spacing--40, 1.5rem);
+}
+
+/*
  * An entry's picture picks its card. An image card is tall: the picture on
  * top, then the title. A text card is short: its type's icon in a narrow
  * column on the left, the title, excerpt and details beside it. Both start

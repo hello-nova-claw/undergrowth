@@ -120,6 +120,27 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { showType } )
 						}
 					/>
+					<SelectControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ __( 'Layout', 'undergrowth' ) }
+						help={ __(
+							'Masonry packs cards of different heights into columns, read top to bottom.',
+							'undergrowth'
+						) }
+						value={ attributes.layout }
+						options={ [
+							{
+								value: 'grid',
+								label: __( 'Grid', 'undergrowth' ),
+							},
+							{
+								value: 'masonry',
+								label: __( 'Masonry', 'undergrowth' ),
+							},
+						] }
+						onChange={ ( layout ) => setAttributes( { layout } ) }
+					/>
 				</PanelBody>
 			</InspectorControls>
 			{ /* The links are for readers, so the preview holds no tab stops. */ }
