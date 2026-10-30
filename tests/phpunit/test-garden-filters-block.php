@@ -501,7 +501,7 @@ class Test_Garden_Filters_Block extends WP_UnitTestCase {
 		$html = $this->render();
 		$feed = $this->feed();
 
-		$this->assertStringContainsString( 'aria-current="true">0</a>', $html );
+		$this->assertMatchesRegularExpression( '#<a href="[^"]*" aria-current="true"[^>]*>0</a>#', $html );
 		$this->assertSame( 1, substr_count( $feed, 'wp-block-undergrowth-garden-feed-item' ) );
 		$this->assertStringContainsString( 'role="status">1 post</p>', $html );
 	}
