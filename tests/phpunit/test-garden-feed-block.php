@@ -538,10 +538,11 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		// never an attribute of its own.
 		$this->assertSame( 1, preg_match( '#<span class="wp-block-undergrowth-garden-feed-icon">(<svg.*?</svg>)</span>#s', $html, $found ) );
 
-		libxml_use_internal_errors( true );
-		$document = new DOMDocument();
+		$libxml_errors = libxml_use_internal_errors( true );
+		$document      = new DOMDocument();
 		$document->loadHTML( '<!DOCTYPE html><html><body>' . $found[1] . '</body></html>' );
 		libxml_clear_errors();
+		libxml_use_internal_errors( $libxml_errors );
 
 		$svg   = $document->getElementsByTagName( 'svg' )->item( 0 );
 		$names = array();
