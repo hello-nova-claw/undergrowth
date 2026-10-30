@@ -201,6 +201,14 @@ class Test_Demo_Images extends WP_UnitTestCase {
 		$this->assertSame( file_get_contents( $path ), file_get_contents( $this->tmp ) );
 	}
 
+	public function test_response_is_404_when_the_copy_cannot_be_written() {
+		$path     = undergrowth_demo_images_dir() . '/birds-1.jpg';
+		$response = undergrowth_demo_image_response( $path, array( 'filename' => $this->tmp . '/none/birds-1.jpg' ) );
+
+		$this->assertSame( 404, wp_remote_retrieve_response_code( $response ) );
+		$this->assertNull( $response['filename'] );
+	}
+
 	public function test_response_is_404_without_a_file() {
 		$response = undergrowth_demo_image_response( '', array( 'filename' => $this->tmp ) );
 
@@ -245,6 +253,25 @@ class Test_Demo_Images extends WP_UnitTestCase {
 		$this->assertSame( 404, wp_remote_retrieve_response_code( $response ) );
 		$this->assertSame( array( self::BASE . 'nothing-here.jpg' ), $this->reached );
 		$this->assertSame( '', file_get_contents( $this->tmp ) );
+	}
+
+	/**
+	 * A file that is there but cannot be copied goes to the network too,
+	 * rather than ending as a 404 the plugin made up.
+	 */
+	public function test_import_download_that_cannot_be_copied_is_left_to_the_network() {
+		do_action( 'import_start' );
+
+		$response = wp_safe_remote_get(
+			self::BASE . 'birds-1.jpg',
+			array(
+				'stream'   => true,
+				'filename' => $this->tmp . '/none/birds-1.jpg',
+			)
+		);
+
+		$this->assertSame( 404, wp_remote_retrieve_response_code( $response ) );
+		$this->assertSame( array( self::BASE . 'birds-1.jpg' ), $this->reached );
 	}
 
 	public function test_import_download_off_the_repository_path_is_untouched() {
