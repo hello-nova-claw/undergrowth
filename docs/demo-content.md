@@ -35,7 +35,7 @@ Jerome is the outlier. *Winter Sunshine* ends with a journey to England and Fran
 - **Edge cases.** About one post in thirty is in Classic-editor markup. Four posts are drafts, one is private and one has the password `demo`. Two pages hold front matter by the authors: Jekyll's preface and Warner's dedication. All of these are in the small file too.
 - **Credit.** Every post and page ends with a line naming the book, author, year and Gutenberg number, with a link to the book's page.
 - **Formats.** About one post in four has a post format (aside, link, quote or status) and no featured image, so the Garden feed shows its text card, with the format's icon, among the image cards. See [Formats](#formats).
-- **Images.** Every other post has a featured image, one of the thirty illustrations in `demo/images/`, so the Garden page shows a picture above its title. See [Images](#images).
+- **Images.** Every post without a format has a featured image, one of the thirty illustrations in `demo/images/`, so the Garden page shows a picture above its title. See [Images](#images).
 
 ## Formats
 
