@@ -64,6 +64,8 @@ Undergrowth should feel like part of WordPress. Before you write anything custom
 
 CI enforces what a machine can: `npm run lint:css` refuses hard-coded colours, ESLint refuses imports of UI frameworks and mocking libraries, and `npm run check:native` refuses `style` attributes in `src/`, mocking libraries in `composer.json`, and npm packages that are neither `@wordpress/*` nor on the allowlist in `bin/check-native.js`.
 
+The workflows under `.github/workflows/` pin every action to a full commit SHA with its version in a comment, as in `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`, and a new workflow must do the same; Dependabot keeps the pins and their comments current.
+
 ### Comments
 
 Comments explain why. Delete any comment that restates the line below it. Each function gets one DocBlock in WordPress style and that is all.
