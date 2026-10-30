@@ -125,6 +125,36 @@ function undergrowth_garden_feed_type_taxonomy( string $source ): string {
 }
 
 /**
+ * Builds the tax_query clause for one slug a reader chose.
+ *
+ * WP_Tax_Query::transform_query() passes the slugs through array_filter()
+ * with no callback, which drops the slug "0" and matches nothing. So the
+ * slug is resolved to its term first and the clause names the term ID. A
+ * slug with no term keeps the slug clause, which matches nothing, as before.
+ *
+ * @param string $taxonomy Taxonomy to look in.
+ * @param string $slug     Term slug from the address.
+ * @return array{taxonomy: string, field: string, terms: int|string} One tax_query clause.
+ */
+function undergrowth_garden_feed_term_clause( string $taxonomy, string $slug ): array {
+	$term = get_term_by( 'slug', $slug, $taxonomy );
+
+	if ( ! $term instanceof WP_Term ) {
+		return array(
+			'taxonomy' => $taxonomy,
+			'field'    => 'slug',
+			'terms'    => $slug,
+		);
+	}
+
+	return array(
+		'taxonomy' => $taxonomy,
+		'field'    => 'term_id',
+		'terms'    => $term->term_id,
+	);
+}
+
+/**
  * Finds every post readers may see that matches the filters, in the chosen
  * order.
  *
@@ -156,16 +186,8 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 	if ( '' !== $filters['topic'] ) {
 		$terms[] = array(
 			'relation' => 'OR',
-			array(
-				'taxonomy' => 'post_tag',
-				'field'    => 'slug',
-				'terms'    => $filters['topic'],
-			),
-			array(
-				'taxonomy' => 'category',
-				'field'    => 'slug',
-				'terms'    => $filters['topic'],
-			),
+			undergrowth_garden_feed_term_clause( 'post_tag', $filters['topic'] ),
+			undergrowth_garden_feed_term_clause( 'category', $filters['topic'] ),
 		);
 	}
 
@@ -175,11 +197,7 @@ function undergrowth_garden_feed_posts( string $order, string $taxonomy, array $
 			'operator' => 'NOT EXISTS',
 		);
 	} elseif ( '' !== $filters['type'] ) {
-		$terms[] = array(
-			'taxonomy' => $taxonomy,
-			'field'    => 'slug',
-			'terms'    => 'post_format' === $taxonomy ? 'post-format-' . $filters['type'] : $filters['type'],
-		);
+		$terms[] = undergrowth_garden_feed_term_clause( $taxonomy, 'post_format' === $taxonomy ? 'post-format-' . $filters['type'] : $filters['type'] );
 	}
 
 	$post_ids = get_posts(
