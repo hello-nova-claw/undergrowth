@@ -112,6 +112,79 @@ add_action(
 	20
 );
 
+// The screenshot catalogue compares two builds shot minutes apart, so no
+// screen may show the clock. On a site whose blueprint adds this option, a
+// post or page made without a date of its own is planted at a fixed time on
+// 1 January 2026, chosen from its title, so a fixture gets the same time in
+// every run whatever else the run made before it. Counting posts instead
+// drifted by one: the Dashboard's Quick Draft makes an auto-draft, core
+// deletes an auto-draft planted more than a week ago whenever its daily
+// cron happens to run, and the next Dashboard load makes another. An edit
+// moves the post's tended time on by a minute. "Tended 4 seconds ago",
+// "Today at 1:43" and "Last edited a second ago" then read the same in both
+// builds. A fixture with a date of its own, such as the post edited two
+// years ago, keeps it, and an auto-draft keeps its real date.
+add_filter(
+	'wp_insert_post_data',
+	static function ( $data, $postarr, $unsanitized_postarr, $update ) {
+		if ( false === get_option( 'undergrowth_e2e_planted' ) || ! in_array( $data['post_type'], array( 'post', 'page' ), true ) || 'auto-draft' === $data['post_status'] ) {
+			return $data;
+		}
+
+		$existing = $update ? get_post( (int) $postarr['ID'] ) : null;
+
+		if ( ! $existing ) {
+			foreach ( array( 'post_date', 'post_date_gmt' ) as $field ) {
+				if ( ! empty( $unsanitized_postarr[ $field ] ) && '0000-00-00 00:00:00' !== $unsanitized_postarr[ $field ] ) {
+					return $data;
+				}
+			}
+		}
+
+		// Up to ten hours after 10:00 on 1 January 2026, UTC, from the title
+		// it was made with, or the content of a post without one, such as a
+		// hub draft. No two fixture titles share a minute.
+		$key = $existing ? $existing->post_title : wp_unslash( $data['post_title'] );
+
+		if ( '' === $key ) {
+			$key = $existing ? $existing->post_content : wp_unslash( $data['post_content'] );
+		}
+
+		$planted = 1767261600 + crc32( $key ) % ( 10 * HOUR_IN_SECONDS );
+		$tended  = $planted;
+
+		if ( $existing ) {
+			$tended = max( $planted, (int) get_post_timestamp( $existing, 'modified' ) ) + MINUTE_IN_SECONDS;
+		}
+
+		$utc        = new DateTimeZone( 'UTC' );
+		$tended_gmt = wp_date( 'Y-m-d H:i:s', $tended, $utc );
+
+		$data['post_modified']     = get_date_from_gmt( $tended_gmt );
+		$data['post_modified_gmt'] = $tended_gmt;
+
+		// A draft's date floats until it is published, which core marks with
+		// an empty GMT date: it sets the date to now on every edit, and the
+		// same on the last edit when the draft is made.
+		$floating = '0000-00-00 00:00:00' === $data['post_date_gmt'];
+
+		if ( ! $existing || $floating ) {
+			$planted_gmt       = wp_date( 'Y-m-d H:i:s', $planted, $utc );
+			$data['post_date'] = get_date_from_gmt( $planted_gmt );
+
+			if ( ! $floating ) {
+				$data['post_date_gmt'] = $planted_gmt;
+			} elseif ( ! $existing ) {
+				$data['post_modified_gmt'] = $data['post_date_gmt'];
+			}
+		}
+
+		return $data;
+	},
+	10,
+	4
+);
+
 /**
  * Reads the whole demo blog once it is imported, as the backfill and the
  * monthly cycle would over a few hours: every post is embedded, the cycle
