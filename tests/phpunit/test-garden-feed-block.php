@@ -515,9 +515,46 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 
 		$html = $this->render();
 
-		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*class="loud"[^>]*aria-hidden="true" focusable="false"><path d="M4 4h16" ?/></svg></span>#', $html );
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg aria-hidden="true" focusable="false" [^>]*class="loud"[^>]*><path d="M4 4h16" ?/></svg></span>#', $html );
 		$this->assertStringNotContainsString( 'aria-hidden="false"', $html );
 		$this->assertStringNotContainsString( 'focusable="true"', $html );
+	}
+
+	public function test_the_type_icon_filter_cannot_smuggle_an_event_handler_in_a_quoted_value() {
+		$this->post( 'Oca' );
+
+		// Quotes nested the other way round, so that a rewrite of the cleaned
+		// markup could turn a value into an attribute.
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg class=\'x aria-hidden="y\' fill="z\' onload=\'alert(1)\'"><path d="M0 0"/></svg>';
+			}
+		);
+
+		$html = $this->render();
+
+		// Read as a browser would: the handler stays text inside a value,
+		// never an attribute of its own.
+		$this->assertSame( 1, preg_match( '#<span class="wp-block-undergrowth-garden-feed-icon">(<svg.*?</svg>)</span>#s', $html, $found ) );
+
+		libxml_use_internal_errors( true );
+		$document = new DOMDocument();
+		$document->loadHTML( '<!DOCTYPE html><html><body>' . $found[1] . '</body></html>' );
+		libxml_clear_errors();
+
+		$svg   = $document->getElementsByTagName( 'svg' )->item( 0 );
+		$names = array();
+
+		$this->assertInstanceOf( DOMElement::class, $svg );
+
+		foreach ( $svg->attributes as $attribute ) {
+			$names[] = $attribute->name;
+		}
+
+		$this->assertNotContains( 'onload', $names );
+		$this->assertSame( 'true', $svg->getAttribute( 'aria-hidden' ) );
+		$this->assertSame( 'false', $svg->getAttribute( 'focusable' ) );
 	}
 
 	public function test_a_type_left_without_an_icon_gets_a_text_card_with_no_icon_column() {

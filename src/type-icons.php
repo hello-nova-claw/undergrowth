@@ -82,18 +82,16 @@ function undergrowth_type_icon( string $slug, string $taxonomy ): string {
 	// viewBox is case-sensitive outside an HTML document.
 	$cleaned = str_replace( ' viewbox=', ' viewBox=', $found[0] ?? '' );
 
+	if ( '' === $cleaned ) {
+		return '';
+	}
+
 	// The icon stays decorative whatever the filter put on its root: the
 	// type's word is in the details line, and the title is the only link.
-	return (string) preg_replace_callback(
-		'#^<svg([^>]*)>#',
-		static function ( array $root ): string {
-			$attributes = (string) preg_replace( '#\s+(?:aria-hidden|focusable)="[^"]*"#', '', $root[1] );
-
-			return '<svg' . $attributes . ' aria-hidden="true" focusable="false">';
-		},
-		$cleaned,
-		1
-	);
+	// wp_kses() has already dropped any aria-hidden or focusable the filter
+	// set, since neither is in the allow-list, and the fixed pair goes in
+	// before the attributes that remain, so none of their text is read.
+	return substr_replace( $cleaned, '<svg aria-hidden="true" focusable="false"', 0, 4 );
 }
 
 /**
@@ -118,12 +116,12 @@ function undergrowth_type_icon_allowed_html(): array {
 		'svg'      => array_merge(
 			$presentation,
 			array(
-				'xmlns'       => true,
-				'viewbox'     => true,
-				'width'       => true,
-				'height'      => true,
-				'aria-hidden' => true,
-				'focusable'   => true,
+				// Not aria-hidden or focusable: the icon's own values are set
+				// after cleaning, so a filter cannot expose it or make it a stop.
+				'xmlns'   => true,
+				'viewbox' => true,
+				'width'   => true,
+				'height'  => true,
 			)
 		),
 		'g'        => $presentation,
