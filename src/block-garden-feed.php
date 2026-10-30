@@ -88,6 +88,26 @@ function undergrowth_garden_feed_filters(): array {
 }
 
 /**
+ * Says whether any filter narrows the garden.
+ *
+ * The count in the garden filters and the feed both ask this, so they
+ * always agree. Only the empty string means "all": a slug of "0" is a
+ * filter too, which array_filter() without a callback would drop.
+ *
+ * @param array{stage: string, type: string, topic: string, group: string} $filters From undergrowth_garden_feed_filters().
+ * @return bool True when at least one filter is set.
+ */
+function undergrowth_garden_feed_filtered( array $filters ): bool {
+	foreach ( $filters as $value ) {
+		if ( '' !== $value ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Picks the taxonomy whose terms name each post's type.
  *
  * @param string $source Taxonomy chosen in the block settings.
@@ -355,7 +375,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 	if ( array() === $post_ids ) {
 		// An empty garden shows readers nothing. A filter that matches
 		// nothing says so, or the reader would think the page broken.
-		if ( array() === array_filter( $filters ) || array() === undergrowth_garden_feed_posts( 'tended', $taxonomy, array_fill_keys( array_keys( $filters ), '' ) ) ) {
+		if ( ! undergrowth_garden_feed_filtered( $filters ) || array() === undergrowth_garden_feed_posts( 'tended', $taxonomy, array_fill_keys( array_keys( $filters ), '' ) ) ) {
 			return '';
 		}
 

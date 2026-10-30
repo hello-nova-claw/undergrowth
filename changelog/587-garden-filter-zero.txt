@@ -1,0 +1,1 @@
+The post count under the Garden filters now agrees with the feed when a topic or type filter is the single character 0, and the feed says when nothing matches it.
