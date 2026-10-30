@@ -1,0 +1,1 @@
+The demo blog's posts have featured images, so the Garden page in the Playground preview and the theme gallery shows a picture above each title. The images are drawn illustrations in demo/images/, named in both WXR files as attachments a real site downloads from the repository; the test site answers that download from its local copy.
