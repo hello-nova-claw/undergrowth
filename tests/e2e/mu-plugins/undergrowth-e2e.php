@@ -112,6 +112,59 @@ add_action(
 	20
 );
 
+// The screenshot catalogue compares two builds shot minutes apart, so no
+// screen may show the clock. On a site whose blueprint adds this option, a
+// post made without a date of its own is planted at a fixed time in the
+// past, a minute after the one before, and an edit moves a post's tended
+// time on by a minute too. "Tended 4 seconds ago", "Today at 1:43" and
+// "Last edited a second ago" then read the same in both builds, and the
+// order of planting stays the order of tending. A fixture with a date of its
+// own, such as the post edited two years ago, keeps it.
+add_filter(
+	'wp_insert_post_data',
+	static function ( $data, $postarr, $unsanitized_postarr, $update ) {
+		$planted = get_option( 'undergrowth_e2e_planted' );
+
+		if ( false === $planted ) {
+			return $data;
+		}
+
+		if ( ! $update ) {
+			foreach ( array( 'post_date', 'post_date_gmt' ) as $field ) {
+				if ( ! empty( $unsanitized_postarr[ $field ] ) && '0000-00-00 00:00:00' !== $unsanitized_postarr[ $field ] ) {
+					return $data;
+				}
+			}
+		}
+
+		$planted = (int) $planted + 1;
+		update_option( 'undergrowth_e2e_planted', $planted );
+
+		// 10:00 on 1 January 2026, UTC.
+		$gmt   = gmdate( 'Y-m-d H:i:s', 1767261600 + $planted * MINUTE_IN_SECONDS );
+		$local = get_date_from_gmt( $gmt );
+
+		$data['post_modified']     = $local;
+		$data['post_modified_gmt'] = $gmt;
+
+		if ( ! $update ) {
+			$data['post_date'] = $local;
+
+			// A draft's date floats until it is published, which core marks
+			// with an empty GMT date and the same on its last edit.
+			if ( '0000-00-00 00:00:00' !== $data['post_date_gmt'] ) {
+				$data['post_date_gmt'] = $gmt;
+			} else {
+				$data['post_modified_gmt'] = $data['post_date_gmt'];
+			}
+		}
+
+		return $data;
+	},
+	10,
+	4
+);
+
 /**
  * Reads the whole demo blog once it is imported, as the backfill and the
  * monthly cycle would over a few hours: every post is embedded, the cycle

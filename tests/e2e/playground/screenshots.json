@@ -12,7 +12,7 @@
 	"steps": [
 		{
 			"step": "runPHP",
-			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The per-post files folder ends in random characters on a real site. A\n// fixed name here keeps Settings the same from one run to the next.\nadd_option( 'undergrowth_memory_folder', 'undergrowth-0123456789ab' );\n"
+			"code": "<?php\nrequire '/wordpress/wp-load.php';\n\n// The per-post files folder ends in random characters on a real site. A\n// fixed name here keeps Settings the same from one run to the next.\nadd_option( 'undergrowth_memory_folder', 'undergrowth-0123456789ab' );\n\n// The catalogue is compared with one shot minutes earlier, so the test\n// provider plants every fixture post at a fixed past time instead of now.\nadd_option( 'undergrowth_e2e_planted', 0 );\n"
 		},
 		{
 			"step": "defineWpConfigConsts",
