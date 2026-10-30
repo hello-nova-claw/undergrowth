@@ -1,0 +1,279 @@
+#!/usr/bin/env -S python3 -I
+"""Draws the demo blog's illustrations: flat shapes in quiet colours, one
+picture for each motif and variant that bin/build-demo-content names.
+
+The Garden page shows a post's featured image above its title, so the demo
+blog needs pictures. These are drawn by the code below from a seed, so the
+same file name always gives the same picture, and nothing in them is
+anyone's photograph or a model's work. They stand in until open-access
+photographs replace them; see docs/demo-content.md for how.
+
+Usage: python3 -I bin/draw-demo-images [--out DIR]
+
+Needs Pillow. Writes <motif>-<n>.jpg for every motif and variant to the
+output directory, by default demo/images/.
+"""
+import argparse
+import math
+import random
+from pathlib import Path
+
+from PIL import Image, ImageDraw
+
+ROOT = Path(__file__).resolve().parent.parent
+
+WIDTH, HEIGHT = 1200, 800
+# Drawn at twice the size and scaled down, which smooths every edge.
+SCALE = 2
+VARIANTS = 3
+
+PAPERS = ['#f4efe4', '#eef0e6', '#f3ece2', '#eaeceb']
+GREENS = ['#5f7452', '#8a9a7b', '#7b7a46', '#4f6350']
+WARMS = ['#c49a4a', '#a7573a', '#c08b84', '#b9774f']
+COOLS = ['#5e6f7a', '#8aa3aa', '#a9bfc4', '#6b7f8a']
+INK = '#3c4a3e'
+
+
+def pt(x, y):
+    """A point on the drawing, scaled up."""
+    return (x * SCALE, y * SCALE)
+
+
+def blob(draw, cx, cy, rx, ry, colour, rnd, wobble=0.12, points=24):
+    """An organic blob: an ellipse whose edge wanders a little."""
+    poly = []
+    for i in range(points):
+        a = 2 * math.pi * i / points
+        r = 1 + rnd.uniform(-wobble, wobble)
+        poly.append(pt(cx + rx * r * math.cos(a), cy + ry * r * math.sin(a)))
+    draw.polygon(poly, fill=colour)
+
+
+def leaf(draw, cx, cy, length, width, angle, colour):
+    """A pointed leaf with a midrib, turned by angle."""
+    poly = []
+    for i in range(32):
+        t = i / 31
+        x = (t - 0.5) * length
+        y = math.sin(t * math.pi) * width / 2
+        poly.append((x, y))
+    poly += [(x, -y) for x, y in reversed(poly)]
+    cos, sin = math.cos(angle), math.sin(angle)
+    draw.polygon([pt(cx + x * cos - y * sin, cy + x * sin + y * cos) for x, y in poly], fill=colour)
+    x0, x1 = -length * 0.4, length * 0.45
+    draw.line([pt(cx + x0 * cos, cy + x0 * sin), pt(cx + x1 * cos, cy + x1 * sin)], fill=INK, width=2 * SCALE)
+
+
+def curve(draw, points, colour, width):
+    """A smooth line through points."""
+    draw.line([pt(x, y) for x, y in points], fill=colour, width=width * SCALE, joint='curve')
+
+
+def wave(y0, amp, period, phase, x_from=0, x_to=WIDTH, step=8):
+    """Points along a sine wave."""
+    return [(x, y0 + amp * math.sin(2 * math.pi * x / period + phase)) for x in range(x_from, x_to + step, step)]
+
+
+def flowers(draw, rnd):
+    """Stems from the ground with round, petalled heads."""
+    for x in sorted(rnd.sample(range(200, 1000, 50), rnd.randint(3, 5))):
+        top = rnd.randint(180, 380)
+        lean = rnd.uniform(-60, 60)
+        stem = [(x + lean * (1 - (y - top) / (HEIGHT - top)) ** 2, y) for y in range(HEIGHT, top, -10)]
+        curve(draw, stem, rnd.choice(GREENS), 5)
+        for _ in range(rnd.randint(1, 2)):
+            sx, sy = stem[rnd.randint(len(stem) // 4, len(stem) // 2)]
+            leaf(draw, sx, sy, rnd.randint(80, 130), rnd.randint(30, 50), rnd.choice([-0.6, 0.6, 2.5, 3.7]), rnd.choice(GREENS))
+        colour = rnd.choice(WARMS)
+        petals = rnd.randint(5, 8)
+        size = rnd.randint(55, 90)
+        hx, hy = stem[-1]
+        for i in range(petals):
+            a = 2 * math.pi * i / petals
+            blob(draw, hx + size * 0.55 * math.cos(a), hy + size * 0.55 * math.sin(a), size * 0.42, size * 0.32, colour, rnd, 0.08)
+        blob(draw, hx, hy, size * 0.28, size * 0.28, rnd.choice(['#e3c56d', INK]), rnd, 0.05)
+
+
+def leaves(draw, rnd):
+    """Leaves scattered as if fallen."""
+    for _ in range(rnd.randint(7, 11)):
+        leaf(
+            draw,
+            rnd.randint(80, WIDTH - 80),
+            rnd.randint(80, HEIGHT - 80),
+            rnd.randint(160, 280),
+            rnd.randint(60, 110),
+            rnd.uniform(0, math.pi),
+            rnd.choice(GREENS + WARMS[:2]),
+        )
+
+
+def trees(draw, rnd):
+    """A few trees on a line of ground."""
+    draw.line([pt(0, 660), pt(WIDTH, 660)], fill=INK, width=3 * SCALE)
+    for x in sorted(rnd.sample(range(150, 1050, 100), rnd.randint(2, 4))):
+        height = rnd.randint(300, 480)
+        trunk = rnd.choice(['#6b4f3a', '#7a5c44', INK])
+        draw.polygon([pt(x - 14, 660), pt(x + 14, 660), pt(x + 6, 660 - height * 0.55), pt(x - 6, 660 - height * 0.55)], fill=trunk)
+        colour = rnd.choice(GREENS)
+        for _ in range(rnd.randint(3, 5)):
+            blob(draw, x + rnd.uniform(-70, 70), 660 - height * 0.55 - rnd.uniform(0, height * 0.4), rnd.randint(70, 120), rnd.randint(55, 95), colour, rnd)
+
+
+def bird(draw, x, y, size, colour, facing):
+    """One bird in profile: body, head, tail and beak."""
+    f = facing
+    draw.ellipse([pt(x - size, y - size * 0.55), pt(x + size, y + size * 0.55)], fill=colour)
+    draw.ellipse([pt(x + f * size * 0.8 - size * 0.45, y - size * 0.75 - size * 0.45), pt(x + f * size * 0.8 + size * 0.45, y - size * 0.75 + size * 0.45)], fill=colour)
+    draw.polygon([pt(x - f * size * 0.8, y - size * 0.1), pt(x - f * size * 1.9, y - size * 0.5), pt(x - f * size * 1.7, y + size * 0.2)], fill=colour)
+    draw.polygon([pt(x + f * size * 1.2, y - size * 0.8), pt(x + f * size * 1.7, y - size * 0.65), pt(x + f * size * 1.2, y - size * 0.55)], fill='#c49a4a')
+
+
+def birds(draw, rnd):
+    """Birds on a branch, and a few far off."""
+    y = rnd.randint(380, 520)
+    branch = [(x, y + 40 * math.sin(x / 300) + rnd.uniform(-2, 2)) for x in range(0, WIDTH + 20, 20)]
+    curve(draw, branch, '#6b4f3a', 12)
+    for bx in rnd.sample(range(100, WIDTH - 100, 60), 3):
+        by = next(py for px, py in branch if px >= bx)
+        curve(draw, [(bx, by), (bx + rnd.randint(-80, 80), by - rnd.randint(60, 140))], '#6b4f3a', 5)
+    for bx in sorted(rnd.sample(range(150, WIDTH - 150, 120), rnd.randint(2, 4))):
+        by = next(py for px, py in branch if px >= bx)
+        size = rnd.randint(28, 40)
+        bird(draw, bx, by - size * 0.6, size, rnd.choice([INK] + COOLS[:1] + WARMS[1:3]), rnd.choice([-1, 1]))
+    for _ in range(rnd.randint(3, 7)):
+        x, y2, w = rnd.randint(60, WIDTH - 60), rnd.randint(60, 300), rnd.randint(10, 18)
+        curve(draw, [(x - w, y2), (x, y2 + w * 0.6), (x + w, y2)], INK, 3)
+
+
+def water(draw, rnd):
+    """Bands of slow water, with reeds at the edge."""
+    for i, y in enumerate(range(rnd.randint(300, 380), HEIGHT + 40, 44)):
+        colour = COOLS[(i + rnd.randint(0, 1)) % len(COOLS)]
+        curve(draw, wave(y, rnd.randint(6, 14), rnd.randint(300, 500), rnd.uniform(0, 6)), colour, rnd.randint(4, 9))
+    side = rnd.choice([80, WIDTH - 80])
+    for dx in range(-50, 60, 22):
+        top = rnd.randint(260, 360)
+        curve(draw, [(side + dx, HEIGHT), (side + dx + rnd.randint(-15, 15), top)], rnd.choice(GREENS), 5)
+        draw.ellipse([pt(side + dx - 7, top - 50), pt(side + dx + 7, top)], fill='#6b4f3a')
+
+
+def branches(draw, x, y, length, angle, depth, rnd):
+    """A bare branch that forks until it is thin."""
+    x2, y2 = x + length * math.cos(angle), y + length * math.sin(angle)
+    draw.line([pt(x, y), pt(x2, y2)], fill=INK, width=max(1, depth) * SCALE)
+    if depth > 0:
+        for turn in (-0.5, 0.45):
+            branches(draw, x2, y2, length * rnd.uniform(0.6, 0.78), angle + turn + rnd.uniform(-0.2, 0.2), depth - 1, rnd)
+
+
+def winter(draw, rnd):
+    """Bare trees and falling snow."""
+    draw.rectangle([pt(0, 640), pt(WIDTH, HEIGHT)], fill='#ffffff')
+    for x in sorted(rnd.sample(range(200, 1000, 100), rnd.randint(2, 3))):
+        branches(draw, x, 650, rnd.randint(130, 190), -math.pi / 2 + rnd.uniform(-0.15, 0.15), 5, rnd)
+    for _ in range(rnd.randint(60, 110)):
+        x, y, r = rnd.randint(0, WIDTH), rnd.randint(0, 640), rnd.randint(3, 8)
+        draw.ellipse([pt(x - r, y - r), pt(x + r, y + r)], fill='#ffffff')
+
+
+def food(draw, rnd):
+    """A table with a bowl of fruit, a loaf and a cup."""
+    table = rnd.randint(520, 580)
+    draw.rectangle([pt(0, table), pt(WIDTH, HEIGHT)], fill=rnd.choice(['#d8c49a', '#c9b58f', '#b89a74']))
+    bx = rnd.randint(380, 620)
+    for _ in range(rnd.randint(5, 8)):
+        r = rnd.randint(28, 44)
+        blob(draw, bx + rnd.randint(-110, 110), table - 60 - rnd.randint(0, 60), r, r, rnd.choice(WARMS + ['#e3c56d']), rnd, 0.05)
+    draw.chord([pt(bx - 170, table - 160), pt(bx + 170, table + 50)], 0, 180, fill=rnd.choice(COOLS))
+    lx = bx + rnd.randint(280, 360)
+    draw.ellipse([pt(lx - 120, table - 70), pt(lx + 120, table + 10)], fill='#b9774f')
+    for i in range(3):
+        draw.line([pt(lx - 60 + i * 50, table - 65), pt(lx - 40 + i * 50, table - 25)], fill='#8a5a3a', width=3 * SCALE)
+    cx = bx - rnd.randint(260, 320)
+    draw.rectangle([pt(cx - 45, table - 110), pt(cx + 45, table)], fill=rnd.choice(COOLS))
+    draw.arc([pt(cx + 30, table - 95), pt(cx + 85, table - 25)], 270, 90, fill=INK, width=6 * SCALE)
+
+
+def hills(draw, rnd):
+    """Rolling hills, a path and a low sun."""
+    sun = rnd.randint(150, 1050)
+    draw.ellipse([pt(sun - 60, 120), pt(sun + 60, 240)], fill='#e3c56d')
+    layers = [COOLS[2], GREENS[1], GREENS[0], GREENS[3]]
+    for i, colour in enumerate(layers):
+        base = 330 + i * 110
+        period, phase = rnd.randint(260, 420), rnd.uniform(0, 6)
+        ridge = [(x, base + 50 * math.sin(x / period + phase) + 20 * math.sin(x / 150 + phase)) for x in range(0, WIDTH + 10, 10)]
+        draw.polygon([pt(x, y) for x, y in ridge] + [pt(WIDTH, HEIGHT), pt(0, HEIGHT)], fill=colour)
+    px = rnd.randint(300, 900)
+    curve(draw, [(px + 80 * math.sin(y / 120), y) for y in range(HEIGHT, 560, -10)], '#d8c49a', 10)
+
+
+def hearth(draw, rnd):
+    """A fire in a hearth under a mantel."""
+    draw.rectangle([pt(300, 220), pt(900, HEIGHT)], fill=rnd.choice(['#8a6a52', '#7a6358', '#9a7b62']))
+    draw.rectangle([pt(260, 180), pt(940, 225)], fill=INK)
+    draw.rectangle([pt(380, 280), pt(820, 680)], fill='#2f2a28')
+    for i in range(3):
+        y = 640 - i * 40
+        draw.rounded_rectangle([pt(430 + i * 20, y - 24), pt(770 - i * 20, y + 24), ], radius=16 * SCALE, fill='#6b4f3a')
+    for colour, h in ((WARMS[1], 1.0), (WARMS[0], 0.75), ('#e3c56d', 0.5)):
+        for fx in range(480, 740, 60):
+            top = 560 - rnd.randint(180, 260) * h
+            draw.polygon([pt(fx - 30 * h, 580), pt(fx + rnd.randint(-15, 15), top), pt(fx + 30 * h, 580)], fill=colour)
+
+
+def moon(draw, rnd):
+    """A crescent moon and stars over dark hills."""
+    sky = rnd.choice(['#3f4a5c', '#38424c', '#45505e'])
+    draw.rectangle([pt(0, 0), pt(WIDTH, HEIGHT)], fill=sky)
+    mx, my, r = rnd.randint(300, 900), rnd.randint(180, 320), rnd.randint(80, 120)
+    draw.ellipse([pt(mx - r, my - r), pt(mx + r, my + r)], fill='#f1e6c3')
+    draw.ellipse([pt(mx - r + 45, my - r - 25), pt(mx + r + 45, my + r - 25)], fill=sky)
+    for _ in range(rnd.randint(30, 60)):
+        x, y, s = rnd.randint(0, WIDTH), rnd.randint(0, 520), rnd.randint(2, 5)
+        draw.ellipse([pt(x - s, y - s), pt(x + s, y + s)], fill='#f1e6c3')
+    period, phase = rnd.randint(220, 340), rnd.uniform(0, 6)
+    ridge = [(x, 600 + 60 * math.sin(x / period + phase) + 20 * math.sin(x / 130 + phase)) for x in range(0, WIDTH + 10, 10)]
+    draw.polygon([pt(x, y) for x, y in ridge] + [pt(WIDTH, HEIGHT), pt(0, HEIGHT)], fill='#232a2a')
+
+
+MOTIFS = {
+    'flowers': flowers,
+    'leaves': leaves,
+    'trees': trees,
+    'birds': birds,
+    'water': water,
+    'winter': winter,
+    'food': food,
+    'hills': hills,
+    'hearth': hearth,
+    'moon': moon,
+}
+
+
+def picture(name):
+    """One illustration, drawn from its file name as the seed."""
+    rnd = random.Random(name)
+    image = Image.new('RGB', (WIDTH * SCALE, HEIGHT * SCALE), rnd.choice(PAPERS))
+    MOTIFS[name.rsplit('-', 1)[0]](ImageDraw.Draw(image), rnd)
+    return image.resize((WIDTH, HEIGHT), Image.LANCZOS)
+
+
+def main():
+    """Draws every motif in every variant."""
+    parser = argparse.ArgumentParser(description='Draws the Undergrowth demo illustrations.')
+    parser.add_argument('--out', type=Path, default=ROOT / 'demo' / 'images', help='where the images are written')
+    args = parser.parse_args()
+    args.out.mkdir(parents=True, exist_ok=True)
+    total = 0
+    for motif in MOTIFS:
+        for n in range(1, VARIANTS + 1):
+            name = f'{motif}-{n}'
+            path = args.out / f'{name}.jpg'
+            picture(name).save(path, 'JPEG', quality=80, optimize=True, progressive=True)
+            total += path.stat().st_size
+    print(f'{len(MOTIFS) * VARIANTS} images, {total // 1024} KB')
+
+
+main()
