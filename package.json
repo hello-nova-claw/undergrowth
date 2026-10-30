@@ -48,7 +48,7 @@
 		"@wordpress/plugins": "^7.57.0",
 		"@wordpress/scripts": "^37.0.0",
 		"@wordpress/server-side-render": "^6.33.0",
-		"@wp-playground/cli": "^3.1.59",
+		"@wp-playground/cli": "^3.1.61",
 		"jest": "^30.5.2",
 		"jest-environment-jsdom": "^30.5.2",
 		"pa11y-ci": "^5.0.0",
