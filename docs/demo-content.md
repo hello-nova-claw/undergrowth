@@ -4,8 +4,8 @@
 
 | File | Posts | Used by |
 | --- | --- | --- |
-| `demo/undergrowth-demo.xml` | 361 posts, 2 pages, about 420,000 words | `WXR=demo npm run playground:real` |
-| `demo/undergrowth-demo-small.xml` | 61 posts, 2 pages | The PR Playground preview, `npm run playground`, `WXR=demo-small npm run playground:real` |
+| `demo/undergrowth-demo.xml` | 361 posts, 2 pages, about 420,000 words | `WXR=demo` in `.env.local`, then `npm run playground:real` |
+| `demo/undergrowth-demo-small.xml` | 61 posts, 2 pages | The PR Playground preview, `npm run playground`, `WXR=demo-small` in `.env.local`, then `npm run playground:real` |
 
 Both are WordPress export (WXR) files, so they also import into any site through **Tools › Import › WordPress**.
 
@@ -68,7 +68,7 @@ Each way of importing the demo blog gets the images from here:
 | **Tools › Import › WordPress** or `wp import`, with the plugin folder a checkout of the repository | `demo/images/` in the plugin folder, without a request |
 | **Tools › Import › WordPress** or `wp import`, with the plugin installed from the release zip | GitHub, the `main` branch |
 | The pull request preview, `npm run playground`, `npm run gallery` and `npm run test:a11y` | `demo/images/` mounted at `wp-content/undergrowth-demo/images`, through the e2e mu-plugin (see [The Playground preview](#the-playground-preview)) |
-| `WXR=demo npm run playground:real` and `WXR=demo-small npm run playground:real` | `demo/images/` mounted into the plugin folder, and `src/demo-images.php` loaded by a must-use plugin before the import, since the plugin is activated after it, without a request |
+| `WXR=demo` or `WXR=demo-small` in `.env.local`, then `npm run playground:real` | `demo/images/` mounted into the plugin folder, and `src/demo-images.php` loaded by a must-use plugin before the import, since the plugin is activated after it, without a request |
 
 The plugin has no screen or command of its own that imports the demo blog; every path above is the WordPress Importer.
 
