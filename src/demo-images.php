@@ -70,14 +70,16 @@ function undergrowth_demo_image_path( string $dir, string $url ): string {
  * Answers a streamed download with a local file, as the importer expects a
  * server to: the bytes in the file the request named, and the type and
  * length in the headers, which the importer checks against what arrived.
- * Without a file the answer is 404, so the importer moves on.
+ * Without a file, or when the file cannot be read or the copy cannot be
+ * written, the answer is 404, so the importer moves on.
  *
  * @param string               $path Local file, or an empty string when there is none.
  * @param array<string, mixed> $args Request arguments, with the file to stream to in 'filename'.
  * @return array<string, mixed> Response, as the HTTP API returns one.
  */
 function undergrowth_demo_image_response( string $path, array $args ): array {
-	$found = '' !== $path && ! empty( $args['filename'] ) && copy( $path, (string) $args['filename'] );
+	$target = empty( $args['filename'] ) ? '' : (string) $args['filename'];
+	$found  = '' !== $path && '' !== $target && is_readable( $path ) && wp_is_writable( dirname( $target ) ) && copy( $path, $target );
 
 	return array(
 		'headers'  => $found ? array(
@@ -90,14 +92,14 @@ function undergrowth_demo_image_response( string $path, array $args ): array {
 			'message' => $found ? 'OK' : 'Not Found',
 		),
 		'cookies'  => array(),
-		'filename' => $found ? (string) $args['filename'] : null,
+		'filename' => $found ? $target : null,
 	);
 }
 
 /**
  * Answers the importer's download of a demo illustration from the plugin's
- * copy. Anything else, and a file the copy lacks, goes on to the network as
- * before, so a site that can reach GitHub still gets it, and one that cannot
+ * copy. Anything else, and a file the copy lacks or cannot read, goes on to
+ * the network as before, so a site that can reach GitHub still gets it, and one that cannot
  * ends the import without that picture: the importer records the failed
  * download and moves on, and the Garden feed shows the post as a text card.
  *
@@ -113,7 +115,14 @@ function undergrowth_demo_image_download( $preempt, $args, $url ) {
 
 	$path = undergrowth_demo_image_path( undergrowth_demo_images_dir(), (string) $url );
 
-	return '' === $path ? $preempt : undergrowth_demo_image_response( $path, $args );
+	if ( '' === $path ) {
+		return $preempt;
+	}
+
+	// A file that is there but cannot be copied is left to the network too.
+	$response = undergrowth_demo_image_response( $path, $args );
+
+	return 200 === $response['response']['code'] ? $response : $preempt;
 }
 
 /**
