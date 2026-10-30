@@ -80,7 +80,20 @@ function undergrowth_type_icon( string $slug, string $taxonomy ): string {
 
 	// WordPress 7.0's wp_kses() lowercases attribute names, and SVG's
 	// viewBox is case-sensitive outside an HTML document.
-	return str_replace( ' viewbox=', ' viewBox=', $found[0] ?? '' );
+	$cleaned = str_replace( ' viewbox=', ' viewBox=', $found[0] ?? '' );
+
+	// The icon stays decorative whatever the filter put on its root: the
+	// type's word is in the details line, and the title is the only link.
+	return (string) preg_replace_callback(
+		'#^<svg([^>]*)>#',
+		static function ( array $root ): string {
+			$attributes = (string) preg_replace( '#\s+(?:aria-hidden|focusable)="[^"]*"#', '', $root[1] );
+
+			return '<svg' . $attributes . ' aria-hidden="true" focusable="false">';
+		},
+		$cleaned,
+		1
+	);
 }
 
 /**

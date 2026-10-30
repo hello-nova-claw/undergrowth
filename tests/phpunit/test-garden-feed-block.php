@@ -500,7 +500,38 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 			}
 		);
 
-		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg><path d="M4 4h16" ?/></svg></span>#', $this->render() );
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg aria-hidden="true" focusable="false"><path d="M4 4h16" ?/></svg></span>#', $this->render() );
+	}
+
+	public function test_the_type_icon_filter_cannot_expose_the_icon_or_make_it_a_stop() {
+		$this->post( 'Oca' );
+
+		add_filter(
+			'undergrowth_garden_type_icon',
+			static function (): string {
+				return '<svg class="loud" aria-hidden="false" focusable="true"><path d="M4 4h16"/></svg>';
+			}
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '#<span class="wp-block-undergrowth-garden-feed-icon"><svg [^>]*class="loud"[^>]*aria-hidden="true" focusable="false"><path d="M4 4h16" ?/></svg></span>#', $html );
+		$this->assertStringNotContainsString( 'aria-hidden="false"', $html );
+		$this->assertStringNotContainsString( 'focusable="true"', $html );
+	}
+
+	public function test_a_type_left_without_an_icon_gets_a_text_card_with_no_icon_column() {
+		$this->post( 'Oca' );
+
+		add_filter( 'undergrowth_garden_type_icon', '__return_empty_string' );
+
+		$html = $this->render();
+
+		$this->assertSame( array( 'Oca' ), $this->titles( $html ) );
+		$this->assertStringNotContainsString( 'has-icon', $html );
+		$this->assertStringNotContainsString( 'has-image', $html );
+		$this->assertStringNotContainsString( 'wp-block-undergrowth-garden-feed-icon', $html );
+		$this->assertMatchesRegularExpression( '#<li class="wp-block-undergrowth-garden-feed-item" data-type="standard" data-stage="[a-z]+"><a class="wp-block-undergrowth-garden-feed-title" #', $html );
 	}
 
 	public function test_the_type_icon_filter_cannot_add_a_link_or_a_script() {
@@ -550,7 +581,8 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		// type, and stays under 2em.
 		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-item\.has-icon \{[^}]*grid-template-areas:\s*"icon title"\s*"icon excerpt"\s*"icon details";#ms', $css );
 		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-item\.has-icon \{[^}]*grid-template-columns: (0\.\d+|1(\.\d+)?)em #ms', $css );
-		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-icon \.undergrowth-type-icon \{[^}]*width: (0\.\d+|1(\.\d+)?)em;#ms', $css );
+		// Any SVG in the icon span is sized, a filter's as much as the plugin's.
+		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-icon > svg \{[^}]*width: (0\.\d+|1(\.\d+)?)em;#ms', $css );
 		$this->assertDoesNotMatchRegularExpression( '#\#[0-9a-f]{3,8}\b#i', $css );
 	}
 

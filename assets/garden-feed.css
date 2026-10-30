@@ -67,7 +67,7 @@
 	display: block;
 }
 
-.wp-block-undergrowth-garden-feed-icon .undergrowth-type-icon {
+.wp-block-undergrowth-garden-feed-icon > svg {
 	display: block;
 	width: 1.5em;
 	height: 1.5em;

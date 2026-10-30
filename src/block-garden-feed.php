@@ -351,12 +351,24 @@ function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxon
 			)
 		)
 		: '';
-	$lead    = '' === $picture
-		? '<span class="wp-block-undergrowth-garden-feed-icon">' . undergrowth_type_icon( $slug, $taxonomy ) . '</span>'
-		: $picture;
-	$item    = sprintf(
-		'<li class="wp-block-undergrowth-garden-feed-item %1$s" data-type="%2$s" data-stage="%3$s">%4$s<a class="wp-block-undergrowth-garden-feed-title" href="%5$s"><span class="wp-block-undergrowth-garden-feed-stage is-stage-%3$s">%6$s</span><span>%7$s</span></a><span class="screen-reader-text">%8$s</span>',
-		'' === $picture ? 'has-icon' : 'has-image',
+	$icon    = '' === $picture ? undergrowth_type_icon( $slug, $taxonomy ) : '';
+
+	// A theme's filter may leave a type without an icon: the text card
+	// then has no icon column, so no gutter is kept for nothing.
+	if ( '' !== $picture ) {
+		$card = 'has-image';
+		$lead = $picture;
+	} elseif ( '' !== $icon ) {
+		$card = 'has-icon';
+		$lead = '<span class="wp-block-undergrowth-garden-feed-icon">' . $icon . '</span>';
+	} else {
+		$card = '';
+		$lead = '';
+	}
+
+	$item = sprintf(
+		'<li class="%1$s" data-type="%2$s" data-stage="%3$s">%4$s<a class="wp-block-undergrowth-garden-feed-title" href="%5$s"><span class="wp-block-undergrowth-garden-feed-stage is-stage-%3$s">%6$s</span><span>%7$s</span></a><span class="screen-reader-text">%8$s</span>',
+		esc_attr( rtrim( 'wp-block-undergrowth-garden-feed-item ' . $card ) ),
 		esc_attr( $slug ),
 		esc_attr( $stage ),
 		$lead,
