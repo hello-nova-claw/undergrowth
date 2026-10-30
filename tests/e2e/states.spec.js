@@ -689,13 +689,19 @@ const WITH_GARDEN_INDEX = [
 const gardenFeedPages = {};
 
 // The garden feed on a page: entries with and without a picture packed
-// into one grid, and the page links. Then filtered by type through the
-// query args, filtered to a stage no post has reached, and in the editor.
+// into one grid, and the page links. Then the same entries in the masonry
+// layout, filtered by type through the query args, filtered to a stage no
+// post has reached, and in the editor.
 const WITH_GARDEN_FEED = [
 	{
 		screen: 'block-garden-feed',
 		state: 'front-feed',
 		front: () => `/?page_id=${ gardenFeedPages.feed }`,
+	},
+	{
+		screen: 'block-garden-feed',
+		state: 'front-feed-masonry',
+		front: () => `/?page_id=${ gardenFeedPages.masonry }`,
 	},
 	{
 		screen: 'block-garden-feed',
@@ -1765,6 +1771,15 @@ test.describe( 'Screenshot catalogue', () => {
 					title: 'Garden',
 					content:
 						'<!-- wp:undergrowth/garden-feed {"postsPerPage":3} /-->',
+					status: 'publish',
+				} )
+			).id;
+
+			gardenFeedPages.masonry = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:undergrowth/garden-feed {"layout":"masonry"} /-->',
 					status: 'publish',
 				} )
 			).id;
