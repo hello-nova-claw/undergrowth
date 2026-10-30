@@ -2783,6 +2783,26 @@ msgstr ""
 msgid "Show the type"
 msgstr ""
 
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Layout"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Masonry packs cards of different heights into columns, read top to bottom."
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Grid"
+msgstr ""
+
+#: build/blocks/garden-feed/index.js
+#: src/blocks/garden-feed/edit.js
+msgid "Masonry"
+msgstr ""
+
 #: build/blocks/garden-filters/index.js
 #: src/blocks/garden-filters/edit.js
 msgid "Garden filters"
