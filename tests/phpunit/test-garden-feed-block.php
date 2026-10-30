@@ -132,6 +132,17 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/garden-feed' ) );
 	}
 
+	public function test_the_list_keeps_the_blocks_edge_under_a_classic_themes_list_rule() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
+
+		// A classic theme indents every list in the content with a rule
+		// such as `.entry-content ul`, a class and an element printed after
+		// the block's styles. The list's reset names the block's class, the
+		// element and the list's class, so it outranks that rule.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed ul\.wp-block-undergrowth-garden-feed-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#^\.wp-block-undergrowth-garden-feed-list \{#m', $css );
+	}
+
 	public function test_lists_posts_newest_tended_first() {
 		$this->post( 'Oca', 30 );
 		$this->post( 'Yacon', 2 );

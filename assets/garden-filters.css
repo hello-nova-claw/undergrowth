@@ -57,8 +57,13 @@
  * scrollbar stays, thin and in the browser's own colours, which keep
  * their contrast on any theme, so a reader with a mouse and no sideways
  * wheel can still drag to the hidden topics.
+ *
+ * The rule names the block's class too. A classic theme indents every
+ * list in the content, with a rule such as `.entry-content ul`, printed
+ * after the block's styles, and the list's own selector alone would lose
+ * to it: the first topic would then sit a step away from its label.
  */
-.wp-block-undergrowth-garden-filters-topics ul {
+.wp-block-undergrowth-garden-filters .wp-block-undergrowth-garden-filters-topics ul {
 	display: flex;
 	flex: 1 1 0;
 	flex-wrap: nowrap;
@@ -74,7 +79,7 @@
 	mask-image: linear-gradient(to right, currentcolor calc(100% - 3em), transparent);
 }
 
-[dir="rtl"] .wp-block-undergrowth-garden-filters-topics ul {
+[dir="rtl"] .wp-block-undergrowth-garden-filters .wp-block-undergrowth-garden-filters-topics ul {
 	margin: -4px -4px -4px 0;
 	padding: 4px 4px 4px 3em;
 	mask-image: linear-gradient(to left, currentcolor calc(100% - 3em), transparent);

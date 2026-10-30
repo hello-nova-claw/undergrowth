@@ -3,8 +3,14 @@
  * column on a phone, each entry under a hairline drawn from the text
  * colour. The flow is dense so a tall card does not leave a hole beside
  * the text entries that follow it.
+ *
+ * The rule names the block's class, the element and the list's class. A
+ * classic theme indents every list in the content, with a rule such as
+ * `.entry-content ul { padding-left: 2em }`, printed after the block's
+ * styles, and the list's class alone would lose to it: the entries would
+ * then start further in than the filters above and the page links below.
  */
-.wp-block-undergrowth-garden-feed-list {
+.wp-block-undergrowth-garden-feed ul.wp-block-undergrowth-garden-feed-list {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
 	grid-auto-flow: dense;

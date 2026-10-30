@@ -1,0 +1,1 @@
+In classic themes such as Kadence and Astra, the entries of the Garden feed and the topic links of the Garden filters now keep the block's edge instead of taking the theme's indent for lists, so they line up with the count, the Topics label and the page links.
