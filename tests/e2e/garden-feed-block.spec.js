@@ -275,28 +275,23 @@ test.describe( 'Garden feed block', () => {
 			'Oca',
 		] );
 
-		// The Layout select is the last in the panel. Its value is typed the
-		// same way, and the server render picks the layout up.
+		// The Layout select is the last in the panel. The arrow keys move a
+		// closed select between its two options in any locale, and the
+		// server render picks the layout up.
 		const layout = page
 			.locator( '.block-editor-block-inspector select' )
 			.last();
 		await expect( layout ).toHaveValue( 'grid' );
 		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
-		const masonry = await layout
-			.locator( 'option[value="masonry"]' )
-			.textContent();
 		await layout.focus();
-		await page.keyboard.type( masonry );
+		await page.keyboard.press( 'ArrowDown' );
 		await expect( layout ).toHaveValue( 'masonry' );
 		await expect( layout ).toBeFocused();
 		await expect( preview ).toHaveClass( /is-layout-masonry/ );
 		await expect( preview.locator( TITLE ) ).toHaveCount( 3 );
 
 		// And back to the grid.
-		const grid = await layout
-			.locator( 'option[value="grid"]' )
-			.textContent();
-		await page.keyboard.type( grid );
+		await page.keyboard.press( 'ArrowUp' );
 		await expect( layout ).toHaveValue( 'grid' );
 		await expect( preview ).not.toHaveClass( /is-layout-masonry/ );
 		await expectNoA11yViolations( page, '.block-editor-block-inspector' );
