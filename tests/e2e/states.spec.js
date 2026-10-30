@@ -943,13 +943,16 @@ const POSTS = [
 /**
  * Masks what changes between runs of the same build.
  *
- * Nonces sit in hidden fields and never show. The one date on our screens,
- * in the last-error notice, comes from a fixed fixture time, so it stays.
+ * Nonces sit in hidden fields and never show. The dates on our screens come
+ * from fixed fixture times, so they stay: the last-error notice carries one,
+ * and the test provider plants every post of the catalogue at one, so the
+ * editor's Publish row and the Posts screen read the same in every run.
  *
- * @param {import('@playwright/test').Page} page Page to capture.
+ * @param {import('@playwright/test').Page} page   Page to capture.
+ * @param {Object}                          editor Editor utilities, for the canvas.
  * @return {import('@playwright/test').Locator[]} Regions to mask.
  */
-function volatile( page ) {
+function volatile( page, editor ) {
 	return [
 		// WordPress version, which moves with "latest".
 		page.locator( '#footer-upgrade' ),
@@ -959,8 +962,11 @@ function volatile( page ) {
 		page.locator(
 			'#dashboard_primary, #dashboard_activity, #dashboard_site_health'
 		),
-		// "Tended 4 seconds ago" moves with the time each shot is taken.
+		// "Tended 10 months ago" moves with the month each shot is taken,
+		// on the front end and in the editor's canvas, which is an iframe
+		// the page's own locator does not reach.
 		page.locator( '.wp-block-undergrowth-garden-feed time' ),
+		editor.canvas.locator( '.wp-block-undergrowth-garden-feed time' ),
 	];
 }
 
@@ -1220,7 +1226,7 @@ function capture( states ) {
 						fullPage: true,
 						animations: 'disabled',
 						caret: 'hide',
-						mask: volatile( page ),
+						mask: volatile( page, editor ),
 						maskColor: '#c3c4c7',
 						style: HIDE_UPDATES,
 					} );
