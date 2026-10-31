@@ -6,7 +6,7 @@
  */
 const fs = require( 'fs' );
 const path = require( 'path' );
-const { test } = require( '@wordpress/e2e-test-utils-playwright' );
+const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { uploadFeaturedImage } = require( './featured-image' );
 const { skipWelcomeGuide } = require( './preferences' );
 const { STYLED } = require( './supports' );
@@ -326,6 +326,8 @@ const WITH_POSTS = [
 		screen: 'suggestions',
 		state: 'choose-words',
 		page: SUGGESTIONS,
+		// The form focuses its first select, which shows its row's actions.
+		focus: 'form.undergrowth-choose-words select[name="first"]',
 		open: async ( page ) => {
 			const choose = page.locator( '.row-actions .choose a' ).first();
 
@@ -1091,6 +1093,34 @@ async function settleEditor( page ) {
 }
 
 /**
+ * Leaves an admin screen as the author finds it once it has loaded.
+ *
+ * Result notices and the Choose words form move focus once the page has
+ * loaded, and a click leaves its control focused, with a focus ring in some
+ * runs and not in others. A state about a focused control names it and
+ * waits until it has focus; every other state lets go of the focus. The
+ * pointer stays where the last click left it, so a row under it would show
+ * its hover actions; it moves off the page.
+ *
+ * @param {import('@playwright/test').Page} page  Admin page.
+ * @param {Object}                          entry State being captured.
+ */
+async function settle( page, entry ) {
+	await page.waitForLoadState( 'load' );
+
+	if ( entry.focus ) {
+		await expect( page.locator( entry.focus ) ).toBeFocused();
+	} else {
+		await page.evaluate( () => window.document.activeElement?.blur() );
+	}
+
+	// Focus scrolls the page, and a full-page shot of a scrolled page draws
+	// the fixed admin bar and menu partway down. Scrolling keeps the focus.
+	await page.evaluate( () => window.scrollTo( 0, 0 ) );
+	await page.mouse.move( -1, -1 );
+}
+
+/**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
  *
  * The comparison pairs before and after shots by file name alone, so the name
@@ -1263,7 +1293,9 @@ function capture( states ) {
 						await showSidebar( page );
 					}
 
-					if ( ! entry.page && ! entry.front ) {
+					if ( entry.page ) {
+						await settle( page, entry );
+					} else if ( ! entry.front ) {
 						await settleEditor( page );
 					}
 
