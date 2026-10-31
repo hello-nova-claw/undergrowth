@@ -1386,6 +1386,19 @@ test.describe( 'Screenshot catalogue', () => {
 					status: 'approved',
 				},
 			} );
+
+			// Cron finds a group in these posts at a time of its own, which
+			// adds the Map tab partway through the shots. Finding it now
+			// shows the tab in all of them.
+			const response = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			if ( ! response.ok() ) {
+				throw new Error(
+					`Clustering failed with HTTP ${ response.status() }.`
+				);
+			}
 		} );
 
 		capture( WITH_POSTS );
