@@ -958,6 +958,8 @@ function volatile( page, editor ) {
 		page.locator( '#footer-upgrade' ),
 		// Gravatar loads over the network, sometimes after the shot.
 		page.locator( '#wpadminbar .avatar' ),
+		// The command palette's "Ctrl+K" hint renders late in some runs.
+		page.locator( '#wp-admin-bar-command-palette' ),
 		// Core Dashboard widgets show news, dates and checks that change.
 		page.locator(
 			'#dashboard_primary, #dashboard_activity, #dashboard_site_health'
