@@ -1052,6 +1052,45 @@ async function showSidebar( page ) {
 }
 
 /**
+ * Waits until no block in the editor is still loading.
+ *
+ * Block previews come from the server, each on its own request, and one can
+ * still be loading once another has rendered. A preview asks again once the
+ * editor knows the post's ID, half a second after its first answer, and
+ * shows its spinner a second into a request. So the canvas must stay quiet
+ * for longer than both before the shot.
+ *
+ * @param {import('@playwright/test').Page} page Editor page.
+ */
+async function settleEditor( page ) {
+	const canvas = page.frame( { name: 'editor-canvas' } ) ?? page.mainFrame();
+
+	await canvas.evaluate( () => delete window.undergrowthQuietSince );
+	await canvas.waitForFunction(
+		() => {
+			// A preview that is loading wraps its last content, if any, in
+			// a box whose opacity drops when the spinner shows.
+			const busy = document.querySelector(
+				'.components-spinner, [data-type^="undergrowth/"] div[style*="position: relative"] > div[style*="opacity"]'
+			);
+			const now = Date.now();
+
+			if ( busy ) {
+				window.undergrowthQuietSince = now;
+
+				return false;
+			}
+
+			window.undergrowthQuietSince ??= now;
+
+			return now - window.undergrowthQuietSince >= 1500;
+		},
+		null,
+		{ polling: 100 }
+	);
+}
+
+/**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
  *
  * The comparison pairs before and after shots by file name alone, so the name
@@ -1223,6 +1262,11 @@ function capture( states ) {
 					if ( entry.sidebar ) {
 						await showSidebar( page );
 					}
+
+					if ( ! entry.page && ! entry.front ) {
+						await settleEditor( page );
+					}
+
 					await page.screenshot( {
 						path: shot,
 						fullPage: true,
