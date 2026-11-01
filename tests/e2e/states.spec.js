@@ -1091,16 +1091,18 @@ async function settleEditor( page ) {
 }
 
 /**
- * Leaves an admin screen as the author finds it once it has loaded.
+ * Leaves a screen as its reader finds it once it has loaded.
  *
  * Result notices and the Choose words form move focus once the page has
  * loaded, and a click leaves its control focused, with a focus ring in some
  * runs and not in others. A state about a focused control names it and
- * waits until it has focus; every other state lets go of the focus. The
- * pointer stays where the last click left it, so a row under it would show
- * its hover actions; it moves off the page.
+ * waits until it has focus; every other state lets go of the focus, except
+ * in the editor's canvas, where the selected block keeps it. The pointer
+ * stays where the last click left it, so whatever is under it shows its
+ * hover state, and on the front end the admin bar can open a menu; it
+ * moves off the page.
  *
- * @param {import('@playwright/test').Page} page  Admin page.
+ * @param {import('@playwright/test').Page} page  Page to capture.
  * @param {Object}                          entry State being captured.
  */
 async function settle( page, entry ) {
@@ -1109,7 +1111,13 @@ async function settle( page, entry ) {
 	if ( entry.focus ) {
 		await expect( page.locator( entry.focus ) ).toBeFocused();
 	} else {
-		await page.evaluate( () => window.document.activeElement?.blur() );
+		await page.evaluate( () => {
+			const focused = window.document.activeElement;
+
+			if ( focused && 'IFRAME' !== focused.tagName ) {
+				focused.blur();
+			}
+		} );
 	}
 
 	// Focus scrolls the page, and a full-page shot of a scrolled page draws
@@ -1291,11 +1299,11 @@ function capture( states ) {
 						await showSidebar( page );
 					}
 
-					if ( entry.page ) {
-						await settle( page, entry );
-					} else if ( ! entry.front ) {
+					if ( ! entry.page && ! entry.front ) {
 						await settleEditor( page );
 					}
+
+					await settle( page, entry );
 
 					await page.screenshot( {
 						path: shot,
