@@ -312,6 +312,33 @@ add_filter(
 	3
 );
 
+// Playground serves every file in uploads, deny rules or not, so the check
+// on the per-post folder finds it open, and Settings warns about it, only
+// once the check's cron event has run. That differs between two catalogue
+// runs. On a site whose blueprint adds the option, the folder answers the
+// check as a server with the deny rule would, so the warning never shows.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		if ( false === get_option( 'undergrowth_e2e_planted' ) || ! function_exists( 'undergrowth_memory_folder' ) || false === strpos( (string) $url, '/' . undergrowth_memory_folder() . '/posts/undergrowth-check-' ) ) {
+			return $preempt;
+		}
+
+		return array(
+			'headers'  => array(),
+			'body'     => '',
+			'response' => array(
+				'code'    => 404,
+				'message' => 'Not Found',
+			),
+			'cookies'  => array(),
+			'filename' => null,
+		);
+	},
+	10,
+	3
+);
+
 /**
  * Finds the demo blog's illustrations, demo/images/ in the repository:
  * mounted beside the demo WXR files on a local site, or inside the plugin
