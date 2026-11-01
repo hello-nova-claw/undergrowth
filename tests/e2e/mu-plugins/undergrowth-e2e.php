@@ -185,6 +185,28 @@ add_filter(
 	4
 );
 
+// The Suggestions table lists the newest suggestions first, to the second,
+// so two suggestions written either side of a second swapped places between
+// two runs. On the same sites, every suggestion is dated 1 January 2026 at
+// the end of each request, and the table falls back to its fixed order.
+add_action(
+	'shutdown',
+	static function () {
+		global $wpdb;
+
+		if ( false === get_option( 'undergrowth_e2e_planted' ) || ! function_exists( 'undergrowth_links_table' ) ) {
+			return;
+		}
+
+		// Quietly, since a request before the plugin's tables exist has none.
+		$suppress = $wpdb->suppress_errors();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Test sites only, and the table is the plugin's own.
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = %s WHERE updated_at <> %s', undergrowth_links_table(), '2026-01-01 10:00:00', '2026-01-01 10:00:00' ) );
+		$wpdb->suppress_errors( $suppress );
+	}
+);
+
 /**
  * Reads the whole demo blog once it is imported, as the backfill and the
  * monthly cycle would over a few hours: every post is embedded, the cycle
