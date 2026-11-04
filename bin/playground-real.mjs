@@ -195,6 +195,40 @@ if ( '' !== wxr ) {
 	} );
 }
 
+// The demo blog's illustrations, inside the plugin folder, where the plugin
+// answers the importer's download of each from disk, so the demo imports
+// with its pictures without reaching GitHub. The zip does not ship them,
+// so plugin-mounts.cjs leaves them out. The import runs before the plugin
+// is activated, so a must-use plugin loads the one file that answers the
+// downloads; the plugin's own require_once of the same file is then a no-op.
+if ( Object.hasOwn( demoWxr, wxrSetting ) ) {
+	const demoImagesLoader = join(
+		blueprintDir,
+		'undergrowth-demo-images.php'
+	);
+	writeFileSync(
+		demoImagesLoader,
+		[
+			'<?php',
+			"defined( 'ABSPATH' ) || exit;",
+			"require_once WP_PLUGIN_DIR . '/undergrowth/src/demo-images.php';",
+			'',
+		].join( '\n' ),
+		{ mode: 0o600 }
+	);
+	mount.push(
+		{
+			hostPath: join( root, 'demo/images' ),
+			vfsPath: '/wordpress/wp-content/plugins/undergrowth/demo/images',
+		},
+		{
+			hostPath: demoImagesLoader,
+			vfsPath:
+				'/wordpress/wp-content/mu-plugins/undergrowth-demo-images.php',
+		}
+	);
+}
+
 const { runCLI } = await import( '@wp-playground/cli' );
 
 let server;
