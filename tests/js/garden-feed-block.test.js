@@ -73,6 +73,8 @@ describe( 'Garden feed block', () => {
 		expect( type.attributes.orderBy.default ).toBe( 'tended' );
 		expect( type.attributes.typeSource.default ).toBe( 'post_format' );
 		expect( type.attributes.showImages.default ).toBe( true );
+		expect( type.attributes.layout.enum ).toEqual( [ 'grid', 'masonry' ] );
+		expect( type.attributes.layout.default ).toBe( 'grid' );
 		expect( type.attributes.showFeatured ).toBeUndefined();
 	} );
 
@@ -87,6 +89,8 @@ describe( 'Garden feed block', () => {
 		expect( block.attributes.showImages ).toBe( false );
 		expect( block.attributes.postsPerPage ).toBe( 6 );
 		expect( block.attributes.showFeatured ).toBeUndefined();
+		// Saved before the layout setting existed, so it keeps the grid.
+		expect( block.attributes.layout ).toBe( 'grid' );
 
 		const [ current ] = parse(
 			'<!-- wp:undergrowth/garden-feed {"showImages":false} /-->'
@@ -105,6 +109,7 @@ describe( 'Garden feed block', () => {
 			...DEFAULTS,
 			orderBy: 'stage',
 			postsPerPage: 6,
+			layout: 'masonry',
 			backgroundColor: 'accent',
 			style: { spacing: { padding: { top: '2em' } } },
 		} );
@@ -118,6 +123,8 @@ describe( 'Garden feed block', () => {
 		);
 		expect( path ).toContain( 'attributes[orderBy]=stage' );
 		expect( path ).toContain( 'attributes[postsPerPage]=6' );
+		// The layout is the server's to draw, so the preview shows it.
+		expect( path ).toContain( 'attributes[layout]=masonry' );
 		// The wrapper carries the supports, so the preview never doubles them.
 		expect( path ).not.toMatch( /backgroundColor|padding/ );
 		expect( container.querySelector( 'li a' ).textContent ).toBe( 'Oca' );

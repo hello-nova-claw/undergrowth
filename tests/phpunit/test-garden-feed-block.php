@@ -116,6 +116,8 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertSame( array( 'tended', 'newest', 'stage' ), $type->attributes['orderBy']['enum'] );
 		$this->assertSame( 'post_format', $type->attributes['typeSource']['default'] );
 		$this->assertTrue( $type->attributes['showImages']['default'] );
+		$this->assertSame( array( 'grid', 'masonry' ), $type->attributes['layout']['enum'] );
+		$this->assertSame( 'grid', $type->attributes['layout']['default'] );
 		$this->assertArrayNotHasKey( 'showFeatured', $type->attributes );
 		$this->assertSame( array( 'undergrowth-garden-feed' ), $type->style_handles );
 		$this->assertArrayHasKey( 'color', $type->supports );
@@ -621,6 +623,41 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-item\.has-icon \{[^}]*grid-template-columns: (0\.\d+|1(\.\d+)?)em #ms', $css );
 		// Any SVG in the icon span is sized, a filter's as much as the plugin's.
 		$this->assertMatchesRegularExpression( '#\.wp-block-undergrowth-garden-feed-icon > svg \{[^}]*width: (0\.\d+|1(\.\d+)?)em;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#\#[0-9a-f]{3,8}\b#i', $css );
+	}
+
+	public function test_packs_the_cards_into_columns_only_when_masonry_is_chosen() {
+		$this->post( 'Oca' );
+
+		// A block saved before the setting existed, and one left on the
+		// grid, render as before: no class, so only the grid rules apply.
+		$this->assertStringStartsWith( '<div class="wp-block-undergrowth-garden-feed" ', $this->render() );
+		$this->assertStringStartsWith( '<div class="wp-block-undergrowth-garden-feed" ', $this->render( array( 'layout' => 'grid' ) ) );
+		$this->assertStringStartsWith( '<div class="is-layout-masonry wp-block-undergrowth-garden-feed" ', $this->render( array( 'layout' => 'masonry' ) ) );
+		// A value the block never offered falls back to the grid.
+		$this->assertStringStartsWith( '<div class="wp-block-undergrowth-garden-feed" ', $this->render( array( 'layout' => 'waterfall' ) ) );
+
+		// The note that nothing matches keeps the layout too, so the
+		// region the filters replace in place is styled the same.
+		$_GET['stage'] = 'evergreen';
+
+		$this->assertStringStartsWith( '<div class="is-layout-masonry wp-block-undergrowth-garden-feed" ', $this->render( array( 'layout' => 'masonry' ) ) );
+	}
+
+	public function test_the_masonry_layout_packs_the_cards_into_columns_as_wide_as_the_grids() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
+
+		// Masonry swaps the grid for CSS columns of the grid's width, with
+		// the grid's column gap; each card stays whole and carries the row
+		// gap as its margin, so the columns balance. The rule names the
+		// block's class, the element and the list's class, as the grid's
+		// does, so it outranks a classic theme's list rule too.
+		$this->assertSame( 1, preg_match( '#^\.wp-block-undergrowth-garden-feed\.is-layout-masonry ul\.wp-block-undergrowth-garden-feed-list \{[^}]*\bdisplay: block;[^}]*\bcolumn-width: (\d+(\.\d+)?)rem;[^}]*\bcolumn-gap: var\(--wp--preset--spacing--50, 2\.5rem\);#ms', $css, $masonry ) );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-layout-masonry \.wp-block-undergrowth-garden-feed-item \{[^}]*\bbreak-inside: avoid;[^}]*\bmargin-block-end: var\(--wp--preset--spacing--40, 1\.5rem\);#ms', $css );
+		$this->assertSame( 1, preg_match( '#minmax\(min\(100%, (\d+(\.\d+)?)rem\), 1fr\)#', $css, $grid ) );
+		$this->assertSame( $grid[1], $masonry[1] );
+		// No front-end script places the cards: the columns are CSS alone.
+		$this->assertStringNotContainsString( 'grid-template-rows: masonry', $css );
 		$this->assertDoesNotMatchRegularExpression( '#\#[0-9a-f]{3,8}\b#i', $css );
 	}
 

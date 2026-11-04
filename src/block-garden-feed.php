@@ -411,20 +411,41 @@ function undergrowth_garden_feed_item( int $post_id, bool $images, string $taxon
 }
 
 /**
+ * Reads the layout the author chose.
+ *
+ * A block saved before the setting existed has none, and a value the
+ * block never offered is not trusted either: both take the grid, so
+ * nothing already published changes.
+ *
+ * @param array<string, mixed> $attributes Block attributes.
+ * @return string Either grid or masonry.
+ */
+function undergrowth_garden_feed_layout( array $attributes ): string {
+	return 'masonry' === ( $attributes['layout'] ?? '' ) ? 'masonry' : 'grid';
+}
+
+/**
  * Builds the feed's wrapper attributes.
  *
  * The feed is a region the Interactivity API router replaces, so the
- * garden filters can update it in place.
+ * garden filters can update it in place. Masonry is a class on the
+ * wrapper, since the stylesheet alone lays the cards out; the grid is
+ * the default and so carries no class.
  *
+ * @param string $layout From undergrowth_garden_feed_layout().
  * @return string Attributes markup.
  */
-function undergrowth_garden_feed_wrapper_attributes(): string {
-	return get_block_wrapper_attributes(
-		array(
-			'data-wp-interactive'   => 'undergrowth/garden',
-			'data-wp-router-region' => 'undergrowth/garden-feed',
-		)
+function undergrowth_garden_feed_wrapper_attributes( string $layout ): string {
+	$attributes = array(
+		'data-wp-interactive'   => 'undergrowth/garden',
+		'data-wp-router-region' => 'undergrowth/garden-feed',
 	);
+
+	if ( 'masonry' === $layout ) {
+		$attributes['class'] = 'is-layout-masonry';
+	}
+
+	return get_block_wrapper_attributes( $attributes );
 }
 
 /**
@@ -435,6 +456,7 @@ function undergrowth_garden_feed_wrapper_attributes(): string {
  */
 function undergrowth_render_garden_feed_block( $attributes ): string {
 	$taxonomy = undergrowth_garden_feed_type_taxonomy( (string) $attributes['typeSource'] );
+	$layout   = undergrowth_garden_feed_layout( $attributes );
 	$filters  = undergrowth_garden_feed_filters();
 	$post_ids = undergrowth_garden_feed_posts( (string) $attributes['orderBy'], $taxonomy, $filters );
 
@@ -447,7 +469,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 
 		return sprintf(
 			'<div %1$s><p class="wp-block-undergrowth-garden-feed-none">%2$s</p></div>',
-			undergrowth_garden_feed_wrapper_attributes(),
+			undergrowth_garden_feed_wrapper_attributes( $layout ),
 			esc_html__( 'Nothing in the garden matches.', 'undergrowth' )
 		);
 	}
@@ -501,7 +523,7 @@ function undergrowth_render_garden_feed_block( $attributes ): string {
 
 	return sprintf(
 		'<div %1$s>%2$s<ul class="wp-block-undergrowth-garden-feed-list">%3$s</ul>%4$s</div>',
-		undergrowth_garden_feed_wrapper_attributes(),
+		undergrowth_garden_feed_wrapper_attributes( $layout ),
 		$group,
 		$items,
 		$nav
