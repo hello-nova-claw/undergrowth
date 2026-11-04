@@ -179,6 +179,16 @@ jobs:
             if git fetch -q --depth 1 --filter=blob:none origin screenshots; then
               parent=$(git rev-parse FETCH_HEAD)
               git read-tree "$parent"
+
+              # A push over HTTPS always sends a thin pack, which reads the
+              # images this commit replaces as delta bases. Those are this
+              # folder's own, so they are fetched in one request, as git's
+              # lazy fetch would. An empty list would fetch the default refspec.
+              git ls-tree -r --format='%(objectname)' "$parent" -- "gallery-${PR}" > "${RUNNER_TEMP}/old-blobs"
+              if [ -s "${RUNNER_TEMP}/old-blobs" ]; then
+                git -c fetch.negotiationAlgorithm=noop fetch -q --no-tags --no-write-fetch-head \
+                  --recurse-submodules=no --filter=blob:none --stdin origin < "${RUNNER_TEMP}/old-blobs"
+              fi
             else
               parent=''
               git read-tree --empty
@@ -211,9 +221,8 @@ jobs:
             commit=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "Theme gallery for #${PR} at ${HEAD_SHA:0:7}.")
 
             # Another pull request may have pushed in the meantime. The next
-            # try starts again from the fetched branch. A thin pack would
-            # read the other folders' images as delta bases.
-            if git push -q --no-thin origin "${commit}:refs/heads/screenshots"; then
+            # try starts again from the fetched branch.
+            if git push -q origin "${commit}:refs/heads/screenshots"; then
               sha=$commit
               break
             fi
