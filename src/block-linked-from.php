@@ -129,7 +129,7 @@ function undergrowth_render_linked_from_block( $attributes, $content, $block ): 
 	}
 
 	return sprintf(
-		'<div %1$s><h2 class="wp-block-heading">%2$s</h2><ul>%3$s</ul></div>',
+		'<div %1$s><h2 class="wp-block-heading">%2$s</h2><ul class="wp-block-undergrowth-linked-from-list">%3$s</ul></div>',
 		get_block_wrapper_attributes(),
 		esc_html( $heading ),
 		$items

@@ -6,7 +6,7 @@
  */
 const fs = require( 'fs' );
 const path = require( 'path' );
-const { test } = require( '@wordpress/e2e-test-utils-playwright' );
+const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const { uploadFeaturedImage } = require( './featured-image' );
 const { skipWelcomeGuide } = require( './preferences' );
 const { STYLED } = require( './supports' );
@@ -326,6 +326,8 @@ const WITH_POSTS = [
 		screen: 'suggestions',
 		state: 'choose-words',
 		page: SUGGESTIONS,
+		// The form focuses its first select, which shows its row's actions.
+		focus: 'form.undergrowth-choose-words select[name="first"]',
 		open: async ( page ) => {
 			const choose = page.locator( '.row-actions .choose a' ).first();
 
@@ -1050,6 +1052,81 @@ async function showSidebar( page ) {
 }
 
 /**
+ * Waits until no block in the editor is still loading.
+ *
+ * Block previews come from the server, each on its own request, and one can
+ * still be loading once another has rendered. A preview asks again once the
+ * editor knows the post's ID, half a second after its first answer, and
+ * shows its spinner a second into a request. So the canvas must stay quiet
+ * for longer than both before the shot.
+ *
+ * @param {import('@playwright/test').Page} page Editor page.
+ */
+async function settleEditor( page ) {
+	const canvas = page.frame( { name: 'editor-canvas' } ) ?? page.mainFrame();
+
+	await canvas.evaluate( () => delete window.undergrowthQuietSince );
+	await canvas.waitForFunction(
+		() => {
+			// A preview that is loading wraps its last content, if any, in
+			// a box whose opacity drops when the spinner shows.
+			const busy = document.querySelector(
+				'.components-spinner, [data-type^="undergrowth/"] div[style*="position: relative"] > div[style*="opacity"]'
+			);
+			const now = Date.now();
+
+			if ( busy ) {
+				window.undergrowthQuietSince = now;
+
+				return false;
+			}
+
+			window.undergrowthQuietSince ??= now;
+
+			return now - window.undergrowthQuietSince >= 1500;
+		},
+		null,
+		{ polling: 100 }
+	);
+}
+
+/**
+ * Leaves a screen as its reader finds it once it has loaded.
+ *
+ * Result notices and the Choose words form move focus once the page has
+ * loaded, and a click leaves its control focused, with a focus ring in some
+ * runs and not in others. A state about a focused control names it and
+ * waits until it has focus; every other state lets go of the focus, except
+ * in the editor's canvas, where the selected block keeps it. The pointer
+ * stays where the last click left it, so whatever is under it shows its
+ * hover state, and on the front end the admin bar can open a menu; it
+ * moves off the page.
+ *
+ * @param {import('@playwright/test').Page} page  Page to capture.
+ * @param {Object}                          entry State being captured.
+ */
+async function settle( page, entry ) {
+	await page.waitForLoadState( 'load' );
+
+	if ( entry.focus ) {
+		await expect( page.locator( entry.focus ) ).toBeFocused();
+	} else {
+		await page.evaluate( () => {
+			const focused = window.document.activeElement;
+
+			if ( focused && 'IFRAME' !== focused.tagName ) {
+				focused.blur();
+			}
+		} );
+	}
+
+	// Focus scrolls the page, and a full-page shot of a scrolled page draws
+	// the fixed admin bar and menu partway down. Scrolling keeps the focus.
+	await page.evaluate( () => window.scrollTo( 0, 0 ) );
+	await page.mouse.move( -1, -1 );
+}
+
+/**
  * Names a shot `<screen>--<state>--<locale>--<width>.png`.
  *
  * The comparison pairs before and after shots by file name alone, so the name
@@ -1221,6 +1298,13 @@ function capture( states ) {
 					if ( entry.sidebar ) {
 						await showSidebar( page );
 					}
+
+					if ( ! entry.page && ! entry.front ) {
+						await settleEditor( page );
+					}
+
+					await settle( page, entry );
+
 					await page.screenshot( {
 						path: shot,
 						fullPage: true,
@@ -1308,6 +1392,19 @@ test.describe( 'Screenshot catalogue', () => {
 					status: 'approved',
 				},
 			} );
+
+			// Cron finds a group in these posts at a time of its own, which
+			// adds the Map tab partway through the shots. Finding it now
+			// shows the tab in all of them.
+			const response = await requestUtils.request.get(
+				'wp-admin/index.php?undergrowth_e2e_cluster=1'
+			);
+
+			if ( ! response.ok() ) {
+				throw new Error(
+					`Clustering failed with HTTP ${ response.status() }.`
+				);
+			}
 		} );
 
 		capture( WITH_POSTS );
