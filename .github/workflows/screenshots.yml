@@ -240,14 +240,22 @@ jobs:
           git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git remote add origin "https://github.com/${REPOSITORY}.git"
 
-          pushed=''
+          # The branch holds every pull request's shots, gigabytes of them, so
+          # only its trees are fetched. The commit is built from the index
+          # with plumbing commands that never read another folder's images,
+          # and a lazy fetch of one fails at once instead of hanging.
+          export GIT_NO_LAZY_FETCH=1
+          sha=''
           for _ in 1 2 3; do
-            if git fetch -q --depth 1 origin screenshots; then
-              git checkout -q -B screenshots FETCH_HEAD
+            if git fetch -q --depth 1 --filter=blob:none origin screenshots; then
+              parent=$(git rev-parse FETCH_HEAD)
+              git read-tree "$parent"
             else
-              git checkout -q --orphan screenshots
+              parent=''
+              git read-tree --empty
             fi
 
+            git rm -r -q -f --cached --ignore-unmatch -- "pr-${PR}"
             rm -rf "pr-${PR}"
             mkdir -p "pr-${PR}"
             for side in before after; do
@@ -255,28 +263,32 @@ jobs:
                 cp -R "${shots}/${side}" "pr-${PR}/${side}"
               fi
             done
+            if [ -n "$(ls -A "pr-${PR}")" ]; then
+              git add -- "pr-${PR}"
+            fi
 
-            git add -A "pr-${PR}"
-            if git rev-parse -q --verify HEAD >/dev/null && git diff --cached --quiet; then
-              pushed=yes
+            tree=$(git write-tree --missing-ok)
+            if [ -n "$parent" ] && [ "$tree" = "$(git rev-parse "${parent}^{tree}")" ]; then
+              sha=$parent
               break
             fi
-            git commit -q -m "Screenshots for #${PR} at ${HEAD_SHA:0:7}."
+            commit=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "Screenshots for #${PR} at ${HEAD_SHA:0:7}.")
 
             # Another pull request may have pushed in the meantime. The next
-            # try starts again from the fetched branch.
-            if git push -q origin screenshots; then
-              pushed=yes
+            # try starts again from the fetched branch. A thin pack would
+            # read the other folders' images as delta bases.
+            if git push -q --no-thin origin "${commit}:refs/heads/screenshots"; then
+              sha=$commit
               break
             fi
           done
 
-          if [ -z "$pushed" ]; then
+          if [ -z "$sha" ]; then
             echo "::error::Could not push to the screenshots branch."
             exit 1
           fi
 
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
 
       - name: Post or update the comment
         env:
