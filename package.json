@@ -45,7 +45,7 @@
 		"@wordpress/interactivity": "^7.0.0",
 		"@wordpress/interactivity-router": "^2.57.0",
 		"@wordpress/notices": "^5.57.0",
-		"@wordpress/plugins": "^7.57.0",
+		"@wordpress/plugins": "^8.0.0",
 		"@wordpress/scripts": "^37.0.0",
 		"@wordpress/server-side-render": "^6.33.0",
 		"@wp-playground/cli": "^3.1.61",
