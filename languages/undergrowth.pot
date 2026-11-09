@@ -633,6 +633,11 @@ msgid "Quiet"
 msgstr ""
 
 #: src/blocks.php
+msgctxt "block style"
+msgid "Seed packet"
+msgstr ""
+
+#: src/blocks.php
 #: build/blocks/more-like-this/index.js
 #: src/blocks/more-like-this/edit.js
 msgid "More like this"
