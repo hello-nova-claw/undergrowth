@@ -1,0 +1,1 @@
+The demo blog now shows both of the Garden feed's cards: about one post in four has a post format (aside, link, quote or status) and no featured image, so the Playground preview, the theme gallery and any site that imports the demo blog show text cards among the image cards.

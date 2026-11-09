@@ -310,39 +310,15 @@
 		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/hills-2.jpg]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
-		<title>hills-3</title>
-		<link>https://demo.example/?attachment_id=1012</link>
-		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
-		<dc:creator><![CDATA[admin]]></dc:creator>
-		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/hills-3.jpg</guid>
-		<description></description>
-		<content:encoded><![CDATA[]]></content:encoded>
-		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1012</wp:post_id>
-		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
-		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
-		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
-		<wp:ping_status><![CDATA[closed]]></wp:ping_status>
-		<wp:post_name><![CDATA[hills-3]]></wp:post_name>
-		<wp:status><![CDATA[inherit]]></wp:status>
-		<wp:post_parent>0</wp:post_parent>
-		<wp:menu_order>0</wp:menu_order>
-		<wp:post_type><![CDATA[attachment]]></wp:post_type>
-		<wp:post_password><![CDATA[]]></wp:post_password>
-		<wp:is_sticky>0</wp:is_sticky>
-		<wp:attachment_url><![CDATA[https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/hills-3.jpg]]></wp:attachment_url>
-		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/hills-3.jpg]]></wp:meta_value></wp:postmeta>
-	</item>
-	<item>
 		<title>leaves-1</title>
-		<link>https://demo.example/?attachment_id=1013</link>
+		<link>https://demo.example/?attachment_id=1012</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/leaves-1.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1013</wp:post_id>
+		<wp:post_id>1012</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -359,14 +335,14 @@
 	</item>
 	<item>
 		<title>leaves-2</title>
-		<link>https://demo.example/?attachment_id=1014</link>
+		<link>https://demo.example/?attachment_id=1013</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/leaves-2.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1014</wp:post_id>
+		<wp:post_id>1013</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -383,14 +359,14 @@
 	</item>
 	<item>
 		<title>leaves-3</title>
-		<link>https://demo.example/?attachment_id=1015</link>
+		<link>https://demo.example/?attachment_id=1014</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/leaves-3.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1015</wp:post_id>
+		<wp:post_id>1014</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -406,39 +382,15 @@
 		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/leaves-3.jpg]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
-		<title>moon-2</title>
-		<link>https://demo.example/?attachment_id=1016</link>
-		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
-		<dc:creator><![CDATA[admin]]></dc:creator>
-		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/moon-2.jpg</guid>
-		<description></description>
-		<content:encoded><![CDATA[]]></content:encoded>
-		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1016</wp:post_id>
-		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
-		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
-		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
-		<wp:ping_status><![CDATA[closed]]></wp:ping_status>
-		<wp:post_name><![CDATA[moon-2]]></wp:post_name>
-		<wp:status><![CDATA[inherit]]></wp:status>
-		<wp:post_parent>0</wp:post_parent>
-		<wp:menu_order>0</wp:menu_order>
-		<wp:post_type><![CDATA[attachment]]></wp:post_type>
-		<wp:post_password><![CDATA[]]></wp:post_password>
-		<wp:is_sticky>0</wp:is_sticky>
-		<wp:attachment_url><![CDATA[https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/moon-2.jpg]]></wp:attachment_url>
-		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/moon-2.jpg]]></wp:meta_value></wp:postmeta>
-	</item>
-	<item>
 		<title>moon-3</title>
-		<link>https://demo.example/?attachment_id=1017</link>
+		<link>https://demo.example/?attachment_id=1015</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/moon-3.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1017</wp:post_id>
+		<wp:post_id>1015</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -455,14 +407,14 @@
 	</item>
 	<item>
 		<title>trees-1</title>
-		<link>https://demo.example/?attachment_id=1018</link>
+		<link>https://demo.example/?attachment_id=1016</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/trees-1.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1018</wp:post_id>
+		<wp:post_id>1016</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -479,14 +431,14 @@
 	</item>
 	<item>
 		<title>trees-2</title>
-		<link>https://demo.example/?attachment_id=1019</link>
+		<link>https://demo.example/?attachment_id=1017</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/trees-2.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1019</wp:post_id>
+		<wp:post_id>1017</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -503,14 +455,14 @@
 	</item>
 	<item>
 		<title>trees-3</title>
-		<link>https://demo.example/?attachment_id=1020</link>
+		<link>https://demo.example/?attachment_id=1018</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/trees-3.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1020</wp:post_id>
+		<wp:post_id>1018</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -527,14 +479,14 @@
 	</item>
 	<item>
 		<title>water-1</title>
-		<link>https://demo.example/?attachment_id=1021</link>
+		<link>https://demo.example/?attachment_id=1019</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/water-1.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1021</wp:post_id>
+		<wp:post_id>1019</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -551,14 +503,14 @@
 	</item>
 	<item>
 		<title>water-2</title>
-		<link>https://demo.example/?attachment_id=1022</link>
+		<link>https://demo.example/?attachment_id=1020</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/water-2.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1022</wp:post_id>
+		<wp:post_id>1020</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -575,14 +527,14 @@
 	</item>
 	<item>
 		<title>water-3</title>
-		<link>https://demo.example/?attachment_id=1023</link>
+		<link>https://demo.example/?attachment_id=1021</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/water-3.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1023</wp:post_id>
+		<wp:post_id>1021</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -599,14 +551,14 @@
 	</item>
 	<item>
 		<title>winter-1</title>
-		<link>https://demo.example/?attachment_id=1024</link>
+		<link>https://demo.example/?attachment_id=1022</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/winter-1.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1024</wp:post_id>
+		<wp:post_id>1022</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -622,39 +574,15 @@
 		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/winter-1.jpg]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
-		<title>winter-2</title>
-		<link>https://demo.example/?attachment_id=1025</link>
-		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
-		<dc:creator><![CDATA[admin]]></dc:creator>
-		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/winter-2.jpg</guid>
-		<description></description>
-		<content:encoded><![CDATA[]]></content:encoded>
-		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1025</wp:post_id>
-		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
-		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
-		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
-		<wp:ping_status><![CDATA[closed]]></wp:ping_status>
-		<wp:post_name><![CDATA[winter-2]]></wp:post_name>
-		<wp:status><![CDATA[inherit]]></wp:status>
-		<wp:post_parent>0</wp:post_parent>
-		<wp:menu_order>0</wp:menu_order>
-		<wp:post_type><![CDATA[attachment]]></wp:post_type>
-		<wp:post_password><![CDATA[]]></wp:post_password>
-		<wp:is_sticky>0</wp:is_sticky>
-		<wp:attachment_url><![CDATA[https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/winter-2.jpg]]></wp:attachment_url>
-		<wp:postmeta><wp:meta_key><![CDATA[_wp_attached_file]]></wp:meta_key><wp:meta_value><![CDATA[2019/01/winter-2.jpg]]></wp:meta_value></wp:postmeta>
-	</item>
-	<item>
 		<title>winter-3</title>
-		<link>https://demo.example/?attachment_id=1026</link>
+		<link>https://demo.example/?attachment_id=1023</link>
 		<pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
 		<dc:creator><![CDATA[admin]]></dc:creator>
 		<guid isPermaLink="false">https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/winter-3.jpg</guid>
 		<description></description>
 		<content:encoded><![CDATA[]]></content:encoded>
 		<excerpt:encoded><![CDATA[Drawn for the Undergrowth demo blog by bin/draw-demo-images. CC0 1.0: no rights reserved.]]></excerpt:encoded>
-		<wp:post_id>1026</wp:post_id>
+		<wp:post_id>1023</wp:post_id>
 		<wp:post_date><![CDATA[2019-01-21 00:00:00]]></wp:post_date>
 		<wp:post_date_gmt><![CDATA[2019-01-21 00:00:00]]></wp:post_date_gmt>
 		<wp:comment_status><![CDATA[closed]]></wp:comment_status>
@@ -864,7 +792,7 @@
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1008]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Winter Sunshine, part 2</title>
@@ -1032,7 +960,7 @@
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>February, part 2</title>
@@ -1080,7 +1008,7 @@
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>On Being in Love, part 2</title>
@@ -1158,7 +1086,7 @@
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>The Exhilarations of the Road, part 2</title>
@@ -1200,7 +1128,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>March, part 2</title>
@@ -1309,7 +1237,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>The Snow-Walkers, part 1</title>
@@ -1376,7 +1304,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1022]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>April, part 2</title>
@@ -1503,7 +1431,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1023]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>The Snow-Walkers, part 3</title>
@@ -1555,7 +1483,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1026]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1023]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Sounds, part 3</title>
@@ -1602,7 +1530,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1022]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>June 3rd, part 2</title>
@@ -1703,7 +1631,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>June, part 1</title>
@@ -1951,7 +1879,7 @@ Indeed, I think it would be tantamount to an astonishing revival of religion if 
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Fourth Study, part 3</title>
@@ -2074,7 +2002,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Fifth Study, part 1</title>
@@ -2272,7 +2200,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1007]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>The Boarders, part 1</title>
@@ -2661,7 +2589,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="birds"><![CDATA[Birds]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1001]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>On Cats and Dogs, part 3</title>
@@ -2729,7 +2657,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>A Night Among the Pines, part 1</title>
@@ -2772,7 +2700,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>On Being Shy, part 1</title>
@@ -2854,7 +2782,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>A Night Among the Pines, part 2</title>
@@ -2901,7 +2829,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Higher Laws, part 1</title>
@@ -2949,7 +2877,7 @@ Those who lodge with Nature find early rising quite in order.  It is our voluptu
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1014]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Higher Laws, part 2</title>
@@ -3167,7 +3095,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Brute Neighbors, part 2</title>
@@ -3213,7 +3141,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[demo]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>Eighth Study, part 2</title>
@@ -3442,7 +3370,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1003]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-aside"><![CDATA[Aside]]></category>
 	</item>
 	<item>
 		<title>On the South Downs</title>
@@ -3617,7 +3545,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="idle-thoughts"><![CDATA[Idle Thoughts]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1017]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1015]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Winter Animals, part 1</title>
@@ -3665,7 +3593,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1025]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-status"><![CDATA[Status]]></category>
 	</item>
 	<item>
 		<title>English Characteristics, part 1</title>
@@ -3731,7 +3659,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Ninth Study, part 3</title>
@@ -3781,7 +3709,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="home"><![CDATA[Home]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1008]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-quote"><![CDATA[Quote]]></category>
 	</item>
 	<item>
 		<title>The Scents of the Garden, part 1</title>
@@ -3906,7 +3834,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>The Pond in Winter, part 2</title>
@@ -3967,7 +3895,7 @@ It is all very fine to talk about tramps and morality.  Six hours of police surv
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1019]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Tenth Study, part 2</title>
@@ -4056,7 +3984,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="trees"><![CDATA[Trees]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1018]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1016]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>January 28th, part 1</title>
@@ -4111,7 +4039,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="winter"><![CDATA[Winter]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1024]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1022]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Weeds and Pests, part 2</title>
@@ -4171,7 +4099,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<category domain="category" nicename="gardening"><![CDATA[Gardening]]></category>
 		<category domain="post_tag" nicename="flowers"><![CDATA[Flowers]]></category>
 		<category domain="post_tag" nicename="food"><![CDATA[Food]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1004]]></wp:meta_value></wp:postmeta>
+		<category domain="post_format" nicename="post-format-link"><![CDATA[Link]]></category>
 	</item>
 	<item>
 		<title>Spring, part 3</title>
@@ -4222,7 +4150,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1022]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1020]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>The Last Day, part 1</title>
@@ -4394,7 +4322,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:post_password><![CDATA[]]></wp:post_password>
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="nature"><![CDATA[Nature]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1013]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1012]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Précy and the Marionnettes, part 3</title>
@@ -4453,7 +4381,7 @@ I should not do justice to his own idea of himself if I did not add that he was 
 		<wp:is_sticky>0</wp:is_sticky>
 		<category domain="category" nicename="travel"><![CDATA[Travel]]></category>
 		<category domain="post_tag" nicename="water"><![CDATA[Water]]></category>
-		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1023]]></wp:meta_value></wp:postmeta>
+		<wp:postmeta><wp:meta_key><![CDATA[_thumbnail_id]]></wp:meta_key><wp:meta_value><![CDATA[1021]]></wp:meta_value></wp:postmeta>
 	</item>
 	<item>
 		<title>Masters and Men, part 2</title>
