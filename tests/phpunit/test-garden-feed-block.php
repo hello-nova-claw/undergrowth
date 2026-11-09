@@ -156,13 +156,15 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 	public function test_the_seed_packet_style_draws_cards_from_the_themes_colours() {
 		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
 
-		// Each entry is a card: rounded, shaded from the text colour, on the
-		// theme's own background, with its text centred. A long word breaks
-		// rather than being cut off by the card. A theme without a base
-		// colour gets the trace over its own page, never a system colour that
-		// could put light text on a light card.
-		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-item \{[^}]*\bborder-radius:[^}]*\btext-align: center;[^}]*\boverflow-wrap: anywhere;[^}]*\bbackground: color-mix\(in srgb, currentcolor 3%, var\(--wp--preset--color--base, transparent\)\);[^}]*\bbox-shadow: [^;}]*currentcolor#ms', $css );
+		// Each entry is a card: rounded, shaded from the text colour, with its
+		// text centred. A long word breaks rather than being cut off by the
+		// card. The surface is a trace of the text colour over whatever lies
+		// behind the block, never the theme's base colour or a system colour,
+		// either of which could put light text on a light card, as in a dark
+		// Group on a light theme.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-item \{[^}]*\bborder-radius:[^}]*\btext-align: center;[^}]*\boverflow-wrap: anywhere;[^}]*\bbackground: color-mix\(in srgb, currentcolor 3%, transparent\);[^}]*\bbox-shadow: [^;}]*currentcolor#ms', $css );
 		$this->assertStringNotContainsString( 'Canvas', $css );
+		$this->assertStringNotContainsString( '--wp--preset--color--base', $css );
 
 		// A text card's icon sits in a round seed of its own.
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-icon \{[^}]*\bborder-radius: 50%;#ms', $css );

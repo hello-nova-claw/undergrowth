@@ -206,15 +206,15 @@
 /*
  * The Seed packet style draws each entry as a card: an arch on top, cut by
  * large corners that are a little uneven, as if by hand, and a soft packet
- * below. The card is the theme's background with a trace of its text
- * colour, and its shadow is drawn from that colour too, so the style has no
- * colour of its own. A theme without a base colour, as a classic theme may
- * be, gets the trace over its own page instead of a system colour, which
- * on a dark theme would put light text on a light card. The card clips its
- * picture, so a word longer than the card breaks rather than being cut
- * off. The style draws the cards only: the grid, or the
- * columns the author picks, still arranges them, so the list's order and a
- * screen reader's stay the same.
+ * below. The card is a trace of the text colour over whatever lies behind
+ * it, and its shadow is drawn from that colour too, so the style has no
+ * colour of its own. The trace is laid over the background the block sits
+ * on, never over the theme's base colour or a system colour, so a dark
+ * Group on a light theme, or a dark classic theme, never gets light text on
+ * a light card. The card clips its picture, so a word longer than the card
+ * breaks rather than being cut off. The style draws the cards only: the
+ * grid, or the columns the author picks, still arranges them, so the list's
+ * order and a screen reader's stay the same.
  */
 .wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-item {
 	grid-template-areas:
@@ -231,7 +231,7 @@
 	border-radius: 3.25rem 2.75rem 2.25rem 2.5rem / 3rem 3.25rem 2.5rem 2.25rem;
 	text-align: center;
 	overflow-wrap: anywhere;
-	background: color-mix(in srgb, currentcolor 3%, var(--wp--preset--color--base, transparent));
+	background: color-mix(in srgb, currentcolor 3%, transparent);
 	box-shadow: 0 1rem 2rem -0.75rem color-mix(in srgb, currentcolor 28%, transparent);
 }
 
