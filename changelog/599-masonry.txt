@@ -1,0 +1,1 @@
+The Garden feed block has a new Layout setting. Grid, the default, keeps every row the height of its tallest card. Masonry packs cards of different heights into columns, so a short note beside a tall picture leaves no gap under it; the cards then read down each column in turn.
