@@ -169,6 +169,10 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		// A text card's icon sits in a round seed of its own.
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-icon \{[^}]*\bborder-radius: 50%;#ms', $css );
 
+		// Every card without a picture, a theme's icon or not, keeps space
+		// above its title, so the card never clips the focus outline.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-item:not\(\.has-image\) \{[^}]*\bpadding-block-start: var\(--wp--preset--spacing--50#ms', $css );
+
 		// The title is set in capitals, spaced out.
 		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-title \{[^}]*\btext-transform: uppercase;[^}]*\bletter-spacing:#ms', $css );
 	}

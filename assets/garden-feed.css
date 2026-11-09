@@ -244,8 +244,11 @@
 	object-fit: cover;
 }
 
-/* A text card has no picture, so it keeps the same space above its icon. */
-.wp-block-undergrowth-garden-feed.is-style-seed-packet .has-icon {
+/*
+ * A card with no picture, with or without its type's icon, keeps space above
+ * its text, so the card never clips the title's focus outline.
+ */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-item:not(.has-image) {
 	padding-block-start: var(--wp--preset--spacing--50, 2.25rem);
 }
 
