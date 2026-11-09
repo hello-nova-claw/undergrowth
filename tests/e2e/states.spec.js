@@ -714,6 +714,11 @@ const WITH_GARDEN_FEED = [
 		state: 'editor-feed',
 		edit: () => gardenFeedPages.feed,
 	},
+	{
+		screen: 'block-garden-feed',
+		state: 'front-seed-packet',
+		front: () => `/?page_id=${ gardenFeedPages.seedPacket }`,
+	},
 ];
 
 // The garden filters above the feed: every topic, then one chosen with a
@@ -1871,6 +1876,17 @@ test.describe( 'Screenshot catalogue', () => {
 					title: 'Garden',
 					content:
 						'<!-- wp:pattern {"slug":"undergrowth/garden-page"} /-->',
+					status: 'publish',
+				} )
+			).id;
+
+			// The same entries as Seed packet cards: image cards and text
+			// cards, with and without an excerpt.
+			gardenFeedPages.seedPacket = (
+				await requestUtils.createPage( {
+					title: 'Garden',
+					content:
+						'<!-- wp:undergrowth/garden-feed {"className":"is-style-seed-packet"} /-->',
 					status: 'publish',
 				} )
 			).id;
