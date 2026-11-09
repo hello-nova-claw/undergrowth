@@ -36,6 +36,11 @@
 		"showType": {
 			"type": "boolean",
 			"default": true
+		},
+		"layout": {
+			"type": "string",
+			"enum": [ "grid", "masonry" ],
+			"default": "grid"
 		}
 	},
 	"supports": {
