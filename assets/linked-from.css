@@ -14,7 +14,15 @@
 	letter-spacing: 0.08em;
 }
 
-.wp-block-undergrowth-linked-from ul {
+/*
+ * The rules name the block's class and the list's class. A classic theme
+ * indents every list in the content, with a rule such as
+ * `.entry-content ul { padding-left: 2em }` and the theme's bullets,
+ * printed after the block's styles, and the block's class and the element
+ * alone would tie with it and lose: the posts would then start a step in
+ * from the heading, each behind a bullet.
+ */
+.wp-block-undergrowth-linked-from ul.wp-block-undergrowth-linked-from-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -24,14 +32,15 @@
  * Each post's link sits on a line of its own, kept at least 24px tall for
  * touch and pointer users (WCAG 2.5.8), even at a small font size.
  */
-.wp-block-undergrowth-linked-from li {
+.wp-block-undergrowth-linked-from .wp-block-undergrowth-linked-from-list > li {
 	min-height: 24px;
 	margin: 0;
-	padding-block: 0.6em;
+	padding: 0.6em 0;
+	list-style: none;
 	border-block-end: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
 }
 
-.wp-block-undergrowth-linked-from li:first-child {
+.wp-block-undergrowth-linked-from .wp-block-undergrowth-linked-from-list > li:first-child {
 	border-block-start: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
 }
 

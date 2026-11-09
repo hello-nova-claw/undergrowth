@@ -126,6 +126,24 @@ class Test_Linked_From_Block extends WP_UnitTestCase {
 		$this->assertTrue( WP_Block_Type_Registry::get_instance()->is_registered( 'undergrowth/linked-from' ) );
 	}
 
+	public function test_the_list_keeps_the_blocks_edge_under_a_classic_themes_list_rule() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/linked-from.css' );
+
+		// A classic theme indents every list in the content with a rule
+		// such as `.entry-content ul`, a class and an element printed after
+		// the block's styles. The list's reset names the block's class, the
+		// element and the list's class, and each entry's rule the block's
+		// class and the list's class, so both outrank that rule.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-linked-from ul\.wp-block-undergrowth-linked-from-list \{[^}]*\bmargin: 0;[^}]*\bpadding: 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-linked-from \.wp-block-undergrowth-linked-from-list > li \{[^}]*\bmargin: 0;[^}]*\bpadding: 0\.6em 0;[^}]*\blist-style: none;#ms', $css );
+		$this->assertDoesNotMatchRegularExpression( '#^\.wp-block-undergrowth-linked-from (ul|li) \{#m', $css );
+
+		$target = $this->publish( 'Oca' );
+		$this->link( $this->publish( 'Yacon' ), $target );
+
+		$this->assertStringContainsString( '<ul class="wp-block-undergrowth-linked-from-list"><li>', $this->render( $target ) );
+	}
+
 	public function test_lists_the_posts_with_an_accepted_link_here_newest_first() {
 		$target = $this->publish( 'Oca' );
 		$older  = $this->publish( 'Yacon', array( 'post_date' => '2026-01-01 10:00:00' ) );

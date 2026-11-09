@@ -145,6 +145,48 @@ class Test_Garden_Feed_Block extends WP_UnitTestCase {
 		$this->assertDoesNotMatchRegularExpression( '#^\.wp-block-undergrowth-garden-feed-list \{#m', $css );
 	}
 
+	public function test_offers_a_seed_packet_style() {
+		$registry = WP_Block_Styles_Registry::get_instance();
+		$registry->unregister( 'undergrowth/garden-feed', 'seed-packet' );
+
+		undergrowth_register_block_styles();
+
+		$this->assertTrue( $registry->is_registered( 'undergrowth/garden-feed', 'seed-packet' ) );
+		$this->assertSame( 'Seed packet', $registry->get_registered_styles_for_block( 'undergrowth/garden-feed' )['seed-packet']['label'] );
+	}
+
+	public function test_the_seed_packet_style_draws_cards_from_the_themes_colours() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
+
+		// Each entry is a card: rounded, shaded from the text colour, with its
+		// text centred. A long word breaks rather than being cut off by the
+		// card. The surface is a trace of the text colour over whatever lies
+		// behind the block, never the theme's base colour or a system colour,
+		// either of which could put light text on a light card, as in a dark
+		// Group on a light theme.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-item \{[^}]*\bborder-radius:[^}]*\btext-align: center;[^}]*\boverflow-wrap: anywhere;[^}]*\bbackground: color-mix\(in srgb, currentcolor 3%, transparent\);[^}]*\bbox-shadow: [^;}]*currentcolor#ms', $css );
+		$this->assertStringNotContainsString( 'Canvas', $css );
+		$this->assertStringNotContainsString( '--wp--preset--color--base', $css );
+
+		// A text card's icon sits in a round seed of its own.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-icon \{[^}]*\bborder-radius: 50%;#ms', $css );
+
+		// Every card without a picture, a theme's icon or not, keeps space
+		// above its title, so the card never clips the focus outline.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-item:not\(\.has-image\) \{[^}]*\bpadding-block-start: var\(--wp--preset--spacing--50#ms', $css );
+
+		// The title is set in capitals, spaced out.
+		$this->assertMatchesRegularExpression( '#^\.wp-block-undergrowth-garden-feed\.is-style-seed-packet \.wp-block-undergrowth-garden-feed-title \{[^}]*\btext-transform: uppercase;[^}]*\bletter-spacing:#ms', $css );
+	}
+
+	public function test_the_seed_packet_style_leaves_the_arrangement_to_the_layout() {
+		$css = (string) file_get_contents( dirname( UNDERGROWTH_FILE ) . '/assets/garden-feed.css' );
+
+		// The style draws the cards; how they are arranged, in the grid or in
+		// columns, stays the layout's choice, so no style rule touches the list.
+		$this->assertDoesNotMatchRegularExpression( '#^[^{}]*\.is-style-seed-packet[^{}]*-list\b[^{}]*\{#m', $css );
+	}
+
 	public function test_lists_posts_newest_tended_first() {
 		$this->post( 'Oca', 30 );
 		$this->post( 'Yacon', 2 );

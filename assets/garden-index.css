@@ -37,7 +37,15 @@
 	margin-block-start: 0;
 }
 
-.wp-block-undergrowth-garden-index ul {
+/*
+ * The rules name the block's class and the list's class. A classic theme
+ * indents every list in the content, with a rule such as
+ * `.entry-content ul { padding-left: 2em }` and the theme's bullets,
+ * printed after the block's styles, and the block's class and the element
+ * alone would tie with it and lose: the posts would then start a step in
+ * from the group's name, each behind a bullet.
+ */
+.wp-block-undergrowth-garden-index ul.wp-block-undergrowth-garden-index-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -48,10 +56,11 @@
  * least 24px apart for touch and pointer users (WCAG 2.5.8), even at a
  * small font size.
  */
-.wp-block-undergrowth-garden-index li {
+.wp-block-undergrowth-garden-index .wp-block-undergrowth-garden-index-list > li {
 	min-height: 24px;
 	margin: 0;
-	padding-block: 0.2em;
+	padding: 0.2em 0;
+	list-style: none;
 }
 
 .wp-block-undergrowth-garden-index li > a {
@@ -123,7 +132,7 @@
 	margin-block-start: 0;
 }
 
-.is-style-specimen ul {
+.is-style-specimen .wp-block-undergrowth-garden-index-list {
 	break-inside: avoid;
 }
 

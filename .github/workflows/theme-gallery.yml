@@ -169,23 +169,44 @@ jobs:
           git config http.https://github.com/.extraheader "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git remote add origin "https://github.com/${REPOSITORY}.git"
 
-          pushed=''
+          # The branch holds every pull request's shots, gigabytes of them, so
+          # only its trees are fetched. The commit is built from the index
+          # with plumbing commands that never read another folder's images,
+          # and a lazy fetch of one fails at once instead of hanging.
+          export GIT_NO_LAZY_FETCH=1
+          sha=''
           for _ in 1 2 3; do
-            if git fetch -q --depth 1 origin screenshots; then
-              git checkout -q -B screenshots FETCH_HEAD
+            if git fetch -q --depth 1 --filter=blob:none origin screenshots; then
+              parent=$(git rev-parse FETCH_HEAD)
+              git read-tree "$parent"
+
+              # A push over HTTPS always sends a thin pack, which reads the
+              # images this commit replaces as delta bases. Those are this
+              # folder's own, so they are fetched in one request, as git's
+              # lazy fetch would. An empty list would fetch the default refspec.
+              git ls-tree -r --format='%(objectname)' "$parent" -- "gallery-${PR}" > "${RUNNER_TEMP}/old-blobs"
+              if [ -s "${RUNNER_TEMP}/old-blobs" ]; then
+                git -c fetch.negotiationAlgorithm=noop fetch -q --no-tags --no-write-fetch-head \
+                  --recurse-submodules=no --filter=blob:none --stdin origin < "${RUNNER_TEMP}/old-blobs"
+              fi
             else
-              git checkout -q --orphan screenshots
+              parent=''
+              git read-tree --empty
             fi
 
+            git rm -r -q -f --cached --ignore-unmatch -- "gallery-${PR}"
             rm -rf "gallery-${PR}"
             mkdir -p "gallery-${PR}"
             if [ -d "${shots}/gallery" ]; then
               cp -R "${shots}/gallery/." "gallery-${PR}/"
             fi
+            if [ -n "$(ls -A "gallery-${PR}")" ]; then
+              git add -- "gallery-${PR}"
+            fi
 
-            git add -A "gallery-${PR}"
-            if git rev-parse -q --verify HEAD >/dev/null && git diff --cached --quiet; then
-              pushed=yes
+            tree=$(git write-tree --missing-ok)
+            if [ -n "$parent" ] && [ "$tree" = "$(git rev-parse "${parent}^{tree}")" ]; then
+              sha=$parent
               break
             fi
 
@@ -197,22 +218,22 @@ jobs:
               echo "stale=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            git commit -q -m "Theme gallery for #${PR} at ${HEAD_SHA:0:7}."
+            commit=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "Theme gallery for #${PR} at ${HEAD_SHA:0:7}.")
 
             # Another pull request may have pushed in the meantime. The next
             # try starts again from the fetched branch.
-            if git push -q origin screenshots; then
-              pushed=yes
+            if git push -q origin "${commit}:refs/heads/screenshots"; then
+              sha=$commit
               break
             fi
           done
 
-          if [ -z "$pushed" ]; then
+          if [ -z "$sha" ]; then
             echo "::error::Could not push to the screenshots branch."
             exit 1
           fi
 
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
 
       - name: Post or update the comment
         if: steps.current.outputs.stale != 'true' && steps.commit.outputs.stale != 'true'

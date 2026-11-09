@@ -1,0 +1,1 @@
+In classic themes such as Kadence, Astra and GeneratePress, the posts listed by "Linked from", "More like this" and the Garden index now keep the block's edge instead of taking the theme's indent and bullets for lists, so they line up with the heading above them.

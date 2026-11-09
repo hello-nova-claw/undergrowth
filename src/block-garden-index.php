@@ -411,7 +411,7 @@ function undergrowth_render_garden_index_block( $attributes ): string {
 		}
 
 		$sections .= sprintf(
-			'<h2 class="wp-block-heading">%1$s</h2><ul>%2$s</ul>%3$s',
+			'<h2 class="wp-block-heading">%1$s</h2><ul class="wp-block-undergrowth-garden-index-list">%2$s</ul>%3$s',
 			esc_html( '' === $group['name'] ? __( 'Other posts', 'undergrowth' ) : $group['name'] ),
 			$items,
 			$more
