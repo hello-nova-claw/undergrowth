@@ -203,6 +203,111 @@
 	outline-offset: 2px;
 }
 
+/*
+ * The Seed packet style draws each entry as a card: an arch on top, cut by
+ * large corners that are a little uneven, as if by hand, and a soft packet
+ * below. The card is a trace of the text colour over whatever lies behind
+ * it, and its shadow is drawn from that colour too, so the style has no
+ * colour of its own. The trace is laid over the background the block sits
+ * on, never over the theme's base colour or a system colour, so a dark
+ * Group on a light theme, or a dark classic theme, never gets light text on
+ * a light card. The card clips its picture, so a word longer than the card
+ * breaks rather than being cut off. The style draws the cards only: the
+ * grid, or the columns the author picks, still arranges them, so the list's
+ * order and a screen reader's stay the same.
+ */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-item {
+	grid-template-areas:
+		"image"
+		"icon"
+		"title"
+		"excerpt"
+		"details";
+	grid-template-columns: minmax(0, 1fr);
+	justify-items: center;
+	padding: 0 var(--wp--preset--spacing--40, 1.5rem) var(--wp--preset--spacing--50, 2.25rem);
+	overflow: hidden;
+	border: 0;
+	border-radius: 3.25rem 2.75rem 2.25rem 2.5rem / 3rem 3.25rem 2.5rem 2.25rem;
+	text-align: center;
+	overflow-wrap: anywhere;
+	background: color-mix(in srgb, currentcolor 3%, transparent);
+	box-shadow: 0 1rem 2rem -0.75rem color-mix(in srgb, currentcolor 28%, transparent);
+}
+
+/* The picture fills the card's width, so the corners cut its arch. */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-image {
+	width: calc(100% + 2 * var(--wp--preset--spacing--40, 1.5rem));
+	max-width: none;
+	margin: 0 calc(-1 * var(--wp--preset--spacing--40, 1.5rem)) var(--wp--preset--spacing--40, 1.5rem);
+	aspect-ratio: 16 / 10;
+	object-fit: cover;
+}
+
+/*
+ * A card with no picture, with or without its type's icon, keeps space above
+ * its text, so the card never clips the title's focus outline.
+ */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-item:not(.has-image) {
+	padding-block-start: var(--wp--preset--spacing--50, 2.25rem);
+}
+
+/* The type's icon, larger, in a round seed of a deeper trace of the text colour. */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-icon {
+	display: grid;
+	place-items: center;
+	width: 3.5rem;
+	height: 3.5rem;
+	margin-block-end: var(--wp--preset--spacing--30, 1rem);
+	border-radius: 50%;
+	background: color-mix(in srgb, currentcolor 8%, transparent);
+}
+
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-icon > svg {
+	width: 1.75rem;
+	height: 1.75rem;
+}
+
+/*
+ * The title is set in capitals, spaced out. Its underline shows only on
+ * hover and focus, since the whole card reads as one entry; the focus
+ * outline is kept.
+ */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-title {
+	font-size: 1.25em;
+	font-weight: 500;
+	line-height: 1.25;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-title span {
+	text-decoration-color: transparent;
+}
+
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-title:hover span,
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-title:focus-visible span {
+	text-decoration-color: currentcolor;
+}
+
+/* The stage's glyph stands centred above the title. */
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-title .wp-block-undergrowth-garden-feed-stage {
+	display: block;
+	width: max-content;
+	margin: 0 auto 0.35em;
+}
+
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-excerpt {
+	max-width: 30ch;
+	margin-block-start: 0.75em;
+	font-size: 0.95em;
+	line-height: 1.55;
+}
+
+.wp-block-undergrowth-garden-feed.is-style-seed-packet .wp-block-undergrowth-garden-feed-details {
+	margin-block-start: 0.9em;
+}
+
 @media (prefers-reduced-motion: reduce) {
 
 	.wp-block-undergrowth-garden-feed-title span,

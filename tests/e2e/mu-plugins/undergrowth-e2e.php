@@ -185,6 +185,28 @@ add_filter(
 	4
 );
 
+// The Suggestions table lists the newest suggestions first, to the second,
+// so two suggestions written either side of a second swapped places between
+// two runs. On the same sites, every suggestion is dated 1 January 2026 at
+// the end of each request, and the table falls back to its fixed order.
+add_action(
+	'shutdown',
+	static function () {
+		global $wpdb;
+
+		if ( false === get_option( 'undergrowth_e2e_planted' ) || ! function_exists( 'undergrowth_links_table' ) ) {
+			return;
+		}
+
+		// Quietly, since a request before the plugin's tables exist has none.
+		$suppress = $wpdb->suppress_errors();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Test sites only, and the table is the plugin's own.
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = %s WHERE updated_at <> %s', undergrowth_links_table(), '2026-01-01 10:00:00', '2026-01-01 10:00:00' ) );
+		$wpdb->suppress_errors( $suppress );
+	}
+);
+
 /**
  * Reads the whole demo blog once it is imported, as the backfill and the
  * monthly cycle would over a few hours: every post is embedded, the cycle
@@ -312,6 +334,33 @@ add_filter(
 	3
 );
 
+// Playground serves every file in uploads, deny rules or not, so the check
+// on the per-post folder finds it open, and Settings warns about it, only
+// once the check's cron event has run. That differs between two catalogue
+// runs. On a site whose blueprint adds the option, the folder answers the
+// check as a server with the deny rule would, so the warning never shows.
+add_filter(
+	'pre_http_request',
+	static function ( $preempt, $args, $url ) {
+		if ( false === get_option( 'undergrowth_e2e_planted' ) || ! function_exists( 'undergrowth_memory_folder' ) || false === strpos( (string) $url, '/' . undergrowth_memory_folder() . '/posts/undergrowth-check-' ) ) {
+			return $preempt;
+		}
+
+		return array(
+			'headers'  => array(),
+			'body'     => '',
+			'response' => array(
+				'code'    => 404,
+				'message' => 'Not Found',
+			),
+			'cookies'  => array(),
+			'filename' => null,
+		);
+	},
+	10,
+	3
+);
+
 /**
  * Finds the demo blog's illustrations, demo/images/ in the repository:
  * mounted beside the demo WXR files on a local site, or inside the plugin
@@ -332,36 +381,18 @@ function undergrowth_e2e_demo_images_dir(): string {
 // The demo WXR files name each illustration by its address in the
 // repository, for a real site to download when it imports them. A test site
 // has no network, and a preview must show the files of its own commit, so
-// the importer's download is answered from the local copy. The importer
-// streams each file to a temporary path; a name the copy lacks gets a 404,
-// so the importer moves on without a request.
+// the importer's download is answered from the local copy, through the
+// plugin's helper, whichever folder holds it. The plugin itself only answers
+// for a file it has and leaves the rest to the network; here a name the copy
+// lacks gets a 404, so the importer moves on without a request.
 add_filter(
 	'pre_http_request',
 	static function ( $preempt, $args, $url ) {
-		$base = 'https://raw.githubusercontent.com/hello-nova-claw/undergrowth/main/demo/images/';
-
-		if ( 0 !== strpos( (string) $url, $base ) || empty( $args['stream'] ) || empty( $args['filename'] ) ) {
+		if ( false !== $preempt || ! function_exists( 'undergrowth_demo_image_response' ) || '' === undergrowth_demo_image_name( (string) $url ) || empty( $args['stream'] ) || empty( $args['filename'] ) ) {
 			return $preempt;
 		}
 
-		$dir   = undergrowth_e2e_demo_images_dir();
-		$name  = sanitize_file_name( substr( (string) $url, strlen( $base ) ) );
-		$path  = $dir . '/' . $name;
-		$found = '' !== $dir && '' !== $name && is_file( $path ) && copy( $path, (string) $args['filename'] );
-
-		return array(
-			'headers'  => $found ? array(
-				'content-type'   => (string) wp_check_filetype( $name )['type'],
-				'content-length' => (string) filesize( $path ),
-			) : array(),
-			'body'     => '',
-			'response' => array(
-				'code'    => $found ? 200 : 404,
-				'message' => $found ? 'OK' : 'Not Found',
-			),
-			'cookies'  => array(),
-			'filename' => $found ? (string) $args['filename'] : null,
-		);
+		return undergrowth_demo_image_response( undergrowth_demo_image_path( undergrowth_e2e_demo_images_dir(), (string) $url ), $args );
 	},
 	10,
 	3

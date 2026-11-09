@@ -54,8 +54,8 @@ function undergrowth_register_blocks(): void {
  * Registers the block styles authors can pick in place of the plain lists
  * and the display numeral.
  *
- * Each is a real alternative layout, drawn in the plugin's stylesheets from
- * the theme's own colours and spacing.
+ * Each is a real alternative layout, or for the garden feed a card look,
+ * drawn in the plugin's stylesheets from the theme's own colours and spacing.
  */
 function undergrowth_register_block_styles(): void {
 	register_block_style(
@@ -79,6 +79,14 @@ function undergrowth_register_block_styles(): void {
 		array(
 			'name'  => 'quiet',
 			'label' => _x( 'Quiet', 'block style', 'undergrowth' ),
+		)
+	);
+
+	register_block_style(
+		'undergrowth/garden-feed',
+		array(
+			'name'  => 'seed-packet',
+			'label' => _x( 'Seed packet', 'block style', 'undergrowth' ),
 		)
 	);
 }

@@ -1,0 +1,1 @@
+The Garden feed has a new "Seed packet" style: each post becomes a soft card with an arched picture, centred text and a title in spaced capitals, drawn in your theme's own colours.
