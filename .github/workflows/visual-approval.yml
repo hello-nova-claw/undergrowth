@@ -57,6 +57,9 @@ jobs:
       # On pull_request_target, the base branch's newest commit, which this
       # workflow runs from too.
       BASE_SHA: ${{ github.sha }}
+      # When the pull request was opened, pushed to or reopened: the event
+      # this run answers, however late the run starts.
+      EVENT_AT: ${{ github.event.pull_request.updated_at }}
       SENDER: ${{ github.event.sender.login }}
     steps:
       - run: |
@@ -132,7 +135,20 @@ jobs:
                 # since GitHub can start this run late, and replace it. A
                 # required status that is not set yet blocks the merge as a
                 # pending one does.
-                echo 'The Screenshots workflow sets Visual approval for this commit.'
+                #
+                # One case is left. A commit can be the head again: pushed
+                # back to, reopened, or shared with another pull request. A
+                # pass from before this event was for an earlier look at it,
+                # so it waits again. A decision made for this event is newer
+                # and is left alone, and should one arrive between the read
+                # and the write, the worst is a pass that waits.
+                passed=$(gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/statuses?per_page=100" \
+                  --jq '[.[] | select(.context == "Visual approval")][0] // empty | select(.state == "success") | .created_at')
+                if [[ -n "$passed" && ! "$passed" > "$EVENT_AT" ]]; then
+                  status pending 'Waiting for the Screenshots workflow to check this commit again.'
+                else
+                  echo 'The Screenshots workflow sets Visual approval for this commit.'
+                fi
               fi
               ;;
 
