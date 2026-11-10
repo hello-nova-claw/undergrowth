@@ -1,6 +1,6 @@
 # Handover: Undergrowth
 
-Status (2026-10-25): v1, germination mode, is built, and all 57 issues from the October 2026 independent review are closed. Anna decided on 2026-10-25 to hold the first release until the post-v1 pillars in section 12 exist (Prompt studio, "More like this", garden SEO, reader-facing garden). Reasoning is in docs/vision.md. Reader mode still waits for v2.
+Status (2026-11-10): v1, germination mode, is built, and all 57 issues from the October 2026 independent review are closed. Every post-v1 pillar in section 12 is built too: the Prompt studio, "More like this", garden SEO (orphans, hubs, "Worth a look", "Linked from"), the reader-facing garden and cross-pollination. Beyond 12.4, a Garden page pattern sets Garden count, Garden filters and Garden feed blocks on a page; the feed has a Grid or Masonry layout and a "Seed packet" style. Next, per 12.5, is the first public release, 0.1.0, which is not tagged yet (see docs/release-checklist.md). Reader mode still waits for v2. Anna's reasoning for building the pillars first is in docs/vision.md.
 
 This document is the record of decisions, first made on 2026-10-18 as the input for the first Claude Code session, with later decisions added in place.
 
