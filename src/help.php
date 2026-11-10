@@ -80,7 +80,7 @@ function undergrowth_add_screen_help(): void {
 			__( 'Sprout: two or more accepted links, but not yet in a group of three or more posts on the Map.', 'undergrowth' ),
 			__( 'Budding: in a group, with accepted links both in and out.', 'undergrowth' ),
 			__( 'Evergreen: in a group, with three or more accepted links in, and a published hub page that links to it. A hub is a page you started from the Map, wrote and published yourself.', 'undergrowth' ),
-			__( 'Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again.', 'undergrowth' ),
+			__( 'Stages are measured when you accept a link and once a month, from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again.', 'undergrowth' ),
 		)
 	);
 

@@ -16,6 +16,7 @@ const UNDERGROWTH_STAGE_BATCH   = 100;
 // plain record in one fixed format, so these are not translated.
 const UNDERGROWTH_STAGE_REASONS = array(
 	'cycle'   => 'monthly cycle',
+	'accept'  => 'accepted a link',
 	'pin'     => 'pinned by the author',
 	'unpin'   => 'unpinned by the author',
 	'compost' => 'composted by the author',
@@ -36,9 +37,10 @@ add_filter( 'posts_clauses', 'undergrowth_order_by_stage_clauses', 10, 2 );
  * REST API can read it. Through REST, only someone who can edit the post
  * reads it; see undergrowth_hide_stage_from_readers().
  *
- * A stage changes only on the monthly cycle or through an author action, so
- * no client may write it through REST. A post with nothing stored reads as a
- * seedling, the stage of a new post, so saving a post never has to write it.
+ * A stage changes only on the monthly cycle or through an author action,
+ * accepting a link among them, so no client may write it through REST. A
+ * post with nothing stored reads as a seedling, the stage of a new post, so
+ * saving a post never has to write it.
  */
 function undergrowth_register_stage_meta(): void {
 	foreach ( undergrowth_indexed_post_types() as $post_type ) {
@@ -270,12 +272,14 @@ function undergrowth_is_stage_pinned( int $post_id ): bool {
  * the per-post file. The cycle storing a stage that did not change is not,
  * and the cycle never writes the stage of a pinned post.
  *
- * @param int    $post_id Post ID.
- * @param string $stage   One of UNDERGROWTH_STAGES.
- * @param string $reason  What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @param int    $post_id    Post ID.
+ * @param string $stage      One of UNDERGROWTH_STAGES.
+ * @param string $reason     What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @param bool   $only_raise Whether the stage is a measure, which is stored
+ *                           only when it does not lower the stage the post holds.
  * @return bool True when the post holds the stage and the change was recorded.
  */
-function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'cycle' ): bool {
+function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'cycle', bool $only_raise = false ): bool {
 	if ( ! in_array( $stage, UNDERGROWTH_STAGES, true ) || ! isset( UNDERGROWTH_STAGE_REASONS[ $reason ] ) || ! get_post( $post_id ) instanceof WP_Post ) {
 		return false;
 	}
@@ -288,7 +292,7 @@ function undergrowth_set_stage( int $post_id, string $stage, string $reason = 'c
 	}
 
 	try {
-		$changed = undergrowth_store_stage( $post_id, $stage, $reason );
+		$changed = undergrowth_store_stage( $post_id, $stage, $reason, $only_raise );
 	} finally {
 		WP_Upgrader::release_lock( "undergrowth_stage_{$post_id}" );
 	}
@@ -339,17 +343,19 @@ function undergrowth_lock_stage( int $post_id, bool $wait ): bool {
 /**
  * Stores a post's stage and records the change, while holding its lock.
  *
- * @param int    $post_id Post ID.
- * @param string $stage   One of UNDERGROWTH_STAGES.
- * @param string $reason  What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @param int    $post_id    Post ID.
+ * @param string $stage      One of UNDERGROWTH_STAGES.
+ * @param string $reason     What made the change: a key of UNDERGROWTH_STAGE_REASONS.
+ * @param bool   $only_raise Whether the stage is a measure, stored only when
+ *                           it does not lower the stage the post holds.
  * @return bool|null True when the change was recorded, false when the cycle
  *                   stored a stage that did not change, null when nothing was stored.
  */
-function undergrowth_store_stage( int $post_id, string $stage, string $reason ): ?bool {
-	// The cycle checked the pin before measuring, and the author may have
+function undergrowth_store_stage( int $post_id, string $stage, string $reason, bool $only_raise = false ): ?bool {
+	// A measure checked the pin before it measured, and the author may have
 	// pinned the post since, in another request. The meta cached for this
 	// one would not show it, so the pin is read again from the database.
-	if ( 'cycle' === $reason ) {
+	if ( 'cycle' === $reason || $only_raise ) {
 		wp_cache_delete( $post_id, 'post_meta' );
 
 		if ( undergrowth_is_stage_pinned( $post_id ) ) {
@@ -359,6 +365,22 @@ function undergrowth_store_stage( int $post_id, string $stage, string $reason ):
 
 	$from   = undergrowth_get_stage( $post_id );
 	$stored = metadata_exists( 'post', $post_id, 'undergrowth_stage' );
+
+	// The cycle and an accepted link can measure one post in two requests.
+	// Each compared its measure with the stage it read before the lock, so
+	// the later write could undo the higher one, or move a post composted
+	// in between. The stage read here, under the lock, decides.
+	if ( $only_raise ) {
+		$order = array_flip( UNDERGROWTH_GARDEN_STAGES );
+
+		if ( ! isset( $order[ $from ], $order[ $stage ] ) || $order[ $stage ] < $order[ $from ] ) {
+			return null;
+		}
+
+		if ( $from === $stage && 'cycle' !== $reason ) {
+			return null;
+		}
+	}
 
 	update_post_meta( $post_id, 'undergrowth_stage', $stage );
 
@@ -629,6 +651,36 @@ function undergrowth_run_stage_cycle( $after_id = 0 ): void {
  * @param int $post_id Post ID.
  */
 function undergrowth_cycle_post( int $post_id ): void {
+	undergrowth_raise_stage( $post_id, 'cycle' );
+}
+
+/**
+ * Measures the two posts of a link the author just accepted, and stores any
+ * stage that went up.
+ *
+ * Accepting a link is the author's action, so the stage it earns does not
+ * wait for the monthly cycle. A post published since the last cycle is in no
+ * cluster yet, so it can become a Sprout here, and no more until the cycle.
+ *
+ * @param int $source_id Post the link sits in.
+ * @param int $target_id Post the link points to.
+ */
+function undergrowth_measure_accepted_link( int $source_id, int $target_id ): void {
+	undergrowth_raise_stage( $source_id, 'accept' );
+	undergrowth_raise_stage( $target_id, 'accept' );
+}
+
+/**
+ * Measures a post and stores its stage when the measure is higher than the
+ * stored one.
+ *
+ * The cycle also stores the measure of a post that has no stage yet, so
+ * every indexed post holds one after it.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $reason  What asked for the measure: 'cycle' or 'accept'.
+ */
+function undergrowth_raise_stage( int $post_id, string $reason ): void {
 	$stage = undergrowth_get_stage( $post_id );
 
 	if ( 'composting' === $stage || undergrowth_is_stage_pinned( $post_id ) ) {
@@ -638,8 +690,8 @@ function undergrowth_cycle_post( int $post_id ): void {
 	$order    = array_flip( UNDERGROWTH_GARDEN_STAGES );
 	$measured = undergrowth_measure_stage( $post_id );
 
-	if ( $order[ $measured ] > $order[ $stage ] || ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) {
-		undergrowth_set_stage( $post_id, $measured );
+	if ( $order[ $measured ] > $order[ $stage ] || ( 'cycle' === $reason && ! metadata_exists( 'post', $post_id, 'undergrowth_stage' ) ) ) {
+		undergrowth_set_stage( $post_id, $measured, $reason, true );
 	}
 }
 

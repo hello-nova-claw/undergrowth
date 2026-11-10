@@ -182,7 +182,7 @@ export default function StagePanel( { postId, status } ) {
 							'undergrowth'
 						)
 					: __(
-							'The monthly cycle measures the stage from the links you accept. Pin a stage to keep it as it is.',
+							'The stage is measured from the links you accept, when you accept one and once a month. Pin a stage to keep it as it is.',
 							'undergrowth'
 						) }
 			</p>
