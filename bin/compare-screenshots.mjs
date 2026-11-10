@@ -89,7 +89,7 @@ function differs( a, b ) {
  * @param {string} after  Folder of shots from the pull request.
  * @return {{added: string[], changed: string[], removed: string[], unchanged: string[], skipped: string[]}} Shot names by outcome.
  */
-function compare( before, after ) {
+export function compare( before, after ) {
 	const old = new Set( pngs( before ) );
 	const now = pngs( after );
 	const result = {
