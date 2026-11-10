@@ -28,7 +28,7 @@ Work happens in WP-Cron, never in the request that saves a post:
 These rules hold across the code:
 
 - Vectors are only compared within the same provider, model and language. A vector without an identity is never stored.
-- Stages change only on the monthly cycle, never on save, and never go down. Pinning and composting are the exceptions, because they are author actions.
+- Stages change only on the monthly cycle and when the author accepts a link (`undergrowth_measure_accepted_link()`), never on save, and a measure never lowers one. Pinning and composting are the exceptions, because they are author actions.
 - Thresholds come from the site's own score percentiles (`thresholds.php`). The fixed 0.4 / 0.5 / 0.8 values apply below 20 posts and for OpenAI, until the real-posts test decides. `wp undergrowth scores` prints the thresholds in use.
 
 ## Running checks locally

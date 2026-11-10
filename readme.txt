@@ -26,7 +26,7 @@ Internal links are SEO from a different direction: they come from what you actua
 
 Also in this version:
 
-* **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured monthly from your accepted links and clusters. Stages never go down, and you can pin one.
+* **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured from your accepted links and clusters, when you accept a link and once a month. Stages never go down, and you can pin one.
 * **Composting.** Let a post rest. It stays published and keeps its links, but gets no new suggestions. When it sits close to what you are writing now, Undergrowth tells you once.
 * **Hub pages, if you want them.** Where a Map group is large and its posts already link to each other, Undergrowth proposes a hub page. Start a hub draft makes a draft holding only the group's titles as links, and you write and publish the rest. Undergrowth never publishes it. A published hub that links to a post counts towards Evergreen.
 * **Cross-pollination.** The Map lists pairs of groups that sit apart but could spark something together, from your own posts: a post near both, two posts not far apart, or words both use that the rest of your site rarely does. A surprise scale, from Close cousins to Wild, sets how far apart a pair may be. A post may also get one link suggestion across groups, marked Cross-pollination, and each week's questions hold one about such a pair.

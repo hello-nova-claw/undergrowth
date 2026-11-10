@@ -105,7 +105,7 @@ Composting rules:
 
 Rules:
 - Author can pin a stage. A pinned stage shows a small marker.
-- Stages change only on the monthly cycle, never on save. Author actions (pinning, composting, returning a post from compost) are the exception and take effect immediately.
+- Stages change on the monthly cycle and when the author accepts a link, never on save. Accepting a link measures its two posts at once, and only raises a stage (decided 2026-11-10, #620: a month between the action and its result made stages read as not working). The other author actions (pinning, composting, returning a post from compost) take effect immediately too.
 - Stage stored in post meta (themes can show it) and in the readable per-post file.
 - Nothing is auto-demoted in germination mode.
 - Stages double as the SEO health score. Composted posts are left out of it.
