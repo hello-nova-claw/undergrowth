@@ -16,7 +16,8 @@ name: Visual approval
 # It runs on pull_request_target so it can set statuses on forks' pull
 # requests. It never checks out or runs their code: it reads the pull
 # request through the API, and parses the Screenshots workflow's path list
-# from the head commit as data.
+# as data. The list comes from the base branch, never from the pull request,
+# whose author could otherwise empty it and pass with no label.
 
 on:
   pull_request_target:
@@ -50,6 +51,9 @@ jobs:
       REPOSITORY: ${{ github.repository }}
       HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      # On pull_request_target, the base branch's newest commit, which this
+      # workflow runs from too.
+      BASE_SHA: ${{ github.sha }}
       SENDER: ${{ github.event.sender.login }}
     steps:
       - run: |
@@ -75,9 +79,15 @@ jobs:
 
           case "$ACTION" in
             opened | synchronize | reopened)
-              gh api "repos/${REPOSITORY}/contents/.github/workflows/screenshots.yml?ref=${HEAD_SHA}" \
+              gh api "repos/${REPOSITORY}/contents/.github/workflows/screenshots.yml?ref=${BASE_SHA}" \
                 -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/screenshots.yml"
-              patterns=$(yq -r '.on.pull_request.paths[]' "${RUNNER_TEMP}/screenshots.yml")
+              patterns=$(yq -r '(.on.pull_request.paths // []) | .[]' "${RUNNER_TEMP}/screenshots.yml")
+              # Without the list nothing would match, and every pull request
+              # would pass.
+              if [ -z "$patterns" ]; then
+                status pending 'Could not read the files the Screenshots workflow watches. Waiting for a maintainer.'
+                exit 0
+              fi
               files=$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR}/files" \
                 --jq '.[] | .filename, (.previous_filename // empty)')
 
