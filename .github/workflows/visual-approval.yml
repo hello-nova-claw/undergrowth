@@ -1,0 +1,175 @@
+name: Visual approval
+
+# Keeps the required Visual approval status on every pull request, beside the
+# Screenshots workflow, which sets it from the shots it compares:
+#
+# - A pull request that changes no file the Screenshots workflow watches
+#   passes at once.
+# - One that does is left to that workflow, which passes it, or leaves it
+#   pending until a maintainer adds the visual-approved label. Nothing is set
+#   here in the meantime: a required status that is not set blocks the merge.
+# - Shots are not taken for forks, so a fork's pull request that could change
+#   a screen waits for the label. Each push removes it, and so does opening
+#   the pull request again: commits pushed while it was closed arrive with no
+#   push event, so a label kept from before would approve screens nobody saw.
+# - Adding the label passes the status, unless a Screenshots run for the head
+#   commit is still going: that run reads the label when it finishes.
+#   Removing the label sets the status back to pending.
+#
+# It runs on pull_request_target so it can set statuses on forks' pull
+# requests. It never checks out or runs their code: it reads the pull
+# request through the API, and parses the Screenshots workflow's path list
+# as data. The list comes from the base branch, never from the pull request,
+# whose author could otherwise empty it and pass with no label.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    name: Set Visual approval
+    # Other labels change nothing.
+    if: >-
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled')
+      || github.event.label.name == 'visual-approved'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+      statuses: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: ${{ github.event.action }}
+      PR: ${{ github.event.pull_request.number }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      REPOSITORY: ${{ github.repository }}
+      HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      # On pull_request_target, the base branch's newest commit, which this
+      # workflow runs from too.
+      BASE_SHA: ${{ github.sha }}
+      # When the pull request was opened, pushed to or reopened: the event
+      # this run answers, however late the run starts.
+      EVENT_AT: ${{ github.event.pull_request.updated_at }}
+      # The script orders two timestamps as strings, which only byte order
+      # gets right in every locale.
+      LC_ALL: C
+      SENDER: ${{ github.event.sender.login }}
+    steps:
+      - run: |
+          set -euo pipefail
+
+          status() {
+            gh api -X POST "repos/${REPOSITORY}/statuses/${HEAD_SHA}" \
+              -f state="$1" -f context='Visual approval' \
+              -f description="$2" -f target_url="$PR_URL" > /dev/null
+            echo "Visual approval: $1, $2"
+          }
+
+          # The newest Visual approval status on the head commit, as
+          # "<state> <description>", or nothing.
+          current() {
+            gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/statuses" \
+              --jq '[.[] | select(.context == "Visual approval")][0] // empty | "\(.state) \(.description)"'
+          }
+
+          labelled() {
+            [ "$(gh api "repos/${REPOSITORY}/issues/${PR}/labels" --jq 'any(.[]; .name == "visual-approved")')" = true ]
+          }
+
+          case "$ACTION" in
+            opened | synchronize | reopened)
+              gh api "repos/${REPOSITORY}/contents/.github/workflows/screenshots.yml?ref=${BASE_SHA}" \
+                -H 'Accept: application/vnd.github.raw' > "${RUNNER_TEMP}/screenshots.yml"
+              patterns=$(yq -r '(.on.pull_request.paths // []) | .[]' "${RUNNER_TEMP}/screenshots.yml")
+              # Without the list nothing would match, and every pull request
+              # would pass.
+              if [ -z "$patterns" ]; then
+                status pending 'Could not read the files the Screenshots workflow watches. Waiting for a maintainer.'
+                exit 0
+              fi
+              # One line for each file: its name, then the name it had.
+              listed=$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR}/files" \
+                --jq '.[] | [.filename, (.previous_filename // "")] | @tsv')
+              files=$(tr '\t' '\n' <<< "$listed")
+              total=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq '.changed_files')
+
+              # The path filter's ** matches across folders, as * does in a
+              # [[ ]] pattern.
+              visual=false
+              while IFS= read -r file; do
+                while IFS= read -r pattern; do
+                  glob=${pattern//\*\*/*}
+                  # shellcheck disable=SC2053 # The right side is a pattern.
+                  if [[ -n "$file" && $file == $glob ]]; then
+                    visual=true
+                    break 2
+                  fi
+                done <<< "$patterns"
+              done <<< "$files"
+
+              # GitHub lists at most 3,000 of a pull request's files, and one
+              # it leaves out could be a watched one.
+              count=$(grep -c . <<< "$listed" || true)
+              if [ "$visual" = false ] && [ "$count" -lt "$total" ]; then
+                visual=true
+                echo "Only ${count} of ${total} changed files are listed, so a watched file may have changed."
+              fi
+
+              if [ "$visual" = false ]; then
+                status success 'No file that can change a screen changed.'
+              elif [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; then
+                status pending 'Shots are not taken for forks. Waiting for a maintainer to check the screens and add visual-approved.'
+                if labelled; then
+                  gh api -X DELETE "repos/${REPOSITORY}/issues/${PR}/labels/visual-approved" > /dev/null
+                fi
+              else
+                # Only the Screenshots workflow sets the status for this
+                # commit. A status set here could land after its decision,
+                # since GitHub can start this run late, and replace it. A
+                # required status that is not set yet blocks the merge as a
+                # pending one does.
+                #
+                # One case is left. A commit can be the head again: pushed
+                # back to, reopened, or shared with another pull request. A
+                # pass from before this event was for an earlier look at it,
+                # so it waits again. A decision made for this event is newer
+                # and is left alone, and should one arrive between the read
+                # and the write, the worst is a pass that waits.
+                passed=$(gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/statuses?per_page=100" \
+                  --jq '[.[] | select(.context == "Visual approval")][0] // empty | select(.state == "success") | .created_at')
+                if [[ -n "$passed" && ! "$passed" > "$EVENT_AT" ]]; then
+                  status pending 'Waiting for the Screenshots workflow to check this commit again.'
+                else
+                  echo 'The Screenshots workflow sets Visual approval for this commit.'
+                fi
+              fi
+              ;;
+
+            labeled)
+              running=$(gh api "repos/${REPOSITORY}/actions/workflows/screenshots.yml/runs?head_sha=${HEAD_SHA}" \
+                --jq '[.workflow_runs[] | select(.status != "completed")] | length')
+              if [ "$running" != 0 ]; then
+                echo 'A Screenshots run for this commit is still going. It reads the label when it finishes.'
+              elif [[ "$(current)" == success\ * ]]; then
+                echo 'Visual approval has already passed.'
+              else
+                status success "Approved by ${SENDER}."
+              fi
+              ;;
+
+            unlabeled)
+              if [[ "$(current)" == 'success Approved'* ]]; then
+                status pending "${SENDER} removed visual-approved. Waiting for a maintainer to check the screens and add it again."
+              fi
+              ;;
+          esac
