@@ -60,6 +60,9 @@ jobs:
       # When the pull request was opened, pushed to or reopened: the event
       # this run answers, however late the run starts.
       EVENT_AT: ${{ github.event.pull_request.updated_at }}
+      # The script orders two timestamps as strings, which only byte order
+      # gets right in every locale.
+      LC_ALL: C
       SENDER: ${{ github.event.sender.login }}
     steps:
       - run: |
