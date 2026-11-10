@@ -18,7 +18,7 @@ The AI may speak to the author, never for the author. Before you build anything,
 2. **Board.** Issues move across the project board: Backlog, Ready, In progress, In review, Done. Move the issue, not the pull request.
 3. **One branch and one pull request per issue.** Name the branch `<issue number>-<short-slug>`, for example `12-vector-table`.
 4. **Pull request.** Use the template. Link the issue with `Fixes #12`. Add your changelog line as a fragment, `changelog/<issue>-<slug>.txt`, for example `changelog/12-vector-table.txt`. Do not edit the changelog in `readme.txt`: when several pull requests are open, they would all change the same lines and conflict whenever one merges. At release time `npm run changelog` folds every fragment into `= Unreleased =` and deletes them. If the change really has no user-facing effect, say so in the PR and a maintainer will add the `no-changelog` label.
-5. **Review.** CodeRabbit reviews every pull request, and its approval is the required review. Nothing merges that only one agent has seen. `main` is protected: no direct pushes, all checks green, stale approvals dismissed on push.
+5. **Review.** Review your own diff first: read all of it as a reviewer would, and fix what you find before you ask for a review. CodeRabbit reviews every pull request, and its approval is the required review. Nothing merges that only one agent has seen. `main` is protected: no direct pushes, all checks green, stale approvals dismissed on push.
 
 ## Housekeeping
 
