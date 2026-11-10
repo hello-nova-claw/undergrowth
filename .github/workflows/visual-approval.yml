@@ -5,8 +5,9 @@ name: Visual approval
 #
 # - A pull request that changes no file the Screenshots workflow watches
 #   passes at once.
-# - One that does waits for that workflow, which passes it, or leaves it
-#   pending until a maintainer adds the visual-approved label.
+# - One that does is left to that workflow, which passes it, or leaves it
+#   pending until a maintainer adds the visual-approved label. Nothing is set
+#   here in the meantime: a required status that is not set blocks the merge.
 # - Shots are not taken for forks, so a fork's pull request that could change
 #   a screen waits for the label. Each push removes it, and so does opening
 #   the pull request again: commits pushed while it was closed arrive with no
@@ -56,9 +57,6 @@ jobs:
       # On pull_request_target, the base branch's newest commit, which this
       # workflow runs from too.
       BASE_SHA: ${{ github.sha }}
-      # When the pull request was opened, pushed to or reopened: the event
-      # this run answers, however late the run starts.
-      EVENT_AT: ${{ github.event.pull_request.updated_at }}
       SENDER: ${{ github.event.sender.login }}
     steps:
       - run: |
@@ -67,7 +65,7 @@ jobs:
           status() {
             gh api -X POST "repos/${REPOSITORY}/statuses/${HEAD_SHA}" \
               -f state="$1" -f context='Visual approval' \
-              -f description="$2" -f target_url="${3:-$PR_URL}" > /dev/null
+              -f description="$2" -f target_url="$PR_URL" > /dev/null
             echo "Visual approval: $1, $2"
           }
 
@@ -76,18 +74,6 @@ jobs:
           current() {
             gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/statuses" \
               --jq '[.[] | select(.context == "Visual approval")][0] // empty | "\(.state) \(.description)"'
-          }
-
-          # The newest decision on the head commit made since this event, as
-          # "<state><tab><description><tab><url>", or nothing. Waiting for
-          # the Screenshots workflow is not a decision.
-          decided() {
-            local newest
-            newest=$(gh api "repos/${REPOSITORY}/commits/${HEAD_SHA}/statuses?per_page=100" \
-              --jq '[.[] | select(.context == "Visual approval" and .description != "Waiting for the Screenshots workflow.")][0] // empty | [.created_at, .state, .description, .target_url] | @tsv')
-            if [[ -n "$newest" && "${newest%%$'\t'*}" > "$EVENT_AT" ]]; then
-              printf '%s\n' "${newest#*$'\t'}"
-            fi
           }
 
           labelled() {
@@ -141,21 +127,12 @@ jobs:
                   gh api -X DELETE "repos/${REPOSITORY}/issues/${PR}/labels/visual-approved" > /dev/null
                 fi
               else
-                # The Screenshots workflow decides for this commit, and this
-                # run can start after it has. Its decision stays. One posted
-                # between the check and the pending status is posted again,
-                # so that it is the newest.
-                decision=$(decided)
-                if [ -n "$decision" ]; then
-                  echo 'This commit already has its Visual approval.'
-                else
-                  status pending 'Waiting for the Screenshots workflow.'
-                  decision=$(decided)
-                  if [ -n "$decision" ]; then
-                    IFS=$'\t' read -r state description url <<< "$decision"
-                    status "$state" "$description" "$url"
-                  fi
-                fi
+                # Only the Screenshots workflow sets the status for this
+                # commit. A status set here could land after its decision,
+                # since GitHub can start this run late, and replace it. A
+                # required status that is not set yet blocks the merge as a
+                # pending one does.
+                echo 'The Screenshots workflow sets Visual approval for this commit.'
               fi
               ;;
 
