@@ -12,12 +12,12 @@ The rule behind every feature: the AI may speak **to** the author, never **for**
 - **Growth stages.** Each post is a Seedling, Sprout, Budding or Evergreen, measured once a month from the links you have accepted and the groups your posts form. Stages never go down, and you can pin one. A Growth stage column shows them on the Posts list.
 - **Composting.** Move a post to compost to let it rest. It stays published and keeps its links but leaves the active garden. When an old composting post sits close to what you are writing now, Undergrowth tells you once.
 - **The Map.** Posts that are close in meaning are grouped once a month and listed on the Map tab. Each group is named after the title of its post nearest the middle, with words from your own posts under it. No model names them. A group with no post at its middle is marked as a gap.
-- **Prompt studio.** With an Anthropic key, Claude writes up to five new questions a week under **Posts › Prompt studio**, from a gap on the Map, a reader's question in an approved comment, a composting post or a cross-pollination pair of groups. Save one to your idea bank, replace it or dismiss it. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. There are no streaks and no reminders.
+- **Prompt studio.** With an Anthropic key, Claude keeps up to five new questions waiting under **Posts › Prompt studio**, topped up once a week, and Replace or More questions writes more when you ask, from a gap on the Map, a reader's question in an approved comment, a composting post or a cross-pollination pair of groups. Save one to your idea bank, replace it or dismiss it. It is always a question, never a draft, a title or an outline, and it quotes nobody but you. There are no streaks and no reminders.
 - **A page views meter.** With Jetpack Stats on, the Dashboard shows your page views in the last 30 days against a milestone of 1,000. Passing it changes nothing yet; it marks when the reader features of v2 can start.
 - **Discord, optionally.** Each new suggestion can also be posted to a private channel in your own Discord server, with Accept and Veto buttons.
 - **Abilities.** Through the WordPress Abilities API, `undergrowth/has`, `undergrowth/lacks`, `undergrowth/scent` and `undergrowth/stage` read a post, a group or the whole site. `undergrowth/accept-link` and `undergrowth/veto-link` work like the buttons and are never exposed over REST or MCP.
 - **Orphans and hubs.** The Orphans tab lists posts that no accepted link points to. A dense group can be offered as a hub draft. An Evergreen post you have not edited for a long time gets a quiet "Worth a look" note.
-- **Reader blocks.** A **Garden page** pattern sets a **Garden count** (with a "Quiet" style), **Garden filters** and a **Garden feed** on a page. The feed shows every post readers may see, newest tended first, as image cards and text cards, in a Grid or Masonry layout, with a "Seed packet" style. The other blocks are **Garden index** (with a "Specimen" style), **Linked from**, **More like this** (with a "Columns" style) and **Growth stage**, which shows a post's stage as an icon and a line of text. Every block takes its colours and spacing from your theme.
+- **Reader blocks.** A **Garden page** pattern sets a **Garden count** (with a "Quiet" style), **Garden filters** and a **Garden feed** on a page. The feed shows every post readers may see (published, public, without a password, in an indexed post type and not composting), newest tended first, as image cards and text cards, in a Grid or Masonry layout, with a "Seed packet" style. The other blocks are **Garden index** (with a "Specimen" style), **Linked from**, **More like this** (with a "Columns" style) and **Growth stage**, which shows a post's stage as an icon and a line of text. Every block takes its colours and spacing from your theme.
 - **In the editor.** An Undergrowth panel and sidebar show a post's stage and its suggestions, and **Scan this draft** suggests links for a draft when you ask.
 - **A monthly email, optionally,** of the best new link suggestions.
 - **A plain-text file for each post** in the uploads folder, recording its stage, its suggestions, your vetoes and the questions you were asked.
@@ -76,7 +76,7 @@ npm run test:js          # Jest
 npm run test:e2e         # Playwright, with axe
 ```
 
-CI runs all of these on every pull request, plus Plugin Check, a coverage gate, the POT check, pa11y-ci and a Playground preview link. Pull requests from this repository, not from forks, also get the screenshot comparison, and those labelled `theme-gallery` get the Garden page in ten themes.
+CI runs all of these on every pull request, plus Plugin Check, a coverage gate, the POT check and pa11y-ci. Pull requests from this repository, not from forks, also get a Playground preview link and the screenshot comparison, and those labelled `theme-gallery` get the Garden page in ten themes.
 
 ## Documentation
 
@@ -91,7 +91,7 @@ CI runs all of these on every pull request, plus Plugin Check, a coverage gate, 
 
 ## Status and roadmap
 
-Version 0.1.0, not yet released. v1 ("germination mode") and the post-v1 work are built: the Prompt studio, More like this, orphans, hubs, cross-pollination and the reader blocks. All of it works from your own posts and their approved comments only. v1 has been through security, quality and UX reviews.
+Version 0.1.0, not yet released. v1 ("germination mode") and the post-v1 work are built: the Prompt studio, More like this, orphans, hubs, cross-pollination and the reader blocks. All of it works from your own posts and their approved comments; More like this can also weigh recent views from Jetpack Stats, Koko Analytics or Post Views Counter if one is active. v1 has been through security, quality and UX reviews.
 
 v2 ("reader mode") reads where readers go and what they ask for, once a site has enough visits. It will add suggestions from reader paths and search, a prune list, a refresh list and hubs drawn from reader paths, each still approved by you.
 
