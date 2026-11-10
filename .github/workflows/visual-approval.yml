@@ -90,8 +90,11 @@ jobs:
                 status pending 'Could not read the files the Screenshots workflow watches. Waiting for a maintainer.'
                 exit 0
               fi
-              files=$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR}/files" \
-                --jq '.[] | .filename, (.previous_filename // empty)')
+              # One line for each file: its name, then the name it had.
+              listed=$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR}/files" \
+                --jq '.[] | [.filename, (.previous_filename // "")] | @tsv')
+              files=$(tr '\t' '\n' <<< "$listed")
+              total=$(gh api "repos/${REPOSITORY}/pulls/${PR}" --jq '.changed_files')
 
               # The path filter's ** matches across folders, as * does in a
               # [[ ]] pattern.
@@ -106,6 +109,14 @@ jobs:
                   fi
                 done <<< "$patterns"
               done <<< "$files"
+
+              # GitHub lists at most 3,000 of a pull request's files, and one
+              # it leaves out could be a watched one.
+              count=$(grep -c . <<< "$listed" || true)
+              if [ "$visual" = false ] && [ "$count" -lt "$total" ]; then
+                visual=true
+                echo "Only ${count} of ${total} changed files are listed, so a watched file may have changed."
+              fi
 
               if [ "$visual" = false ]; then
                 status success 'No file that can change a screen changed.'
