@@ -8,7 +8,9 @@ name: Visual approval
 # - One that does waits for that workflow, which passes it, or leaves it
 #   pending until a maintainer adds the visual-approved label.
 # - Shots are not taken for forks, so a fork's pull request that could change
-#   a screen waits for the label, and each push removes it.
+#   a screen waits for the label. Each push removes it, and so does opening
+#   the pull request again: commits pushed while it was closed arrive with no
+#   push event, so a label kept from before would approve screens nobody saw.
 # - Adding the label passes the status, unless a Screenshots run for the head
 #   commit is still going: that run reads the label when it finishes.
 #   Removing the label sets the status back to pending.
@@ -108,13 +110,9 @@ jobs:
               if [ "$visual" = false ]; then
                 status success 'No file that can change a screen changed.'
               elif [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; then
-                if [ "$ACTION" != synchronize ] && labelled; then
-                  status success "Approved by ${SENDER}."
-                else
-                  status pending 'Shots are not taken for forks. Waiting for a maintainer to check the screens and add visual-approved.'
-                  if labelled; then
-                    gh api -X DELETE "repos/${REPOSITORY}/issues/${PR}/labels/visual-approved" > /dev/null
-                  fi
+                status pending 'Shots are not taken for forks. Waiting for a maintainer to check the screens and add visual-approved.'
+                if labelled; then
+                  gh api -X DELETE "repos/${REPOSITORY}/issues/${PR}/labels/visual-approved" > /dev/null
                 fi
               else
                 status pending 'Waiting for the Screenshots workflow.'
