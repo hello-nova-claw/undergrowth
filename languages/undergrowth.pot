@@ -358,7 +358,7 @@ msgid "No published posts yet. Each post gets a growth stage once it is publishe
 msgstr ""
 
 #: src/admin.php
-msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is."
+msgid "Stages are measured when you accept a link and once a month, from the links you have accepted, and never lowered. Pin a stage to keep it as it is."
 msgstr ""
 
 #: src/admin.php
@@ -1491,7 +1491,7 @@ msgid "Evergreen: in a group, with three or more accepted links in, and a publis
 msgstr ""
 
 #: src/help.php
-msgid "Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again."
+msgid "Stages are measured when you accept a link and once a month, from the links you have accepted, and never lowered. Pin a stage to keep a post at it, and unpin it to have it measured again."
 msgstr ""
 
 #: src/help.php
@@ -3109,7 +3109,7 @@ msgstr ""
 
 #: build/editor/index.js
 #: src/editor/stage-panel.js
-msgid "The monthly cycle measures the stage from the links you accept. Pin a stage to keep it as it is."
+msgid "The stage is measured from the links you accept, when you accept one and once a month. Pin a stage to keep it as it is."
 msgstr ""
 
 #: build/editor/index.js

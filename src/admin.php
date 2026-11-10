@@ -639,7 +639,7 @@ function undergrowth_render_stages_tab(): void {
 		return;
 	}
 
-	echo '<p>' . esc_html__( 'Stages are measured once a month from the links you have accepted, and never lowered. Pin a stage to keep it as it is.', 'undergrowth' ) . '</p>';
+	echo '<p>' . esc_html__( 'Stages are measured when you accept a link and once a month, from the links you have accepted, and never lowered. Pin a stage to keep it as it is.', 'undergrowth' ) . '</p>';
 
 	// The counts are the garden's health. Composting is counted on its own
 	// line and never in a stage, so resting a post never reads as decline.
