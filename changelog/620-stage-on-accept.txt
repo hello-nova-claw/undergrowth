@@ -1,0 +1,1 @@
+A post's growth stage is now measured as soon as you accept a link, for both posts of the link, and no longer waits for the monthly cycle. Pinned and composting posts are left alone, and no stage is lowered.

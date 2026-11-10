@@ -55,6 +55,8 @@ function undergrowth_accept_link( int $source_id, int $target_id ): string {
 		return $result;
 	}
 
+	// Before the file is written, so the file shows the stage the link earned.
+	undergrowth_measure_accepted_link( $source_id, $target_id );
 	undergrowth_write_memory( $source_id );
 
 	return 'accepted';
